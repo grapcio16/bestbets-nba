@@ -191,11 +191,20 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     advanced=pd.DataFrame();hist=pd.DataFrame()
     with st.spinner('Pobieram dane drużyn i zakończone mecze…'):
         warnings=[]
+        # Simulation overview must not wait for stats.nba.com (often blocked in cloud).
+        # Use previously fetched, labeled NBA advanced metrics if cached; otherwise
+        # calculate team expectations from completed ESPN games.
         try:
-            advanced,am=load_dataset('Drużyny • advanced (pace/def)',season,nonce)
-            advanced=standardize_teams(advanced)
-            if am.get('stale'):warnings.append('NBA advanced — użyto starszej kopii danych.')
-        except Exception as e:warnings.append('Brak NBA advanced: '+str(e)[:150])
+            from sources import read_cache
+            cached_adv,am=read_cache('extended-Drużyny • advanced (pace/def)-'+season,12*3600)
+            if cached_adv:
+                advanced=standardize_teams(pd.DataFrame(cached_adv))
+                if am and am.get('stale'):
+                    warnings.append('NBA advanced: użyto starszej zapisanej kopii.')
+            else:
+                warnings.append('NBA advanced nie jest zapisane lokalnie — użyto danych meczowych ESPN.')
+        except Exception as e:
+            warnings.append('NBA advanced niedostępne: '+str(e)[:130])
         try:hist,msg=historical_espn_results(season,refresh=nonce>0)
         except Exception as e:msg='ESPN wyniki: '+str(e)
         if msg:warnings.append(msg)
