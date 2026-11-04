@@ -1,4 +1,4 @@
-"""BestBets v6.4: lazy betting views and lighter public hosting."""
+"""BestBets v6.5: faster cloud fallback and bounded ESPN player history."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -380,7 +380,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v6.4</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v6.5</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','🧪 Backtesting', '📚 NBA Data Lab', '📱 Telefon i publikacja'],index=0,label_visibility='collapsed')
@@ -452,9 +452,10 @@ elif page == '🏀 Symulacje 5000':
 
 elif page == '🧑‍🚀 Zawodnicy':
     st.subheader('Statystyki zawodników')
+    st.caption('Na hostingu publicznym NBA Stats może nie odpowiadać. Jeśli widzisz historię z ESPN, jest to niepełna próbka z ostatnich meczów, nie statystyki całego sezonu.')
     logs,meta=get_logs()
     if logs is not None and not logs.empty:
-        st.metric('Zawodnicy z występami w sezonie',logs['PLAYER_NAME'].nunique())
+        st.metric('Zawodnicy z dostępnymi występami',logs['PLAYER_NAME'].nunique())
         people=sorted(logs['PLAYER_NAME'].unique().tolist())
         c1,c2=st.columns([2,1])
         player=c1.selectbox('Zawodnik',people)
@@ -463,7 +464,7 @@ elif page == '🧑‍🚀 Zawodnicy':
         try:
             p=calc_projection(sub,market)
             v1,v2,v3,v4=st.columns(4)
-            labelled_metric(v1,'Średnia',f"{p['season_avg']:.1f}",'Średnia z całego dostępnego sezonu')
+            labelled_metric(v1,'Średnia',f"{p['season_avg']:.1f}",'Średnia z dostępnej próbki, niekoniecznie całego sezonu')
             labelled_metric(v2,'Ostatnie 5',f"{p['last5']:.1f}",'Średnia z pięciu ostatnich występów')
             labelled_metric(v3,'Prognoza',f"{p['prediction']:.1f}",'Modelowa wartość na kolejny mecz, nie wynik pewny')
             labelled_metric(v4,'Szacowane minuty',f"{p['estimated_minutes']:.1f}",'Model czasu gry oparty na ostatnich meczach')
@@ -488,7 +489,7 @@ elif page == '🧑‍🚀 Zawodnicy':
                 paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='rgba(0,0,0,0)',
                 font_color='#CFDAE7',showlegend=False,bargap=.24)
             st.plotly_chart(fig,use_container_width=True)
-            st.caption('Każdy słupek = jeden mecz, od najstarszego po lewej do najnowszego po prawej. Żółty = wynik niższy od prognozy; zielony = wynik równy prognozie lub wyższy. Jasnoniebieska linia = prognoza modelu, NIE linia bukmachera. Najedź na słupek, aby zobaczyć rywala.')
+            st.caption('Każdy słupek = jeden dostępny mecz, od najstarszego po lewej do najnowszego po prawej. Żółty = wynik niższy od prognozy; zielony = wynik równy prognozie lub wyższy. Jasnoniebieska linia = prognoza modelu, NIE linia bukmachera. Najedź na słupek, aby zobaczyć rywala.')
             st.dataframe(sub[['GAME_DATE','TEAM_ABBREVIATION','MATCHUP','MIN','PTS','REB','AST','FG3M','FG3A','PRA']].tail(20).sort_values('GAME_DATE',ascending=False),use_container_width=True,hide_index=True)
             mini_legend([],{'GAME_DATE':'Dzień rozegrania meczu','TEAM_ABBREVIATION':'Skrót drużyny gracza','MATCHUP':'Rywal i miejsce meczu','MIN':'Minuty na parkiecie','PTS':'Punkty zdobyte przez gracza','REB':'Zbiórki','AST':'Asysty','FG3M':'Celne rzuty za trzy','FG3A':'Próby rzutów za trzy','PRA':'Punkty + zbiórki + asysty'})
             st.download_button('Pobierz historię zawodnika',sub.to_csv(index=False).encode('utf-8-sig'),file_name='bestbets_zawodnik.csv',mime='text/csv')
@@ -676,6 +677,7 @@ elif page == '💹 Kursy i value':
                         'Rzeczywisty backtesting będzie możliwy po zakończeniu zarejestrowanych spotkań.')
         if selected_view=='🧮 Kalkulator (opcjonalnie)':
             st.markdown('#### Opcjonalne obliczenie dla własnej linii')
+            st.caption('Uwaga: przy zapasowych logach ESPN historia może zawierać tylko kilka ostatnich spotkań. Nie traktuj wtedy wyniku jako wiarygodnego prawdopodobieństwa.')
             st.caption('Ten kalkulator jest dodatkowy. Automatyczne porównania działają bez wpisywania linii. W kalkulatorze wpisujesz tylko kurs i linię, a model sam liczy szansę gracza.')
             logs,meta=get_logs()
             if logs is not None and not logs.empty:
@@ -835,5 +837,5 @@ elif page == '📱 Telefon i publikacja':
     st.warning('Wszystkie osoby otwierające publiczną stronę będą korzystać ze wspólnego limitu The Odds API. BestBets ma lokalny budżet żądań, ale nie gwarantuje odporności na duży ruch. Na darmowym hostingu lokalna historia kursów może zniknąć przy restarcie; do archiwizacji potrzebna jest trwała baza.')
     st.caption('Prognozy mają charakter eksperymentalny; kursy mogą być niedostępne w Polsce. BestBets nie zawiera automatycznego obstawiania.')
 
-st.markdown('''<div class="bb-footer">BestBets v6.3 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
+st.markdown('''<div class="bb-footer">BestBets v6.5 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)
