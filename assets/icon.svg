@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+ <defs>
+  <radialGradient id="bg" cx="30%" cy="20%" r="90%"><stop stop-color="#233349"/><stop offset="1" stop-color="#09101B"/></radialGradient>
+  <linearGradient id="gold" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#FFF2BD"/><stop offset=".4" stop-color="#F8C65F"/><stop offset="1" stop-color="#9E6426"/></linearGradient>
+  <filter id="glow"><feGaussianBlur stdDeviation="11"/></filter>
+ </defs>
+ <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+ <circle cx="260" cy="248" r="161" fill="none" stroke="#D7A74E" stroke-width="12" opacity=".4" filter="url(#glow)"/>
+ <circle cx="256" cy="254" r="139" fill="#745020" stroke="#EDBE62" stroke-width="17"/>
+ <circle cx="256" cy="254" r="116" fill="url(#gold)"/>
+ <circle cx="256" cy="254" r="99" fill="none" stroke="#8A5727" stroke-opacity=".4" stroke-width="4"/>
+ <path d="M182 317 L182 204 L209 204 L209 274 L232 247 L232 317Z" fill="#2F281C" opacity=".9"/>
+ <path d="M239 314 L270 192 L295 192 L327 314 L299 314 L293 288 L270 288 L264 314Z M275 265 L287 265 L281 232Z" fill="#2F281C" fill-rule="evenodd"/>
+ <path d="M352 188 l16 -38 14 40 41 10 -40 15 -13 39 -15 -41 -38 -12Z" fill="#FFF3C2"/>
+ <path d="M131 320 l11 -23 7 24 24 8 -24 8 -8 24 -9 -25 -23 -8Z" fill="#F8CD6B"/>
+ <path d="M102 400 Q258 450 409 391" fill="none" stroke="#D5A950" stroke-width="7" opacity=".4" stroke-linecap="round"/>
+</svg>

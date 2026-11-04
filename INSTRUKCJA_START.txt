@@ -1,0 +1,19 @@
+BESTBETS v6 — START NA WINDOWS 11
+
+1) Rozpakuj caly ZIP do nowego folderu na Pulpicie.
+2) Uruchom dwa razy START_BESTBETS.bat.
+3) Otworz http://localhost:8501 (tylko na tym komputerze).
+4) Bez klucza aplikacja moze pokazac tylko kursy zwyciezcy meczu publikowane przez ESPN.
+5) Aby pobierac kursy z wielu bukmacherow i rynki graczy: zarejestruj sie w
+   https://the-odds-api.com/ , odbierz klucz i uruchom USTAW_KLUCZ_API.bat.
+   Wklej klucz RAZ w terminalu i uruchom ponownie START_BESTBETS.bat.
+6) W menu otworz 'Symulacje 5000'. Kazdy nadchodzacy mecz dostanie 5000 losowan,
+   jesli wystarczy realnych danych.
+7) W menu 'Kursy i value' aplikacja pobierze ceny po skonfigurowaniu klucza.
+
+WAZNE:
+- Betclic FR z dostawcy nie oznacza Betclic Polska.
+- Kursy / szacunki moga byc opoznione lub niedostepne.
+- Limit lokalny 15 kredytow dziennie chroni klucz przed szybkim zuzyciem.
+- Nie publikuj secrets.toml, nie wysylaj klucza API w czacie.
+- Obliczenia EV sa niekalibrowanymi szacunkami, bez gwarancji zysku.
