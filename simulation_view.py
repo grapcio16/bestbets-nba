@@ -22,7 +22,7 @@ def logo_html(code):
     return (f'<img src="{esc(url)}" alt="{esc(TEAM_NAMES.get(code, code))}" '
             'loading="lazy" style="width:64px;height:64px;object-fit:contain" />') if url else '🏀'
 
-@st.cache_data(ttl=30*60,show_spinner=False)
+@st.cache_data(ttl=60*60,max_entries=5,show_spinner=False)
 def build_sims(games,advanced,history,logs,injuries):
     """Process every upcoming game, returning simulation summaries AND all player means."""
     ratings=advanced_ratings(advanced)
@@ -169,11 +169,11 @@ def show_game_details(sim, g, player_table, advanced, hist):
 
 
 def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_injuries):
-    st.markdown('### 🏀 Symulacje NBA — 5 000 meczów dla każdego spotkania')
-    st.caption('Każdy widoczny mecz jest symulowany dokładnie 5 000 razy. To eksperymentalny model, nie oficjalne przewidywania NBA ani skalibrowane prawdopodobieństwa zakładów.')
+    st.markdown('### 🏀 Symulacje NBA — 5 000 przebiegów dla każdego spotkania')
+    st.caption('Dla szybkości domyślnie pokazujemy 1 dzień. Rozszerz okres suwakiem, by symulować więcej meczów (każdy 5 000 razy). Szanse są eksperymentalne i niekalibrowane.')
     st.markdown('''<div class="bb-panel"><strong>Co pokazujemy?</strong>
     <p>Pełne nazwy drużyn oraz pobrane herby (lub lokalne oznaczenia zastępcze), szansę zwycięstwa obu drużyn, średni przewidywany wynik i łączną sumę punktów. Kliknij przycisk pod dowolnym meczem, aby otworzyć jego wyniki i statystyki zawodników bez przewijania przez pozostałe mecze. Jeśli brakuje danych, model nie wyświetla fikcyjnego wyniku.</p></div>''',unsafe_allow_html=True)
-    days=st.select_slider('Pokaż nadchodzące mecze przez',options=[1,3,5,7,10,14],value=7,format_func=lambda d:f'{d} dni')
+    days=st.select_slider('Pokaż nadchodzące mecze przez',options=[1,3,5,7,10,14],value=1,format_func=lambda d:f'{d} dni')
     try:
         schedule,sm=load_schedule(nonce)
     except Exception as e:
