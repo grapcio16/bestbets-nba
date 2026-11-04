@@ -170,7 +170,7 @@ def show_game_details(sim, g, player_table, advanced, hist):
 
 def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_injuries):
     st.markdown('### 🏀 Symulacje NBA — 5 000 przebiegów dla każdego spotkania')
-    st.caption('Dla szybkości domyślnie pokazujemy 1 dzień. Rozszerz okres suwakiem, by symulować więcej meczów (każdy 5 000 razy). Szanse są eksperymentalne i niekalibrowane.')
+    st.caption('Wyniki drużyn pojawiają się bez pobierania historii wszystkich graczy. Po kliknięciu szczegółów wybranego meczu BestBets pobierze potrzebne statystyki. Każdy mecz: 5 000 prób, model eksperymentalny.')
     st.markdown('''<div class="bb-panel"><strong>Co pokazujemy?</strong>
     <p>Pełne nazwy drużyn oraz pobrane herby (lub lokalne oznaczenia zastępcze), szansę zwycięstwa obu drużyn, średni przewidywany wynik i łączną sumę punktów. Kliknij przycisk pod dowolnym meczem, aby otworzyć jego wyniki i statystyki zawodników bez przewijania przez pozostałe mecze. Jeśli brakuje danych, model nie wyświetla fikcyjnego wyniku.</p></div>''',unsafe_allow_html=True)
     days=st.select_slider('Pokaż nadchodzące mecze przez',options=[1,3,5,7,10,14],value=1,format_func=lambda d:f'{d} dni')
@@ -186,8 +186,10 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     st.caption(f"Terminarz: {sm.get('source','?')} · {len(games)} spotkań · godziny w Polsce")
     refresh_logos_in_background()
     st.caption(f'Herby: {cached_official_count()}/30 pobranych i zapisanych lokalnie. Pozostałe drużyny mają dołączone graficzne identyfikatory; źródła ESPN → NBA CDN są sprawdzane automatycznie w tle.')
-    advanced=pd.DataFrame();hist=pd.DataFrame();logs=pd.DataFrame();inj=pd.DataFrame()
-    with st.spinner('Pobieram statystyki drużyn, historię meczów i dostępne logi…'):
+    # Load team context first. Do not fetch player logs or injuries for every match
+    # while the user is only browsing the game cards.
+    advanced=pd.DataFrame();hist=pd.DataFrame()
+    with st.spinner('Pobieram dane drużyn i zakończone mecze…'):
         warnings=[]
         try:
             advanced,am=load_dataset('Drużyny • advanced (pace/def)',season,nonce)
@@ -197,16 +199,11 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
         try:hist,msg=historical_espn_results(season,refresh=nonce>0)
         except Exception as e:msg='ESPN wyniki: '+str(e)
         if msg:warnings.append(msg)
-        try:
-            raw,lm=load_logs(season,nonce)
-            from core import normalize_logs
-            logs=normalize_logs(raw)
-            if lm.get('coverage'):warnings.append('Logi NBA CDN są częściowe — statystyki zawodników mogą być niekompletne.')
-        except Exception as e:warnings.append('Brak logów zawodników: '+str(e)[:150])
-        try:inj,im=load_injuries(nonce)
-        except Exception as e:warnings.append('Brak raportu ESPN: '+str(e)[:150])
     for warn in warnings:st.caption('⚠️ '+warn)
-    summary,player_tables,missing=build_sims(games,advanced,hist,logs,inj)
+    # Scores are simulated immediately; player estimates are loaded only for
+    # the selected game in its details dialog, never across all upcoming games.
+    summary,_,missing=build_sims(games,advanced,hist,pd.DataFrame(),pd.DataFrame())
+    st.caption('Szybki widok: mecze i wyniki drużyn. Statystyki zawodników pobierane są automatycznie po kliknięciu szczegółów wybranego meczu.')
     done={str(s['game_id']):s for s in summary}
     b1,b2,b3=st.columns(3)
     b1.metric('Mecze w terminarzu',len(games),help='Zaplanowane spotkania w wybranym okresie')
@@ -225,7 +222,24 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
             with cbtn:
                 if st.button('📊 Szczegóły meczu i statystyki zawodników',
                              key=f'open_sim_{sid}', use_container_width=True, type='primary'):
-                    show_game_details(sim,g.to_dict(),player_tables.get(sid),advanced,hist)
+                    players=pd.DataFrame()
+                    with st.spinner('Wczytuję statystyki tylko dla wybranego meczu…'):
+                        try:
+                            raw,metadata=load_logs(season,nonce)
+                            from core import normalize_logs
+                            player_logs=normalize_logs(raw)
+                            try:
+                                injury_data,_=load_injuries(nonce)
+                            except Exception:
+                                injury_data=pd.DataFrame()
+                            selected_game=pd.DataFrame([g.to_dict()])
+                            _,per_game,_=build_sims(selected_game,advanced,hist,player_logs,injury_data)
+                            players=per_game.get(sid,pd.DataFrame())
+                            if metadata.get('coverage'):
+                                st.caption('Historia zawodników jest niepełna: '+str(metadata['coverage']))
+                        except Exception as exc:
+                            st.caption('Dane zawodników niedostępne: '+str(exc)[:180])
+                    show_game_details(sim,g.to_dict(),players,advanced,hist)
         else:
             a=TEAM_NAMES.get(g['away'],g['away']);h=TEAM_NAMES.get(g['home'],g['home'])
             start=g['start_utc'].tz_convert('Europe/Warsaw').strftime('%d.%m %H:%M')
