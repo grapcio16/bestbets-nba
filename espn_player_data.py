@@ -81,7 +81,7 @@ def recent_espn_logs(season,max_games=18):
     current=f'{sy}-{(sy+1)%100:02d}'
     if season!=current:raise RuntimeError(f'ESPN fallback obsługuje tylko bieżący sezon {current}.')
     months=[];year,month=now.year,now.month
-    for _ in range(3):
+    for _ in range(1):
         if (year>sy) or month>=10:months.append((year,month))
         if month==1:year,month=year-1,12
         else:month-=1
