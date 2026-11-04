@@ -223,34 +223,31 @@ def espn_schedule(refresh=False):
 
 
 def schedule(refresh=False):
-    """First official NBA CDN; fallback to ESPN on HTTP 403/timeouts.
+    """Fast ESPN schedule first; official NBA CDN is a fallback if ESPN fails.
 
-    Neither source has guaranteed availability. Clearly label source and stale cache.
+    The feed source is always disclosed, including if it is stale.
+    This avoids a repeatedly blocked NBA CDN request before every first page load.
     """
-    official_error=None; stale_official=None
+    espn_error = None
     try:
-        raw,meta=memoized_json('nba-current-season-schedule',NBA_CDN_SCHEDULE,
-            ttl_seconds=6*3600,refresh=refresh)
-        parsed=parse_nba_schedule(raw)
+        parsed, meta = espn_schedule(refresh=refresh)
         if not parsed.empty:
-            if not meta.get('stale'):
-                meta['source']='NBA CDN — oficjalny terminarz' if meta.get('source')=='live' else 'NBA CDN — cache'
-                return parsed,meta
-            stale_official=(parsed,meta)
-        else:official_error=RuntimeError('NBA CDN zwróciło pusty terminarz')
-    except Exception as exc:official_error=exc
+            return parsed, meta
+        espn_error = RuntimeError('ESPN zwróciło pusty terminarz')
+    except Exception as exc:
+        espn_error = exc
+
     try:
-        parsed,meta=espn_schedule(refresh=refresh)
-        previous=meta.get('warning','')
-        reason=('NBA CDN niedostępne: '+str(official_error)) if official_error else 'NBA CDN zwróciło nieaktualne dane; użyto ESPN.'
-        meta['warning']=' '.join(filter(None,[reason,previous]))
-        return parsed,meta
-    except Exception as espn_error:
-        if stale_official:
-            df,meta=stale_official
-            meta['warning']=f'NBA CDN/ESPN niedostępne lub nieaktualne: {espn_error}'
-            return df,meta
-        raise RuntimeError(f'Terminarz NBA niedostępny. NBA CDN: {official_error}; ESPN: {espn_error}') from espn_error
+        raw, meta = memoized_json('nba-current-season-schedule', NBA_CDN_SCHEDULE,
+                                  ttl_seconds=6*3600, refresh=refresh)
+        parsed = parse_nba_schedule(raw)
+        if not parsed.empty:
+            meta['source'] = 'NBA CDN — oficjalny terminarz (źródło zapasowe)'
+            meta['warning'] = f'ESPN niedostępne: {espn_error}'
+            return parsed, meta
+        raise RuntimeError('NBA CDN zwróciło pusty terminarz')
+    except Exception as official_error:
+        raise RuntimeError(f'Terminarz niedostępny. ESPN: {espn_error}; NBA CDN: {official_error}') from official_error
 
 
 def scoreboard(refresh=False):
