@@ -77,12 +77,12 @@ def http_json(url,params=None,timeout=16):
     response.raise_for_status()
     return response.json()
 
-def memoized_json(key,url,params=None,ttl_seconds=1800,refresh=False):
+def memoized_json(key,url,params=None,ttl_seconds=1800,refresh=False,request_timeout=16):
     cache,meta=read_cache(key,ttl_seconds)
     if cache is not None and not refresh and not meta['stale']:
         return cache, {'source':'cache',**meta}
     try:
-        data=http_json(url,params=params)
+        data=http_json(url,params=params,timeout=request_timeout)
         store_cache(key,data)
         return data,{'source':'live','timestamp':now_utc().isoformat(),'age_min':0,'stale':False}
     except Exception as exc:
@@ -91,32 +91,54 @@ def memoized_json(key,url,params=None,ttl_seconds=1800,refresh=False):
         raise RuntimeError(f'Źródło nie odpowiada: {url} — {exc}') from exc
 
 
-def nba_stats(module, cls, kwargs, cache_key, ttl_seconds=4*3600,refresh=False):
+def nba_stats(module, cls, kwargs, cache_key, ttl_seconds=4*3600, refresh=False):
     cache,meta=read_cache(cache_key,ttl_seconds)
     if cache is not None and not refresh and not meta['stale']:
         return pd.DataFrame(cache), {'source':'cache',**meta}
+    # Avoid a 25-second timeout on every rerun when stats.nba.com blocks cloud IPs.
+    failure,_=read_cache('nba-failure-'+cache_key,20*60)
+    if failure is not None and not refresh:
+        if cache is not None:
+            return pd.DataFrame(cache),{'source':'stale cache','warning':'NBA Stats chwilowo niedostępne',**meta,'stale':True}
+        raise RuntimeError('NBA Stats tymczasowo niedostępne z hostingu; ponowna próba po 20 minutach.')
     try:
         module_obj=import_module('nba_api.stats.endpoints.'+module)
-        endpoint=getattr(module_obj,cls)(timeout=25,**kwargs)
+        endpoint=getattr(module_obj,cls)(timeout=7,**kwargs)
         result=endpoint.get_data_frames()[0]
         if result.empty:raise RuntimeError('Pusty zestaw danych')
         store_cache(cache_key,result.to_dict(orient='records'))
         return result,{'source':'NBA Stats','timestamp':now_utc().isoformat(),'age_min':0,'stale':False}
     except Exception as exc:
+        store_cache('nba-failure-'+cache_key,{'reason':str(exc)[:120]})
         if cache is not None:
             return pd.DataFrame(cache),{'source':'stale cache','warning':str(exc),**meta,'stale':True}
         raise RuntimeError(f'NBA Stats ({cls}) niedostępne: {exc}') from exc
 
 
 def game_logs(season,refresh=False):
+    # Preferred source: official NBA Stats; second: official NBA CDN; third:
+    # ESPN publicly reported completed box scores, clearly labeled PARTIAL.
+    failures=[]
     try:
         return nba_stats('playergamelogs','PlayerGameLogs',
             {'season_nullable':season,'season_type_nullable':'Regular Season','league_id_nullable':'00'},
             f'player_game_logs-{season}',ttl_seconds=3*3600,refresh=refresh)
-    except RuntimeError as stats_error:
-        try:return partial_cdn_logs(season)
-        except Exception as cdn_error:
-            raise RuntimeError(str(stats_error)+'; źródło zapasowe NBA CDN: '+str(cdn_error)) from cdn_error
+    except Exception as exc:
+        failures.append('NBA Stats: '+str(exc)[:160])
+    try:
+        return partial_cdn_logs(season,max_new_games=10)
+    except Exception as exc:
+        failures.append('NBA CDN: '+str(exc)[:160])
+    failed,_=read_cache('espn-sample-failed-'+season,10*60)
+    if failed is not None and not refresh:
+        raise RuntimeError('Historia zawodników chwilowo niedostępna (NBA Stats / NBA CDN / ESPN). Kolejna automatyczna próba za 10 minut.')
+    try:
+        from espn_player_data import recent_espn_logs
+        return recent_espn_logs(season,max_games=12)
+    except Exception as exc:
+        store_cache('espn-sample-failed-'+season,{'reason':str(exc)[:160]})
+        failures.append('ESPN: '+str(exc)[:160])
+        raise RuntimeError('Nie udało się pobrać prawdziwych danych zawodników. '+'; '.join(failures)) from exc
 
 
 def extended_set(name,season,refresh=False):
