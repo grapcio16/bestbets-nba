@@ -1,4 +1,4 @@
-"""BestBets v6.3: mobile and public deployment preparation with preserved analysis."""
+"""BestBets v6.4: lazy betting views and lighter public hosting."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -123,20 +123,33 @@ CSS += """
 """
 st.markdown(CSS,unsafe_allow_html=True)
 
-@st.cache_data(ttl=1800,show_spinner=False)
+@st.cache_data(ttl=3600,max_entries=3,show_spinner=False)
 def load_schedule(nonce):return schedule(refresh=nonce>0)
 
-@st.cache_data(ttl=1800,show_spinner=False)
+@st.cache_data(ttl=1800,max_entries=3,show_spinner=False)
 def load_injuries(nonce):return injuries(refresh=nonce>0)
 
-@st.cache_data(ttl=3600,show_spinner=False)
+@st.cache_data(ttl=4*3600,max_entries=5,show_spinner=False)
 def load_logs(season,nonce):return game_logs(season,refresh=nonce>0)
 
-@st.cache_data(ttl=3600,show_spinner=False)
+@st.cache_data(ttl=4*3600,max_entries=12,show_spinner=False)
 def load_dataset(name,season,nonce):return extended_set(name,season,refresh=nonce>0)
 
-@st.cache_data(ttl=3600,show_spinner=False)
+@st.cache_data(ttl=3600,max_entries=4,show_spinner=False)
 def load_backtest(logs,market,min_games):return rolling_backtest(logs,market,min_games=min_games)
+
+@st.cache_data(ttl=20*60,max_entries=4,show_spinner=False)
+def cached_normalize_offers(featured,props):
+    return normalized_offers(featured,props)
+
+@st.cache_data(ttl=20*60,max_entries=4,show_spinner=False)
+def cached_best_prices(offers):
+    return best_prices(offers)
+
+@st.cache_data(ttl=35*60,max_entries=3,show_spinner=False)
+def cached_player_edges(prop_best,logs,inj,team_ctx,med):
+    return player_edges(prop_best,logs,inj,team_ctx,med)
+
 
 
 def pill(status):
@@ -367,7 +380,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v6.3</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v6.4</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','🧪 Backtesting', '📚 NBA Data Lab', '📱 Telefon i publikacja'],index=0,label_visibility='collapsed')
@@ -376,7 +389,7 @@ with st.sidebar:
     if st.button('↻ Odśwież dostępne dane',use_container_width=True):
         st.session_state.nonce+=1
         st.rerun()
-    st.caption('Terminarz: NBA CDN → ESPN · NBA Stats: oficjalne dane · kontuzje: ESPN · kursy: The Odds API (wymaga jednorazowego klucza).')
+    st.caption('Terminarz: ESPN (szybkie źródło) → NBA CDN w razie awarii · NBA Stats: oficjalne dane · kontuzje: ESPN · kursy: The Odds API.')
     st.caption('BestBets to narzędzie do analizy danych, bez gwarancji zysków.')
 
 st.markdown('''<div class="bb-hero">
@@ -406,7 +419,7 @@ if page == '🏠 Centrum':
                 st.dataframe(x[['Start (PL)','Mecz','status']],hide_index=True,use_container_width=True,height=455)
                 mini_legend([],{'Start (PL)':'Data i godzina spotkania w Polsce','Mecz':'Goście @ gospodarze','status':'Etap spotkania: przed grą, na żywo lub zakończone'})
             if 'ESPN' in meta.get('source',''):
-                st.info('NBA CDN blokuje pobieranie terminarza. Wyświetlam spotkania z ESPN (źródło zastępcze).')
+                st.info('Terminarz z ESPN — szybsze źródło wykorzystywane w publicznej wersji BestBets; NBA CDN pozostaje zapasowe.')
             pill(meta)
         except Exception as exc:
             st.error('Nie udało się pobrać terminarza (NBA CDN ani ESPN): '+str(exc))
@@ -544,7 +557,7 @@ elif page == '💹 Kursy i value':
                 if m.get('stale'):st.warning(f'{label}: dane nie są świeże. Nie traktuj ich jako aktualnego kursu do obstawienia.')
         if not feat.empty and status.get('featured',{}).get('stale'):
             st.warning('UWAGA: kursy meczowe pochodzą ze starszej kopii. Nie traktuj ich jako aktualnej oferty bukmachera.')
-        offers=normalized_offers(feat,props)
+        offers=cached_normalize_offers(feat,props)
         # Only archive PRE-GAME real bookmaker quotes that were not marked stale.
         # This does not make new paid API requests and never saves the API key.
         if configured_key and not offers.empty:
@@ -555,15 +568,17 @@ elif page == '💹 Kursy i value':
                 valid_parts.append(offers[offers['market'].isin(STAT_NAMES)])
             if valid_parts:
                 save_offers(pd.concat(valid_parts,ignore_index=True),ARCHIVE_PATH)
-        best=best_prices(offers)
+        best=cached_best_prices(offers)
         if not best.empty:
             b1,b2,b3,b4=st.columns(4)
             labelled_metric(b1,'Bukmacherzy',str(offers['bookmaker_key'].nunique()),'Liczba firm z kursami w odpowiedzi API')
             labelled_metric(b2,'Oferty kursowe',str(len(offers)),'Wszystkie pobrane warianty, także powtórzenia między firmami')
             labelled_metric(b3,'Unikalne porównania',str(len(best)),'Porównanie po meczu, rynku, zawodniku, linii i wariancie')
             labelled_metric(b4,'Rynki graczy',str(len(best[best['market'].isin(STAT_NAMES)])),'Warianty dla graczy; mogą nie być dostępne w każdym regionie')
-        tabs=st.tabs(['🏆 Najlepsze dostępne kursy','📊 Model value graczy','🧮 Kalkulator (opcjonalnie)'])
-        with tabs[0]:
+        selected_view=st.radio('Wybierz analizę kursów',
+            ['🏆 Najlepsze dostępne kursy','📊 Model value graczy','🧮 Kalkulator (opcjonalnie)'],
+            horizontal=True,key='bb64_odds_view',help='Ładujemy wyłącznie wybraną analizę. Inne widoki nie obciążają serwera.')
+        if selected_view=='🏆 Najlepsze dostępne kursy':
             st.markdown('#### Najwyższy kurs u danego bukmachera')
             st.caption('Nie mieszamy różnych linii. Przykład: OVER 23.5 i OVER 24.5 są osobnymi rynkami; kursy na nie NIE są porównywalne.')
             if not best.empty:
@@ -587,7 +602,7 @@ elif page == '💹 Kursy i value':
                         mini_legend([],{'Start (PL)':'Data rozpoczęcia spotkania w czasie polskim','Mecz':'Goście @ gospodarze; brak kursu nie oznacza braku możliwości obstawienia meczu'})
                 except Exception:
                     st.caption('Nie udało się załadować również zastępczego widoku najbliższych meczów.')
-        with tabs[1]:
+        if selected_view=='📊 Model value graczy':
             st.markdown('#### Różnica między modelem a progiem kursu')
             st.caption('Podajemy dwa RÓŻNE wyniki: przewaga w punktach procentowych (pp) oraz EV w procentach (%).')
             prop_best=best[best['market'].isin(STAT_NAMES)].copy() if not best.empty else pd.DataFrame()
@@ -605,7 +620,8 @@ elif page == '💹 Kursy i value':
                     team_ctx,med=league_context(standardize_teams(adv))
                 except Exception:
                     st.caption('Pace i DEF RATING niedostępne z NBA Stats — użyto neutralnego współczynnika matchup 1.0.')
-                edges=player_edges(prop_best,logs,inj,team_ctx,med)
+                with st.spinner('Oceniam wyniki i kontrolę jakości (wynik jest buforowany)…'):
+                    edges=cached_player_edges(prop_best,logs,inj,team_ctx,med)
                 if edges.empty:
                     st.info('Nie można teraz ocenić opłacalności na danych graczy. Wymagane: kurs player prop z API oraz co najmniej 5 wcześniejszych występów z NBA Stats.')
                 else:
@@ -658,7 +674,7 @@ elif page == '💹 Kursy i value':
                         'Dane odkładają się podczas otwierania/odświeżania zakładki kursów; '
                         'aplikacja nie działa w tle po zamknięciu serwera. '
                         'Rzeczywisty backtesting będzie możliwy po zakończeniu zarejestrowanych spotkań.')
-        with tabs[2]:
+        if selected_view=='🧮 Kalkulator (opcjonalnie)':
             st.markdown('#### Opcjonalne obliczenie dla własnej linii')
             st.caption('Ten kalkulator jest dodatkowy. Automatyczne porównania działają bez wpisywania linii. W kalkulatorze wpisujesz tylko kurs i linię, a model sam liczy szansę gracza.')
             logs,meta=get_logs()
