@@ -12,6 +12,7 @@ from simulation_sources import historical_espn_results
 from teams import standardize_teams
 from odds_fetcher import automatic_odds
 from team_logos import logo_data_uri, refresh_logos_in_background, cached_official_count
+from espn_player_data import matchup_espn_logs
 
 
 def esc(x):return html.escape(str(x),quote=True)
@@ -51,7 +52,31 @@ def build_sims(games,advanced,history,logs,injuries):
     return summary,players_by_game,unavailable
 
 
-def game_card(sim,g):
+def team_scoring_history(hist, code, games=10):
+    """Historical points scored, not the simulation's predicted outcome."""
+    records=completed_team_scores(hist).get(code, [])
+    values=[float(record[1]) for record in sorted(records,key=lambda x:x[0])[-games:]]
+    return {'mean':round(float(np.mean(values)),1),'games':len(values)} if values else None
+
+
+@st.cache_data(ttl=3*3600,max_entries=8,show_spinner=False)
+def matchup_players_cached(season, g, hist, advanced, nonce):
+    """Fetch selected teams ONLY; streamlit and per-event disk cache prevent repeats."""
+    selected, source=matchup_espn_logs(hist,g,games_per_team=7)
+    if selected.empty:return pd.DataFrame(),source
+    from core import normalize_logs
+    try:
+        logs=normalize_logs(selected)
+    except (ValueError,KeyError,TypeError) as exc:
+        return pd.DataFrame(),{'source':'ESPN','warning':'Niepełne statystyki zawodników: '+str(exc)[:150]}
+    single=pd.DataFrame([g])
+    # Injury data is deliberately not fetched for EVERY matchup/card.
+    # Without a recent confirmed report, availability stays unverified.
+    _,per_game,_=build_sims(single,advanced,hist,logs,pd.DataFrame())
+    return per_game.get(str(g['game_id']),pd.DataFrame()),source
+
+
+def game_card(sim,g,hist):
     h,a=sim['home'],sim['away']
     date=pd.to_datetime(g['start_utc'],utc=True).tz_convert('Europe/Warsaw').strftime('%d.%m.%Y • %H:%M')
     pct_h=float(sim['home_win_pct']);pct_a=float(sim['away_win_pct'])
@@ -59,19 +84,26 @@ def game_card(sim,g):
     st.markdown(f'''<div class="bb-gamecard">
       <div class="bb-gamehead">🏀 {esc(date)} <span>5 000 symulacji</span></div>
       <div class="bb-versus">
-        <div>{logo_html(a)}<strong>{esc(TEAM_NAMES.get(a,a))}</strong><small>Goście</small><b>{sim['away_points']:.1f}</b></div>
+        <div>{logo_html(a)}<strong>{esc(TEAM_NAMES.get(a,a))}</strong><small>Goście · średnia z symulacji</small><b>{sim['away_points']:.1f} pkt</b></div>
         <span class="bb-at">VS</span>
-        <div>{logo_html(h)}<strong>{esc(TEAM_NAMES.get(h,h))}</strong><small>Gospodarze</small><b>{sim['home_points']:.1f}</b></div>
+        <div>{logo_html(h)}<strong>{esc(TEAM_NAMES.get(h,h))}</strong><small>Gospodarze · średnia z symulacji</small><b>{sim['home_points']:.1f} pkt</b></div>
       </div>
       <div class="bb-winbar"><div style="width:{pct_a:.1f}%;background:#E8AD58"></div><div style="width:{pct_h:.1f}%;background:#62C7AE"></div></div>
       <div class="bb-winlabels"><span>{pct_a:.1f}% • {esc(a)}</span><span>{pct_h:.1f}% • {esc(h)}</span></div>
       <div class="bb-gamefooter">Średnia suma punktów <b>{sim['total_points']:.1f}</b> · Model typuje: <b>{esc(TEAM_NAMES.get(sim['winner'],sim['winner']))}</b></div>
       <div style="font-size:10px;color:#90a4be;margin-top:6px">Procenty = udział zwycięstw w 5 000 symulacji. Duże liczby przy drużynach = prognozowane średnie punkty, a nie aktualny wynik.</div>
     </div>''',unsafe_allow_html=True)
+    away_hist=team_scoring_history(hist,a)
+    home_hist=team_scoring_history(hist,h)
+    if away_hist and home_hist:
+        st.caption(f"Historyczna średnia zdobytych punktów (ostatnie dostępne mecze): "
+            f"{TEAM_NAMES.get(a,a)} {away_hist['mean']:.1f} pkt ({away_hist['games']} meczów) · "
+            f"{TEAM_NAMES.get(h,h)} {home_hist['mean']:.1f} pkt ({home_hist['games']} meczów). "
+            "To dane historyczne, NIE prognoza.")
 
 
 @st.dialog('🏀 Szczegóły meczu i statystyki zawodników', width='large')
-def show_game_details(sim, g, player_table, advanced, hist):
+def show_game_details(sim, g, player_table, advanced, hist, player_meta=None):
     """One-click modal. Player statistics are the FIRST view, not below the cards."""
     home, away = sim['home'], sim['away']
     st.markdown(f'### {TEAM_NAMES.get(away,away)} — {TEAM_NAMES.get(home,home)}')
@@ -91,6 +123,17 @@ def show_game_details(sim, g, player_table, advanced, hist):
     c4.metric('Średnia suma', f"{sim['total_points']:.1f} pkt")
     c4.caption(f"80% symulacji: {sim['total_p10']}–{sim['total_p90']} pkt.")
     st.caption(f"Źródło modelu: {sim['source']}. {sim.get('warning','')}")
+    past_away=team_scoring_history(hist,away)
+    past_home=team_scoring_history(hist,home)
+    if past_away and past_home:
+        aa,hh=st.columns(2)
+        aa.metric('Średnia zdobytych pkt — goście (historia)',f"{past_away['mean']:.1f} pkt")
+        aa.caption(f"Ostatnie {past_away['games']} rozegranych meczów, bez symulacji")
+        hh.metric('Średnia zdobytych pkt — gospodarze (historia)',f"{past_home['mean']:.1f} pkt")
+        hh.caption(f"Ostatnie {past_home['games']} rozegranych meczów, bez symulacji")
+    if player_meta:
+        st.caption('Dane zawodników: '+str(player_meta.get('source','ESPN'))+
+                   ' · '+str(player_meta.get('coverage','')))
 
     # Only render the selected section. Stats are immediately visible by default.
     view = st.radio('Pokaż szczegóły',
@@ -100,7 +143,10 @@ def show_game_details(sim, g, player_table, advanced, hist):
         st.markdown('#### Średnie statystyki zawodników z 5 000 symulacji')
         player_df = player_table if isinstance(player_table, pd.DataFrame) else pd.DataFrame()
         if player_df.empty:
-            st.info('Brak pełnych logów zawodników dla tego meczu. Model nie generuje wymyślonych statystyk.')
+            st.info('Nie udało się potwierdzić wystarczającej historii zawodników tego spotkania. '
+                    'Przeliczanie punktów obu drużyn działa niezależnie — nie generujemy fikcyjnych danych.')
+            if player_meta and player_meta.get('warning'):
+                st.caption(str(player_meta['warning']))
         else:
             for code in (away, home):
                 df = player_df[player_df['Drużyna'] == code]
@@ -170,7 +216,9 @@ def show_game_details(sim, g, player_table, advanced, hist):
 
 def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_injuries):
     st.markdown('### 🏀 Symulacje NBA — 5 000 przebiegów dla każdego spotkania')
-    st.caption('Wyniki drużyn pojawiają się bez pobierania historii wszystkich graczy. Po kliknięciu szczegółów wybranego meczu BestBets pobierze potrzebne statystyki. Każdy mecz: 5 000 prób, model eksperymentalny.')
+    st.caption('Karty pokazują 5 000 symulacji wyniku i osobne średnie punktów drużyn. '
+               'Po kliknięciu szczegółów automatycznie pobieramy historię graczy WYŁĄCZNIE dwóch wybranych drużyn. '
+               'Model jest eksperymentalny.')
     st.markdown('''<div class="bb-panel"><strong>Co pokazujemy?</strong>
     <p>Pełne nazwy drużyn oraz pobrane herby (lub lokalne oznaczenia zastępcze), szansę zwycięstwa obu drużyn, średni przewidywany wynik i łączną sumę punktów. Kliknij przycisk pod dowolnym meczem, aby otworzyć jego wyniki i statystyki zawodników bez przewijania przez pozostałe mecze. Jeśli brakuje danych, model nie wyświetla fikcyjnego wyniku.</p></div>''',unsafe_allow_html=True)
     days=st.select_slider('Pokaż nadchodzące mecze przez',options=[1,3,5,7,10,14],value=1,format_func=lambda d:f'{d} dni')
@@ -226,29 +274,19 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     for i,(_,g) in enumerate(games.iterrows()):
         sid=str(g['game_id']);sim=done.get(sid)
         if sim:
-            game_card(sim,g)
+            game_card(sim,g,hist)
             cbtn, _ = st.columns([3, 1])
             with cbtn:
                 if st.button('📊 Szczegóły meczu i statystyki zawodników',
                              key=f'open_sim_{sid}', use_container_width=True, type='primary'):
                     players=pd.DataFrame()
-                    with st.spinner('Wczytuję statystyki tylko dla wybranego meczu…'):
+                    player_meta={}
+                    with st.spinner('Pobieram ostatnie mecze wyłącznie tych dwóch drużyn…'):
                         try:
-                            raw,metadata=load_logs(season,nonce)
-                            from core import normalize_logs
-                            player_logs=normalize_logs(raw)
-                            try:
-                                injury_data,_=load_injuries(nonce)
-                            except Exception:
-                                injury_data=pd.DataFrame()
-                            selected_game=pd.DataFrame([g.to_dict()])
-                            _,per_game,_=build_sims(selected_game,advanced,hist,player_logs,injury_data)
-                            players=per_game.get(sid,pd.DataFrame())
-                            if metadata.get('coverage'):
-                                st.caption('Historia zawodników jest niepełna: '+str(metadata['coverage']))
+                            players,player_meta=matchup_players_cached(season,g.to_dict(),hist,advanced,nonce)
                         except Exception as exc:
-                            st.caption('Dane zawodników niedostępne: '+str(exc)[:180])
-                    show_game_details(sim,g.to_dict(),players,advanced,hist)
+                            player_meta={'source':'ESPN','warning':'Błąd pobierania: '+str(exc)[:180]}
+                    show_game_details(sim,g.to_dict(),players,advanced,hist,player_meta)
         else:
             a=TEAM_NAMES.get(g['away'],g['away']);h=TEAM_NAMES.get(g['home'],g['home'])
             start=g['start_utc'].tz_convert('Europe/Warsaw').strftime('%d.%m %H:%M')
