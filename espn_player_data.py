@@ -159,3 +159,81 @@ def detailed_espn_gamelog(player_id,name,team,season):
     df=parse_gamelog(payload,player_id,name,team)
     meta['source']='ESPN — historia wybranego zawodnika'
     return df,meta
+
+
+def matchup_espn_logs(history, game, games_per_team=7):
+    """Fetch only real, final ESPN boxscores for the TWO selected teams.
+
+    Called on demand from the game-details button, NEVER while drawing the
+    schedule/cards. Shared game boxscores are persisted and reused across visitors.
+    Strict season/date filters and labels prevent mistaking samples for full logs.
+    """
+    from sources import read_cache, store_cache
+    codes=[str(game.get('away') or ''),str(game.get('home') or '')]
+    if not all(codes) or history is None or history.empty:
+        return pd.DataFrame(),{'source':'ESPN','coverage':'Brak zakończonych meczów drużyn'}
+    asof=pd.to_datetime(game.get('start_utc'),utc=True,errors='coerce')
+    if pd.isna(asof):
+        return pd.DataFrame(),{'source':'ESPN','coverage':'Nieznana data meczu'}
+    season_start=asof.year if asof.month>=10 else asof.year-1
+    cutoff=pd.Timestamp(f'{season_start}-10-01',tz='UTC')
+    h=history.copy()
+    h['start_utc']=pd.to_datetime(h['start_utc'],utc=True,errors='coerce')
+    valid=h[
+        (pd.to_numeric(h['status_code'],errors='coerce')==3)&
+        (h['start_utc']<asof)&(h['start_utc']>=cutoff)
+    ].sort_values('start_utc',ascending=False)
+    chosen={}
+    for code in codes:
+        sub=valid[(valid['home']==code)|(valid['away']==code)]
+        n=0
+        for g in sub.to_dict('records'):
+            eid=str(g.get('game_id') or '')
+            # ESPN event IDs, NOT 10-digit NBA IDs.
+            if eid.isdigit() and len(eid)<=10:
+                chosen[eid]=g
+                n+=1
+            if n>=games_per_team:
+                break
+    if not chosen:
+        return pd.DataFrame(),{'source':'ESPN','coverage':'Brak ostatnich meczów tych drużyn w ESPN'}
+    def obtain(g):
+        eid=str(g['game_id'])
+        bad,_=read_cache('espn-summary-failed-'+eid,15*60)
+        if bad is not None:return eid,[],False
+        try:
+            rows=fetch_boxscore(g)
+            if not rows:
+                store_cache('espn-summary-failed-'+eid,{'empty':True})
+            return eid,rows,bool(rows)
+        except Exception as exc:
+            store_cache('espn-summary-failed-'+eid,{'error':str(exc)[:120]})
+            return eid,[],False
+    results=[]; successes=0
+    # A bounded pool: at most two short API waves, only after a user clicks.
+    with ThreadPoolExecutor(max_workers=7) as executor:
+        jobs=[executor.submit(obtain,g) for g in chosen.values()]
+        for job in as_completed(jobs):
+            _,rows,ok=job.result()
+            if ok:
+                successes+=1
+                results.extend(rows)
+    if not results:
+        return pd.DataFrame(),{
+            'source':'ESPN — wybrane drużyny',
+            'coverage':f'0/{len(chosen)} boxscore; ESPN chwilowo nie odpowiada',
+            'warning':'Brak historii zawodników. Punkty drużyn są liczone oddzielnie.'
+        }
+    df=pd.DataFrame(results)
+    df=df[df['TEAM_ABBREVIATION'].isin(codes)]
+    if df.empty:
+        return df,{'source':'ESPN','coverage':'Brak zawodników rozpoznanych w wybranych drużynach'}
+    df=df.drop_duplicates(subset=['GAME_ID','TEAM_ABBREVIATION','PLAYER_NAME'])
+    counts={code:int(df[df['TEAM_ABBREVIATION']==code]['GAME_ID'].nunique()) for code in codes}
+    coverage=' · '.join(f'{code}: {counts[code]}/{games_per_team} ostatnich meczów' for code in codes)
+    return df,{
+        'source':'ESPN — zakończone mecze wybranych drużyn',
+        'coverage':coverage,
+        'warning':'To niepełna próbka. Bez potwierdzonych składów i walidacji model nie określa pewnych wyników.',
+        'stale':successes<len(chosen)
+    }
