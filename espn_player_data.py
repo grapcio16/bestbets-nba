@@ -43,9 +43,17 @@ def parse_summary(payload,game):
         opponent=home if team==away else away
         matchup=f'{team} @ {opponent}' if team==away else f'{team} vs. {opponent}'
         for group in block.get('statistics',[]):
-            names=[str(s).upper() for s in (group.get('names') or group.get('labels') or [])]
+            # ESPN 'labels' are short box-score columns (MIN, FG, 3PT, PTS).
+            # 'names' can contain long descriptive keys, unsuitable for our parser.
+            candidates=[group.get('labels') or [],group.get('names') or []]
+            names=[]
+            for candidate in candidates:
+                probe=[str(s).upper() for s in candidate]
+                if 'PTS' in probe and ('MIN' in probe or 'MINUTES' in probe):
+                    names=probe
+                    break
             for item in group.get('athletes',[]):
-                if item.get('didNotPlay') or item.get('active') is False:continue
+                if item.get('didNotPlay'):continue
                 stats=item.get('stats') or []
                 if not isinstance(stats,list) or len(names)!=len(stats):continue
                 data=dict(zip(names,stats))
