@@ -7,7 +7,7 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 from simulation_engine import (TEAM_NAMES,advanced_ratings,completed_team_scores,
-    matchup_means,eligible_roster,simulate_game,match_real_odds)
+    matchup_means,legacy_matchup_means,eligible_roster,simulate_game,match_real_odds)
 from simulation_sources import historical_espn_results
 from teams import standardize_teams
 from odds_fetcher import automatic_odds
@@ -27,7 +27,7 @@ def logo_html(code):
             'loading="lazy" style="width:64px;height:64px;object-fit:contain" />') if url else '🏀'
 
 @st.cache_data(ttl=60*60,max_entries=5,show_spinner=False)
-def build_sims(games,advanced,history,logs,injuries):
+def build_sims(games,advanced,history,logs,injuries,research_mode=False):
     """Process every upcoming game, returning simulation summaries AND all player means."""
     ratings=advanced_ratings(advanced)
     history_by_team=completed_team_scores(history)
@@ -40,7 +40,8 @@ def build_sims(games,advanced,history,logs,injuries):
                 if not z.empty:league_avg[k]=float(z.median())
     for _,row in games.iterrows():
         g=row.to_dict()
-        mean=matchup_means(g['home'],g['away'],ratings,history_by_team)
+        method=matchup_means if research_mode else legacy_matchup_means
+        mean=method(g['home'],g['away'],ratings,history_by_team)
         if mean is None:
             unavailable.append({'game_id':g.get('game_id'),'game':g['away']+' @ '+g['home'],
                 'reason':'Brak NBA advanced i zbyt mało zakończonych meczów ESPN (min. 4 na drużynę).'})
@@ -53,6 +54,43 @@ def build_sims(games,advanced,history,logs,injuries):
         except (ValueError,KeyError,TypeError) as ex:
             unavailable.append({'game_id':g.get('game_id'),'game':g['away']+' @ '+g['home'],'reason':str(ex)})
     return summary,players_by_game,unavailable
+
+
+def team_form_diagnostics(hist, code, asof=None, games=10):
+    """Actual recent team results, never a proxy for player availability or pace."""
+    if hist is None or hist.empty:
+        return {}
+    records=hist.copy()
+    records["start_utc"]=pd.to_datetime(records["start_utc"],utc=True,errors="coerce")
+    records=records[(records["status_code"]==3)&
+                    ((records["home"]==code)|(records["away"]==code))]
+    if asof is not None:
+        cutoff=pd.to_datetime(asof,utc=True,errors="coerce")
+        records=records[records["start_utc"]<cutoff]
+    records=records.sort_values("start_utc").tail(games)
+    out=[]
+    for g in records.to_dict("records"):
+        try:
+            home=str(g["home"])==code
+            scored=float(g["home_score"] if home else g["away_score"])
+            conceded=float(g["away_score"] if home else g["home_score"])
+            opponent=g["away"] if home else g["home"]
+            if min(scored,conceded)<55:
+                continue
+            out.append((scored,conceded,opponent))
+        except (ValueError,KeyError,TypeError):
+            continue
+    if not out:
+        return {}
+    recent=out[-5:]
+    return {
+        "played":len(out),
+        "wins_last5":sum(p>allowed for p,allowed,_ in recent),
+        "games_last5":len(recent),
+        "scored_last5":round(float(np.mean([p for p,_,_ in recent])),1),
+        "allowed_last5":round(float(np.mean([a for _,a,_ in recent])),1),
+        "opponents_last5":", ".join(o for _,_,o in recent),
+    }
 
 
 def team_scoring_history(hist, code, games=10):
@@ -164,6 +202,29 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
         aa.caption(f"Ostatnie {past_away['games']} rozegranych meczów, bez symulacji")
         hh.metric('Średnia zdobytych pkt — gospodarze (historia)',f"{past_home['mean']:.1f} pkt")
         hh.caption(f"Ostatnie {past_home['games']} rozegranych meczów, bez symulacji")
+    st.markdown('#### Forma ostatnich meczów — dane rzeczywiste')
+    st.caption('Poniższe statystyki są kontekstem, a nie dodatkowym '
+               'mnożnikiem prawdopodobieństw. Nie potwierdzają dostępności '
+               'zawodników w dniu meczu.')
+    ac=advanced_ratings(advanced)
+    for code in (away,home):
+        form=team_form_diagnostics(hist,code,asof=g.get('start_utc'))
+        st.markdown('**'+TEAM_NAMES.get(code,code)+'**')
+        if form:
+            st.caption(f"Ostatnie {form['games_last5']} meczów: "
+                       f"{form['wins_last5']} zwycięstw · "
+                       f"zdobyte {form['scored_last5']:.1f} pkt/mecz · "
+                       f"stracone {form['allowed_last5']:.1f} pkt/mecz · "
+                       f"ry wale: {form['opponents_last5']}".replace('ry wale','rywale'))
+        else:
+            st.caption('Brak wystarczających zakończonych spotkań.')
+        if code in ac:
+            v=ac[code]
+            st.caption(f"NBA advanced: tempo {v['pace']:.1f} posiadań/48 min · "
+                       f"OFF Rating {v['off']:.1f} · DEF Rating {v['def']:.1f}")
+        else:
+            st.caption('Tempo posiadań, OFF i DEF Rating: brak zweryfikowanych '
+                       'danych NBA advanced, nie szacujemy ich z punktów.')
     if player_meta:
         st.caption('Dane zawodników: '+str(player_meta.get('source','ESPN'))+
                    ' · '+str(player_meta.get('coverage','')))
@@ -270,6 +331,18 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
                'Model jest eksperymentalny.')
     st.markdown('''<div class="bb-panel"><strong>Co pokazujemy?</strong>
     <p>Pełne nazwy drużyn oraz pobrane herby (lub lokalne oznaczenia zastępcze), szansę zwycięstwa obu drużyn, średni przewidywany wynik i łączną sumę punktów. Kliknij przycisk pod dowolnym meczem, aby otworzyć jego wyniki i statystyki zawodników bez przewijania przez pozostałe mecze. Jeśli brakuje danych, model nie wyświetla fikcyjnego wyniku.</p></div>''',unsafe_allow_html=True)
+    research_mode=st.toggle(
+        'Eksperymentalny model: ważona forma i siła rywali',
+        value=False,key='bb74_research_form',
+        help='Do badań, nie potwierdzona poprawa: wynik na 131 meczach '
+             'poprawił MAE sumy, ale pogorszył skuteczność zwycięzcy.'
+    )
+    if research_mode:
+        st.warning('Tryb badawczy: ważona forma i przybliżona siła przeciwników. '
+                   'W testach model miał gorszą trafność zwycięzców niż stary. '
+                   'Nie uwzględnia jeszcze potwierdzonych składów i kontuzji.')
+    else:
+        st.caption('Domyślny model v7.2. Tryb badawczy można włączyć powyżej.')
     days=st.select_slider('Pokaż nadchodzące mecze przez',options=[1,3,5,7,10,14],value=1,format_func=lambda d:f'{d} dni')
     try:
         schedule,sm=load_schedule(nonce)
@@ -308,7 +381,20 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     for warn in warnings:st.caption('⚠️ '+warn)
     # Scores are simulated immediately; player estimates are loaded only for
     # the selected game in its details dialog, never across all upcoming games.
-    summary,_,missing=build_sims(games,advanced,hist,pd.DataFrame(),pd.DataFrame())
+    summary,_,missing=build_sims(games,advanced,hist,pd.DataFrame(),pd.DataFrame(),research_mode)
+    # Freeze predictions at first observed pregame run; never rewrite them.
+    # Persistence is local only: may be erased by Streamlit Cloud redeploys.
+    try:
+        from pathlib import Path
+        from performance_tracker import store_forecasts
+        archive=Path(__file__).resolve().parent/'data'/'pregame_forecasts.sqlite3'
+        result=store_forecasts(archive,season,summary)
+        st.caption('Tracker: zapisano '+str(result['saved'])+
+                   ' nowych prognoz przed pierwszym gwizdkiem. '
+                   'Baza lokalna — po restarcie hostingu wpisy mogą zniknąć.')
+    except Exception as exc:
+        st.warning('Tracker nie mógł zapisać prognoz: '+str(exc)[:145])
+
     st.caption('Szybki widok: mecze i wyniki drużyn. Statystyki zawodników pobierane są automatycznie po kliknięciu szczegółów wybranego meczu.')
     done={str(s['game_id']):s for s in summary}
     b1,b2,b3=st.columns(3)

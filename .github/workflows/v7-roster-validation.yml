@@ -5,6 +5,7 @@ on:
       - development/v7-roster-data
       - development/v7-1-match-rosters-validation
       - fix/roster-aaron-gordon
+      - feature/v7-4-performance-tracker
   workflow_dispatch:
   pull_request:
     branches:
@@ -25,9 +26,9 @@ jobs:
       - name: Install minimum test dependencies
         run: python -m pip install -q pandas numpy plotly streamlit requests
       - name: Compile updated modules
-        run: python -m py_compile app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py
+        run: python -m py_compile app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py
       - name: Unit tests for roster parsing
-        run: python -m unittest -v test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py
+        run: python -m unittest -v test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py
       - name: Streamlit smoke check - landing page and player browser
         run: |
           python - <<'PY'
@@ -60,6 +61,28 @@ jobs:
           assert any("Stephen Curry (GSW)"==str(o) for o in opts), "Stephen Curry missing"
           assert not any(s.label=="Drużyna NBA" for s in at.selectbox), "Team selector still present"
           print("Calculator renders; global roster contains Gordon & Curry; team picker removed")
+          PY
+      - name: Tracker page Streamlit smoke
+        run: |
+          python - <<'PY'
+          from streamlit.testing.v1 import AppTest
+          at=AppTest.from_file("app.py",default_timeout=65).run()
+          assert not at.exception, [str(x.message) for x in at.exception]
+          at.sidebar.radio[0].set_value("📈 Performance Tracker").run()
+          assert not at.exception, [str(x.message) for x in at.exception]
+          assert any(x.label=="Pobierz i rozlicz zakończone mecze" for x in at.button)
+          print("Performance Tracker renders without exceptions")
+          PY
+      - name: Descriptive actual-season walk-forward benchmark
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from simulation_sources import historical_espn_results
+          from simulation_backtest import walk_forward_comparison
+          games,notes=historical_espn_results('2026-27')
+          _,metrics=walk_forward_comparison(games,max_games=140)
+          print("WALKFORWARD METRICS:",metrics)
+          print("ESPN WARNINGS:",notes)
           PY
       - name: Live ESPN availability diagnostic
         continue-on-error: true

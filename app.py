@@ -1,4 +1,4 @@
-"""BestBets v7.2: all-NBA calculator search and game-history chart."""
+"""BestBets v7.4: performance tracker and form-weighted NBA simulation research."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -380,10 +380,10 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.2</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.4</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
-        '💹 Kursy i value','🧪 Backtesting', '📚 NBA Data Lab', '📱 Telefon i publikacja'],index=0,label_visibility='collapsed')
+        '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab', '📱 Telefon i publikacja'],index=0,label_visibility='collapsed')
     season=st.selectbox('Sezon', ['2026-27','2025-26','2024-25'],index=0)
     st.divider()
     if st.button('↻ Odśwież dostępne dane',use_container_width=True):
@@ -703,6 +703,124 @@ elif page == '💹 Kursy i value':
 
     automatic_market_panel()
 
+elif page == '📈 Performance Tracker':
+    from performance_tracker import (read_forecasts,settle_forecasts,
+        performance_metrics,audit_summary)
+    from simulation_sources import historical_espn_results
+    db=PATH/'data'/'pregame_forecasts.sqlite3'
+    st.subheader('BestBets Performance Tracker')
+    st.caption('Zamrożone prognozy powstają TYLKO przy otwarciu zakładki '
+               '„Symulacje 5000” przed rozpoczęciem meczu; nigdy po fakcie. '
+               'Wyniki końcowe są dopasowywane do identyfikatora ESPN.')
+    st.warning('Ważne: darmowy Streamlit Cloud przechowuje lokalną bazę nietrwale. '
+               'Restart lub ponowne wdrożenie może usunąć historię. '
+               'Eksportuj CSV i przechowuj bezpieczną kopię. '
+               'To nie jest jeszcze trwały automatyczny monitoring 24/7.')
+    with st.expander('Test historyczny: nowy model kontra stare średnie',expanded=False):
+        st.caption('Walk-forward: każdy mecz prognozowany wyłącznie na podstawie '
+                   'spotkań zakończonych wcześniej. Porównanie nie obejmuje '
+                   'prawdziwego modelu tempa i kontuzji. Metryki nie oznaczają przewagi bukmacherskiej.')
+        if st.button('Porównaj modele na wcześniejszych meczach',
+                     key='tracker_walkforward'):
+            try:
+                from simulation_backtest import walk_forward_comparison
+                with st.spinner('Porównuję na rzeczywiście zakończonych meczach…'):
+                    finished,notes=historical_espn_results(season)
+                    compared,score=walk_forward_comparison(finished,max_games=140)
+                if not score:
+                    st.warning('Za mało wcześniejszych meczów dla obu modeli.')
+                else:
+                    st.session_state['tracker_walkforward_score']=score
+                    st.session_state['tracker_walkforward_rows']=compared
+            except Exception as exc:
+                st.error('Test nie został wykonany: '+str(exc)[:200])
+        score=st.session_state.get('tracker_walkforward_score')
+        if score:
+            st.caption('Mecze z kompletnym porównaniem: '+str(score['games']))
+            st.dataframe(pd.DataFrame([
+                {'Model':'Stare średnie','MAE sumy':score['old_total_mae'],
+                 'MAE drużyn':score['old_team_mae'],
+                 'Trafność zwycięzcy':score['old_winner_accuracy'],
+                 'Brier':score['old_brier']},
+                {'Model':'Forma + siła rywali','MAE sumy':score['new_total_mae'],
+                 'MAE drużyn':score['new_team_mae'],
+                 'Trafność zwycięzcy':score['new_winner_accuracy'],
+                 'Brier':score['new_brier']},
+            ]),hide_index=True,use_container_width=True)
+            if score['new_total_mae']>=score['old_total_mae']:
+                st.warning('Nowa metoda NIE zmniejszyła błędu sum w tej próbce. '
+                           'Nie można twierdzić, że jest lepsza.')
+            else:
+                st.caption('Nowa metoda zmniejszyła MAE sumy w tej próbce; '
+                           'wymaga kolejnych niezależnych testów.')
+            if 'tracker_walkforward_rows' in st.session_state:
+                st.download_button('Eksport wyniku porównania CSV',
+                    st.session_state['tracker_walkforward_rows'].to_csv(
+                        index=False).encode('utf-8-sig'),
+                    file_name='bestbets_model_comparison.csv',mime='text/csv')
+    if st.button('Pobierz i rozlicz zakończone mecze',type='primary',
+                 key='tracker_settle'):
+        with st.spinner('Sprawdzam potwierdzone wyniki ESPN…'):
+            try:
+                finished,notes=historical_espn_results(season,refresh=True)
+                n=settle_forecasts(db,finished)
+                st.success('Rozliczono nowych spotkań: '+str(n))
+                if notes:st.caption(str(notes))
+            except Exception as exc:
+                st.error('Rozliczenie niedostępne: '+str(exc)[:220])
+    try:
+        frozen=read_forecasts(db,season)
+        verified,stats=performance_metrics(frozen)
+        qa=audit_summary(frozen)
+        m1,m2,m3,m4=st.columns(4)
+        m1.metric('Zamrożone mecze',len(frozen))
+        m2.metric('Rozliczone mecze',stats['games'])
+        m3.metric('Trafność zwycięzców',
+                  f"{stats['winner_accuracy']*100:.1f}%"
+                  if stats['winner_accuracy'] is not None else '—')
+        m4.metric('Śr. błąd sumy',
+                  f"{stats['total_mae']:.1f} pkt"
+                  if stats['total_mae'] is not None else '—')
+        if stats['games']:
+            a,b,c=st.columns(3)
+            a.metric('Błąd punktów na drużynę',f"{stats['team_mae']:.1f}")
+            b.metric('Bias sumy punktów',f"{stats['total_bias']:+.1f} pkt")
+            c.metric('Brier score',f"{stats['brier']:.3f}")
+            st.caption('Niższy Brier score jest lepszy, ale bez odpowiednio '
+                       'dużej próby nie można stwierdzić kalibracji. '
+                       'Bias dodatni = model zaniża sumy, ujemny = zawyża.')
+        if frozen.empty:
+            st.info('Na tym serwerze nie zapisano jeszcze prognoz. '
+                    'Otwórz „Symulacje 5000” przed kolejnym meczem.')
+        else:
+            st.caption('Kontrola jakości: '+str(qa['suspicious_win_probs'])+
+                       ' prognoz z faworytem powyżej 85%. '
+                       'To tylko flaga do audytu.')
+            visible=frozen.copy()
+            visible['Start PL']=pd.to_datetime(
+                visible['start_utc'],utc=True).dt.tz_convert(
+                    'Europe/Warsaw').dt.strftime('%d.%m.%Y %H:%M')
+            visible['Spotkanie']=visible['away']+' @ '+visible['home']
+            visible['Stan']=visible['home_score'].notna().map(
+                {True:'Rozliczony',False:'Oczekuje'})
+            display_cols=['Start PL','Spotkanie','away_points','home_points',
+                          'away_win_pct','home_win_pct','away_score','home_score',
+                          'Stan','source']
+            st.dataframe(visible[display_cols],hide_index=True,
+                         use_container_width=True)
+            st.download_button('Pobierz pełne archiwum prognoz (CSV)',
+                frozen.to_csv(index=False).encode('utf-8-sig'),
+                file_name='bestbets_pregame_archive.csv',mime='text/csv')
+            if not verified.empty:
+                st.markdown('#### Błędy zakończonych spotkań')
+                st.dataframe(verified[['game_id','forecast_total',
+                    'actual_total','total_error','winner_hit','brier']],
+                    hide_index=True,use_container_width=True)
+        st.caption('Brak historycznych prognoz sprzed uruchomienia Trackera '
+                   '— nie odtwarzamy ich z późniejszych wyników.')
+    except Exception as exc:
+        st.error('Nie udało się odczytać Performance Trackera: '+str(exc)[:200])
+
 elif page == '🧪 Backtesting':
     st.subheader('Backtesting i kalibracja — bez przecieku danych z przyszłości')
     row_note('Dlaczego to ważne','W każdej prognozie używamy wyłącznie wcześniejszych występów. Automatyczne archiwum zbiera PRAWDZIWE ceny przed meczem. Zaczyna się ono teraz, nie odtwarza cudownie brakujących starych kursów. Test z liniami symulowanymi nie jest testem rentowności.')
@@ -834,5 +952,5 @@ elif page == '📱 Telefon i publikacja':
     st.warning('Wszystkie osoby otwierające publiczną stronę będą korzystać ze wspólnego limitu The Odds API. BestBets ma lokalny budżet żądań, ale nie gwarantuje odporności na duży ruch. Na darmowym hostingu lokalna historia kursów może zniknąć przy restarcie; do archiwizacji potrzebna jest trwała baza.')
     st.caption('Prognozy mają charakter eksperymentalny; kursy mogą być niedostępne w Polsce. BestBets nie zawiera automatycznego obstawiania.')
 
-st.markdown('''<div class="bb-footer">BestBets v7.2 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
+st.markdown('''<div class="bb-footer">BestBets v7.4 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)

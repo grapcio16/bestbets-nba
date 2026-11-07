@@ -63,32 +63,122 @@ def completed_team_scores(games:pd.DataFrame|None):
         if min(a,b)<55 or max(a,b)>200:continue
         # date for ordering, not part of the scoring estimate
         dt=pd.to_datetime(g.get('start_utc'),utc=True,errors='coerce')
-        out[home].append((dt,a,b));out[away].append((dt,b,a))
+        out[home].append((dt,a,b,away));out[away].append((dt,b,a,home))
     return out
 
-def matchup_means(home:str,away:str,adv:dict,hist:dict, minimum_history:int=4):
-    """Estimate expected game points from available *observed* team data.
+def legacy_matchup_means(home,away,adv,hist,minimum_history=4):
+    """Unmodified v7.2 score-average baseline for safe default comparisons."""
+    h=adv.get(home);a=adv.get(away)
+    if h and a:
+        pace=(h["pace"]+a["pace"])/2
+        return {"home":pace*(h["off"]+a["def"])/200+1.5,
+                "away":pace*(a["off"]+h["def"])/200-1.5,
+                "source":"NBA Stats advanced • pace / OFF / DEF (v7.2)",
+                "samples":None,
+                "warning":"Przewaga parkietu jest heurystyczna; "
+                          "dostępność graczy i kalibracja niepotwierdzone."}
+    hs=sorted(hist.get(home,[]),key=lambda x:x[0])[-12:]
+    ass=sorted(hist.get(away,[]),key=lambda x:x[0])[-12:]
+    if len(hs)<minimum_history or len(ass)<minimum_history:
+        return None
+    hf=np.mean([r[1] for r in hs]);ha=np.mean([r[2] for r in hs])
+    af=np.mean([r[1] for r in ass]);aa=np.mean([r[2] for r in ass])
+    return {"home":float((hf+aa)/2+1.5),"away":float((af+ha)/2-1.5),
+            "source":"ESPN • średnie z 12 meczów (v7.2)",
+            "samples":(len(hs),len(ass)),
+            "warning":"Brak potwierdzonego tempa, wpływu kontuzji i kalibracji."}
 
-    Prefer NBA pace and efficiencies. On partial advanced coverage, fall back to
-    ESPN completed game scores, but never silently mix incompatible methods.
+
+def _weighted_average(values, halflife=6.0):
+    """Exponential emphasis on newer games, retaining older evidence."""
+    z=np.asarray(values,dtype=float)
+    if len(z)==0 or not np.isfinite(z).all():
+        return None
+    weights=2.**((np.arange(len(z))-(len(z)-1))/halflife)
+    return float(np.average(z,weights=weights))
+
+
+def _team_form_stats(code, historical, league_mean, minimum_history=4):
+    """Latest 12 completed games, mildly adjusted for opponent quality."""
+    history=sorted(historical.get(code,[]),key=lambda x:x[0])
+    if len(history)<minimum_history:
+        return None
+    matches=history[-12:]
+    scored=[];allowed=[];adjusted_games=0
+    for record in matches:
+        _,points,conceded=record[:3]
+        opponent=record[3] if len(record)>3 else None
+        adj_points,adj_allowed=float(points),float(conceded)
+        if opponent and opponent!=code:
+            # Strength of opponent must come from games played BEFORE the game
+            # being corrected. No lookahead even in retrospective validation.
+            earlier=[v for v in historical.get(opponent,[])
+                     if pd.notna(v[0]) and pd.notna(record[0]) and v[0]<record[0]]
+            earlier=sorted(earlier,key=lambda x:x[0])[-12:]
+            if len(earlier)>=4:
+                opp_scored=_weighted_average([v[1] for v in earlier])
+                opp_allowed=_weighted_average([v[2] for v in earlier])
+                reliability=len(earlier)/(len(earlier)+10.)
+                adj_points+=.5*reliability*(league_mean-opp_allowed)
+                adj_allowed+=.5*reliability*(league_mean-opp_scored)
+                adjusted_games+=1
+        scored.append(adj_points);allowed.append(adj_allowed)
+    off=_weighted_average(scored)
+    defense=_weighted_average(allowed)
+    sample_weight=len(matches)/(len(matches)+6.)
+    return {"off":sample_weight*off+(1-sample_weight)*league_mean,
+            "def":sample_weight*defense+(1-sample_weight)*league_mean,
+            "raw_off":_weighted_average([r[1] for r in matches]),
+            "raw_def":_weighted_average([r[2] for r in matches]),
+            "n":len(matches),"sample_weight":sample_weight,
+            "opponent_adjusted":adjusted_games}
+
+
+def matchup_means(home:str,away:str,adv:dict,hist:dict, minimum_history:int=4):
+    """Expected scores: actual advanced ratings or shrinkage + recency ESPN form.
+
+    No blind ranking boost or invented official probabilities. Sample-size
+    shrinkage limits dramatic favorites from 4-10 early-season games.
     """
     h=adv.get(home);a=adv.get(away)
     if h and a:
         pace=(h['pace']+a['pace'])/2
         home_mean=pace*(h['off']+a['def'])/200
         away_mean=pace*(a['off']+h['def'])/200
-        # Small, labeled heuristic home-court shift; total unaffected.
-        return {'home':home_mean+1.5,'away':away_mean-1.5,'source':'NBA Stats advanced • pace / OFF / DEF',
-                'samples':None,'warning':'Przewaga parkietu: umowna korekta +1,5 / −1,5 pkt. Model niewalidowany.'}
-    hs=sorted(hist.get(home,[]),key=lambda x:x[0])[-12:]
-    ass=sorted(hist.get(away,[]),key=lambda x:x[0])[-12:]
-    if len(hs)<minimum_history or len(ass)<minimum_history:return None
-    hf=np.mean([r[1] for r in hs]);ha=np.mean([r[2] for r in hs])
-    af=np.mean([r[1] for r in ass]);aa=np.mean([r[2] for r in ass])
-    return {'home':float((hf+aa)/2+1.5),'away':float((af+ha)/2-1.5),
-            'source':'ESPN • wyniki zakończonych spotkań (metoda zastępcza)',
-            'samples':(len(hs),len(ass)),
-            'warning':'Średnie punkty zdobywane/tracone w max. 12 ostatnich meczach. Brak modelu pace/ratings, mała próba.'}
+        return {'home':home_mean+1.5,'away':away_mean-1.5,
+                'source':'NBA Stats advanced • pace / OFF / DEF',
+                'samples':None,
+                'warning':'Przewaga parkietu: umowna korekta +1,5 / −1,5 pkt. '
+                          'Status graczy i kalibracja szans niepotwierdzone.'}
+    values=[]
+    for records in hist.values():
+        values.extend(float(r[1]) for r in records if 50<float(r[1])<200)
+    if not values:
+        return None
+    league_mean=float(np.mean(values))
+    hf=_team_form_stats(home,hist,league_mean,minimum_history)
+    af=_team_form_stats(away,hist,league_mean,minimum_history)
+    if hf is None or af is None:
+        return None
+    return {
+        'home':float((hf['off']+af['def'])/2+1.5),
+        'away':float((af['off']+hf['def'])/2-1.5),
+        'source':'ESPN • ważona forma, siła rywali, regresja do średniej',
+        'samples':(hf['n'],af['n']),
+        'form':{
+            home:{"recent_scored":round(hf['raw_off'],1),
+                  "recent_allowed":round(hf['raw_def'],1),
+                  "sample_weight":round(hf['sample_weight'],2),
+                  "adjusted_opponents":hf["opponent_adjusted"]},
+            away:{"recent_scored":round(af['raw_off'],1),
+                  "recent_allowed":round(af['raw_def'],1),
+                  "sample_weight":round(af['sample_weight'],2),
+                  "adjusted_opponents":af["opponent_adjusted"]},
+        },
+        'warning':'Ważona forma z max. 12 meczów + ostrożna regresja do średniej. '
+                  'Siła rywali: przybliżona korekta; składy, kontuzje i prawdziwe tempo gry NIE są tu uwzględnione. '
+                  'Szanse modelu są niekalibrowane.',
+    }
 
 def eligible_roster(logs:pd.DataFrame|None,abbr:str,opp:str,injuries:pd.DataFrame|None=None,
                     team_context=None,league_avg=None,asof=None):
