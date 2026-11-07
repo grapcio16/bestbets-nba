@@ -25,9 +25,9 @@ jobs:
       - name: Install minimum test dependencies
         run: python -m pip install -q pandas numpy plotly streamlit requests
       - name: Compile updated modules
-        run: python -m py_compile app.py roster_data.py roster_view.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py
+        run: python -m py_compile app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py
       - name: Unit tests for roster parsing
-        run: python -m unittest -v test_roster_data.py test_matchup_roster.py test_forecast_audit.py
+        run: python -m unittest -v test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py
       - name: Streamlit smoke check - landing page and player browser
         run: |
           python - <<'PY'
@@ -40,6 +40,26 @@ jobs:
           assert len(at.selectbox) >= 2, "Team or player roster selector missing"
           assert any("Stephen Curry" == str(v) for sb in at.selectbox for v in sb.options), "Stephen Curry not in GSW selector"
           print("Streamlit pages render, GSW roster and Stephen Curry selector verified")
+          PY
+      - name: Calculator smoke - global selector with Gordon and Curry
+        run: |
+          python - <<'PY'
+          from streamlit.testing.v1 import AppTest
+          at=AppTest.from_file("app.py", default_timeout=90).run()
+          assert not at.exception, [str(x.message) for x in at.exception]
+          at.sidebar.radio[0].set_value("💹 Kursy i value").run()
+          assert not at.exception, [str(x.message) for x in at.exception]
+          selection=[r for r in at.radio if r.label=="Wybierz analizę kursów"]
+          assert selection, "Odds analysis selector absent"
+          selection[0].set_value("🧮 Kalkulator (opcjonalnie)").run()
+          assert not at.exception, [str(x.message) for x in at.exception]
+          players=[s for s in at.selectbox if s.label=="Wyszukaj zawodnika NBA"]
+          assert players, "Global player selector absent"
+          opts=list(players[0].options)
+          assert any("Aaron Gordon (DEN)"==str(o) for o in opts), "Aaron Gordon missing"
+          assert any("Stephen Curry (GSW)"==str(o) for o in opts), "Stephen Curry missing"
+          assert not any(s.label=="Drużyna NBA" for s in at.selectbox), "Team selector still present"
+          print("Calculator renders; global roster contains Gordon & Curry; team picker removed")
           PY
       - name: Live ESPN availability diagnostic
         continue-on-error: true
