@@ -340,7 +340,15 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
     if mean is None:
         st.warning('Brak wystarczających danych do ponownego obliczenia rozkładu wyniku.')
         return
-    _, _, home_draws, away_draws = simulate_game(g, mean)
+    recomputed, _, home_draws, away_draws = simulate_game(g, mean)
+    # Never show an odds or score distribution calculated with a different
+    # model from the game card. This catches research-toggle/cache drift.
+    if (recomputed['home_win_pct'] != sim['home_win_pct'] or
+        recomputed['away_win_pct'] != sim['away_win_pct'] or
+        abs(recomputed['total_points']-sim['total_points'])>0.11):
+        st.error('Niespójność wariantu modelu: szczegóły nie odpowiadają '
+                 'prognozie z karty meczu. Odśwież stronę przed analizą.')
+        return
 
     if view == '📊 Rozkład punktów':
         total = home_draws + away_draws
