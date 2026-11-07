@@ -11,6 +11,7 @@ from datetime import date
 import pandas as pd
 
 SNAPSHOT_DATE = date(2026, 11, 7)
+SNAPSHOT_ASOF_UTC = pd.Timestamp("2026-11-07T18:10:00Z")
 SNAPSHOT_LABEL = "07.11.2026 — przepisane ze screenów użytkownika"
 PROP_SNAPSHOT = [
     # Points: 13 paired markets
@@ -130,6 +131,8 @@ def player_market_report(logs: pd.DataFrame, offers: pd.DataFrame):
     """Compare all markets for one athlete, never invent missing samples."""
     from core import calc_projection
     rows=[]
+    if logs is not None and not logs.empty:
+        logs=logs[pd.to_datetime(logs["GAME_DATE"],errors="coerce",utc=True)<SNAPSHOT_ASOF_UTC].copy()
     for offer in offers.to_dict("records"):
         rec={
             "Statystyka":offer["market"],"Linia":float(offer["line"]),
