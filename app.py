@@ -776,7 +776,21 @@ elif page == '📈 Performance Tracker':
             except Exception as exc:
                 st.error('Nie udało się rozliczyć prognoz. Sprawdź połączenie z bazą i odpowiedź ESPN.')
     try:
-        frozen=tracker_read(season,config=cfg)
+        full_archive=tracker_read(season,config=cfg)
+        available_models=(sorted(full_archive['model_id'].dropna().astype(str).unique())
+                          if not full_archive.empty and 'model_id' in full_archive
+                          else [])
+        if len(available_models)>1:
+            chosen_model=st.selectbox('Wariant modelu do rozliczenia',
+                available_models,key='bb76_tracker_model')
+            st.caption('Każdy wariant oceniamy osobno. Różne modele mogą mieć '
+                       'inne próbki meczów, więc ich wyniki nie są bezpośrednim '
+                       'porównaniem head-to-head.')
+            frozen=full_archive[full_archive['model_id']==chosen_model].copy()
+        else:
+            frozen=full_archive
+            if available_models:
+                st.caption('Wariant modelu: '+available_models[0])
         verified,stats=performance_metrics(frozen)
         qa=audit_summary(frozen)
         m1,m2,m3,m4=st.columns(4)
@@ -816,7 +830,7 @@ elif page == '📈 Performance Tracker':
             st.dataframe(visible[display_cols],hide_index=True,
                          use_container_width=True)
             st.download_button('Pobierz pełne archiwum prognoz (CSV)',
-                frozen.to_csv(index=False).encode('utf-8-sig'),
+                full_archive.to_csv(index=False).encode('utf-8-sig'),
                 file_name='bestbets_pregame_archive.csv',mime='text/csv')
             if not verified.empty:
                 st.markdown('#### Błędy zakończonych spotkań')
