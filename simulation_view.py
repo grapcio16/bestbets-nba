@@ -405,10 +405,11 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
         try:
             from sources import read_cache
             cached_adv,am=read_cache('extended-Drużyny • advanced (pace/def)-'+season,12*3600)
-            if cached_adv:
+            if cached_adv and not (am and am.get('stale')):
                 advanced=standardize_teams(pd.DataFrame(cached_adv))
-                if am and am.get('stale'):
-                    warnings.append('NBA advanced: użyto starszej zapisanej kopii.')
+            elif cached_adv:
+                warnings.append('NBA advanced jest nieaktualne: odrzucono przeterminowaną kopię '
+                                'i użyto zakończonych spotkań ESPN.')
             else:
                 warnings.append('NBA advanced nie jest zapisane lokalnie — użyto danych meczowych ESPN.')
         except Exception as e:
