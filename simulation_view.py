@@ -385,13 +385,15 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     # Freeze predictions at first observed pregame run; never rewrite them.
     # Persistence is local only: may be erased by Streamlit Cloud redeploys.
     try:
-        from pathlib import Path
-        from performance_tracker import store_forecasts
-        archive=Path(__file__).resolve().parent/'data'/'pregame_forecasts.sqlite3'
-        result=store_forecasts(archive,season,summary)
+        from tracker_storage import save,tracker_backend
+        for record in summary:
+            record['model_id']=(
+                'research_form_v74' if research_mode else 'legacy_v72')
+        cfg=tracker_backend()
+        result=save(summary,season,config=cfg)
         st.caption('Tracker: zapisano '+str(result['saved'])+
-                   ' nowych prognoz przed pierwszym gwizdkiem. '
-                   'Baza lokalna — po restarcie hostingu wpisy mogą zniknąć.')
+                   ' nowych prognoz przed rozpoczęciem meczu. '
+                   'Źródło danych: '+cfg['label']+'.')
     except Exception as exc:
         st.warning('Tracker nie mógł zapisać prognoz: '+str(exc)[:145])
 
