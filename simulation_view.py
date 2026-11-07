@@ -7,7 +7,7 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 from simulation_engine import (TEAM_NAMES,advanced_ratings,completed_team_scores,
-    matchup_means,legacy_matchup_means,eligible_roster,simulate_game,match_real_odds)
+    matchup_means,legacy_matchup_means,select_matchup_means,eligible_roster,simulate_game,match_real_odds)
 from simulation_sources import historical_espn_results
 from teams import standardize_teams
 from odds_fetcher import automatic_odds
@@ -16,6 +16,7 @@ from espn_player_data import matchup_espn_logs
 from roster_data import team_roster
 from matchup_roster import roster_projection_table
 from forecast_quality import quality_report
+from availability_context import matchup_injuries,player_minutes_brief
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -41,8 +42,8 @@ def build_sims(games,advanced,history,logs,injuries,research_mode=False):
                 if not z.empty:league_avg[k]=float(z.median())
     for _,row in games.iterrows():
         g=row.to_dict()
-        method=matchup_means if research_mode else legacy_matchup_means
-        mean=method(g['home'],g['away'],ratings,history_by_team)
+        mean=select_matchup_means(g['home'],g['away'],ratings,history_by_team,
+                                  research_mode=research_mode)
         if mean is None:
             unavailable.append({'game_id':g.get('game_id'),'game':g['away']+' @ '+g['home'],
                 'reason':'Brak NBA advanced i zbyt mało zakończonych meczów ESPN (min. 4 na drużynę).'})
@@ -105,7 +106,7 @@ def team_scoring_history(hist, code, games=10):
 
 
 @st.cache_data(ttl=3*3600,max_entries=8,show_spinner=False)
-def matchup_players_cached(season, g, hist, advanced, nonce):
+def matchup_players_cached(season, g, hist, advanced, nonce, research_mode=False):
     """Fetch selected teams ONLY; streamlit and per-event disk cache prevent repeats."""
     selected, source=matchup_espn_logs(hist,g,games_per_team=7)
     if selected.empty:return pd.DataFrame(),source
@@ -117,7 +118,7 @@ def matchup_players_cached(season, g, hist, advanced, nonce):
     single=pd.DataFrame([g])
     # Injury data is deliberately not fetched for EVERY matchup/card.
     # Without a recent confirmed report, availability stays unverified.
-    _,per_game,_=build_sims(single,advanced,hist,logs,pd.DataFrame())
+    _,per_game,_=build_sims(single,advanced,hist,logs,pd.DataFrame(),research_mode)
     return per_game.get(str(g['game_id']),pd.DataFrame()),source
 
 
@@ -185,7 +186,8 @@ def game_card(sim,g,hist):
 
 @st.dialog('🏀 Szczegóły meczu i statystyki zawodników', width='large')
 def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
-                      roster_tables=None, roster_diagnostics=None, roster_notices=None):
+                      roster_tables=None, roster_diagnostics=None, roster_notices=None,
+                      research_mode=False, injury_table=None, injury_meta=None):
     """One-click modal. Player statistics are the FIRST view, not below the cards."""
     home, away = sim['home'], sim['away']
     st.markdown(f'### {TEAM_NAMES.get(away,away)} — {TEAM_NAMES.get(home,home)}')
@@ -266,12 +268,43 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
     if player_meta:
         st.caption('Dane zawodników: '+str(player_meta.get('source','ESPN'))+
                    ' · '+str(player_meta.get('coverage','')))
+    report,report_meta=matchup_injuries(injury_table,home,away,injury_meta)
+    st.markdown('#### Statusy zawodników — raport ESPN')
+    if report.empty:
+        st.info('Brak rozpoznanych informacji o kontuzjach obu drużyn. '
+                'To NIE oznacza, że wszyscy zawodnicy są dostępni.')
+    else:
+        st.dataframe(report,hide_index=True,use_container_width=True,
+                     height=min(290,52+len(report)*36))
+    if report_meta.get('stale'):
+        st.warning('ESPN: dane kontuzji z nieaktualnej pamięci podręcznej.')
+    st.caption(report_meta.get('warning','Statusy wymagają potwierdzenia.'))
+    if report.empty:
+        st.caption('Dostępność kluczowych zawodników przed meczem pozostaje niepotwierdzona.')
+
 
     # Only render the selected section. Stats are immediately visible by default.
     view = st.radio('Pokaż szczegóły',
                     ['👥 Zawodnicy', '📊 Rozkład punktów', '💹 Kursy bukmacherów'],
                     horizontal=True, key=f"bb61_detail_view_{g['game_id']}")
     if view == '👥 Zawodnicy':
+        st.markdown('#### Forma i przewidywane minuty kluczowych zawodników')
+        brief=player_minutes_brief(player_table,home,away,report)
+        if brief.empty:
+            st.info('Nie udało się potwierdzić wystarczającej historii minut zawodników.')
+        else:
+            st.dataframe(brief,hide_index=True,use_container_width=True)
+            st.caption('Minuty to prognoza na podstawie ostatnich występów, '
+                       'nie potwierdzona rotacja ani pierwsza piątka.')
+            at_risk=brief[brief['Status kontuzji'].str.contains(
+                r'out|doubtful|questionable|inactive|suspended',
+                case=False,regex=True,na=False)]
+            if not at_risk.empty:
+                names=', '.join(at_risk['Zawodnik'].astype(str).head(5))
+                st.warning('Uwaga na status zawodników: '+names+
+                           '. Minuty i statystyki są szacunkami historycznymi; '
+                           'symulacja drużyn NIE koryguje aktualnie wyniku '
+                           'o absencje. Sprawdź oficjalny raport przed meczem.')
         st.markdown('#### Zawodnicy w składach i dostępne prognozy')
         st.caption('Katalog ESPN pokazuje zawodników przypisanych do drużyny, NIE oficjalną listę '
                    'aktywnych na ten mecz. Brak historii występów oznacza puste wartości statystyk.')
@@ -311,11 +344,20 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
     # when the user selects that view, keeping the player screen responsive.
     ratings = advanced_ratings(advanced)
     history_by_team = completed_team_scores(hist)
-    mean = matchup_means(home, away, ratings, history_by_team)
+    mean = select_matchup_means(home,away,ratings,history_by_team,
+                                research_mode=research_mode)
     if mean is None:
         st.warning('Brak wystarczających danych do ponownego obliczenia rozkładu wyniku.')
         return
-    _, _, home_draws, away_draws = simulate_game(g, mean)
+    recomputed, _, home_draws, away_draws = simulate_game(g, mean)
+    # Never show an odds or score distribution calculated with a different
+    # model from the game card. This catches research-toggle/cache drift.
+    if (recomputed['home_win_pct'] != sim['home_win_pct'] or
+        recomputed['away_win_pct'] != sim['away_win_pct'] or
+        abs(recomputed['total_points']-sim['total_points'])>0.11):
+        st.error('Niespójność wariantu modelu: szczegóły nie odpowiadają '
+                 'prognozie z karty meczu. Odśwież stronę przed analizą.')
+        return
 
     if view == '📊 Rozkład punktów':
         total = home_draws + away_draws
@@ -459,13 +501,21 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
                     player_meta={}
                     with st.spinner('Pobieram ostatnie mecze wyłącznie tych dwóch drużyn…'):
                         try:
-                            players,player_meta=matchup_players_cached(season,g.to_dict(),hist,advanced,nonce)
+                            players,player_meta=matchup_players_cached(season,g.to_dict(),hist,advanced,nonce,
+                                                                      research_mode)
                         except Exception as exc:
                             player_meta={'source':'ESPN','warning':'Błąd pobierania: '+str(exc)[:180]}
                     tables,diagnostics,notices=matchup_roster_tables(
                         g.to_dict(),players,nonce)
+                    injury_rows=pd.DataFrame()
+                    injury_meta={}
+                    try:
+                        injury_rows,injury_meta=load_injuries(nonce)
+                    except Exception:
+                        injury_meta={'stale':True}
                     show_game_details(sim,g.to_dict(),players,advanced,hist,player_meta,
-                                      tables,diagnostics,notices)
+                                      tables,diagnostics,notices,research_mode,
+                                      injury_rows,injury_meta)
         else:
             a=TEAM_NAMES.get(g['away'],g['away']);h=TEAM_NAMES.get(g['home'],g['home'])
             start=g['start_utc'].tz_convert('Europe/Warsaw').strftime('%d.%m %H:%M')
