@@ -716,6 +716,48 @@ elif page == '📈 Performance Tracker':
                'Restart lub ponowne wdrożenie może usunąć historię. '
                'Eksportuj CSV i przechowuj bezpieczną kopię. '
                'To nie jest jeszcze trwały automatyczny monitoring 24/7.')
+    with st.expander('Test historyczny: nowy model kontra stare średnie',expanded=False):
+        st.caption('Walk-forward: każdy mecz prognozowany wyłącznie na podstawie '
+                   'spotkań zakończonych wcześniej. Porównanie nie obejmuje '
+                   'prawdziwego modelu tempa i kontuzji. Metryki nie oznaczają przewagi bukmacherskiej.')
+        if st.button('Porównaj modele na wcześniejszych meczach',
+                     key='tracker_walkforward'):
+            try:
+                from simulation_backtest import walk_forward_comparison
+                with st.spinner('Porównuję na rzeczywiście zakończonych meczach…'):
+                    finished,notes=historical_espn_results(season)
+                    compared,score=walk_forward_comparison(finished,max_games=140)
+                if not score:
+                    st.warning('Za mało wcześniejszych meczów dla obu modeli.')
+                else:
+                    st.session_state['tracker_walkforward_score']=score
+                    st.session_state['tracker_walkforward_rows']=compared
+            except Exception as exc:
+                st.error('Test nie został wykonany: '+str(exc)[:200])
+        score=st.session_state.get('tracker_walkforward_score')
+        if score:
+            st.caption('Mecze z kompletnym porównaniem: '+str(score['games']))
+            st.dataframe(pd.DataFrame([
+                {'Model':'Stare średnie','MAE sumy':score['old_total_mae'],
+                 'MAE drużyn':score['old_team_mae'],
+                 'Trafność zwycięzcy':score['old_winner_accuracy'],
+                 'Brier':score['old_brier']},
+                {'Model':'Forma + siła rywali','MAE sumy':score['new_total_mae'],
+                 'MAE drużyn':score['new_team_mae'],
+                 'Trafność zwycięzcy':score['new_winner_accuracy'],
+                 'Brier':score['new_brier']},
+            ]),hide_index=True,use_container_width=True)
+            if score['new_total_mae']>=score['old_total_mae']:
+                st.warning('Nowa metoda NIE zmniejszyła błędu sum w tej próbce. '
+                           'Nie można twierdzić, że jest lepsza.')
+            else:
+                st.caption('Nowa metoda zmniejszyła MAE sumy w tej próbce; '
+                           'wymaga kolejnych niezależnych testów.')
+            if 'tracker_walkforward_rows' in st.session_state:
+                st.download_button('Eksport wyniku porównania CSV',
+                    st.session_state['tracker_walkforward_rows'].to_csv(
+                        index=False).encode('utf-8-sig'),
+                    file_name='bestbets_model_comparison.csv',mime='text/csv')
     if st.button('Pobierz i rozlicz zakończone mecze',type='primary',
                  key='tracker_settle'):
         with st.spinner('Sprawdzam potwierdzone wyniki ESPN…'):
