@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - development/v7-roster-data
+      - development/v7-1-match-rosters-validation
   workflow_dispatch:
   pull_request:
     branches:
@@ -23,9 +24,9 @@ jobs:
       - name: Install minimum test dependencies
         run: python -m pip install -q pandas numpy plotly streamlit requests
       - name: Compile updated modules
-        run: python -m py_compile app.py roster_data.py roster_view.py espn_player_data.py simulation_view.py
+        run: python -m py_compile app.py roster_data.py roster_view.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py
       - name: Unit tests for roster parsing
-        run: python -m unittest -v test_roster_data.py
+        run: python -m unittest -v test_roster_data.py test_matchup_roster.py test_forecast_audit.py
       - name: Streamlit smoke check - landing page and player browser
         run: |
           python - <<'PY'
