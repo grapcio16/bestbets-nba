@@ -1,4 +1,4 @@
-"""BestBets v7.5: persistent tracker option and reliable matchup context."""
+"""BestBets v7.6: forecast quality gates, model agreement and verified fixture mapping."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -380,7 +380,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.5</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.6</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab', '📱 Telefon i publikacja'],index=0,label_visibility='collapsed')
@@ -776,7 +776,21 @@ elif page == '📈 Performance Tracker':
             except Exception as exc:
                 st.error('Nie udało się rozliczyć prognoz. Sprawdź połączenie z bazą i odpowiedź ESPN.')
     try:
-        frozen=tracker_read(season,config=cfg)
+        full_archive=tracker_read(season,config=cfg)
+        available_models=(sorted(full_archive['model_id'].dropna().astype(str).unique())
+                          if not full_archive.empty and 'model_id' in full_archive
+                          else [])
+        if len(available_models)>1:
+            chosen_model=st.selectbox('Wariant modelu do rozliczenia',
+                available_models,key='bb76_tracker_model')
+            st.caption('Każdy wariant oceniamy osobno. Różne modele mogą mieć '
+                       'inne próbki meczów, więc ich wyniki nie są bezpośrednim '
+                       'porównaniem head-to-head.')
+            frozen=full_archive[full_archive['model_id']==chosen_model].copy()
+        else:
+            frozen=full_archive
+            if available_models:
+                st.caption('Wariant modelu: '+available_models[0])
         verified,stats=performance_metrics(frozen)
         qa=audit_summary(frozen)
         m1,m2,m3,m4=st.columns(4)
@@ -816,7 +830,7 @@ elif page == '📈 Performance Tracker':
             st.dataframe(visible[display_cols],hide_index=True,
                          use_container_width=True)
             st.download_button('Pobierz pełne archiwum prognoz (CSV)',
-                frozen.to_csv(index=False).encode('utf-8-sig'),
+                full_archive.to_csv(index=False).encode('utf-8-sig'),
                 file_name='bestbets_pregame_archive.csv',mime='text/csv')
             if not verified.empty:
                 st.markdown('#### Błędy zakończonych spotkań')
@@ -959,5 +973,5 @@ elif page == '📱 Telefon i publikacja':
     st.warning('Wszystkie osoby otwierające publiczną stronę będą korzystać ze wspólnego limitu The Odds API. BestBets ma lokalny budżet żądań, ale nie gwarantuje odporności na duży ruch. Na darmowym hostingu lokalna historia kursów może zniknąć przy restarcie; do archiwizacji potrzebna jest trwała baza.')
     st.caption('Prognozy mają charakter eksperymentalny; kursy mogą być niedostępne w Polsce. BestBets nie zawiera automatycznego obstawiania.')
 
-st.markdown('''<div class="bb-footer">BestBets v7.5 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
+st.markdown('''<div class="bb-footer">BestBets v7.6 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)

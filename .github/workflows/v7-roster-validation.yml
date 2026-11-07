@@ -1,16 +1,15 @@
-name: BestBets v7 roster validation
+name: BestBets automated quality checks
 on:
-  push:
-    branches:
-      - development/v7-roster-data
-      - development/v7-1-match-rosters-validation
-      - fix/roster-aaron-gordon
-      - feature/v7-4-performance-tracker
-      - feature/v7-5-durable-tracker-context
   workflow_dispatch:
   pull_request:
     branches:
       - main
+
+# One check per Pull Request commit instead of overlapping push+PR runs.
+# Cancel superseded test runs after each new commit.
+concurrency:
+  group: bestbets-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -27,9 +26,9 @@ jobs:
       - name: Install minimum test dependencies
         run: python -m pip install -q pandas numpy plotly streamlit requests 'psycopg[binary]>=3.2,<4'
       - name: Compile updated modules
-        run: python -m py_compile app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py tracker_storage.py tracker_postgres.py match_context.py
+        run: python -m py_compile app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py tracker_storage.py tracker_postgres.py match_context.py forecast_quality.py
       - name: Unit tests for roster parsing
-        run: python -m unittest -v test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py
+        run: python -m unittest -v test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py
       - name: Streamlit smoke check - landing page and player browser
         run: |
           python - <<'PY'
