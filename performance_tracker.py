@@ -102,6 +102,9 @@ def store_forecasts(db_path, season: str, summaries, captured_at=None):
                      str(g.get("source") or "nieznane"),
                      str(g.get("warning") or "")[:500]))
                 saved += cur.rowcount
+            except (ValueError, TypeError, KeyError, OverflowError):
+                ignored += 1
+                continue
         conn.commit()
     return {"saved":saved,"duplicates_or_rejected":len(summaries)-saved,
             "invalid_or_past":ignored}
