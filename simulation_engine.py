@@ -290,12 +290,15 @@ def match_real_odds(featured:pd.DataFrame|None,game:dict,sim:dict,home_draws,awa
     rows=[]
     expected={game['home'],game['away']}
     gtime=pd.to_datetime(game['start_utc'],utc=True,errors='coerce')
+    # Two games from the same teams can appear in a broad API response.
+    # Match precise fixture start (within 2h of supplier timezone drift),
+    # not any same-team fixture over an entire 24-hour window.
     for r in featured.to_dict('records'):
         ht=TEAM_MAP.get(str(r.get('home_team') or ''),'')
         at=TEAM_MAP.get(str(r.get('away_team') or ''),'')
         if (ht,at)!=(game['home'],game['away']):continue
         stamp=pd.to_datetime(r.get('start_utc'),utc=True,errors='coerce')
-        if pd.isna(stamp) or pd.isna(gtime) or abs((stamp-gtime).total_seconds())>86400:continue
+        if pd.isna(stamp) or pd.isna(gtime) or abs((stamp-gtime).total_seconds())>2*3600:continue
         course=_num(r.get('odds'))
         if course is None or course<=1:continue
         market=str(r.get('market') or '')
