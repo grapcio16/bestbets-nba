@@ -73,6 +73,17 @@ jobs:
           assert any(x.label=="Pobierz i rozlicz zakończone mecze" for x in at.button)
           print("Performance Tracker renders without exceptions")
           PY
+      - name: Descriptive actual-season walk-forward benchmark
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from simulation_sources import historical_espn_results
+          from simulation_backtest import walk_forward_comparison
+          games,notes=historical_espn_results('2026-27')
+          _,metrics=walk_forward_comparison(games,max_games=140)
+          print("WALKFORWARD METRICS:",metrics)
+          print("ESPN WARNINGS:",notes)
+          PY
       - name: Live ESPN availability diagnostic
         continue-on-error: true
         run: |
