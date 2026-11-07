@@ -19,7 +19,7 @@ REQUIRED = ("game_id", "home", "away", "start_utc", "home_points",
 COLUMNS = ["game_id", "season", "forecast_time_utc", "start_utc", "away",
            "home", "away_points", "home_points", "away_win_pct",
            "home_win_pct", "total_points", "source", "warning",
-           "away_score", "home_score", "settled_at_utc"]
+           "away_score", "home_score", "settled_at_utc", "model_id"]
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS forecasts (
@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS forecasts (
     warning TEXT NOT NULL DEFAULT '',
     away_score INTEGER,
     home_score INTEGER,
-    settled_at_utc TEXT
+    settled_at_utc TEXT,
+    model_id TEXT NOT NULL DEFAULT 'legacy_v72'
 );
 CREATE INDEX IF NOT EXISTS forecasts_start ON forecasts(start_utc);
 """
@@ -57,6 +58,9 @@ def db_connect(db_path):
     conn = sqlite3.connect(str(location), timeout=12)
     conn.execute("PRAGMA busy_timeout=12000")
     conn.executescript(SCHEMA)
+    if 'model_id' not in {row[1] for row in conn.execute('PRAGMA table_info(forecasts)')}:
+        conn.execute("ALTER TABLE forecasts ADD COLUMN model_id TEXT NOT NULL DEFAULT 'legacy_v72'")
+        conn.commit()
     return conn
 
 
@@ -95,12 +99,13 @@ def store_forecasts(db_path, season: str, summaries, captured_at=None):
                     """INSERT OR IGNORE INTO forecasts
                     (game_id,season,forecast_time_utc,start_utc,away,home,
                      away_points,home_points,away_win_pct,home_win_pct,
-                     total_points,source,warning)
-                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     total_points,source,warning,model_id)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (event_id,str(season),captured.isoformat(),start.isoformat(),
                      str(g["away"]),str(g["home"]),apts,hpts,ap,hp,total,
                      str(g.get("source") or "nieznane"),
-                     str(g.get("warning") or "")[:500]))
+                     str(g.get("warning") or "")[:500],
+                     str(g.get("model_id") or "legacy_v72")[:40]))
                 saved += cur.rowcount
             except (ValueError, TypeError, KeyError, OverflowError):
                 ignored += 1
