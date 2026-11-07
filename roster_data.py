@@ -29,9 +29,12 @@ def parse_team_roster(payload: dict, team: str) -> pd.DataFrame:
     if team not in TEAM_FULL:
         raise ValueError("Nieznana drużyna NBA")
     rows = []
-    groups = payload.get("athletes") or []
+    groups = payload.get("athletes") or payload.get("roster") or []
+    if isinstance(groups,dict):
+        groups = groups.get("items") or groups.get("athletes") or []
     for group in groups:
-        candidates = group.get("items") if isinstance(group,dict) and isinstance(group.get("items"),list) else [group]
+        # Some provider responses group athletes by position.
+        candidates = (group.get("items") or group.get("athletes") or [group]) if isinstance(group,dict) else []
         for item in candidates:
             if not isinstance(item,dict):
                 continue
