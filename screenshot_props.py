@@ -116,3 +116,48 @@ def model_assessment(projection, line, over, under):
             "odds":float(price)
         }
     return values
+
+
+
+def player_snapshot(player: str):
+    """Search screenshot prices by normalized name, tolerant to Jr punctuation."""
+    from core import norm_name
+    df=screenshot_props()
+    return df[df["player"].map(norm_name)==norm_name(player)].copy()
+
+
+def player_market_report(logs: pd.DataFrame, offers: pd.DataFrame):
+    """Compare all markets for one athlete, never invent missing samples."""
+    from core import calc_projection
+    rows=[]
+    for offer in offers.to_dict("records"):
+        rec={
+            "Statystyka":offer["market"],"Linia":float(offer["line"]),
+            "OVER kurs":float(offer["over"]),"UNDER kurs":float(offer["under"]),
+            "Prognoza":None,"Występy":0,"OVER model %":None,
+            "UNDER model %":None,"OVER EV model %":None,"UNDER EV model %":None,
+            "Status":"Brak danych",
+        }
+        market=offer["market"]
+        if logs is not None and not logs.empty and market in logs:
+            valid=logs[(pd.to_numeric(logs["MIN"],errors="coerce")>2)
+                       & pd.to_numeric(logs[market],errors="coerce").notna()]
+            rec["Występy"]=len(valid)
+            if len(valid)>=5:
+                try:
+                    p=calc_projection(valid,market)
+                    assessment=model_assessment(p,offer["line"],offer["over"],offer["under"])
+                    rec.update({
+                        "Prognoza":p["prediction"],
+                        "OVER model %":assessment["OVER"]["p_model"],
+                        "UNDER model %":assessment["UNDER"]["p_model"],
+                        "OVER EV model %":assessment["OVER"]["ev_pct"],
+                        "UNDER EV model %":assessment["UNDER"]["ev_pct"],
+                        "Status":"Model eksperymentalny",
+                    })
+                except (ValueError,TypeError,KeyError):
+                    rec["Status"]="Brak poprawnych danych"
+            else:
+                rec["Status"]="Za mała próba (<5)"
+        rows.append(rec)
+    return pd.DataFrame(rows)
