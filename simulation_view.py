@@ -7,7 +7,7 @@ import numpy as np
 import plotly.graph_objects as go
 import streamlit as st
 from simulation_engine import (TEAM_NAMES,advanced_ratings,completed_team_scores,
-    matchup_means,eligible_roster,simulate_game,match_real_odds)
+    matchup_means,legacy_matchup_means,eligible_roster,simulate_game,match_real_odds)
 from simulation_sources import historical_espn_results
 from teams import standardize_teams
 from odds_fetcher import automatic_odds
@@ -27,7 +27,7 @@ def logo_html(code):
             'loading="lazy" style="width:64px;height:64px;object-fit:contain" />') if url else '🏀'
 
 @st.cache_data(ttl=60*60,max_entries=5,show_spinner=False)
-def build_sims(games,advanced,history,logs,injuries):
+def build_sims(games,advanced,history,logs,injuries,research_mode=False):
     """Process every upcoming game, returning simulation summaries AND all player means."""
     ratings=advanced_ratings(advanced)
     history_by_team=completed_team_scores(history)
@@ -40,7 +40,8 @@ def build_sims(games,advanced,history,logs,injuries):
                 if not z.empty:league_avg[k]=float(z.median())
     for _,row in games.iterrows():
         g=row.to_dict()
-        mean=matchup_means(g['home'],g['away'],ratings,history_by_team)
+        method=matchup_means if research_mode else legacy_matchup_means
+        mean=method(g['home'],g['away'],ratings,history_by_team)
         if mean is None:
             unavailable.append({'game_id':g.get('game_id'),'game':g['away']+' @ '+g['home'],
                 'reason':'Brak NBA advanced i zbyt mało zakończonych meczów ESPN (min. 4 na drużynę).'})
@@ -270,6 +271,18 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
                'Model jest eksperymentalny.')
     st.markdown('''<div class="bb-panel"><strong>Co pokazujemy?</strong>
     <p>Pełne nazwy drużyn oraz pobrane herby (lub lokalne oznaczenia zastępcze), szansę zwycięstwa obu drużyn, średni przewidywany wynik i łączną sumę punktów. Kliknij przycisk pod dowolnym meczem, aby otworzyć jego wyniki i statystyki zawodników bez przewijania przez pozostałe mecze. Jeśli brakuje danych, model nie wyświetla fikcyjnego wyniku.</p></div>''',unsafe_allow_html=True)
+    research_mode=st.toggle(
+        'Eksperymentalny model: ważona forma i siła rywali',
+        value=False,key='bb74_research_form',
+        help='Do badań, nie potwierdzona poprawa: wynik na 131 meczach '
+             'poprawił MAE sumy, ale pogorszył skuteczność zwycięzcy.'
+    )
+    if research_mode:
+        st.warning('Tryb badawczy: ważona forma i przybliżona siła przeciwników. '
+                   'W testach model miał gorszą trafność zwycięzców niż stary. '
+                   'Nie uwzględnia jeszcze potwierdzonych składów i kontuzji.')
+    else:
+        st.caption('Domyślny model v7.2. Tryb badawczy można włączyć powyżej.')
     days=st.select_slider('Pokaż nadchodzące mecze przez',options=[1,3,5,7,10,14],value=1,format_func=lambda d:f'{d} dni')
     try:
         schedule,sm=load_schedule(nonce)
@@ -308,7 +321,7 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     for warn in warnings:st.caption('⚠️ '+warn)
     # Scores are simulated immediately; player estimates are loaded only for
     # the selected game in its details dialog, never across all upcoming games.
-    summary,_,missing=build_sims(games,advanced,hist,pd.DataFrame(),pd.DataFrame())
+    summary,_,missing=build_sims(games,advanced,hist,pd.DataFrame(),pd.DataFrame(),research_mode)
     # Freeze predictions at first observed pregame run; never rewrite them.
     # Persistence is local only: may be erased by Streamlit Cloud redeploys.
     try:
