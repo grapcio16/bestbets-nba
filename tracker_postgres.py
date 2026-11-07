@@ -85,6 +85,9 @@ def remote_store(url,season,summaries,captured_at=None):
                      str(s.get("warning") or "")[:500],
                      str(s.get("model_id") or "legacy_v72")[:40]))
                 stored+=cursor.rowcount
+            except (ValueError,TypeError,KeyError,OverflowError):
+                invalid+=1
+                continue
         conn.commit()
     return {"saved":stored,"duplicates_or_rejected":len(summaries)-stored,
             "invalid_or_past":invalid}
