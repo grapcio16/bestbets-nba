@@ -309,6 +309,19 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     # Scores are simulated immediately; player estimates are loaded only for
     # the selected game in its details dialog, never across all upcoming games.
     summary,_,missing=build_sims(games,advanced,hist,pd.DataFrame(),pd.DataFrame())
+    # Freeze predictions at first observed pregame run; never rewrite them.
+    # Persistence is local only: may be erased by Streamlit Cloud redeploys.
+    try:
+        from pathlib import Path
+        from performance_tracker import store_forecasts
+        archive=Path(__file__).resolve().parent/'data'/'pregame_forecasts.sqlite3'
+        result=store_forecasts(archive,season,summary)
+        st.caption('Tracker: zapisano '+str(result['saved'])+
+                   ' nowych prognoz przed pierwszym gwizdkiem. '
+                   'Baza lokalna — po restarcie hostingu wpisy mogą zniknąć.')
+    except Exception as exc:
+        st.warning('Tracker nie mógł zapisać prognoz: '+str(exc)[:145])
+
     st.caption('Szybki widok: mecze i wyniki drużyn. Statystyki zawodników pobierane są automatycznie po kliknięciu szczegółów wybranego meczu.')
     done={str(s['game_id']):s for s in summary}
     b1,b2,b3=st.columns(3)
