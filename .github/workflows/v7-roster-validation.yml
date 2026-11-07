@@ -86,6 +86,10 @@ jobs:
           assert any(x.label=="UNDER" for x in at.get("metric")), "UNDER price missing"
           print("Archived player market selector and both odds display rendered")
           PY
+      - name: Optional screenshot forecast diagnostic (pre-snapshot only)
+        continue-on-error: true
+        timeout-minutes: 5
+        run: python screenshot_report.py
       - name: Live ESPN availability diagnostic
         continue-on-error: true
         run: |
