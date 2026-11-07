@@ -413,7 +413,7 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
                    ' nowych prognoz przed rozpoczęciem meczu. '
                    'Źródło danych: '+cfg['label']+'.')
     except Exception as exc:
-        st.warning('Tracker nie mógł zapisać prognoz: '+str(exc)[:145])
+        st.warning('Nie udało się zapisać prognoz. Sprawdź konfigurację magazynu danych w ustawieniach serwera.')
 
     st.caption('Szybki widok: mecze i wyniki drużyn. Statystyki zawodników pobierane są automatycznie po kliknięciu szczegółów wybranego meczu.')
     done={str(s['game_id']):s for s in summary}
