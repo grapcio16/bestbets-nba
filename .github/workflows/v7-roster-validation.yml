@@ -71,7 +71,6 @@ jobs:
           at.sidebar.radio[0].set_value("📈 Performance Tracker").run()
           assert not at.exception, [str(x.message) for x in at.exception]
           assert any(x.label=="Pobierz i rozlicz zakończone mecze" for x in at.button)
-          assert any(x.label=="Porównaj modele na wcześniejszych meczach" for x in at.button) is False or True
           print("Performance Tracker renders without exceptions")
           PY
       - name: Live ESPN availability diagnostic
