@@ -66,6 +66,29 @@ def completed_team_scores(games:pd.DataFrame|None):
         out[home].append((dt,a,b,away));out[away].append((dt,b,a,home))
     return out
 
+def legacy_matchup_means(home,away,adv,hist,minimum_history=4):
+    """Unmodified v7.2 score-average baseline for safe default comparisons."""
+    h=adv.get(home);a=adv.get(away)
+    if h and a:
+        pace=(h["pace"]+a["pace"])/2
+        return {"home":pace*(h["off"]+a["def"])/200+1.5,
+                "away":pace*(a["off"]+h["def"])/200-1.5,
+                "source":"NBA Stats advanced • pace / OFF / DEF (v7.2)",
+                "samples":None,
+                "warning":"Przewaga parkietu jest heurystyczna; "
+                          "dostępność graczy i kalibracja niepotwierdzone."}
+    hs=sorted(hist.get(home,[]),key=lambda x:x[0])[-12:]
+    ass=sorted(hist.get(away,[]),key=lambda x:x[0])[-12:]
+    if len(hs)<minimum_history or len(ass)<minimum_history:
+        return None
+    hf=np.mean([r[1] for r in hs]);ha=np.mean([r[2] for r in hs])
+    af=np.mean([r[1] for r in ass]);aa=np.mean([r[2] for r in ass])
+    return {"home":float((hf+aa)/2+1.5),"away":float((af+ha)/2-1.5),
+            "source":"ESPN • średnie z 12 meczów (v7.2)",
+            "samples":(len(hs),len(ass)),
+            "warning":"Brak potwierdzonego tempa, wpływu kontuzji i kalibracji."}
+
+
 def _weighted_average(values, halflife=6.0):
     """Exponential emphasis on newer games, retaining older evidence."""
     z=np.asarray(values,dtype=float)
