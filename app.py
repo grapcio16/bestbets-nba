@@ -691,6 +691,11 @@ elif page == '💹 Kursy i value':
                             st.warning('Nie udało się pobrać statystyk: '+str(exc)[:180])
                             sub=pd.DataFrame()
                             details={}
+                    if archived and not sub.empty:
+                        from screenshot_props import SNAPSHOT_ASOF_UTC
+                        sub=sub[sub['GAME_DATE']<SNAPSHOT_ASOF_UTC].copy()
+                        st.caption('Dla archiwalnych kursów uwzględniamy tylko występy '
+                                   'przed zrzutami z 7.11.2026 (bez przecieku przyszłych danych).')
                     st.caption('Dostępne występy: '+str(len(sub))+' · '+
                                str(details.get('coverage','')))
                     projection=None
