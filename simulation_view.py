@@ -15,6 +15,7 @@ from team_logos import logo_data_uri, refresh_logos_in_background, cached_offici
 from espn_player_data import matchup_espn_logs
 from roster_data import team_roster
 from matchup_roster import roster_projection_table
+from forecast_quality import quality_report
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -47,9 +48,12 @@ def build_sims(games,advanced,history,logs,injuries,research_mode=False):
                 'reason':'Brak NBA advanced i zbyt mało zakończonych meczów ESPN (min. 4 na drużynę).'})
             continue
         try:
+            alternative_method=legacy_matchup_means if research_mode else matchup_means
+            alternate=alternative_method(g['home'],g['away'],ratings,history_by_team)
             h=eligible_roster(logs,g['home'],g['away'],injuries,ratings,league_avg,asof=g['start_utc'])
             a=eligible_roster(logs,g['away'],g['home'],injuries,ratings,league_avg,asof=g['start_utc'])
             s,pl,_,_=simulate_game(g,mean,h,a)
+            s['quality_check']=quality_report(g,mean,alternate,history_by_team)
             summary.append(s);players_by_game[str(g['game_id'])]=pl
         except (ValueError,KeyError,TypeError) as ex:
             unavailable.append({'game_id':g.get('game_id'),'game':g['away']+' @ '+g['home'],'reason':str(ex)})
@@ -163,6 +167,13 @@ def game_card(sim,g,hist):
       <div class="bb-gamefooter">Średnia suma punktów <b>{sim['total_points']:.1f}</b> · Model typuje: <b>{esc(TEAM_NAMES.get(sim['winner'],sim['winner']))}</b></div>
       <div style="font-size:10px;color:#90a4be;margin-top:6px">Procenty = udział zwycięstw w 5 000 symulacji. Duże liczby przy drużynach = prognozowane średnie punkty, a nie aktualny wynik.</div>
     </div>''',unsafe_allow_html=True)
+    qc=sim.get('quality_check') or {}
+    if qc.get('alerts'):
+        st.warning('Kontrola prognozy: '+' • '.join(qc['alerts'][:4])+
+                   '. To sygnały niepewności, a nie pewne typy.')
+    elif qc:
+        st.caption('Kontrola modelu: brak dodatkowych alertów jakości danych. '
+                   'Nie oznacza to skalibrowanej szansy wygranej.')
     away_hist=team_scoring_history(hist,a)
     home_hist=team_scoring_history(hist,h)
     if away_hist and home_hist:
@@ -194,6 +205,15 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
     c4.metric('Średnia suma', f"{sim['total_points']:.1f} pkt")
     c4.caption(f"80% symulacji: {sim['total_p10']}–{sim['total_p90']} pkt.")
     st.caption(f"Źródło modelu: {sim['source']}. {sim.get('warning','')}")
+    qc=sim.get('quality_check') or {}
+    if qc.get('alternate_available'):
+        st.caption('Kontrola wrażliwości — drugi wariant modelu: '
+                   f"{qc['alternate_away']:.1f} : {qc['alternate_home']:.1f} "
+                   '(goście : gospodarze). '
+                   f"Różnica handicapów {qc['margin_disagreement']:.1f} pkt. "
+                   'Wariant nie jest gwarantowanie dokładniejszy.')
+    if qc.get('alerts'):
+        st.warning('Ograniczenia tej prognozy: '+' • '.join(qc['alerts']))
     past_away=team_scoring_history(hist,away)
     past_home=team_scoring_history(hist,home)
     if past_away and past_home:
