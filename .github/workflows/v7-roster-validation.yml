@@ -4,6 +4,9 @@ on:
     branches:
       - development/v7-roster-data
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
