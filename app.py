@@ -774,7 +774,7 @@ elif page == '📈 Performance Tracker':
                 st.success('Rozliczono nowych spotkań: '+str(n))
                 if notes:st.caption(str(notes))
             except Exception as exc:
-                st.error('Rozliczenie niedostępne: '+str(exc)[:220])
+                st.error('Nie udało się rozliczyć prognoz. Sprawdź połączenie z bazą i odpowiedź ESPN.')
     try:
         frozen=tracker_read(season,config=cfg)
         verified,stats=performance_metrics(frozen)
