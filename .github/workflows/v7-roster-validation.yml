@@ -1,16 +1,15 @@
-name: BestBets v7 roster validation
+name: BestBets automated quality checks
 on:
-  push:
-    branches:
-      - development/v7-roster-data
-      - development/v7-1-match-rosters-validation
-      - fix/roster-aaron-gordon
-      - feature/v7-4-performance-tracker
-      - feature/v7-5-durable-tracker-context
   workflow_dispatch:
   pull_request:
     branches:
       - main
+
+# One check per Pull Request commit instead of overlapping push+PR runs.
+# Cancel superseded test runs after each new commit.
+concurrency:
+  group: bestbets-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
