@@ -13,6 +13,9 @@ from teams import standardize_teams
 from odds_fetcher import automatic_odds
 from team_logos import logo_data_uri, refresh_logos_in_background, cached_official_count
 from espn_player_data import matchup_espn_logs
+from roster_data import team_roster
+from matchup_roster import roster_projection_table
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 def esc(x):return html.escape(str(x),quote=True)
@@ -76,6 +79,35 @@ def matchup_players_cached(season, g, hist, advanced, nonce):
     return per_game.get(str(g['game_id']),pd.DataFrame()),source
 
 
+@st.cache_data(ttl=12*3600,max_entries=60,show_spinner=False)
+def selected_team_roster(code, nonce):
+    """Load roster only on game-details interaction, never when listing games."""
+    return team_roster(code,refresh=nonce>0)
+
+
+def matchup_roster_tables(g, player_table, nonce):
+    """Load two cached ESPN rosters concurrently after selecting a specific game."""
+    rosters={}
+    notices={}
+    codes=(str(g['away']),str(g['home']))
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures={pool.submit(selected_team_roster,code,nonce):code for code in codes}
+        for future in as_completed(futures):
+            code=futures[future]
+            try:
+                rows,metadata=future.result()
+                rosters[code]=rows
+                notices[code]=str(metadata.get('warning') or '') if metadata.get('stale') else ''
+            except Exception as exc:
+                notices[code]='Nie udało się pobrać aktualnego składu: '+str(exc)[:130]
+    tables={}
+    diagnostics={}
+    for code in codes:
+        tables[code],diagnostics[code]=roster_projection_table(
+            rosters.get(code),player_table,code)
+    return tables,diagnostics,notices
+
+
 def game_card(sim,g,hist):
     h,a=sim['home'],sim['away']
     date=pd.to_datetime(g['start_utc'],utc=True).tz_convert('Europe/Warsaw').strftime('%d.%m.%Y • %H:%M')
@@ -103,7 +135,8 @@ def game_card(sim,g,hist):
 
 
 @st.dialog('🏀 Szczegóły meczu i statystyki zawodników', width='large')
-def show_game_details(sim, g, player_table, advanced, hist, player_meta=None):
+def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
+                      roster_tables=None, roster_diagnostics=None, roster_notices=None):
     """One-click modal. Player statistics are the FIRST view, not below the cards."""
     home, away = sim['home'], sim['away']
     st.markdown(f'### {TEAM_NAMES.get(away,away)} — {TEAM_NAMES.get(home,home)}')
@@ -140,23 +173,39 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None):
                     ['👥 Zawodnicy', '📊 Rozkład punktów', '💹 Kursy bukmacherów'],
                     horizontal=True, key=f"bb61_detail_view_{g['game_id']}")
     if view == '👥 Zawodnicy':
-        st.markdown('#### Średnie statystyki zawodników z 5 000 symulacji')
+        st.markdown('#### Zawodnicy w składach i dostępne prognozy')
+        st.caption('Katalog ESPN pokazuje zawodników przypisanych do drużyny, NIE oficjalną listę '
+                   'aktywnych na ten mecz. Brak historii występów oznacza puste wartości statystyk.')
         player_df = player_table if isinstance(player_table, pd.DataFrame) else pd.DataFrame()
-        if player_df.empty:
-            st.info('Nie udało się potwierdzić wystarczającej historii zawodników tego spotkania. '
-                    'Przeliczanie punktów obu drużyn działa niezależnie — nie generujemy fikcyjnych danych.')
-            if player_meta and player_meta.get('warning'):
-                st.caption(str(player_meta['warning']))
-        else:
-            for code in (away, home):
-                df = player_df[player_df['Drużyna'] == code]
-                st.markdown(f'**{TEAM_NAMES.get(code,code)}**')
-                if df.empty:
-                    st.info('Brak wystarczających logów zawodników tej drużyny.')
-                else:
-                    st.dataframe(df, hide_index=True, use_container_width=True,
-                                 height=min(450, 52+len(df)*36))
-        st.caption('PTS = punkty • REB = zbiórki • AST = asysty • 3PM = trafione trójki • Minuty = prognozowany czas gry. Wyniki indywidualne pochodzą z modelu i dostępnych logów, nie z oficjalnego składu przedmeczowego.')
+        tables = roster_tables or {}
+        diagnostics = roster_diagnostics or {}
+        notices = roster_notices or {}
+        for code in (away,home):
+            st.markdown(f'**{TEAM_NAMES.get(code,code)}**')
+            df=tables.get(code)
+            details=diagnostics.get(code,{})
+            if df is None:
+                df=player_df[player_df['Drużyna']==code] if not player_df.empty else pd.DataFrame()
+            if details.get('roster_available'):
+                st.caption(f"Skład ESPN: {details['roster_count']} zawodników · "
+                           f"z prognozą: {details['projected']} · "
+                           f"bez dostatecznej historii: {details['missing']}.")
+                if details.get('not_on_roster'):
+                    st.caption('Pominięto prognozy dla zawodników spoza bieżącego katalogu ESPN: '+
+                               str(details['not_on_roster'])+'.')
+            if notices.get(code):
+                st.warning(str(notices[code]))
+            if df.empty:
+                st.info('Nie udało się uzyskać zawodników lub wystarczających logów tej drużyny.')
+            else:
+                st.dataframe(df,hide_index=True,use_container_width=True,
+                             height=min(500,52+len(df)*36))
+        if player_meta and player_meta.get('warning'):
+            st.caption(str(player_meta['warning']))
+        st.caption('PTS = punkty • REB = zbiórki • AST = asysty • 3PM = celne trójki. '
+                   'Prognozy powstały z dostępnych logów i uproszczonego modelu, '
+                   'nie są potwierdzonymi statystykami następnego meczu. '
+                   'Status składu nie potwierdza udziału w spotkaniu.')
         return
 
     # The detailed score distribution and odds comparison are computed ONLY
@@ -286,7 +335,10 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
                             players,player_meta=matchup_players_cached(season,g.to_dict(),hist,advanced,nonce)
                         except Exception as exc:
                             player_meta={'source':'ESPN','warning':'Błąd pobierania: '+str(exc)[:180]}
-                    show_game_details(sim,g.to_dict(),players,advanced,hist,player_meta)
+                    tables,diagnostics,notices=matchup_roster_tables(
+                        g.to_dict(),players,nonce)
+                    show_game_details(sim,g.to_dict(),players,advanced,hist,player_meta,
+                                      tables,diagnostics,notices)
         else:
             a=TEAM_NAMES.get(g['away'],g['away']);h=TEAM_NAMES.get(g['home'],g['home'])
             start=g['start_utc'].tz_convert('Europe/Warsaw').strftime('%d.%m %H:%M')
