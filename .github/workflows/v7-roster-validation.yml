@@ -6,6 +6,7 @@ on:
       - development/v7-1-match-rosters-validation
       - fix/roster-aaron-gordon
       - feature/v7-4-performance-tracker
+      - feature/v7-5-durable-tracker-context
   workflow_dispatch:
   pull_request:
     branches:
@@ -24,11 +25,11 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install minimum test dependencies
-        run: python -m pip install -q pandas numpy plotly streamlit requests
+        run: python -m pip install -q pandas numpy plotly streamlit requests 'psycopg[binary]>=3.2,<4'
       - name: Compile updated modules
-        run: python -m py_compile app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py
+        run: python -m py_compile app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py tracker_storage.py tracker_postgres.py match_context.py
       - name: Unit tests for roster parsing
-        run: python -m unittest -v test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py
+        run: python -m unittest -v test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py
       - name: Streamlit smoke check - landing page and player browser
         run: |
           python - <<'PY'
@@ -83,6 +84,20 @@ jobs:
           _,metrics=walk_forward_comparison(games,max_games=140)
           print("WALKFORWARD METRICS:",metrics)
           print("ESPN WARNINGS:",notes)
+          PY
+      - name: Tracker storage selection and context smoke
+        run: |
+          python - <<'PY'
+          from tracker_storage import tracker_backend
+          from match_context import team_schedule_context
+          import pandas as pd
+          assert tracker_backend()['remote'] is False
+          sample=pd.DataFrame([{'start_utc':'2026-11-06T22:00:00Z',
+              'home':'SAS','away':'POR','home_score':119,'away_score':105,
+              'status_code':3}])
+          d=team_schedule_context(sample,'SAS','2026-11-07T23:00:00Z')
+          assert d['back_to_back'] and d['rest_days']==0
+          print('v7.5 storage fallback and rest diagnostics OK')
           PY
       - name: Live ESPN availability diagnostic
         continue-on-error: true

@@ -1,4 +1,4 @@
-"""BestBets v7.4: performance tracker and form-weighted NBA simulation research."""
+"""BestBets v7.5: persistent tracker option and reliable matchup context."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -380,7 +380,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.4</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.5</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab', '📱 Telefon i publikacja'],index=0,label_visibility='collapsed')
@@ -704,18 +704,25 @@ elif page == '💹 Kursy i value':
     automatic_market_panel()
 
 elif page == '📈 Performance Tracker':
-    from performance_tracker import (read_forecasts,settle_forecasts,
-        performance_metrics,audit_summary)
+    from performance_tracker import (performance_metrics,audit_summary)
+    from tracker_storage import (read as tracker_read, settle as tracker_settle, tracker_backend)
     from simulation_sources import historical_espn_results
-    db=PATH/'data'/'pregame_forecasts.sqlite3'
+    cfg=tracker_backend()
     st.subheader('BestBets Performance Tracker')
+    st.caption('Magazyn danych: '+cfg['label'])
     st.caption('Zamrożone prognozy powstają TYLKO przy otwarciu zakładki '
                '„Symulacje 5000” przed rozpoczęciem meczu; nigdy po fakcie. '
                'Wyniki końcowe są dopasowywane do identyfikatora ESPN.')
-    st.warning('Ważne: darmowy Streamlit Cloud przechowuje lokalną bazę nietrwale. '
-               'Restart lub ponowne wdrożenie może usunąć historię. '
-               'Eksportuj CSV i przechowuj bezpieczną kopię. '
-               'To nie jest jeszcze trwały automatyczny monitoring 24/7.')
+    if not cfg['remote']:
+        st.warning('SQLite jest lokalny i nietrwały na Streamlit Cloud. '
+                   'Dla trwałego archiwum skonfiguruj TRACKER_DATABASE_URL '
+                   'w sekcji Secrets jako adres własnego PostgreSQL. '
+                   'Bez tego po restarcie dane mogą zniknąć.')
+    else:
+        st.caption('Zewnętrzny PostgreSQL skonfigurowany. '
+                   'Nie publikujemy hasła ani adresu połączenia.')
+    st.caption('Zapis prognoz następuje podczas odwiedzania symulacji. '
+               'Nie jest to jeszcze samodzielne monitorowanie 24/7.')
     with st.expander('Test historyczny: nowy model kontra stare średnie',expanded=False):
         st.caption('Walk-forward: każdy mecz prognozowany wyłącznie na podstawie '
                    'spotkań zakończonych wcześniej. Porównanie nie obejmuje '
@@ -763,13 +770,13 @@ elif page == '📈 Performance Tracker':
         with st.spinner('Sprawdzam potwierdzone wyniki ESPN…'):
             try:
                 finished,notes=historical_espn_results(season,refresh=True)
-                n=settle_forecasts(db,finished)
+                n=tracker_settle(finished,config=cfg)
                 st.success('Rozliczono nowych spotkań: '+str(n))
                 if notes:st.caption(str(notes))
             except Exception as exc:
-                st.error('Rozliczenie niedostępne: '+str(exc)[:220])
+                st.error('Nie udało się rozliczyć prognoz. Sprawdź połączenie z bazą i odpowiedź ESPN.')
     try:
-        frozen=read_forecasts(db,season)
+        frozen=tracker_read(season,config=cfg)
         verified,stats=performance_metrics(frozen)
         qa=audit_summary(frozen)
         m1,m2,m3,m4=st.columns(4)
@@ -805,7 +812,7 @@ elif page == '📈 Performance Tracker':
                 {True:'Rozliczony',False:'Oczekuje'})
             display_cols=['Start PL','Spotkanie','away_points','home_points',
                           'away_win_pct','home_win_pct','away_score','home_score',
-                          'Stan','source']
+                          'Stan','model_id','source']
             st.dataframe(visible[display_cols],hide_index=True,
                          use_container_width=True)
             st.download_button('Pobierz pełne archiwum prognoz (CSV)',
@@ -819,7 +826,7 @@ elif page == '📈 Performance Tracker':
         st.caption('Brak historycznych prognoz sprzed uruchomienia Trackera '
                    '— nie odtwarzamy ich z późniejszych wyników.')
     except Exception as exc:
-        st.error('Nie udało się odczytać Performance Trackera: '+str(exc)[:200])
+        st.error('Nie udało się odczytać Performance Trackera. Sprawdź konfigurację bazy danych.')
 
 elif page == '🧪 Backtesting':
     st.subheader('Backtesting i kalibracja — bez przecieku danych z przyszłości')
@@ -952,5 +959,5 @@ elif page == '📱 Telefon i publikacja':
     st.warning('Wszystkie osoby otwierające publiczną stronę będą korzystać ze wspólnego limitu The Odds API. BestBets ma lokalny budżet żądań, ale nie gwarantuje odporności na duży ruch. Na darmowym hostingu lokalna historia kursów może zniknąć przy restarcie; do archiwizacji potrzebna jest trwała baza.')
     st.caption('Prognozy mają charakter eksperymentalny; kursy mogą być niedostępne w Polsce. BestBets nie zawiera automatycznego obstawiania.')
 
-st.markdown('''<div class="bb-footer">BestBets v7.4 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
+st.markdown('''<div class="bb-footer">BestBets v7.5 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)

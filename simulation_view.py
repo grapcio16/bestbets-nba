@@ -202,6 +202,24 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
         aa.caption(f"Ostatnie {past_away['games']} rozegranych meczów, bez symulacji")
         hh.metric('Średnia zdobytych pkt — gospodarze (historia)',f"{past_home['mean']:.1f} pkt")
         hh.caption(f"Ostatnie {past_home['games']} rozegranych meczów, bez symulacji")
+    from match_context import matchup_schedule_context
+    contexts=matchup_schedule_context(hist,g)
+    st.markdown('#### Odpoczynek i intensywność terminarza')
+    st.caption('Dane oparte na faktycznie zakończonych spotkaniach ESPN. '
+               'Daty wg strefy NBA ET; to nie jest pełna analiza podróży. '
+               'Liczby te NIE zmieniają na razie symulacji.')
+    for side,code in (('away',away),('home',home)):
+        ctx=contexts[side]
+        if not ctx.get('available'):
+            st.caption(TEAM_NAMES.get(code,code)+': '+ctx.get('reason','Brak danych'))
+        else:
+            st.caption(f"{TEAM_NAMES.get(code,code)}: "
+                       f"odpoczynek {ctx['rest_days']} dzień/dni · "
+                       f"back-to-back: {'TAK' if ctx['back_to_back'] else 'NIE'} · "
+                       f"{ctx['games_in_4_days']} mecz(e) w ciągu 4 dni · "
+                       f"ostatnie {ctx['played_last5']} spotkań: "
+                       f"{ctx['wins_last5']} wygranych, "
+                       f"średnia różnica {ctx['margin_last5']:+.1f} pkt.")
     st.markdown('#### Forma ostatnich meczów — dane rzeczywiste')
     st.caption('Poniższe statystyki są kontekstem, a nie dodatkowym '
                'mnożnikiem prawdopodobieństw. Nie potwierdzają dostępności '
@@ -385,15 +403,17 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     # Freeze predictions at first observed pregame run; never rewrite them.
     # Persistence is local only: may be erased by Streamlit Cloud redeploys.
     try:
-        from pathlib import Path
-        from performance_tracker import store_forecasts
-        archive=Path(__file__).resolve().parent/'data'/'pregame_forecasts.sqlite3'
-        result=store_forecasts(archive,season,summary)
+        from tracker_storage import save,tracker_backend
+        for record in summary:
+            record['model_id']=(
+                'research_form_v74' if research_mode else 'legacy_v72')
+        cfg=tracker_backend()
+        result=save(summary,season,config=cfg)
         st.caption('Tracker: zapisano '+str(result['saved'])+
-                   ' nowych prognoz przed pierwszym gwizdkiem. '
-                   'Baza lokalna — po restarcie hostingu wpisy mogą zniknąć.')
+                   ' nowych prognoz przed rozpoczęciem meczu. '
+                   'Źródło danych: '+cfg['label']+'.')
     except Exception as exc:
-        st.warning('Tracker nie mógł zapisać prognoz: '+str(exc)[:145])
+        st.warning('Nie udało się zapisać prognoz. Sprawdź konfigurację magazynu danych w ustawieniach serwera.')
 
     st.caption('Szybki widok: mecze i wyniki drużyn. Statystyki zawodników pobierane są automatycznie po kliknięciu szczegółów wybranego meczu.')
     done={str(s['game_id']):s for s in summary}
