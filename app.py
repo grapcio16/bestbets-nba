@@ -634,13 +634,13 @@ elif page == '💹 Kursy i value':
                         'aplikacja nie działa w tle po zamknięciu serwera. '
                         'Rzeczywisty backtesting będzie możliwy po zakończeniu zarejestrowanych spotkań.')
         if selected_view=='🧮 Kalkulator (opcjonalnie)':
-            st.markdown('#### Kalkulator dla zawodników z katalogu składów NBA')
-            st.caption('Wybierz drużynę i zawodnika, także jeśli nie miał jeszcze występów w próbce. '
-                       'Statystyki z ESPN pobieramy tylko na żądanie. '
-                       'Wyniki modelu pozostają eksperymentalne i niekalibrowane.')
-            from roster_view import roster_selector,player_observed_logs
-            player,pid,team,roster,roster_meta=roster_selector(
-                'bb7_calculator_team','bb7_calculator_player',st.session_state.nonce)
+            st.markdown('#### Kalkulator zawodników NBA')
+            st.caption('Wyszukaj zawodnika bez wybierania drużyny. Klub ustalamy automatycznie '
+                       'z katalogu ESPN. Wyniki pochodzą z rzeczywistych występów i '
+                       'stanowią niepełną próbkę, a prognozy nie są skalibrowane.')
+            from roster_view import (global_player_selector,player_observed_logs,
+                                     show_calculator_history_chart)
+            player,pid,team,coverage=global_player_selector(st.session_state.nonce)
             if player is not None:
                 a,b,c=st.columns([1,1,1])
                 market=a.selectbox('Statystyka',list(STAT_NAMES),
@@ -651,7 +651,7 @@ elif page == '💹 Kursy i value':
                 odds=st.number_input('Kurs dziesiętny',min_value=1.01,value=1.85,
                                      step=.01,key='bb7_calculator_odds')
                 selection=(season,team,pid,market,float(line),side,float(odds))
-                if st.button('Oblicz na podstawie występów',key='bb7_calculate',
+                if st.button('Oblicz i pokaż wykres występów',key='bb7_calculate',
                              type='primary'):
                     st.session_state['bb7_calc_selection']=selection
                 if st.session_state.get('bb7_calc_selection')==selection:
@@ -659,16 +659,21 @@ elif page == '💹 Kursy i value':
                         try:
                             sub,details=player_observed_logs(
                                 team,pid,player,season,st.session_state.nonce)
-                            st.caption('Dostępne występy: '+str(len(sub))+' · '+
-                                       str(details.get('coverage','')))
-                            if len(sub)<5:
-                                st.warning('Za mało rzeczywistych występów (minimum 5) '
-                                           'na analizę kursu. Zawodnik pozostaje w katalogu.')
-                            elif float(line).is_integer():
-                                st.info('Użyj linii połówkowej, aby uniknąć nierozliczonego '
-                                        'zwrotu stawki przy równej linii.')
+                        except (ValueError,KeyError,TypeError,RuntimeError) as exc:
+                            st.warning('Nie udało się pobrać statystyk: '+str(exc)[:180])
+                            sub=pd.DataFrame()
+                            details={}
+                    st.caption('Dostępne występy: '+str(len(sub))+' · '+
+                               str(details.get('coverage','')))
+                    projection=None
+                    if len(sub)>=5:
+                        try:
+                            p=calc_projection(sub,market)
+                            projection=p['prediction']
+                            if float(line).is_integer():
+                                st.info('Linia całkowita może oznaczać zwrot stawki. '
+                                        'Zmień na linię połówkową do analizy EV.')
                             else:
-                                p=calc_projection(sub,market)
                                 m=edge_metrics(prop_probability(p,line,side),odds)
                                 k1,k2,k3,k4=st.columns(4)
                                 labelled_metric(k1,'Szansa modelu',
@@ -682,10 +687,19 @@ elif page == '💹 Kursy i value':
                                 st.caption(f"Prognoza: {p['prediction']:.1f} · "
                                     f"Minuty: {p['estimated_minutes']:.1f} · "
                                     f"Próba: {p['sample_size']} meczów. "
-                                    'Niedostatecznie zweryfikowany model; dodatnie EV '
-                                    'nie dowodzi rentowności.')
-                        except (ValueError,KeyError,TypeError,RuntimeError) as exc:
-                            st.warning('Brak obliczenia: '+str(exc)[:180])
+                                    'Dodatnie EV nie dowodzi rentowności.')
+                        except (ValueError,KeyError,TypeError) as exc:
+                            st.warning('Nie można wyznaczyć prognozy: '+str(exc)[:180])
+                    else:
+                        st.warning('Za mało rzeczywistych występów (minimum 5) '
+                                   'na obliczenie szansy i EV. Historia poniżej '
+                                   'pokazuje tylko dostępne spotkania.')
+                    show_calculator_history_chart(sub,player,market,line,projection)
+                    if sub is not None and not sub.empty:
+                        st.dataframe(sub[['GAME_DATE','MATCHUP','MIN','PTS','REB',
+                                          'AST','FG3M','PRA']].tail(20)
+                                     .sort_values('GAME_DATE',ascending=False),
+                                     hide_index=True,use_container_width=True)
 
     automatic_market_panel()
 
