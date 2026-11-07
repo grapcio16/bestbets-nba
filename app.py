@@ -826,7 +826,7 @@ elif page == '📈 Performance Tracker':
         st.caption('Brak historycznych prognoz sprzed uruchomienia Trackera '
                    '— nie odtwarzamy ich z późniejszych wyników.')
     except Exception as exc:
-        st.error('Nie udało się odczytać Performance Trackera: '+str(exc)[:200])
+        st.error('Nie udało się odczytać Performance Trackera. Sprawdź konfigurację bazy danych.')
 
 elif page == '🧪 Backtesting':
     st.subheader('Backtesting i kalibracja — bez przecieku danych z przyszłości')
