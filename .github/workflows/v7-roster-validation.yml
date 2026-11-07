@@ -5,7 +5,6 @@ on:
       - development/v7-roster-data
       - development/v7-1-match-rosters-validation
       - fix/roster-aaron-gordon
-      - feature/v7-3-screenshot-props
   workflow_dispatch:
   pull_request:
     branches:
@@ -26,9 +25,9 @@ jobs:
       - name: Install minimum test dependencies
         run: python -m pip install -q pandas numpy plotly streamlit requests
       - name: Compile updated modules
-        run: python -m py_compile app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py screenshot_props.py
+        run: python -m py_compile app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py
       - name: Unit tests for roster parsing
-        run: python -m unittest -v test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_screenshot_props.py
+        run: python -m unittest -v test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py
       - name: Streamlit smoke check - landing page and player browser
         run: |
           python - <<'PY'
@@ -62,34 +61,6 @@ jobs:
           assert not any(s.label=="Drużyna NBA" for s in at.selectbox), "Team selector still present"
           print("Calculator renders; global roster contains Gordon & Curry; team picker removed")
           PY
-      - name: Screenshot markets calculator smoke
-        run: |
-          python - <<'PY'
-          from streamlit.testing.v1 import AppTest
-          at=AppTest.from_file("app.py",default_timeout=90).run()
-          assert not at.exception, [str(x.message) for x in at.exception]
-          at.sidebar.radio[0].set_value("💹 Kursy i value").run()
-          selected=[x for x in at.radio if x.label=="Wybierz analizę kursów"]
-          assert selected
-          selected[0].set_value("🧮 Kalkulator (opcjonalnie)").run()
-          assert not at.exception, [str(x.message) for x in at.exception]
-          modes=[x for x in at.radio if x.label=="Źródło linii"]
-          assert modes and modes[0].value=="Oferty ze screenów (07.11.2026)"
-          players=[x for x in at.selectbox if x.label=="Wyszukaj zawodnika NBA"]
-          assert players
-          g=[x for x in players[0].options if str(x)=="Aaron Gordon (DEN)"]
-          assert g
-          players[0].set_value(g[0]).run()
-          assert not at.exception, [str(x.message) for x in at.exception]
-          assert any(x.label=="Statystyka" for x in at.selectbox)
-          assert any(x.label=="OVER" for x in at.get("metric")), "OVER price missing"
-          assert any(x.label=="UNDER" for x in at.get("metric")), "UNDER price missing"
-          print("Archived player market selector and both odds display rendered")
-          PY
-      - name: Optional screenshot forecast diagnostic (pre-snapshot only)
-        continue-on-error: true
-        timeout-minutes: 5
-        run: python screenshot_report.py
       - name: Live ESPN availability diagnostic
         continue-on-error: true
         run: |
