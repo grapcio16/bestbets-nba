@@ -25,6 +25,92 @@ def cached_team_logs(team: str, season: str, nonce: int = 0):
     return team_recent_logs(team,season,games_per_team=10)
 
 
+@st.cache_data(ttl=12*3600,max_entries=3,show_spinner=False)
+def cached_global_player_catalog(nonce: int = 0):
+    from global_player_catalog import build_global_catalog
+    return build_global_catalog()
+
+
+def global_player_selector(nonce: int = 0):
+    """Player-first lookup across all available NBA team rosters."""
+    try:
+        with st.spinner("Ładuję katalog zawodników NBA…"):
+            catalog,coverage=cached_global_player_catalog(nonce)
+    except Exception as exc:
+        st.error("Nie udało się pobrać katalogu zawodników: "+str(exc)[:180])
+        return None,None,None,{}
+    if catalog.empty:
+        st.warning("Nie otrzymano żadnego składu NBA. Kalkulator pozostaje niedostępny.")
+        return None,None,None,coverage
+    if coverage["missing_teams"]:
+        st.warning("Katalog niepełny: "+str(coverage["teams_loaded"])+"/30 drużyn. "
+                   "Brak danych: "+", ".join(coverage["missing_teams"])+". "
+                   "Nie traktuj brakujących nazwisk jako braku zawodnika w NBA.")
+    if coverage["stale_teams"]:
+        st.caption("Składy z nieaktualnej kopii: "+", ".join(coverage["stale_teams"]))
+    # ESPN IDs distinguish players with identical names; team is determined for user.
+    record_by_label={}
+    for row in catalog.to_dict("records"):
+        label=str(row["PLAYER_NAME"])+" ("+str(row["TEAM_ABBREVIATION"])+")"
+        if label in record_by_label:
+            label=label+" · ESPN "+str(row["PLAYER_ID"])
+        record_by_label[label]=row
+    label=st.selectbox("Wyszukaj zawodnika NBA",list(record_by_label),
+                       key="bb7_global_calculator_player")
+    selected=record_by_label[label]
+    st.caption("Drużyna ustalona automatycznie: "+
+               TEAM_FULL.get(selected["TEAM_ABBREVIATION"],selected["TEAM_ABBREVIATION"]) +
+               " · Katalog: "+str(coverage["players"])+" zawodników, "+
+               str(coverage["teams_loaded"])+"/30 drużyn")
+    return (str(selected["PLAYER_NAME"]),str(selected["PLAYER_ID"]),
+            str(selected["TEAM_ABBREVIATION"]),coverage)
+
+
+def show_calculator_history_chart(sub, player: str, market: str, line: float,
+                                  prediction: float | None = None):
+    """Chronological real game results, selected market and optional forecast."""
+    if sub is None or sub.empty or market not in sub:
+        st.info("Brak rozegranych meczów do wyświetlenia wykresu.")
+        return
+    last=sub.sort_values("GAME_DATE").tail(20).copy()
+    points=pd.to_numeric(last[market],errors="coerce")
+    last=last[points.notna()].copy()
+    if last.empty:
+        st.info("Brak poprawnych wartości wybranej statystyki.")
+        return
+    xlabels=last["GAME_DATE"].dt.strftime("%d.%m.%Y").tolist()
+    values=pd.to_numeric(last[market],errors="coerce").tolist()
+    fig=go.Figure()
+    fig.add_trace(go.Bar(
+        x=xlabels,y=values,marker_color=[
+            "#62C7AE" if v>line else "#EFB85C" for v in values],
+        text=[f"{v:g}" for v in values],textposition="outside",
+        customdata=last["MATCHUP"].fillna("—").tolist(),
+        hovertemplate="Mecz: %{customdata}<br>Data: %{x}<br>Wynik: %{y}<extra></extra>",
+        name="Rzeczywiste występy"
+    ))
+    fig.add_hline(y=float(line),line_dash="solid",line_color="#EF8E88",
+                  annotation_text=f"Twoja linia: {line:g}",
+                  annotation_position="bottom right")
+    if prediction is not None:
+        fig.add_hline(y=float(prediction),line_dash="dash",line_color="#8ECFF0",
+                      annotation_text=f"Prognoza: {prediction:.1f}",
+                      annotation_position="top left")
+    fig.update_xaxes(type="category",categoryorder="array",categoryarray=xlabels,
+                     title="Data spotkania",tickangle=-35)
+    fig.update_yaxes(title=STAT_NAMES[market],rangemode="tozero")
+    fig.update_layout(
+        title=f"{player} — {STAT_NAMES[market]} (ostatnie dostępne mecze)",
+        height=430,margin=dict(t=65,b=75,l=20,r=20),
+        paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
+        font_color="#CFDAE7",showlegend=False
+    )
+    st.plotly_chart(fig,use_container_width=True)
+    st.caption("Zielone słupki: wynik powyżej Twojej linii. Żółte: wynik na linii "
+               "lub poniżej. Czerwona linia: wybrana linia. "
+               "Niebieska linia (jeśli dostępna): niekalibrowana prognoza modelu.")
+
+
 def roster_selector(team_key: str, player_key: str, nonce: int = 0):
     """Choose from all 30 teams and their current roster, NOT observed logs."""
     teams = sorted(TEAM_FULL, key=lambda c: TEAM_FULL[c])
