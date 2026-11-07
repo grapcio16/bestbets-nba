@@ -180,6 +180,12 @@ def matchup_means(home:str,away:str,adv:dict,hist:dict, minimum_history:int=4):
                   'Szanse modelu są niekalibrowane.',
     }
 
+def select_matchup_means(home,away,ratings,historical,research_mode=False):
+    """Single source of truth for summary cards, score histograms and odds."""
+    method=matchup_means if research_mode else legacy_matchup_means
+    return method(home,away,ratings,historical)
+
+
 def eligible_roster(logs:pd.DataFrame|None,abbr:str,opp:str,injuries:pd.DataFrame|None=None,
                     team_context=None,league_avg=None,asof=None):
     """Current team = most recent player log, excluding confirmed 'Out'."""
