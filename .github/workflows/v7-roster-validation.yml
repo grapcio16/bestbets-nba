@@ -4,6 +4,7 @@ on:
     branches:
       - development/v7-roster-data
       - development/v7-1-match-rosters-validation
+      - fix/roster-aaron-gordon
   workflow_dispatch:
   pull_request:
     branches:
@@ -45,9 +46,12 @@ jobs:
         run: |
           python - <<'PY'
           from roster_data import team_roster
-          for team in ("GSW", "UTA", "BOS"):
+          for team in ("GSW", "UTA", "BOS", "DEN"):
               roster, metadata = team_roster(team)
               print(team, "players", len(roster), "source", metadata.get("source"))
+              if team == "DEN":
+                  print("DEN players:", roster["PLAYER_NAME"].tolist())
+                  assert any("Aaron Gordon" == name for name in roster["PLAYER_NAME"]), "Aaron Gordon missing from ESPN DEN roster"
               assert len(roster) >= 8, "Too few players for " + team
               if team == "GSW":
                   assert any("Curry" in name for name in roster["PLAYER_NAME"]), "Curry missing from GSW roster"
