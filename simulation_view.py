@@ -56,6 +56,43 @@ def build_sims(games,advanced,history,logs,injuries,research_mode=False):
     return summary,players_by_game,unavailable
 
 
+def team_form_diagnostics(hist, code, asof=None, games=10):
+    """Actual recent team results, never a proxy for player availability or pace."""
+    if hist is None or hist.empty:
+        return {}
+    records=hist.copy()
+    records["start_utc"]=pd.to_datetime(records["start_utc"],utc=True,errors="coerce")
+    records=records[(records["status_code"]==3)&
+                    ((records["home"]==code)|(records["away"]==code))]
+    if asof is not None:
+        cutoff=pd.to_datetime(asof,utc=True,errors="coerce")
+        records=records[records["start_utc"]<cutoff]
+    records=records.sort_values("start_utc").tail(games)
+    out=[]
+    for g in records.to_dict("records"):
+        try:
+            home=str(g["home"])==code
+            scored=float(g["home_score"] if home else g["away_score"])
+            conceded=float(g["away_score"] if home else g["home_score"])
+            opponent=g["away"] if home else g["home"]
+            if min(scored,conceded)<55:
+                continue
+            out.append((scored,conceded,opponent))
+        except (ValueError,KeyError,TypeError):
+            continue
+    if not out:
+        return {}
+    recent=out[-5:]
+    return {
+        "played":len(out),
+        "wins_last5":sum(p>allowed for p,allowed,_ in recent),
+        "games_last5":len(recent),
+        "scored_last5":round(float(np.mean([p for p,_,_ in recent])),1),
+        "allowed_last5":round(float(np.mean([a for _,a,_ in recent])),1),
+        "opponents_last5":", ".join(o for _,_,o in recent),
+    }
+
+
 def team_scoring_history(hist, code, games=10):
     """Historical points scored, not the simulation's predicted outcome."""
     records=completed_team_scores(hist).get(code, [])
@@ -165,6 +202,29 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
         aa.caption(f"Ostatnie {past_away['games']} rozegranych meczów, bez symulacji")
         hh.metric('Średnia zdobytych pkt — gospodarze (historia)',f"{past_home['mean']:.1f} pkt")
         hh.caption(f"Ostatnie {past_home['games']} rozegranych meczów, bez symulacji")
+    st.markdown('#### Forma ostatnich meczów — dane rzeczywiste')
+    st.caption('Poniższe statystyki są kontekstem, a nie dodatkowym '
+               'mnożnikiem prawdopodobieństw. Nie potwierdzają dostępności '
+               'zawodników w dniu meczu.')
+    ac=advanced_ratings(advanced)
+    for code in (away,home):
+        form=team_form_diagnostics(hist,code,asof=g.get('start_utc'))
+        st.markdown('**'+TEAM_NAMES.get(code,code)+'**')
+        if form:
+            st.caption(f"Ostatnie {form['games_last5']} meczów: "
+                       f"{form['wins_last5']} zwycięstw · "
+                       f"zdobyte {form['scored_last5']:.1f} pkt/mecz · "
+                       f"stracone {form['allowed_last5']:.1f} pkt/mecz · "
+                       f"ry wale: {form['opponents_last5']}".replace('ry wale','rywale'))
+        else:
+            st.caption('Brak wystarczających zakończonych spotkań.')
+        if code in ac:
+            v=ac[code]
+            st.caption(f"NBA advanced: tempo {v['pace']:.1f} posiadań/48 min · "
+                       f"OFF Rating {v['off']:.1f} · DEF Rating {v['def']:.1f}")
+        else:
+            st.caption('Tempo posiadań, OFF i DEF Rating: brak zweryfikowanych '
+                       'danych NBA advanced, nie szacujemy ich z punktów.')
     if player_meta:
         st.caption('Dane zawodników: '+str(player_meta.get('source','ESPN'))+
                    ' · '+str(player_meta.get('coverage','')))
