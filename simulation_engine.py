@@ -63,7 +63,7 @@ def completed_team_scores(games:pd.DataFrame|None):
         if min(a,b)<55 or max(a,b)>200:continue
         # date for ordering, not part of the scoring estimate
         dt=pd.to_datetime(g.get('start_utc'),utc=True,errors='coerce')
-        out[home].append((dt,a,b));out[away].append((dt,b,a))
+        out[home].append((dt,a,b,away));out[away].append((dt,b,a,home))
     return out
 
 def _weighted_average(values, halflife=6.0):
@@ -76,30 +76,39 @@ def _weighted_average(values, halflife=6.0):
 
 
 def _team_form_stats(code, historical, league_mean, minimum_history=4):
-    """Opponent-adjusted points scored and conceded, shrunk on small samples.
-
-    Opponent strength is estimated strictly from COMPLETED games. With few
-    opponent games, correction shrinks toward neutral, not invented certainty.
-    """
+    """Latest 12 completed games, mildly adjusted for opponent quality."""
     history=sorted(historical.get(code,[]),key=lambda x:x[0])
     if len(history)<minimum_history:
         return None
     matches=history[-12:]
-    others=historical
-    scored=[];allowed=[]
-    # historical records do not contain the opponent ID: opponent-adjustment
-    # must be handled upstream when opponent identification is available.
-    for _,p,a in matches:
-        scored.append(float(p))
-        allowed.append(float(a))
+    scored=[];allowed=[];adjusted_games=0
+    for record in matches:
+        _,points,conceded=record[:3]
+        opponent=record[3] if len(record)>3 else None
+        adj_points,adj_allowed=float(points),float(conceded)
+        if opponent and opponent!=code:
+            # Strength of opponent must come from games played BEFORE the game
+            # being corrected. No lookahead even in retrospective validation.
+            earlier=[v for v in historical.get(opponent,[])
+                     if pd.notna(v[0]) and pd.notna(record[0]) and v[0]<record[0]]
+            earlier=sorted(earlier,key=lambda x:x[0])[-12:]
+            if len(earlier)>=4:
+                opp_scored=_weighted_average([v[1] for v in earlier])
+                opp_allowed=_weighted_average([v[2] for v in earlier])
+                reliability=len(earlier)/(len(earlier)+10.)
+                adj_points+=.5*reliability*(league_mean-opp_allowed)
+                adj_allowed+=.5*reliability*(league_mean-opp_scored)
+                adjusted_games+=1
+        scored.append(adj_points);allowed.append(adj_allowed)
     off=_weighted_average(scored)
     defense=_weighted_average(allowed)
-    # 6 neutral pseudo-games moderate noisy early-season overreaction.
-    sample_weight=len(matches)/(len(matches)+6.0)
+    sample_weight=len(matches)/(len(matches)+6.)
     return {"off":sample_weight*off+(1-sample_weight)*league_mean,
             "def":sample_weight*defense+(1-sample_weight)*league_mean,
-            "raw_off":off,"raw_def":defense,
-            "n":len(matches),"sample_weight":sample_weight}
+            "raw_off":_weighted_average([r[1] for r in matches]),
+            "raw_def":_weighted_average([r[2] for r in matches]),
+            "n":len(matches),"sample_weight":sample_weight,
+            "opponent_adjusted":adjusted_games}
 
 
 def matchup_means(home:str,away:str,adv:dict,hist:dict, minimum_history:int=4):
@@ -120,7 +129,7 @@ def matchup_means(home:str,away:str,adv:dict,hist:dict, minimum_history:int=4):
                           'Status graczy i kalibracja szans niepotwierdzone.'}
     values=[]
     for records in hist.values():
-        values.extend(float(p) for _,p,_ in records if 50<float(p)<200)
+        values.extend(float(r[1]) for r in records if 50<float(r[1])<200)
     if not values:
         return None
     league_mean=float(np.mean(values))
@@ -131,18 +140,20 @@ def matchup_means(home:str,away:str,adv:dict,hist:dict, minimum_history:int=4):
     return {
         'home':float((hf['off']+af['def'])/2+1.5),
         'away':float((af['off']+hf['def'])/2-1.5),
-        'source':'ESPN • forma ważona i regresja do średniej ligi',
+        'source':'ESPN • ważona forma, siła rywali, regresja do średniej',
         'samples':(hf['n'],af['n']),
         'form':{
             home:{"recent_scored":round(hf['raw_off'],1),
                   "recent_allowed":round(hf['raw_def'],1),
-                  "sample_weight":round(hf['sample_weight'],2)},
+                  "sample_weight":round(hf['sample_weight'],2),
+                  "adjusted_opponents":hf["opponent_adjusted"]},
             away:{"recent_scored":round(af['raw_off'],1),
                   "recent_allowed":round(af['raw_def'],1),
-                  "sample_weight":round(af['sample_weight'],2)},
+                  "sample_weight":round(af['sample_weight'],2),
+                  "adjusted_opponents":af["opponent_adjusted"]},
         },
         'warning':'Ważona forma z max. 12 meczów + ostrożna regresja do średniej. '
-                  'Nie uwzględniono siły przeciwników ani potwierdzonych składów. '
+                  'Siła rywali: przybliżona korekta; składy, kontuzje i prawdziwe tempo gry NIE są tu uwzględnione. '
                   'Szanse modelu są niekalibrowane.',
     }
 
