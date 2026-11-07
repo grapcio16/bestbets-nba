@@ -296,6 +296,15 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
             st.dataframe(brief,hide_index=True,use_container_width=True)
             st.caption('Minuty to prognoza na podstawie ostatnich występów, '
                        'nie potwierdzona rotacja ani pierwsza piątka.')
+            at_risk=brief[brief['Status kontuzji'].str.contains(
+                r'out|doubtful|questionable|inactive|suspended',
+                case=False,regex=True,na=False)]
+            if not at_risk.empty:
+                names=', '.join(at_risk['Zawodnik'].astype(str).head(5))
+                st.warning('Uwaga na status zawodników: '+names+
+                           '. Minuty i statystyki są szacunkami historycznymi; '
+                           'symulacja drużyn NIE koryguje aktualnie wyniku '
+                           'o absencje. Sprawdź oficjalny raport przed meczem.')
         st.markdown('#### Zawodnicy w składach i dostępne prognozy')
         st.caption('Katalog ESPN pokazuje zawodników przypisanych do drużyny, NIE oficjalną listę '
                    'aktywnych na ten mecz. Brak historii występów oznacza puste wartości statystyk.')
