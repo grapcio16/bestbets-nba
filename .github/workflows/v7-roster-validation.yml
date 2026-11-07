@@ -26,6 +26,19 @@ jobs:
         run: python -m py_compile app.py roster_data.py roster_view.py espn_player_data.py simulation_view.py
       - name: Unit tests for roster parsing
         run: python -m unittest -v test_roster_data.py
+      - name: Streamlit smoke check - landing page and player browser
+        run: |
+          python - <<'PY'
+          from streamlit.testing.v1 import AppTest
+          at = AppTest.from_file("app.py", default_timeout=65).run()
+          assert len(at.exception) == 0, [str(e.message) for e in at.exception]
+          assert len(at.sidebar.radio) > 0, "Sidebar navigation missing"
+          at.sidebar.radio[0].set_value("🧑‍🚀 Zawodnicy").run()
+          assert len(at.exception) == 0, [str(e.message) for e in at.exception]
+          assert len(at.selectbox) >= 2, "Team or player roster selector missing"
+          assert any("Stephen Curry" == str(v) for sb in at.selectbox for v in sb.options), "Stephen Curry not in GSW selector"
+          print("Streamlit pages render, GSW roster and Stephen Curry selector verified")
+          PY
       - name: Live ESPN availability diagnostic
         continue-on-error: true
         run: |
