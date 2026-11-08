@@ -242,7 +242,7 @@ def schedule_page(sched,inj=None):
     v['lokalna']=viewer_time_column(v['start_utc'])
     v=v[v['lokalna'].notna()]
     if only_upcoming:v=v[v['start_utc']>=pd.Timestamp.now(tz='UTC')-pd.Timedelta(minutes=5)]
-    v=v[v['lokalna']<pd.Timestamp(today+timedelta(days=days))]
+    v=v[(v['lokalna']>=pd.Timestamp(today.date(),tz=viewer_timezone())) & (v['lokalna']<pd.Timestamp(today.date()+timedelta(days=days),tz=viewer_timezone()))]
     if v.empty:st.info('Brak meczów spełniających filtry.');return
     v['Termin (lokalny)']=v['lokalna'].dt.strftime('%d.%m.%Y %H:%M')
     v['Spotkanie']=v['away']+' @ '+v['home']
@@ -438,7 +438,7 @@ if page == '🏠 Centrum':
                 refresh_logos_in_background()
                 for _,game in x.iterrows():
                     a,b,c=st.columns([1,2,1]);a.image(logo_data_uri(game['away']),width=48);b.caption(str(game['away'])+' @ '+str(game['home'])+' · '+str(game['Start (lokalny)']));c.image(logo_data_uri(game['home']),width=48)
-                mini_legend([],{'Start (PL)':'Data i godzina w strefie użytkownika','Mecz':'Goście @ gospodarze','status':'Etap spotkania: przed grą, na żywo lub zakończone'})
+                mini_legend([],{'Start (lokalny)':'Data i godzina w strefie użytkownika','Mecz':'Goście @ gospodarze','status':'Etap spotkania: przed grą, na żywo lub zakończone'})
             if 'ESPN' in meta.get('source',''):
                 st.info('Terminarz z ESPN — szybsze źródło wykorzystywane w publicznej wersji BestBets; NBA CDN pozostaje zapasowe.')
             pill(meta)
