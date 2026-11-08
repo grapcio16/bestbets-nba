@@ -26,9 +26,9 @@ jobs:
       - name: Install minimum test dependencies
         run: python -m pip install -q pandas numpy plotly streamlit requests 'psycopg[binary]>=3.2,<4'
       - name: Compile updated modules
-        run: python -m py_compile viewer_time.py dashboard_data.py app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py tracker_storage.py tracker_postgres.py match_context.py forecast_quality.py availability_context.py opponent_ratings.py model_validation.py
+        run: python -m py_compile schedule_ui.py schedule_data.py viewer_time.py dashboard_data.py app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py tracker_storage.py tracker_postgres.py match_context.py forecast_quality.py availability_context.py opponent_ratings.py model_validation.py
       - name: Unit tests for roster parsing
-        run: python -m unittest -v test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
+        run: python -m unittest -v test_schedule_v710.py test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
       - name: November 8 public UI checks
         run: |
           python - <<'PY'
@@ -42,6 +42,33 @@ jobs:
           at.sidebar.radio[0].set_value("📆 Terminarz").run()
           assert not at.exception, [str(e.message) for e in at.exception]
           print("Nov 8: new navigation, all IANA timezones, and schedule render OK")
+          PY
+      - name: v7.10 navigation - Center and Schedule calendar controls
+        run: |
+          python - <<'PY'
+          from datetime import date,timedelta
+          from streamlit.testing.v1 import AppTest
+          at=AppTest.from_file("app.py",default_timeout=90).run()
+          assert not at.exception, [str(e.message) for e in at.exception]
+          prev=next(b for b in at.button if b.key=="center_previous_day")
+          nextday=next(b for b in at.button if b.key=="center_next_day")
+          today=next(b for b in at.button if b.key=="center_today")
+          picker=next(p for p in at.date_input if p.key=="bb_schedule_calendar")
+          start=picker.value
+          prev.click().run()
+          assert not at.exception, [str(e.message) for e in at.exception]
+          assert next(p for p in at.date_input if p.key=="bb_schedule_calendar").value==start-timedelta(days=1)
+          next(b for b in at.button if b.key=="center_next_day").click().run()
+          assert next(p for p in at.date_input if p.key=="bb_schedule_calendar").value==start
+          next(p for p in at.date_input if p.key=="bb_schedule_calendar").set_value(date(2026,11,12)).run()
+          assert next(p for p in at.date_input if p.key=="bb_schedule_calendar").value==date(2026,11,12)
+          at.sidebar.radio[0].set_value("📆 Terminarz").run()
+          assert not at.exception, [str(e.message) for e in at.exception]
+          assert next(p for p in at.date_input if p.key=="bb_schedule_calendar").value==date(2026,11,12)
+          assert any(b.key=="schedule_previous_day" for b in at.button)
+          assert any(b.key=="schedule_next_day" for b in at.button)
+          assert any(t.key=="bb_schedule_table_mode" for t in at.toggle)
+          print("v7.10: date buttons, manual calendar and shared selected date verified")
           PY
       - name: Streamlit smoke check - landing page and player browser
         run: |
