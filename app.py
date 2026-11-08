@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 import html
 import math
 import os
@@ -23,6 +23,8 @@ from sources import (DATASETS, nba_stats, game_logs, extended_set, schedule, inj
 from teams import TEAM_MAP, standardize_teams
 from team_logos import logo_data_uri, refresh_logos_in_background
 from simulation_sources import historical_espn_results
+from viewer_time import choices, resolve_zone, localize, games_on_day
+from dashboard_data import previous_day_ranking
 from odds_fetcher import automatic_odds
 from simulation_view import render_simulations
 from odds_engine import normalized_offers, best_prices, player_edges, edge_metrics, legend_for, MARKET_LABELS, LABELS
@@ -32,14 +34,20 @@ PATH=Path(__file__).resolve().parent
 WARSAW=ZoneInfo('Europe/Warsaw')
 
 def viewer_timezone():
-    requested=st.session_state.get('viewer_tz_override','Automatyczna')
-    browser=getattr(st.context,'timezone',None) or 'UTC'
-    name=browser if requested=='Automatyczna' else requested
-    try:return ZoneInfo(name)
-    except (ZoneInfoNotFoundError,KeyError,ValueError):return timezone.utc
+    return resolve_zone(st.session_state.get('viewer_tz_override','Automatyczna'),
+                        getattr(st.context,'timezone',None))
+
 
 def viewer_time_column(values):
-    return pd.to_datetime(values,utc=True,errors='coerce').dt.tz_convert(viewer_timezone())
+    return localize(values, viewer_timezone())
+
+
+@st.cache_data(ttl=30*60, max_entries=14, show_spinner=False)
+def load_daily_ranking(season, local_today, zone_name, nonce):
+    completed, note=historical_espn_results(season,refresh=nonce>0)
+    top, meta=previous_day_ranking(completed,local_today,ZoneInfo(zone_name))
+    return top,meta,note
+
 
 ARCHIVE_PATH=PATH/'data'/'historyczne_kursy.csv'
 SEASON='2026-27'
@@ -242,7 +250,7 @@ def schedule_page(sched,inj=None):
     v['lokalna']=viewer_time_column(v['start_utc'])
     v=v[v['lokalna'].notna()]
     if only_upcoming:v=v[v['start_utc']>=pd.Timestamp.now(tz='UTC')-pd.Timedelta(minutes=5)]
-    v=v[(v['lokalna']>=pd.Timestamp(today.date(),tz=viewer_timezone())) & (v['lokalna']<pd.Timestamp(today.date()+timedelta(days=days),tz=viewer_timezone()))]
+    v=v[(v['lokalna'].dt.date>=today.date()) & (v['lokalna'].dt.date<today.date()+timedelta(days=days))]
     if v.empty:st.info('Brak meczów spełniających filtry.');return
     v['Termin (lokalny)']=v['lokalna'].dt.strftime('%d.%m.%Y %H:%M')
     v['Spotkanie']=v['away']+' @ '+v['home']
@@ -398,7 +406,7 @@ with st.sidebar:
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab'],index=0,label_visibility='collapsed')
-    st.selectbox('Strefa czasowa', ['Automatyczna','Europe/Warsaw','UTC','America/New_York','America/Los_Angeles','Europe/London','Asia/Tokyo','Australia/Sydney'],key='viewer_tz_override',help='Automatyczna korzysta ze strefy przeglądarki. Zmiany DST obsługuje zoneinfo.')
+    st.selectbox('Strefa czasowa', choices(),key='viewer_tz_override',help='Automatyczna korzysta ze strefy przeglądarki. Zmiany DST obsługuje zoneinfo.')
     st.caption('Godziny meczów: '+str(viewer_timezone()))
     season=st.selectbox('Sezon', ['2026-27','2025-26','2024-25'],index=0)
     st.divider()
@@ -429,7 +437,7 @@ if page == '🏠 Centrum':
         st.markdown('#### Mecze dzisiaj')
         try:
             sched,meta=load_schedule(st.session_state.nonce)
-            now=pd.Timestamp.now(tz='UTC'); local=viewer_time_column(sched['start_utc']); x=sched[local.dt.date==datetime.now(viewer_timezone()).date()].copy()
+            x=games_on_day(sched,datetime.now(viewer_timezone()).date(),viewer_timezone())
             if x.empty:st.info('Brak meczów na dzisiaj w wybranej strefie czasowej.')
             else:
                 x['Start (lokalny)']=viewer_time_column(x['start_utc']).dt.strftime('%d.%m %H:%M')
@@ -437,7 +445,7 @@ if page == '🏠 Centrum':
                 st.dataframe(x[['Start (lokalny)','Mecz','status']],hide_index=True,use_container_width=True,height=455)
                 refresh_logos_in_background()
                 for _,game in x.iterrows():
-                    a,b,c=st.columns([1,2,1]);a.image(logo_data_uri(game['away']),width=48);b.caption(str(game['away'])+' @ '+str(game['home'])+' · '+str(game['Start (lokalny)']));c.image(logo_data_uri(game['home']),width=48)
+                    a,b,c=st.columns([1,2,1]);a.markdown(f'<img src="{logo_data_uri(game["away"])}" width="48" alt="{safe(game["away"])}">',unsafe_allow_html=True);b.caption(str(game['away'])+' @ '+str(game['home'])+' · '+str(game['Start (lokalny)']));c.markdown(f'<img src="{logo_data_uri(game["home"])}" width="48" alt="{safe(game["home"])}">',unsafe_allow_html=True)
                 mini_legend([],{'Start (lokalny)':'Data i godzina w strefie użytkownika','Mecz':'Goście @ gospodarze','status':'Etap spotkania: przed grą, na żywo lub zakończone'})
             if 'ESPN' in meta.get('source',''):
                 st.info('Terminarz z ESPN — szybsze źródło wykorzystywane w publicznej wersji BestBets; NBA CDN pozostaje zapasowe.')
@@ -459,27 +467,19 @@ if page == '🏠 Centrum':
         st.link_button('Oficjalny raport NBA',OFFICIAL_INJURIES,use_container_width=True)
     st.markdown('#### TOP 10 zawodników — poprzedni dzień')
     try:
-        yesterday=datetime.now(viewer_timezone()).date()-timedelta(days=1)
-        finished,note=historical_espn_results(season)
-        ids=set(finished.loc[viewer_time_column(finished['start_utc']).dt.date==yesterday,'game_id'].astype(str)) if not finished.empty else set()
-        if not ids:
-            st.info('Brak potwierdzonych zakończonych meczów z poprzedniego dnia.')
+        today=datetime.now(viewer_timezone()).date()
+        top, coverage, note=load_daily_ranking(season,today,str(viewer_timezone()),st.session_state.nonce)
+        if top.empty:
+            st.info('Brak zweryfikowanych statystyk zawodników za poprzedni lokalny dzień.')
         else:
-            raw,logmeta=load_logs(season,st.session_state.nonce)
-            if raw is None or raw.empty or 'GAME_ID' not in raw.columns:
-                st.info('Nie można zweryfikować rankingu zawodników: brak box score.')
-            else:
-                top=raw[raw['GAME_ID'].astype(str).isin(ids)].copy()
-                top['PTS']=pd.to_numeric(top['PTS'],errors='coerce')
-                top['REB']=pd.to_numeric(top['REB'],errors='coerce')
-                top['AST']=pd.to_numeric(top['AST'],errors='coerce')
-                top=top.dropna(subset=['PTS','REB','AST']).sort_values(['PTS','REB','AST'],ascending=False).head(10)
-                if top.empty:st.info('Brak zweryfikowanych statystyk zawodników z wczoraj.')
-                else:
-                    st.caption('Ranking według punktów (remisy: zbiórki i asysty). Tylko zakończone mecze, bez prognoz.')
-                    st.dataframe(top[['PLAYER_NAME','TEAM_ABBREVIATION','PTS','REB','AST']].rename(columns={'PLAYER_NAME':'Zawodnik','TEAM_ABBREVIATION':'Klub','PTS':'Punkty','REB':'Zbiórki','AST':'Asysty'}),hide_index=True,use_container_width=True)
+            st.caption('Punkty ↓, remisy: zbiórki i asysty. Wyłącznie zakończone mecze ESPN (rzeczywiste box score).')
+            st.dataframe(top.rename(columns={'PLAYER_NAME':'Zawodnik','TEAM_ABBREVIATION':'Klub','PTS':'Punkty','REB':'Zbiórki','AST':'Asysty'}),hide_index=True,use_container_width=True)
+        st.caption(f"Zatwierdzone box score: {coverage['complete_games']}/{coverage['requested_games']} zakończonych spotkań.")
+        if coverage['failed_games']:
+            st.warning('Ranking może być niepełny: nie pobrano statystyk wszystkich zakończonych spotkań.')
+        if note:st.caption(str(note)[:200])
     except Exception as exc:
-        st.info('Ranking nie jest dostępny: '+str(exc)[:160])
+        st.info('Ranking chwilowo niedostępny: '+str(exc)[:160])
     row_note('Jak interpretować aplikację','Prognozy bazują na historii występów. Dane o kontuzjach z ESPN nie zastępują oficjalnego raportu przed meczem. Szacowane minuty są obliczane automatycznie z ostatnich występów, nie potwierdzone przez drużynę.')
 
 elif page == '📆 Terminarz':
