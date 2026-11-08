@@ -32,10 +32,19 @@ CSS = """
 .bb-top10-stat strong {font:800 22px 'Space Grotesk',sans-serif;
  color:#eef5ff;letter-spacing:-.03em;}
 .bb-top10-stat.main strong {color:#ff8a48;}
+.bb-top10-extra {border-top:1px solid #293e59; padding-top:10px; display:grid;
+ grid-template-columns:1fr 1fr 1fr; gap:7px;}
+.bb-top10-extra-item {display:flex; flex-direction:column; gap:4px; align-items:center;
+ border:1px solid #2a4160; border-radius:9px; background:#122239; padding:8px 5px;}
+.bb-top10-extra-item small {font-size:9px;letter-spacing:.065em;font-weight:750;
+ color:#a3b7d3;}
+.bb-top10-extra-item strong {font:700 14px 'Space Grotesk',sans-serif;
+ color:#f5f7fc;overflow-wrap:anywhere;text-align:center;}
+
 @media(max-width:760px){
  .bb-top10-grid-card{padding:13px;gap:10px;}
  .bb-top10-ident strong{font-size:15px;}
- .bb-top10-stat strong{font-size:20px;}
+  .bb-top10-stat strong{font-size:20px;} .bb-top10-extra-item strong{font-size:12px;}
 }
 </style>
 """
@@ -52,6 +61,31 @@ def stat_text(value):
     return str(int(n)) if n.is_integer() else f"{n:.1f}"
 
 
+def minute_text(value):
+    """Format actual ESPN playing time as MM:SS; unknown is not zero."""
+    try:
+        minutes=float(value)
+        if not pd.notna(minutes) or minutes<0:
+            return "—"
+    except (TypeError, ValueError):
+        return "—"
+    seconds=round(minutes*60)
+    return f"{seconds//60}:{seconds%60:02d}"
+
+
+def known_text(value):
+    """Never surface missing pandas values as the strings 'nan' or 'None'."""
+    if value is None:
+        return "—"
+    try:
+        if pd.isna(value):
+            return "—"
+    except (TypeError, ValueError):
+        return "—"
+    text=str(value).strip()
+    return text if text and text.lower() not in ("nan","none","null") else "—"
+
+
 def player_card_html(row, rank):
     """Sanitize names/team abbreviations; never print invented player statistics."""
     name = escape(str(row.get("PLAYER_NAME") or "Nieznany zawodnik"))
@@ -61,6 +95,9 @@ def player_card_html(row, rank):
     logo = (f'<img class="bb-top10-logo" src="{src}" alt="Logo {team}">' if src else "")
     medal = f"medal{rank}" if rank in (1, 2, 3) else ""
     pts, reb, ast = (stat_text(row.get(key)) for key in ("PTS", "REB", "AST"))
+    played = minute_text(row.get("MIN"))
+    opponent = escape(known_text(row.get("OPPONENT")))
+    position = escape(known_text(row.get("POSITION")))
     return f"""
     <div class="bb-top10-grid-card">
       <div class="bb-top10-header">
@@ -72,6 +109,11 @@ def player_card_html(row, rank):
         <div class="bb-top10-stat main"><strong>{pts}</strong>PUNKTY</div>
         <div class="bb-top10-stat"><strong>{reb}</strong>ZBIÓRKI</div>
         <div class="bb-top10-stat"><strong>{ast}</strong>ASYSTY</div>
+      </div>
+      <div class="bb-top10-extra">
+        <div class="bb-top10-extra-item"><small>MINUTY</small><strong>{escape(played)}</strong></div>
+        <div class="bb-top10-extra-item"><small>PRZECIWNIK</small><strong>{opponent}</strong></div>
+        <div class="bb-top10-extra-item"><small>POZYCJA</small><strong>{position}</strong></div>
       </div>
     </div>"""
 
