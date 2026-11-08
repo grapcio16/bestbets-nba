@@ -299,8 +299,11 @@ def injury_rows(payload):
         if isinstance(status,dict):status=status.get('displayName') or status.get('name')
         if player and status:
             from teams import TEAM_MAP
-            if team in TEAM_MAP:team=TEAM_MAP[team]
-            team=str(team).upper().strip()
+            raw_team=str(team or '').strip()
+            if raw_team in TEAM_MAP:raw_team=TEAM_MAP[raw_team]
+            aliases={'GS':'GSW','NY':'NYK','SA':'SAS','NO':'NOP',
+                     'PHO':'PHX','WSH':'WAS','BRK':'BKN','UT':'UTA','WS':'WAS'}
+            team=aliases.get(raw_team.upper(),raw_team.upper())
             if team not in set(TEAM_MAP.values()):team='—'
             details=node.get('details') or {}
             note=details.get('detail','') if isinstance(details,dict) else str(details)
