@@ -1,3 +1,19 @@
+# BestBets — v7.9: globalny interfejs NBA (8 listopada 2026)
+
+Ta aktualizacja dotyczy **interfejsu, czasu i prezentacji danych**. Algorytm symulacji oraz 5000 przebiegów na mecz pozostają **bez zmian**.
+
+- Publiczna zakładka „Telefon i publikacja” usunięta; konfiguracja GitHub, Streamlit i API Secrets w [dokumentacji technicznej](docs/PUBLIKACJA_TECHNICZNA.md).
+- Automatyczna strefa czasowa z `st.context.timezone`, ręczny wybór pełnej bazy IANA, konwersja UTC i DST w Centrum, Terminarzu, Symulacjach i Performance Trackerze.
+- Centrum pokazuje mecze **bieżącej lokalnej daty**, logotypy drużyn, TOP 10 zawodników **poprzedniego lokalnego dnia** według rzeczywistych box score ESPN; w razie niepełnych danych pojawia się ostrzeżenie.
+- Injury report: drużyny oznaczone kodem i logo; aliasy ESPN poprawione; nierozpoznanych klubów nie zgadujemy.
+- Nowa kolorystyka i zatwierdzona ikona BestBets; osobny plik SVG pozostaje do skalowania w przyszłych materiałach.
+- [Audyt siedmiu prognoz v7.7 z 7.11.2026](docs/AUDYT_NBA_2026-11-07.md): 3/7 zwycięzców, MAE sumy 18,89 pkt. Model eksperymentalny **nie zastępuje** podstawowego bez rzetelnej walidacji.
+- [Testy regresyjne](test_nov8.py) obejmują DST, daty lokalne, ranking i injury report.
+
+---
+
+## Historia starszych wersji
+
 # BestBets — NBA Intelligence v6.3
 
 **Rozszerzenie v6.2 pod telefon i publiczny hosting.**
