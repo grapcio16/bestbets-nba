@@ -409,9 +409,9 @@ with st.sidebar:
     st.caption('BestBets to narzędzie do analizy danych, bez gwarancji zysków.')
 
 from base64 import b64encode
-brand_icon_base64=b64encode((PATH/'assets'/'bestbets_brand_icon.png').read_bytes()).decode('ascii')
+brand_icon_base64=b64encode((PATH/'assets'/'bestbets_brand_icon.svg').read_bytes()).decode('ascii')
 st.markdown(f'''<div class="bb-hero">
-<img class="bb-logo" src="data:image/png;base64,{brand_icon_base64}" alt="BestBets"/><div>
+<img class="bb-logo" src="data:image/svg+xml;base64,{brand_icon_base64}" alt="BestBets"/><div>
 <div class="bb-kicker">NBA intelligence platform · season 2026–27</div>
 <div class="bb-title">Best<span>Bets</span></div>
 <div class="bb-sub">Oficjalne statystyki NBA, analiza matchupów, przewidywane minuty, raport kontuzji i porównanie kursów. Wszystko w jednym panelu, z widocznymi ograniczeniami danych.</div>
