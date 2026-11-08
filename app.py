@@ -459,8 +459,13 @@ if page == '🏠 Centrum':
             if inj.empty:st.info('ESPN nie zwrócił rozpoznawalnych rekordów kontuzji. Nie oznacza to, że wszyscy są zdrowi.')
             else:
                 st.metric('Wpisy w raporcie ESPN',len(inj))
-                st.dataframe(inj[['player','team','status']].head(11),hide_index=True,use_container_width=True,height=420)
-                st.caption('Kluby pochodzą z danych ESPN; nierozpoznane przypisania nie są zgadywane.')
+                refresh_logos_in_background()
+                for _,rec in inj.head(10).iterrows():
+                    code=str(rec.get('team') or '—')
+                    icon=logo_data_uri(code) if code in set(TEAM_MAP.values()) else ''
+                    logo=(f'<img src="{icon}" width="28" height="28" style="object-fit:contain" alt="{safe(code)}">' if icon else '<span>🏥</span>')
+                    st.markdown(f'<div style="display:flex;align-items:center;gap:9px;padding:6px 2px;border-bottom:1px solid #263346">{logo}<span style="flex:1"><b>{safe(rec["player"])}</b> <small style="color:#95a7bb">{safe(code)}</small></span><small>{safe(rec["status"])}</small></div>',unsafe_allow_html=True)
+                st.caption('Kluby pochodzą z ESPN; nierozpoznane przypisania nie są zgadywane.')
                 mini_legend([],{'player':'Zawodnik z wpisem w raporcie ESPN','team':'Drużyna gracza','status':'Status według ESPN, nie oficjalna decyzja trenerów'})
             pill(meta)
         except Exception as exc:st.warning('Raport ESPN niedostępny: '+str(exc))
