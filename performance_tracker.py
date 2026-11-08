@@ -43,6 +43,31 @@ CREATE TABLE IF NOT EXISTS forecasts (
 );
 CREATE INDEX IF NOT EXISTS forecasts_start ON forecasts(start_utc);
 """
+# v1 was keyed on game_id only, losing the second model's frozen forecast.
+# Keep v1 as a read-only migration source; new writes use (game_id, model_id).
+MODEL_SCHEMA = """
+CREATE TABLE IF NOT EXISTS forecasts_by_model (
+    game_id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    season TEXT NOT NULL,
+    forecast_time_utc TEXT NOT NULL,
+    start_utc TEXT NOT NULL,
+    away TEXT NOT NULL,
+    home TEXT NOT NULL,
+    away_points REAL NOT NULL,
+    home_points REAL NOT NULL,
+    away_win_pct REAL NOT NULL,
+    home_win_pct REAL NOT NULL,
+    total_points REAL NOT NULL,
+    source TEXT NOT NULL,
+    warning TEXT NOT NULL DEFAULT '',
+    away_score INTEGER,
+    home_score INTEGER,
+    settled_at_utc TEXT,
+    PRIMARY KEY (game_id,model_id)
+);
+CREATE INDEX IF NOT EXISTS forecast_models_start ON forecasts_by_model(start_utc);
+"""
 
 
 def utc_timestamp(value):
@@ -61,11 +86,23 @@ def db_connect(db_path):
     if 'model_id' not in {row[1] for row in conn.execute('PRAGMA table_info(forecasts)')}:
         conn.execute("ALTER TABLE forecasts ADD COLUMN model_id TEXT NOT NULL DEFAULT 'legacy_v72'")
         conn.commit()
+    conn.executescript(MODEL_SCHEMA)
+    conn.execute("""
+        INSERT OR IGNORE INTO forecasts_by_model
+        (game_id,model_id,season,forecast_time_utc,start_utc,away,home,
+        away_points,home_points,away_win_pct,home_win_pct,total_points,
+        source,warning,away_score,home_score,settled_at_utc)
+        SELECT game_id,COALESCE(model_id,'legacy_v72'),season,
+        forecast_time_utc,start_utc,away,home,away_points,home_points,
+        away_win_pct,home_win_pct,total_points,source,warning,
+        away_score,home_score,settled_at_utc FROM forecasts
+    """)
+    conn.commit()
     return conn
 
 
 def store_forecasts(db_path, season: str, summaries, captured_at=None):
-    """Freeze each event ONCE, only strictly before tipoff.
+    """Freeze each (event, model) ONCE, only strictly before tipoff.
 
     No replacement on reruns. False/invalid probabilities and game identifiers
     are rejected. All SQL is parameterized.
@@ -96,7 +133,7 @@ def store_forecasts(db_path, season: str, summaries, captured_at=None):
                     ignored += 1
                     continue
                 cur = conn.execute(
-                    """INSERT OR IGNORE INTO forecasts
+                    """INSERT OR IGNORE INTO forecasts_by_model
                     (game_id,season,forecast_time_utc,start_utc,away,home,
                      away_points,home_points,away_win_pct,home_win_pct,
                      total_points,source,warning,model_id)
@@ -132,7 +169,7 @@ def settle_forecasts(db_path, completed_games, settled_at=None):
                 if not gid.isdecimal() or min(a,b)<55 or max(a,b)>200 or a==b:
                     continue
                 cur=conn.execute(
-                    """UPDATE forecasts SET away_score=?,home_score=?,
+                    """UPDATE forecasts_by_model SET away_score=?,home_score=?,
                     settled_at_utc=? WHERE game_id=? AND away_score IS NULL
                     AND home_score IS NULL AND forecast_time_utc<start_utc
                     AND start_utc<=?""",
@@ -148,11 +185,11 @@ def read_forecasts(db_path, season=None):
     with closing(db_connect(db_path)) as conn:
         if season:
             df=pd.read_sql_query(
-                "SELECT * FROM forecasts WHERE season=? ORDER BY start_utc DESC",
+                "SELECT * FROM forecasts_by_model WHERE season=? ORDER BY start_utc DESC",
                 conn,params=(str(season),))
         else:
             df=pd.read_sql_query(
-                "SELECT * FROM forecasts ORDER BY start_utc DESC",conn)
+                "SELECT * FROM forecasts_by_model ORDER BY start_utc DESC",conn)
     return df.reindex(columns=COLUMNS)
 
 
