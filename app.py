@@ -54,7 +54,7 @@ SEASON='2026-27'
 MARKET_API={'player_points':'PTS','player_rebounds':'REB','player_assists':'AST',
             'player_threes':'FG3M','player_points_rebounds_assists':'PRA'}
 
-st.set_page_config(page_title='BestBets | NBA Intelligence',page_icon=str(PATH/'assets'/'bestbets_brand_icon.svg'),layout='wide',initial_sidebar_state='auto')
+st.set_page_config(page_title='BestBets | NBA Intelligence',page_icon=Image.open(PATH/'assets'/'bestbets_brand_icon_64.png'),layout='wide',initial_sidebar_state='auto')
 CSS="""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap');
@@ -142,7 +142,7 @@ CSS += """
 }
 </style>
 """
-CSS += """<style>.bb-hero{background:linear-gradient(110deg,#0b1220,#10264d);border-color:#1b4382}.bb-title span{color:#ff6a00}.bb-logo{width:105px;height:105px;object-fit:contain;border-radius:22px;flex-shrink:0}.bb-gamecard{border-color:#214780}.bb-tag{color:#ff6a00}</style>"""
+CSS += """<style>.bb-hero{background:linear-gradient(110deg,#0b1220,#10264d);border-color:#1b4382}.bb-title span{color:#ff6a00}.bb-logo{width:88px;height:88px;object-fit:contain;border-radius:22px;flex-shrink:0}.bb-gamecard{border-color:#214780}.bb-tag{color:#ff6a00}</style>"""
 st.markdown(CSS,unsafe_allow_html=True)
 
 @st.cache_data(ttl=3600,max_entries=3,show_spinner=False)
@@ -417,9 +417,9 @@ with st.sidebar:
     st.caption('BestBets to narzędzie do analizy danych, bez gwarancji zysków.')
 
 from base64 import b64encode
-brand_icon_base64=b64encode((PATH/'assets'/'bestbets_brand_icon.svg').read_bytes()).decode('ascii')
+brand_icon_base64=b64encode((PATH/'assets'/'bestbets_brand_icon_64.png').read_bytes()).decode('ascii')
 st.markdown(f'''<div class="bb-hero">
-<img class="bb-logo" src="data:image/svg+xml;base64,{brand_icon_base64}" alt="BestBets"/><div>
+<img class="bb-logo" src="data:image/png;base64,{brand_icon_base64}" alt="BestBets"/><div>
 <div class="bb-kicker">NBA intelligence platform · season 2026–27</div>
 <div class="bb-title">Best<span>Bets</span></div>
 <div class="bb-sub">Oficjalne statystyki NBA, analiza matchupów, przewidywane minuty, raport kontuzji i porównanie kursów. Wszystko w jednym panelu, z widocznymi ograniczeniami danych.</div>
