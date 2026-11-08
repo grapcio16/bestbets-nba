@@ -51,12 +51,13 @@ def fill_missing_positions(frame, roster_fetcher=None):
     return result
 
 
-def previous_day_ranking(completed, today, zone, fetch=None):
+def previous_day_ranking(completed, today, zone, fetch=None, roster_fetcher=None):
     """Only ESPN summaries of final matches on the viewer's *previous local day*.
 
     ESPN event IDs are NOT NBA Stats game IDs; never join the two namespaces.
     Reports partial coverage instead of inventing missing player performances.
     """
+    fetch_is_real = fetch is None
     if fetch is None:
         from espn_player_data import fetch_boxscore
         fetch = fetch_boxscore
@@ -128,5 +129,8 @@ def previous_day_ranking(completed, today, zone, fetch=None):
     if "GAME_ID" in frame and "PLAYER_ID" in frame:
         frame=frame.drop_duplicates(["GAME_ID","PLAYER_ID"])
     frame=frame.sort_values(["PTS","REB","AST","PLAYER_NAME"],ascending=[False,False,False,True]).head(10)
-    frame=fill_missing_positions(frame)
+    # Fake/injected boxscore clients in tests or research should not make
+    # hidden external roster requests. Production can resolve missing positions.
+    if fetch_is_real or roster_fetcher is not None:
+        frame=fill_missing_positions(frame, roster_fetcher=roster_fetcher)
     return frame[fields].reset_index(drop=True),{"requested_games":len(matches),"complete_games":ok,"failed_games":failed}
