@@ -21,6 +21,10 @@ from core import (STAT_NAMES, norm_name, normalize_logs, calc_projection, prop_p
 from sources import (DATASETS, nba_stats, game_logs, extended_set, schedule, injuries,
     current_odds, event_player_odds, OFFICIAL_INJURIES, ESPN_INJURIES, NBA_CDN_SCHEDULE)
 from teams import TEAM_MAP, standardize_teams
+from team_logos import logo_data_uri, refresh_logos_in_background
+from simulation_sources import historical_espn_results
+from viewer_time import choices, resolve_zone, localize, games_on_day
+from dashboard_data import previous_day_ranking
 from odds_fetcher import automatic_odds
 from simulation_view import render_simulations
 from odds_engine import normalized_offers, best_prices, player_edges, edge_metrics, legend_for, MARKET_LABELS, LABELS
@@ -28,16 +32,33 @@ from market_archive import save_offers, snapshot_summary, historical_two_sided_l
 
 PATH=Path(__file__).resolve().parent
 WARSAW=ZoneInfo('Europe/Warsaw')
+
+def viewer_timezone():
+    return resolve_zone(st.session_state.get('viewer_tz_override','Automatyczna'),
+                        getattr(st.context,'timezone',None))
+
+
+def viewer_time_column(values):
+    return localize(values, viewer_timezone())
+
+
+@st.cache_data(ttl=30*60, max_entries=14, show_spinner=False)
+def load_daily_ranking(season, local_today, zone_name, nonce):
+    completed, note=historical_espn_results(season,refresh=nonce>0)
+    top, meta=previous_day_ranking(completed,local_today,ZoneInfo(zone_name))
+    return top,meta,note
+
+
 ARCHIVE_PATH=PATH/'data'/'historyczne_kursy.csv'
 SEASON='2026-27'
 MARKET_API={'player_points':'PTS','player_rebounds':'REB','player_assists':'AST',
             'player_threes':'FG3M','player_points_rebounds_assists':'PRA'}
 
-st.set_page_config(page_title='BestBets | NBA Intelligence',page_icon=Image.open(Path(__file__).resolve().parent/'assets'/'bestbets_icon.png'),layout='wide',initial_sidebar_state='auto')
+st.set_page_config(page_title='BestBets | NBA Intelligence',page_icon=Image.open(PATH/'assets'/'bestbets_brand_icon_64.png'),layout='wide',initial_sidebar_state='auto')
 CSS="""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap');
-:root{--gold:#f3bf60;--ink:#eaf0f7;--muted:#9ba9bc;--panel:#111a28;--line:#263346;}
+:root{--gold:#ff6a00;--ink:#eaf0f7;--muted:#9ba9bc;--panel:#0b1220;--line:#263346;}
 html,body,[class*="css"]{font-family:'DM Sans',sans-serif}
 .stApp{background:radial-gradient(ellipse at 90% -10%,#273044 0%,#0b121d 40%,#080d15 90%);color:var(--ink)}
 .block-container{max-width:1480px;padding-top:1.45rem;padding-bottom:3rem}
@@ -56,7 +77,7 @@ div[data-testid="stTabs"] button{font-weight:700}
 .bb-coin{width:92px;height:92px;flex-shrink:0;display:grid;place-items:center;border-radius:100%;border:6px double #ffe3a3;background:radial-gradient(circle at 27% 21%,#fff1ae,#f1bb54 58%,#a96d28);box-shadow:0 0 36px rgba(250,187,84,.18);font:800 33px 'Space Grotesk',sans-serif;color:#2f210d}
 .bb-kicker{font:700 11px 'DM Sans',sans-serif;letter-spacing:.19em;color:#ffd88e;text-transform:uppercase}
 .bb-title{font:800 48px/1.08 'Space Grotesk',sans-serif;letter-spacing:-.055em;color:#f4f6fa;margin:7px 0 6px}
-.bb-title span{color:#f5c46b}.bb-sub{color:#b0bdcf;line-height:1.55;max-width:800px;font-size:14px}
+.bb-title span{color:#ff6a00}.bb-sub{color:#b0bdcf;line-height:1.55;max-width:800px;font-size:14px}
 .bb-row{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:6px 0 12px}
 .bb-tag{display:inline-flex;padding:5px 10px;background:#2b261c;border:1px solid #6b522c;border-radius:999px;color:#f5c46b;font-size:11px;font-weight:800;letter-spacing:.04em}
 .bb-muted{color:#9eafc2;font-size:13px}
@@ -81,7 +102,7 @@ CSS += """
 .bb-gamehead span{color:#f4ce81}.bb-versus{display:grid;grid-template-columns:1fr 48px 1fr;align-items:center;text-align:center;gap:8px;margin:15px 0 10px}
 .bb-versus>div{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;min-width:0}
 .bb-versus strong{font:700 17px 'Space Grotesk',sans-serif;color:#f4f7fa;text-align:center}
-.bb-versus small{font-size:11px;color:#96a4b5}.bb-versus b{font-size:23px;color:#f6c770}
+.bb-versus small{font-size:11px;color:#96a4b5}.bb-versus b{font-size:23px;color:#ff6a00}
 .bb-at{font-weight:800;color:#8a9aaf}.bb-winbar{height:10px;display:flex;overflow:hidden;border-radius:99px;background:#334154}
 .bb-winlabels{display:flex;justify-content:space-between;color:#cdd8e9;font-size:12px;font-weight:800;margin:8px 0}
 .bb-gamefooter{border-top:1px solid #30435b;margin-top:11px;padding-top:12px;font-size:12px;color:#b3c3d6}
@@ -121,6 +142,7 @@ CSS += """
 }
 </style>
 """
+CSS += """<style>.bb-hero{background:linear-gradient(110deg,#0b1220,#10264d);border-color:#1b4382}.bb-title span{color:#ff6a00}.bb-logo{width:88px;height:88px;object-fit:contain;border-radius:22px;flex-shrink:0}.bb-gamecard{border-color:#214780}.bb-tag{color:#ff6a00}.stButton button[kind="primary"],.stDownloadButton button{background:linear-gradient(120deg,#ff9040,#ff641c);color:#0b1220;border-color:#ff7e24}div[data-testid="stMetric"]{border-color:#224575}</style>"""
 st.markdown(CSS,unsafe_allow_html=True)
 
 @st.cache_data(ttl=3600,max_entries=3,show_spinner=False)
@@ -178,7 +200,7 @@ def labelled_metric(container,name,value,description,delta=None):
 
 
 def market_prices_view(df,limit=180):
-    visible=[c for c in ['Mecz','Początek (PL)','Rynek','Zawodnik','Linia','Wariant','Bukmacher','Najwyższy kurs',
+    visible=[c for c in ['Mecz','Początek (lokalny)','Rynek','Zawodnik','Linia','Wariant','Bukmacher','Najwyższy kurs',
                          'Najniższy kurs','Liczba firm','Różnica kursów (%)','Aktualizacja (UTC)'] if c in df]
     if df.empty:
         st.info('Brak porównywalnych kursów. Aplikacja nie zastępuje braków przykładowymi kwotami.')
@@ -218,24 +240,24 @@ def get_team():
 
 
 def schedule_page(sched,inj=None):
-    st.subheader('Terminarz NBA — godziny polskie')
+    st.subheader('Terminarz NBA — godziny lokalne')
     if sched is None or sched.empty:
         st.info('Nie udało się załadować terminarza. Odśwież dane i sprawdź, czy NBA CDN lub ESPN odpowiada.');return
-    today=datetime.now(WARSAW)
+    today=datetime.now(viewer_timezone())
     days=st.slider('Ile najbliższych dni pokazać?',1,14,5,key='schedule_days')
     only_upcoming=st.checkbox('Tylko mecze jeszcze nierozpoczęte',value=True)
     v=sched.copy()
-    v['lokalna']=v['start_utc'].dt.tz_convert('Europe/Warsaw')
+    v['lokalna']=viewer_time_column(v['start_utc'])
     v=v[v['lokalna'].notna()]
     if only_upcoming:v=v[v['start_utc']>=pd.Timestamp.now(tz='UTC')-pd.Timedelta(minutes=5)]
-    v=v[v['lokalna']<pd.Timestamp(today+timedelta(days=days))]
+    v=v[(v['lokalna'].dt.date>=today.date()) & (v['lokalna'].dt.date<today.date()+timedelta(days=days))]
     if v.empty:st.info('Brak meczów spełniających filtry.');return
-    v['Termin (PL)']=v['lokalna'].dt.strftime('%d.%m.%Y %H:%M')
+    v['Termin (lokalny)']=v['lokalna'].dt.strftime('%d.%m.%Y %H:%M')
     v['Spotkanie']=v['away']+' @ '+v['home']
     v['Wynik']=v['away_score'].fillna('-').astype(str)+' : '+v['home_score'].fillna('-').astype(str)
     v['Status']=v['status']
-    st.dataframe(v[['Termin (PL)','Spotkanie','Status','Wynik','game_id']],hide_index=True,use_container_width=True,height=min(550,len(v)*36+45))
-    mini_legend(['Początek (PL)','Mecz'],{'Termin (PL)':'Termin w lokalnym czasie polskim','Spotkanie':'Drużyna gości @ gospodarze','Status':'Informacja, czy mecz się rozpoczął/ukończył','Wynik':'Wynik gości i gospodarzy','game_id':'Unikatowy numer meczu NBA'})
+    st.dataframe(v[['Termin (lokalny)','Spotkanie','Status','Wynik','game_id']],hide_index=True,use_container_width=True,height=min(550,len(v)*36+45))
+    mini_legend(['Początek (lokalny)','Mecz'],{'Termin (PL)':'Termin w strefie czasowej użytkownika','Spotkanie':'Drużyna gości @ gospodarze','Status':'Informacja, czy mecz się rozpoczął/ukończył','Wynik':'Wynik gości i gospodarzy','game_id':'Unikatowy numer meczu NBA'})
     st.download_button('Eksportuj terminarz CSV',v.to_csv(index=False).encode('utf-8-sig'),file_name='bestbets_terminarz.csv',mime='text/csv')
 
 
@@ -312,7 +334,7 @@ def upcoming_watchlist(logs,sched,inj,team_ctx,league_avg,days=4):
             try:projections[market]=calc_projection(g,market,opp,team_ctx,league_avg)
             except ValueError:pass
         if not projections:continue
-        rows.append({'Mecz (PL)':t.tz_convert('Europe/Warsaw').strftime('%d.%m %H:%M'),
+        rows.append({'Mecz (lokalny)':t.tz_convert(viewer_timezone()).strftime('%d.%m %H:%M'),
           'Spotkanie':match,'Zawodnik':name,'Drużyna':team,'Rywal':opp,
           'Minuty':projections['PTS']['estimated_minutes'],
           'Punkty':projections['PTS']['prediction'],
@@ -380,10 +402,12 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.8</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.9</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
-        '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab', '📱 Telefon i publikacja'],index=0,label_visibility='collapsed')
+        '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab'],index=0,label_visibility='collapsed')
+    st.selectbox('Strefa czasowa', choices(),key='viewer_tz_override',help='Automatyczna korzysta ze strefy przeglądarki. Zmiany DST obsługuje zoneinfo.')
+    st.caption('Godziny meczów: '+str(viewer_timezone()))
     season=st.selectbox('Sezon', ['2026-27','2025-26','2024-25'],index=0)
     st.divider()
     if st.button('↻ Odśwież dostępne dane',use_container_width=True):
@@ -392,8 +416,10 @@ with st.sidebar:
     st.caption('Terminarz: ESPN (szybkie źródło) → NBA CDN w razie awarii · NBA Stats: oficjalne dane · kontuzje: ESPN · kursy: The Odds API.')
     st.caption('BestBets to narzędzie do analizy danych, bez gwarancji zysków.')
 
-st.markdown('''<div class="bb-hero">
-<div class="bb-coin">BB</div><div>
+from base64 import b64encode
+brand_icon_base64=b64encode((PATH/'assets'/'bestbets_brand_icon_64.png').read_bytes()).decode('ascii')
+st.markdown(f'''<div class="bb-hero">
+<img class="bb-logo" src="data:image/png;base64,{brand_icon_base64}" alt="BestBets"/><div>
 <div class="bb-kicker">NBA intelligence platform · season 2026–27</div>
 <div class="bb-title">Best<span>Bets</span></div>
 <div class="bb-sub">Oficjalne statystyki NBA, analiza matchupów, przewidywane minuty, raport kontuzji i porównanie kursów. Wszystko w jednym panelu, z widocznymi ograniczeniami danych.</div>
@@ -408,16 +434,19 @@ if page == '🏠 Centrum':
     labelled_metric(c4,'Kursy','The Odds API','Automatycznie tylko po skonfigurowaniu klucza')
     r1,r2=st.columns([1.6,1])
     with r1:
-        st.markdown('#### Najbliższe mecze')
+        st.markdown('#### Mecze dzisiaj')
         try:
             sched,meta=load_schedule(st.session_state.nonce)
-            now=pd.Timestamp.now(tz='UTC'); x=sched[(sched['start_utc']>=now)&(sched['start_utc']<now+pd.Timedelta(days=3))].head(14).copy()
-            if x.empty:st.info('Brak potwierdzonych nadchodzących meczów w ciągu 3 dni.')
+            x=games_on_day(sched,datetime.now(viewer_timezone()).date(),viewer_timezone())
+            if x.empty:st.info('Brak meczów na dzisiaj w wybranej strefie czasowej.')
             else:
-                x['Start (PL)']=x['start_utc'].dt.tz_convert('Europe/Warsaw').dt.strftime('%d.%m %H:%M')
+                x['Start (lokalny)']=viewer_time_column(x['start_utc']).dt.strftime('%d.%m %H:%M')
                 x['Mecz']=x['away']+' @ '+x['home']
-                st.dataframe(x[['Start (PL)','Mecz','status']],hide_index=True,use_container_width=True,height=455)
-                mini_legend([],{'Start (PL)':'Data i godzina spotkania w Polsce','Mecz':'Goście @ gospodarze','status':'Etap spotkania: przed grą, na żywo lub zakończone'})
+                st.dataframe(x[['Start (lokalny)','Mecz','status']],hide_index=True,use_container_width=True,height=455)
+                refresh_logos_in_background()
+                for _,game in x.iterrows():
+                    a,b,c=st.columns([1,2,1]);a.markdown(f'<img src="{logo_data_uri(game["away"])}" width="48" alt="{safe(game["away"])}">',unsafe_allow_html=True);b.caption(str(game['away'])+' @ '+str(game['home'])+' · '+str(game['Start (lokalny)']));c.markdown(f'<img src="{logo_data_uri(game["home"])}" width="48" alt="{safe(game["home"])}">',unsafe_allow_html=True)
+                mini_legend([],{'Start (lokalny)':'Data i godzina w strefie użytkownika','Mecz':'Goście @ gospodarze','status':'Etap spotkania: przed grą, na żywo lub zakończone'})
             if 'ESPN' in meta.get('source',''):
                 st.info('Terminarz z ESPN — szybsze źródło wykorzystywane w publicznej wersji BestBets; NBA CDN pozostaje zapasowe.')
             pill(meta)
@@ -430,11 +459,32 @@ if page == '🏠 Centrum':
             if inj.empty:st.info('ESPN nie zwrócił rozpoznawalnych rekordów kontuzji. Nie oznacza to, że wszyscy są zdrowi.')
             else:
                 st.metric('Wpisy w raporcie ESPN',len(inj))
-                st.dataframe(inj[['player','team','status']].head(11),hide_index=True,use_container_width=True,height=420)
+                refresh_logos_in_background()
+                for _,rec in inj.head(10).iterrows():
+                    code=str(rec.get('team') or '—')
+                    icon=logo_data_uri(code) if code in set(TEAM_MAP.values()) else ''
+                    logo=(f'<img src="{icon}" width="28" height="28" style="object-fit:contain" alt="{safe(code)}">' if icon else '<span>🏥</span>')
+                    st.markdown(f'<div style="display:flex;align-items:center;gap:9px;padding:6px 2px;border-bottom:1px solid #263346">{logo}<span style="flex:1"><b>{safe(rec["player"])}</b> <small style="color:#95a7bb">{safe(code)}</small></span><small>{safe(rec["status"])}</small></div>',unsafe_allow_html=True)
+                st.caption('Kluby pochodzą z ESPN; nierozpoznane przypisania nie są zgadywane.')
                 mini_legend([],{'player':'Zawodnik z wpisem w raporcie ESPN','team':'Drużyna gracza','status':'Status według ESPN, nie oficjalna decyzja trenerów'})
             pill(meta)
         except Exception as exc:st.warning('Raport ESPN niedostępny: '+str(exc))
         st.link_button('Oficjalny raport NBA',OFFICIAL_INJURIES,use_container_width=True)
+    st.markdown('#### TOP 10 zawodników — poprzedni dzień')
+    try:
+        today=datetime.now(viewer_timezone()).date()
+        top, coverage, note=load_daily_ranking(season,today,str(viewer_timezone()),st.session_state.nonce)
+        if top.empty:
+            st.info('Brak zweryfikowanych statystyk zawodników za poprzedni lokalny dzień.')
+        else:
+            st.caption('Punkty ↓, remisy: zbiórki i asysty. Wyłącznie zakończone mecze ESPN (rzeczywiste box score).')
+            st.dataframe(top.rename(columns={'PLAYER_NAME':'Zawodnik','TEAM_ABBREVIATION':'Klub','PTS':'Punkty','REB':'Zbiórki','AST':'Asysty'}),hide_index=True,use_container_width=True)
+        st.caption(f"Zatwierdzone box score: {coverage['complete_games']}/{coverage['requested_games']} zakończonych spotkań.")
+        if coverage['failed_games']:
+            st.warning('Ranking może być niepełny: nie pobrano statystyk wszystkich zakończonych spotkań.')
+        if note:st.caption(str(note)[:200])
+    except Exception as exc:
+        st.info('Ranking chwilowo niedostępny: '+str(exc)[:160])
     row_note('Jak interpretować aplikację','Prognozy bazują na historii występów. Dane o kontuzjach z ESPN nie zastępują oficjalnego raportu przed meczem. Szacowane minuty są obliczane automatycznie z ostatnich występów, nie potwierdzone przez drużynę.')
 
 elif page == '📆 Terminarz':
@@ -554,7 +604,7 @@ elif page == '💹 Kursy i value':
                     near=sc[(sc['start_utc']>=pd.Timestamp.now(tz='UTC')) &
                             (sc['start_utc']<=pd.Timestamp.now(tz='UTC')+pd.Timedelta(days=3))].head(8).copy()
                     if not near.empty:
-                        near['Start (PL)']=near['start_utc'].dt.tz_convert('Europe/Warsaw').dt.strftime('%d.%m %H:%M')
+                        near['Start (lokalny)']=viewer_time_column(near['start_utc']).dt.strftime('%d.%m %H:%M')
                         near['Mecz']=near['away']+' @ '+near['home']
                         st.markdown('**Nadchodzące mecze — terminarz dostępny, kursy jeszcze niedostępne**')
                         st.dataframe(near[['Start (PL)','Mecz']],hide_index=True,use_container_width=True)
@@ -846,13 +896,11 @@ elif page == '📈 Performance Tracker':
                        ' prognoz z faworytem powyżej 85%. '
                        'To tylko flaga do audytu.')
             visible=frozen.copy()
-            visible['Start PL']=pd.to_datetime(
-                visible['start_utc'],utc=True).dt.tz_convert(
-                    'Europe/Warsaw').dt.strftime('%d.%m.%Y %H:%M')
+            visible['Start lokalny']=viewer_time_column(visible['start_utc']).dt.strftime('%d.%m.%Y %H:%M')
             visible['Spotkanie']=visible['away']+' @ '+visible['home']
             visible['Stan']=visible['home_score'].notna().map(
                 {True:'Rozliczony',False:'Oczekuje'})
-            display_cols=['Start PL','Spotkanie','away_points','home_points',
+            display_cols=['Start lokalny','Spotkanie','away_points','home_points',
                           'away_win_pct','home_win_pct','away_score','home_score',
                           'Stan','model_id','source']
             st.dataframe(visible[display_cols],hide_index=True,
@@ -980,26 +1028,5 @@ elif page == '📚 NBA Data Lab':
     row_note('Statystyki z linków NBA.com','Dostępne integracje: players/traditional, players/shooting, catch-shoot, player box scores, transition, defense-dash, teams/traditional, lineups, teams/shooting, opponent-shooting, hustle, defense, catch-shoot oraz transition. Każda kategoria pochodzi z odpowiadającego jej endpointu NBA; niektóre są przybliżonym odpowiednikiem widoku strony.')
 
 
-elif page == '📱 Telefon i publikacja':
-    st.subheader('BestBets na telefonie i w internecie')
-    st.caption('Ta wersja jest gotowa do przygotowania publicznego wdrożenia; samo uruchomienie lokalne nie daje jeszcze publicznego adresu.')
-    st.markdown('#### Krok 1 — opublikuj kod na GitHub')
-    st.write('Utwórz repozytorium `bestbets-nba` i prześlij zawartość osobnej, przygotowanej paczki **BestBets_v6_3_GITHUB.zip**. Nie przesyłaj lokalnego folderu z Windows, w którym znajduje się prywatny klucz API.')
-    st.info('Przy ręcznym przesyłaniu w przeglądarce `.gitignore` nie chroni przed omyłkowym wyborem prywatnego pliku. Paczka GitHub nie zawiera klucza ani lokalnych danych; sprawdź ją przed publikacją.')
-    st.link_button('Otwórz GitHub','https://github.com/new')
-    st.markdown('#### Krok 2 — uruchom BestBets na Streamlit Cloud')
-    st.write('Wybierz repozytorium, gałąź `main`, a jako plik startowy `app.py`. W ustawieniach wersji Pythona wybierz **3.12**.')
-    st.link_button('Otwórz Streamlit Community Cloud','https://share.streamlit.io/')
-    st.markdown('#### Krok 3 — dodaj klucz tylko jako sekret serwera')
-    st.write('W Streamlit Cloud → **App settings → Secrets** wpisz wpis z własnym kluczem. **Nie wklejaj klucza do GitHuba ani do publicznego pliku.**')
-    st.code('ODDS_API_KEY = "TU_WSTAW_KLUCZ_W_PANELU_CLOUD"', language='toml')
-    st.caption('To przykład formatu; prawdziwy klucz pozostaje na serwerze. Lokalny plik `.streamlit/secrets.toml` nie zostaje automatycznie przeniesiony do chmury.')
-    st.markdown('#### Krok 4 — ikona BestBets na iPhonie')
-    st.write('Po opublikowaniu otwórz publiczny adres w **Safari** → **Udostępnij** → **Dodaj do ekranu początkowego**. Jeśli pojawi się opcja **Otwórz jako aplikację internetową**, włącz ją, a potem wybierz **Dodaj**.')
-    st.caption('To skrót do strony internetowej, nie natywna aplikacja z App Store. Ostateczny wygląd ikony zależy od Safari i metadanych wdrożenia.')
-    st.markdown('#### Ograniczenia wersji publicznej')
-    st.warning('Wszystkie osoby otwierające publiczną stronę będą korzystać ze wspólnego limitu The Odds API. BestBets ma lokalny budżet żądań, ale nie gwarantuje odporności na duży ruch. Na darmowym hostingu lokalna historia kursów może zniknąć przy restarcie; do archiwizacji potrzebna jest trwała baza.')
-    st.caption('Prognozy mają charakter eksperymentalny; kursy mogą być niedostępne w Polsce. BestBets nie zawiera automatycznego obstawiania.')
-
-st.markdown('''<div class="bb-footer">BestBets v7.8 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
+st.markdown('''<div class="bb-footer">BestBets v7.9 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)

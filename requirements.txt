@@ -6,3 +6,4 @@ plotly>=5.20,<7
 requests>=2.31,<3
 Pillow>=10,<13
 psycopg[binary]>=3.2,<4
+tzdata>=2026.1
