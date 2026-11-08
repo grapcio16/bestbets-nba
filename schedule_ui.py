@@ -139,33 +139,43 @@ def card_html(game, zone):
     </div>"""
 
 
+def _move_date(days: int):
+    new_day = st.session_state[SELECTED_DAY_KEY] + timedelta(days=days)
+    st.session_state[SELECTED_DAY_KEY] = new_day
+    st.session_state["bb_schedule_calendar"] = new_day
+
+
+def _reset_date(zone):
+    new_day = datetime.now(zone).date()
+    st.session_state[SELECTED_DAY_KEY] = new_day
+    st.session_state["bb_schedule_calendar"] = new_day
+
+
+def _calendar_changed():
+    st.session_state[SELECTED_DAY_KEY] = st.session_state["bb_schedule_calendar"]
+
+
 def day_navigation(prefix: str, zone):
-    """Same selected date across Center and Schedule; controls are independent."""
+    """Shared date between Center and Schedule; arrows and calendar stay in sync."""
     today = datetime.now(zone).date()
     if SELECTED_DAY_KEY not in st.session_state:
         st.session_state[SELECTED_DAY_KEY] = today
+    if "bb_schedule_calendar" not in st.session_state:
+        st.session_state["bb_schedule_calendar"] = st.session_state[SELECTED_DAY_KEY]
     previous, calendar, following, reset = st.columns([1, 2.5, 1, 1.35], vertical_alignment="bottom")
     with previous:
-        if st.button("◀", key=f"{prefix}_previous_day", help="Poprzedni dzień", use_container_width=True):
-            st.session_state[SELECTED_DAY_KEY] -= timedelta(days=1)
+        st.button("◀", key=f"{prefix}_previous_day", help="Poprzedni dzień",
+                  on_click=_move_date, args=(-1,), use_container_width=True)
     with following:
-        if st.button("▶", key=f"{prefix}_next_day", help="Następny dzień", use_container_width=True):
-            st.session_state[SELECTED_DAY_KEY] += timedelta(days=1)
+        st.button("▶", key=f"{prefix}_next_day", help="Następny dzień",
+                  on_click=_move_date, args=(1,), use_container_width=True)
     with reset:
-        if st.button("Dzisiaj", key=f"{prefix}_today", use_container_width=True):
-            st.session_state[SELECTED_DAY_KEY] = today
+        st.button("Dzisiaj", key=f"{prefix}_today", use_container_width=True,
+                  on_click=_reset_date, args=(zone,))
     with calendar:
-        # The calendar control is keyed separately, so the arrows cannot conflict
-        # with Streamlit's prohibition on mutating an already instantiated widget.
-        chosen = st.date_input(
-            "Wybierz datę",
-            value=st.session_state[SELECTED_DAY_KEY],
-            key=f"{prefix}_calendar",
-            format="DD.MM.YYYY",
-        )
-        # On an explicit button click value= is ignored by an existing widget key,
-        # so synchronize using a callback + rerun on the control for reliable arrows.
-    return chosen
+        st.date_input("Wybierz datę", key="bb_schedule_calendar",
+                      format="DD.MM.YYYY", on_change=_calendar_changed)
+    return st.session_state[SELECTED_DAY_KEY]
 
 
 def display_cards(games: pd.DataFrame, zone, *, compact=False):
