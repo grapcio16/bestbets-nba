@@ -60,12 +60,20 @@ def parse_summary(payload,game):
                 athlete=item.get('athlete') or {}
                 name=athlete.get('displayName') or athlete.get('fullName')
                 mins=minutes(data.get('MIN') or data.get('MINUTES'))
+                # ESPN's player position is optional; never infer it from boxscore stats.
+                position_info=athlete.get('position') or item.get('position') or {}
+                if isinstance(position_info,dict):
+                    position=str(position_info.get('abbreviation') or position_info.get('displayName') or '').strip()
+                else:
+                    position=str(position_info or '').strip()
+
                 if not name or mins is None or mins<=0:continue
                 three,three_att=made_attempt(data.get('3PT',data.get('3PM')))
                 _,fga=made_attempt(data.get('FG'))
                 row={'PLAYER_NAME':name,'PLAYER_ID':str(athlete.get('id') or ''),
                     'TEAM_ABBREVIATION':team,'GAME_ID':str(game.get('game_id') or ''),
                     'GAME_DATE':str(game.get('start_utc') or ''),'MATCHUP':matchup,
+                    'OPPONENT':opponent,'POSITION':position,
                     'MIN':mins,'PTS':num(data.get('PTS')),'REB':num(data.get('REB')),
                     'AST':num(data.get('AST')),'FG3M':three,'FG3A':three_att,
                     'FGA':fga,'OREB':num(data.get('OREB')),'DREB':num(data.get('DREB')),

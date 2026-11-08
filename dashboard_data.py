@@ -16,7 +16,7 @@ def previous_day_ranking(completed, today, zone, fetch=None):
     if fetch is None:
         from espn_player_data import fetch_boxscore
         fetch = fetch_boxscore
-    fields=["PLAYER_NAME","TEAM_ABBREVIATION","PTS","REB","AST"]
+    fields=["PLAYER_NAME","TEAM_ABBREVIATION","PTS","REB","AST","MIN","POSITION","OPPONENT"]
     empty=pd.DataFrame(columns=fields)
     matches=games_on_day(completed,today-timedelta(days=1),zone)
     if matches.empty:
@@ -40,6 +40,34 @@ def previous_day_ranking(completed, today, zone, fetch=None):
     frame=pd.DataFrame(rows)
     for col in ["PTS","REB","AST"]:
         frame[col]=pd.to_numeric(frame[col],errors="coerce")
+    # Minutes, opponent and position are optional ESPN boxscore fields.
+    # Preserve unknowns instead of inventing a value or removing a top scorer.
+    if "MIN" not in frame.columns:
+        frame["MIN"]=float("nan")
+    frame["MIN"]=pd.to_numeric(frame["MIN"],errors="coerce")
+    if "POSITION" not in frame.columns:
+        frame["POSITION"]=""
+    if "OPPONENT" not in frame.columns:
+        frame["OPPONENT"]=""
+    # Derive the opponent exclusively from the game ID and actual team's schedule.
+    # The match lookup is useful when an older cached ESPN record omitted OPPONENT.
+    schedule_by_id={
+        str(game.get("game_id")): game for game in matches.to_dict("records")
+    }
+    def opponent_for(record):
+        listed=str(record.get("OPPONENT") or "").strip()
+        if listed and listed.lower() not in ("nan","none","—"):
+            return listed
+        game=schedule_by_id.get(str(record.get("GAME_ID") or ""))
+        if not game:
+            return ""
+        club=str(record.get("TEAM_ABBREVIATION") or "")
+        if club==str(game.get("away")):
+            return str(game.get("home") or "")
+        if club==str(game.get("home")):
+            return str(game.get("away") or "")
+        return ""
+    frame["OPPONENT"]=frame.apply(opponent_for,axis=1)
     frame=frame.dropna(subset=["PLAYER_NAME","TEAM_ABBREVIATION","PTS","REB","AST"])
     if "GAME_ID" in frame and "PLAYER_ID" in frame:
         frame=frame.drop_duplicates(["GAME_ID","PLAYER_ID"])

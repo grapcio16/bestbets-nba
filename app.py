@@ -445,7 +445,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.11</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.12</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab'],index=0,label_visibility='collapsed')
@@ -510,7 +510,7 @@ if page == '🏠 Centrum':
         if top.empty:
             st.info('Brak zweryfikowanych statystyk zawodników za poprzedni lokalny dzień.')
         else:
-            st.caption('Ranking według punktów (remisy: zbiórki i asysty). Tylko rzeczywiste statystyki z zakończonych meczów ESPN.')
+            st.caption('Rzeczywiste statystyki zakończonych meczów ESPN. Minuty = czas na boisku; pozycja = nominalna pozycja według ESPN (brak danych oznaczony —).')
             show_top10(top)
         st.caption(f"Zatwierdzone box score: {coverage['complete_games']}/{coverage['requested_games']} zakończonych spotkań.")
         if coverage['failed_games']:

@@ -28,7 +28,7 @@ jobs:
       - name: Compile updated modules
         run: python -m py_compile center_leaderboard.py schedule_ui.py schedule_data.py viewer_time.py dashboard_data.py app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py tracker_storage.py tracker_postgres.py match_context.py forecast_quality.py availability_context.py opponent_ratings.py model_validation.py
       - name: Unit tests for roster parsing
-        run: python -m unittest -v test_center_v711.py test_schedule_v710.py test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
+        run: python -m unittest -v test_center_v712.py test_center_v711.py test_schedule_v710.py test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
       - name: November 8 public UI checks
         run: |
           python - <<'PY'

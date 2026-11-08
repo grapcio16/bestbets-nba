@@ -1,3 +1,13 @@
+# BestBets v7.12 — minuty, przeciwnik i pozycja w TOP 10 (8.11.2026)
+
+- W **Centrum → TOP 10** każda karta zawodnika pokazuje teraz **czas gry (MM:SS), przeciwnika (skrót drużyny)** oraz **pozycję (PG/SG/SF/PF/C, jeśli podało ją ESPN)**, oprócz punktów, zbiórek i asyst.
+- Dane pochodzą z **rzeczywistych box score zakończonych spotkań ESPN**. Pozycja jest nominalnym oznaczeniem z raportu, a nie automatycznie ustaloną rolą zawodnika w każdym ustawieniu.
+- Brak potwierdzonych minut lub pozycji wyświetlamy jako **—**, nigdy jako zero czy wynik wywnioskowany ze statystyk.
+- Przeciwnika ustalamy z rzeczywistego meczu po identyfikatorze ESPN i aktualnej drużynie zawodnika; godziny i granice poprzedniego dnia pozostają lokalne dla użytkownika.
+- Nie zmieniono rankingu, symulacji, Injury Report ani terminarza. Regression tests: `test_center_v712.py`.
+
+---
+
 # BestBets v7.11 — uporządkowane Centrum (8.11.2026)
 
 - Usunięto wyłącznie cztery **informacyjne** kafelki spod nagłówka Panel główny (Terminarz / Sezon / Rynki zawodników / Kursy); źródła danych oraz obliczenia pozostają bez zmian.
