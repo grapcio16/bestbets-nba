@@ -1,3 +1,14 @@
+# BestBets v7.10 — karty terminarza i nawigacja po datach (8.11.2026)
+
+- **Centrum:** zamiast tabeli dzisiejszych meczów pokazujemy karty z herbami, nazwami drużyn, lokalną godziną i statusem. Dla zakończonych spotkań można zobaczyć **wyłącznie rzeczywisty wynik** z feedu ESPN/NBA; nie pokazujemy prognoz ani rezultatów symulacji.
+- **Nawigacja:** ◀ poprzedni dzień, ▶ następny dzień, „Dzisiaj” oraz kalendarz do wyboru konkretnej daty. Wybrana data współdzielona między Centrum i Terminarzem w ramach sesji.
+- **Terminarz:** taki sam widok kartowy jako domyślny, opcjonalna tabela, filtr statusu i eksport CSV dla aktualnie wybranego dnia.
+- **Daty globalne:** filtrowanie według lokalnego dnia w strefie użytkownika (również przez granice UTC i DST). Przy cofaniu o wcześniejsze miesiące pobieramy tylko niezbędne archiwa miesięczne ESPN; brak danych jest jawnie komunikowany.
+- **Bez zmian** w algorytmie 5000 symulacji ani module wyznaczania predykcji.
+- **Testy:** `test_schedule_v710.py` oraz kontrola interakcji Streamlit w GitHub Actions.
+
+---
+
 # BestBets — v7.9: globalny interfejs NBA (8 listopada 2026)
 
 Ta aktualizacja dotyczy **interfejsu, czasu i prezentacji danych**. Algorytm symulacji oraz 5000 przebiegów na mecz pozostają **bez zmian**.
