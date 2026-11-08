@@ -8,47 +8,50 @@ from team_logos import logo_data_uri
 
 CSS = """
 <style>
-.bb-top10-grid-card {
- display:flex; flex-direction:column; gap:11px; padding:15px 17px;
- margin:0 0 12px; background:linear-gradient(120deg,#15253e,#101a2c);
- border:1px solid #304b73; border-radius:16px;
- box-shadow:0 5px 16px rgba(0,0,0,.12); min-height:146px;
+.bb-top10-grid-card{
+ display:flex;flex-direction:column;gap:12px;padding:16px 18px;margin:0 0 12px;
+ background:linear-gradient(120deg,#15253e,#101a2c);
+ border:1px solid #304b73;border-radius:16px;box-shadow:0 5px 16px rgba(0,0,0,.12)
 }
-.bb-top10-header {display:flex;gap:12px;align-items:center;min-width:0;}
-.bb-top10-rank {font:800 17px 'Space Grotesk',sans-serif;color:#a1b5d3;
- min-width:40px;text-align:center;letter-spacing:-.02em;}
-.bb-top10-rank.medal1 {color:#ffb85e}
-.bb-top10-rank.medal2 {color:#e4edf9}
-.bb-top10-rank.medal3 {color:#d9a27b}
-.bb-top10-logo {width:40px;height:40px;object-fit:contain;flex-shrink:0;}
-.bb-top10-ident {display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;}
-.bb-top10-ident strong {font:750 17px/1.25 'Space Grotesk',sans-serif;
- color:#f1f6ff;overflow-wrap:anywhere;}
-.bb-top10-ident small {font-size:11px;font-weight:700;letter-spacing:.05em;color:#93a8c6;}
-.bb-top10-stats {display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px;
- border-top:1px solid #293e59;padding-top:11px;}
-.bb-top10-stat {display:flex;flex-direction:column;align-items:center;gap:2px;
- color:#9eafc8;font-size:10px;font-weight:700;letter-spacing:.07em;}
-.bb-top10-stat strong {font:800 22px 'Space Grotesk',sans-serif;
- color:#eef5ff;letter-spacing:-.03em;}
-.bb-top10-stat.main strong {color:#ff8a48;}
-.bb-top10-extra {border-top:1px solid #293e59; padding-top:10px; display:grid;
- grid-template-columns:1fr 1fr 1fr; gap:7px;}
-.bb-top10-extra-item {display:flex; flex-direction:column; gap:4px; align-items:center;
- border:1px solid #2a4160; border-radius:9px; background:#122239; padding:8px 5px;}
-.bb-top10-extra-item small {font-size:9px;letter-spacing:.065em;font-weight:750;
- color:#a3b7d3;}
-.bb-top10-extra-item strong {font:700 14px 'Space Grotesk',sans-serif;
- color:#f5f7fc;overflow-wrap:anywhere;text-align:center;}
-
-@media(max-width:760px){
- .bb-top10-grid-card{padding:13px;gap:10px;}
- .bb-top10-ident strong{font-size:15px;}
-  .bb-top10-stat strong{font-size:20px;} .bb-top10-extra-item strong{font-size:12px;}
+.bb-top10-header{display:flex;flex-wrap:wrap;align-items:center;gap:10px;min-width:0}
+.bb-top10-rank{font:800 17px 'Space Grotesk',sans-serif;color:#a1b5d3;min-width:37px}
+.bb-top10-rank.medal1{color:#ffb85e}
+.bb-top10-rank.medal2{color:#e4edf9}
+.bb-top10-rank.medal3{color:#d9a27b}
+.bb-top10-logo{width:38px;height:38px;object-fit:contain;flex-shrink:0}
+.bb-top10-ident{display:flex;flex-direction:column;gap:4px;min-width:115px;flex:1}
+.bb-top10-name-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.bb-top10-name-row>strong{font:750 17px/1.2 'Space Grotesk',sans-serif;
+ color:#f1f6ff;overflow-wrap:anywhere}
+.bb-top10-ident small{font-size:11px;font-weight:700;letter-spacing:.05em;color:#93a8c6}
+.bb-top10-position{display:inline-flex;align-items:center;justify-content:center;
+ border-radius:7px;border:1px solid #3a6aa4;padding:3px 7px;background:#163153;
+ font:800 11px 'Space Grotesk',sans-serif;color:#c5e0ff}
+.bb-top10-position strong{font:inherit}
+.bb-top10-match{display:flex;flex-direction:column;align-items:end;gap:3px;
+ border:1px solid #345477;background:#132d4b;border-radius:10px;
+ padding:8px 12px;margin-left:auto;flex-shrink:0}
+.bb-top10-match small{font-size:9px;color:#98afce;letter-spacing:.10em;font-weight:750}
+.bb-top10-match strong{font:800 13px 'Space Grotesk',sans-serif;color:#eaf1ff;white-space:nowrap}
+.bb-top10-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:7px;border-top:1px solid #293e59;padding-top:12px}
+.bb-top10-stat{display:flex;flex-direction:column;align-items:center;gap:3px;
+ color:#a7bad5;font-size:10px;font-weight:750;letter-spacing:.06em}
+.bb-top10-stat strong{font:800 22px 'Space Grotesk',sans-serif;color:#eef5ff;letter-spacing:-.03em}
+.bb-top10-stat.main strong{color:#ff8a48}
+@media(max-width:780px){
+ .bb-top10-grid-card{padding:13px;gap:10px}
+ .bb-top10-name-row>strong{font-size:15px}
+ .bb-top10-stat strong{font-size:19px}
+ .bb-top10-match{margin-left:0;max-width:100%}
+}
+@media(max-width:460px){
+ .bb-top10-match{width:100%;align-items:start}
+ .bb-top10-stat{font-size:9px}
+ .bb-top10-stat strong{font-size:17px}
 }
 </style>
 """
-
 
 def stat_text(value):
     """Keep stats legible; a missing value must never be shown as zero."""
@@ -87,36 +90,44 @@ def known_text(value):
 
 
 def player_card_html(row, rank):
-    """Sanitize names/team abbreviations; never print invented player statistics."""
-    name = escape(str(row.get("PLAYER_NAME") or "Nieznany zawodnik"))
-    team = escape(str(row.get("TEAM_ABBREVIATION") or "—"))
-    team_code = str(row.get("TEAM_ABBREVIATION") or "").upper()
+    """Four real game stats, nominal position beside name, actual match in header."""
+    name = escape(known_text(row.get("PLAYER_NAME")))
+    team = escape(known_text(row.get("TEAM_ABBREVIATION")))
+    team_code = known_text(row.get("TEAM_ABBREVIATION")).upper()
     src = escape(logo_data_uri(team_code), quote=True)
     logo = (f'<img class="bb-top10-logo" src="{src}" alt="Logo {team}">' if src else "")
     medal = f"medal{rank}" if rank in (1, 2, 3) else ""
     pts, reb, ast = (stat_text(row.get(key)) for key in ("PTS", "REB", "AST"))
-    played = minute_text(row.get("MIN"))
-    opponent = escape(known_text(row.get("OPPONENT")))
+    played = escape(minute_text(row.get("MIN")))
     position = escape(known_text(row.get("POSITION")))
+    game = known_text(row.get("MATCHUP"))
+    if game == "—":
+        opponent = known_text(row.get("OPPONENT"))
+        game = f"{team_code} · {opponent}" if opponent != "—" else "—"
+    matchup = escape(game)
     return f"""
     <div class="bb-top10-grid-card">
       <div class="bb-top10-header">
         <div class="bb-top10-rank {medal}">#{rank:02d}</div>
         {logo}
-        <div class="bb-top10-ident"><strong>{name}</strong><small>{team} · NBA</small></div>
+        <div class="bb-top10-ident">
+          <div class="bb-top10-name-row">
+            <strong>{name}</strong>
+            <span class="bb-top10-position" title="POZYCJA zawodnika według ESPN"><strong>{position}</strong></span>
+          </div>
+          <small>{team} · NBA</small>
+        </div>
+        <div class="bb-top10-match" title="PRZECIWNIK i rzeczywisty MECZ">
+          <small>MECZ</small><strong>{matchup}</strong>
+        </div>
       </div>
       <div class="bb-top10-stats">
         <div class="bb-top10-stat main"><strong>{pts}</strong>PUNKTY</div>
         <div class="bb-top10-stat"><strong>{reb}</strong>ZBIÓRKI</div>
         <div class="bb-top10-stat"><strong>{ast}</strong>ASYSTY</div>
-      </div>
-      <div class="bb-top10-extra">
-        <div class="bb-top10-extra-item"><small>MINUTY</small><strong>{escape(played)}</strong></div>
-        <div class="bb-top10-extra-item"><small>PRZECIWNIK</small><strong>{opponent}</strong></div>
-        <div class="bb-top10-extra-item"><small>POZYCJA</small><strong>{position}</strong></div>
+        <div class="bb-top10-stat"><strong>{played}</strong>MINUTY</div>
       </div>
     </div>"""
-
 
 def show_top10(top):
     """Two columns on desktop; each player's row remains a complete card."""
