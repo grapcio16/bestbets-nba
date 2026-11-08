@@ -1,4 +1,4 @@
-"""BestBets v7.7: final-night injury context, player minutes and consistent simulations."""
+"""BestBets v7.8: honest opponent model audit and independent forecast tracking."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -380,7 +380,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.7</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.8</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab', '📱 Telefon i publikacja'],index=0,label_visibility='collapsed')
@@ -684,6 +684,11 @@ elif page == '💹 Kursy i value':
                                     f"{m['edge_pp']:+.2f} pp",'Niezweryfikowana')
                                 labelled_metric(k4,'EV modelu',
                                     f"{m['ev_pct']:+.2f}%",'Tylko według modelu')
+                                st.warning('To NIE jest skalibrowana szansa '
+                                           'ani sprawdzona przewaga nad kursem. '
+                                           'Przy małej próbce i nieznanych '
+                                           'absencjach nawet wysokie dodatnie '
+                                           'EV może być poważnie błędne.')
                                 st.caption(f"Prognoza: {p['prediction']:.1f} · "
                                     f"Minuty: {p['estimated_minutes']:.1f} · "
                                     f"Próba: {p['sample_size']} meczów. "
@@ -734,6 +739,11 @@ elif page == '📈 Performance Tracker':
                 with st.spinner('Porównuję na rzeczywiście zakończonych meczach…'):
                     finished,notes=historical_espn_results(season)
                     compared,score=walk_forward_comparison(finished,max_games=140)
+                    from model_validation import evaluate_models
+                    heldout,holdout_score=evaluate_models(finished,holdout_n=40)
+                if holdout_score:
+                    st.session_state['tracker_new_holdout_score']=holdout_score
+                    st.session_state['tracker_new_holdout_rows']=heldout
                 if not score:
                     st.warning('Za mało wcześniejszych meczów dla obu modeli.')
                 else:
@@ -760,6 +770,24 @@ elif page == '📈 Performance Tracker':
             else:
                 st.caption('Nowa metoda zmniejszyła MAE sumy w tej próbce; '
                            'wymaga kolejnych niezależnych testów.')
+            st.markdown('#### Osobny test: atak / obrona kontra stary model')
+            heldout_summary=st.session_state.get('tracker_new_holdout_score')
+            if heldout_summary:
+                st.caption('Chronologicznie ostatnie 40 spotkań — wyłącznie '
+                           'dane sprzed rozpoczęcia każdego meczu. Nowy model '
+                           'ataku/obrony jest BADAWCZY i nie zmienia '
+                           'domyślnych prognoz BestBets.')
+                st.dataframe(pd.DataFrame([
+                    {'Model':code,'Mecze':value['games'],
+                     'MAE sumy':value['total_mae'],
+                     'MAE drużyn':value['team_mae'],
+                     'Trafność zwycięzców':value['winner_accuracy'],
+                     'Brier':value['brier']}
+                    for code,value in heldout_summary.items()
+                ]),hide_index=True,use_container_width=True)
+                st.caption('Na kilkudziesięciu meczach niewielkie różnice '
+                           'nie potwierdzają przewagi modelu. Nie są to '
+                           'statystyki rentowności zakładów.')
             if 'tracker_walkforward_rows' in st.session_state:
                 st.download_button('Eksport wyniku porównania CSV',
                     st.session_state['tracker_walkforward_rows'].to_csv(
@@ -973,5 +1001,5 @@ elif page == '📱 Telefon i publikacja':
     st.warning('Wszystkie osoby otwierające publiczną stronę będą korzystać ze wspólnego limitu The Odds API. BestBets ma lokalny budżet żądań, ale nie gwarantuje odporności na duży ruch. Na darmowym hostingu lokalna historia kursów może zniknąć przy restarcie; do archiwizacji potrzebna jest trwała baza.')
     st.caption('Prognozy mają charakter eksperymentalny; kursy mogą być niedostępne w Polsce. BestBets nie zawiera automatycznego obstawiania.')
 
-st.markdown('''<div class="bb-footer">BestBets v7.7 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
+st.markdown('''<div class="bb-footer">BestBets v7.8 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)

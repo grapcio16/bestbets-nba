@@ -34,6 +34,30 @@ CREATE TABLE IF NOT EXISTS bestbets_forecasts (
 CREATE INDEX IF NOT EXISTS bestbets_forecasts_start
  ON bestbets_forecasts(start_utc);
 """
+MODEL_DDL = """
+CREATE TABLE IF NOT EXISTS bestbets_forecasts_by_model (
+ game_id TEXT NOT NULL,
+ model_id TEXT NOT NULL,
+ season TEXT NOT NULL,
+ forecast_time_utc TIMESTAMPTZ NOT NULL,
+ start_utc TIMESTAMPTZ NOT NULL,
+ away TEXT NOT NULL,
+ home TEXT NOT NULL,
+ away_points DOUBLE PRECISION NOT NULL,
+ home_points DOUBLE PRECISION NOT NULL,
+ away_win_pct DOUBLE PRECISION NOT NULL,
+ home_win_pct DOUBLE PRECISION NOT NULL,
+ total_points DOUBLE PRECISION NOT NULL,
+ source TEXT NOT NULL,
+ warning TEXT NOT NULL DEFAULT '',
+ away_score INTEGER,
+ home_score INTEGER,
+ settled_at_utc TIMESTAMPTZ,
+ PRIMARY KEY (game_id,model_id)
+);
+CREATE INDEX IF NOT EXISTS bestbets_model_forecasts_start
+ ON bestbets_forecasts_by_model(start_utc);
+"""
 
 
 def connect(url):
@@ -46,9 +70,23 @@ def connect(url):
 
 
 def init_remote(conn):
-    for statement in POSTGRES_DDL.split(";"):
-        if statement.strip():
-            conn.execute(statement)
+    for ddl in (POSTGRES_DDL, MODEL_DDL):
+        for statement in ddl.split(";"):
+            if statement.strip():
+                conn.execute(statement)
+    # Preserve old game-only records. Never erase or modify a frozen forecast.
+    conn.execute("""
+        INSERT INTO bestbets_forecasts_by_model
+        (game_id,model_id,season,forecast_time_utc,start_utc,away,home,
+        away_points,home_points,away_win_pct,home_win_pct,total_points,
+        source,warning,away_score,home_score,settled_at_utc)
+        SELECT game_id,COALESCE(model_id,'legacy_v72'),season,forecast_time_utc,
+        start_utc,away,home,away_points,home_points,away_win_pct,
+        home_win_pct,total_points,source,warning,away_score,home_score,
+        settled_at_utc FROM bestbets_forecasts
+        WHERE TRUE
+        ON CONFLICT (game_id,model_id) DO NOTHING
+    """)
     conn.commit()
 
 
@@ -73,17 +111,17 @@ def remote_store(url,season,summaries,captured_at=None):
                     invalid+=1
                     continue
                 cursor=conn.execute(
-                    """INSERT INTO bestbets_forecasts
-                    (game_id,season,forecast_time_utc,start_utc,away,home,
+                    """INSERT INTO bestbets_forecasts_by_model
+                    (game_id,model_id,season,forecast_time_utc,start_utc,away,home,
                     away_points,home_points,away_win_pct,home_win_pct,total_points,
-                    source,warning,model_id)
+                    source,warning)
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                    ON CONFLICT (game_id) DO NOTHING""",
-                    (gid,str(season),stamp.to_pydatetime(),start.to_pydatetime(),
+                    ON CONFLICT (game_id,model_id) DO NOTHING""",
+                    (gid,str(s.get("model_id") or "legacy_v72")[:40],
+                     str(season),stamp.to_pydatetime(),start.to_pydatetime(),
                      str(s["away"]),str(s["home"]),a,h,pa,ph,total,
                      str(s.get("source") or "unknown"),
-                     str(s.get("warning") or "")[:500],
-                     str(s.get("model_id") or "legacy_v72")[:40]))
+                     str(s.get("warning") or "")[:500]))
                 stored+=cursor.rowcount
             except (ValueError,TypeError,KeyError,OverflowError):
                 invalid+=1
@@ -110,7 +148,7 @@ def remote_settle(url,completed_games,settled_at=None):
                 if not gid.isdecimal() or min(a,h)<55 or max(a,h)>200 or a==h:
                     continue
                 cursor=conn.execute(
-                    """UPDATE bestbets_forecasts SET away_score=%s,
+                    """UPDATE bestbets_forecasts_by_model SET away_score=%s,
                     home_score=%s,settled_at_utc=%s WHERE game_id=%s
                     AND away_score IS NULL AND home_score IS NULL
                     AND forecast_time_utc<start_utc AND start_utc<=%s""",
@@ -128,10 +166,10 @@ def remote_read(url,season=None):
         init_remote(conn)
         with conn.cursor(row_factory=dict_row) as cur:
             if season:
-                cur.execute("""SELECT * FROM bestbets_forecasts WHERE season=%s
+                cur.execute("""SELECT * FROM bestbets_forecasts_by_model WHERE season=%s
                              ORDER BY start_utc DESC""",(str(season),))
             else:
-                cur.execute("SELECT * FROM bestbets_forecasts ORDER BY start_utc DESC")
+                cur.execute("SELECT * FROM bestbets_forecasts_by_model ORDER BY start_utc DESC")
             records=cur.fetchall()
     df=pd.DataFrame(records)
     if df.empty:
