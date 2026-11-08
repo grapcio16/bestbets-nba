@@ -463,17 +463,23 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     # Scores are simulated immediately; player estimates are loaded only for
     # the selected game in its details dialog, never across all upcoming games.
     summary,_,missing=build_sims(games,advanced,hist,pd.DataFrame(),pd.DataFrame(),research_mode)
-    # Freeze predictions at first observed pregame run; never rewrite them.
-    # Persistence is local only: may be erased by Streamlit Cloud redeploys.
+    # Capture BOTH models before tipoff, even if the user viewed only one.
+    # The storage key is (ESPN game_id, model_id). Never rewrite a snapshot.
     try:
         from tracker_storage import save,tracker_backend
+        other,_,_=build_sims(games,advanced,hist,pd.DataFrame(),pd.DataFrame(),
+                             not research_mode)
+        active_id='research_form_v74' if research_mode else 'legacy_v72'
+        other_id='legacy_v72' if research_mode else 'research_form_v74'
         for record in summary:
-            record['model_id']=(
-                'research_form_v74' if research_mode else 'legacy_v72')
+            record['model_id']=active_id
+        for record in other:
+            record['model_id']=other_id
         cfg=tracker_backend()
-        result=save(summary,season,config=cfg)
+        result=save(summary+other,season,config=cfg)
         st.caption('Tracker: zapisano '+str(result['saved'])+
-                   ' nowych prognoz przed rozpoczęciem meczu. '
+                   ' nowych prognoz przed rozpoczęciem meczu '
+                   '(modele podstawowy i eksperymentalny osobno). '
                    'Źródło danych: '+cfg['label']+'.')
     except Exception as exc:
         st.warning('Nie udało się zapisać prognoz. Sprawdź konfigurację magazynu danych w ustawieniach serwera.')
