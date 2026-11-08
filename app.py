@@ -248,7 +248,7 @@ def schedule_page(sched,inj=None):
     v['Spotkanie']=v['away']+' @ '+v['home']
     v['Wynik']=v['away_score'].fillna('-').astype(str)+' : '+v['home_score'].fillna('-').astype(str)
     v['Status']=v['status']
-    st.dataframe(v[['Termin (PL)','Spotkanie','Status','Wynik','game_id']],hide_index=True,use_container_width=True,height=min(550,len(v)*36+45))
+    st.dataframe(v[['Termin (lokalny)','Spotkanie','Status','Wynik','game_id']],hide_index=True,use_container_width=True,height=min(550,len(v)*36+45))
     mini_legend(['Początek (PL)','Mecz'],{'Termin (PL)':'Termin w strefie czasowej użytkownika','Spotkanie':'Drużyna gości @ gospodarze','Status':'Informacja, czy mecz się rozpoczął/ukończył','Wynik':'Wynik gości i gospodarzy','game_id':'Unikatowy numer meczu NBA'})
     st.download_button('Eksportuj terminarz CSV',v.to_csv(index=False).encode('utf-8-sig'),file_name='bestbets_terminarz.csv',mime='text/csv')
 
@@ -599,7 +599,7 @@ elif page == '💹 Kursy i value':
                     near=sc[(sc['start_utc']>=pd.Timestamp.now(tz='UTC')) &
                             (sc['start_utc']<=pd.Timestamp.now(tz='UTC')+pd.Timedelta(days=3))].head(8).copy()
                     if not near.empty:
-                        near['Start (PL)']=viewer_time_column(near['start_utc']).dt.strftime('%d.%m %H:%M')
+                        near['Start (lokalny)']=viewer_time_column(near['start_utc']).dt.strftime('%d.%m %H:%M')
                         near['Mecz']=near['away']+' @ '+near['home']
                         st.markdown('**Nadchodzące mecze — terminarz dostępny, kursy jeszcze niedostępne**')
                         st.dataframe(near[['Start (PL)','Mecz']],hide_index=True,use_container_width=True)
