@@ -39,10 +39,9 @@ def evaluate_models(completed, holdout_n=40):
     dates=g['start_utc'].drop_duplicates().sort_values()
     if len(g)<80 or len(dates)<30:
         return pd.DataFrame(),{}
-    cutoff=dates.iloc[max(0,len(dates)-12)]
-    evaluation=g[g['start_utc']>=cutoff].copy()
-    # 40-60 recent games for a useful indicative holdout sample.
-    evaluation=evaluation.tail(max(1,int(holdout_n)))
+    # Hold out the latest N games, not a fixed number of calendar days:
+    # some dates have one NBA game and others a full slate.
+    evaluation=g.tail(max(1,int(holdout_n))).copy()
     out=[]
     for event in evaluation.to_dict('records'):
         stamp=event['start_utc']
