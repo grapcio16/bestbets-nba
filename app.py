@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import html
 import math
 import os
@@ -28,6 +28,17 @@ from market_archive import save_offers, snapshot_summary, historical_two_sided_l
 
 PATH=Path(__file__).resolve().parent
 WARSAW=ZoneInfo('Europe/Warsaw')
+
+def viewer_timezone():
+    requested=st.session_state.get('viewer_tz_override','Automatyczna')
+    browser=getattr(st.context,'timezone',None) or 'UTC'
+    name=browser if requested=='Automatyczna' else requested
+    try:return ZoneInfo(name)
+    except (ZoneInfoNotFoundError,KeyError,ValueError):return timezone.utc
+
+def viewer_time_column(values):
+    return pd.to_datetime(values,utc=True,errors='coerce').dt.tz_convert(viewer_timezone())
+
 ARCHIVE_PATH=PATH/'data'/'historyczne_kursy.csv'
 SEASON='2026-27'
 MARKET_API={'player_points':'PTS','player_rebounds':'REB','player_assists':'AST',
@@ -178,7 +189,7 @@ def labelled_metric(container,name,value,description,delta=None):
 
 
 def market_prices_view(df,limit=180):
-    visible=[c for c in ['Mecz','Początek (PL)','Rynek','Zawodnik','Linia','Wariant','Bukmacher','Najwyższy kurs',
+    visible=[c for c in ['Mecz','Początek (lokalny)','Rynek','Zawodnik','Linia','Wariant','Bukmacher','Najwyższy kurs',
                          'Najniższy kurs','Liczba firm','Różnica kursów (%)','Aktualizacja (UTC)'] if c in df]
     if df.empty:
         st.info('Brak porównywalnych kursów. Aplikacja nie zastępuje braków przykładowymi kwotami.')
@@ -218,24 +229,24 @@ def get_team():
 
 
 def schedule_page(sched,inj=None):
-    st.subheader('Terminarz NBA — godziny polskie')
+    st.subheader('Terminarz NBA — godziny lokalne')
     if sched is None or sched.empty:
         st.info('Nie udało się załadować terminarza. Odśwież dane i sprawdź, czy NBA CDN lub ESPN odpowiada.');return
-    today=datetime.now(WARSAW)
+    today=datetime.now(viewer_timezone())
     days=st.slider('Ile najbliższych dni pokazać?',1,14,5,key='schedule_days')
     only_upcoming=st.checkbox('Tylko mecze jeszcze nierozpoczęte',value=True)
     v=sched.copy()
-    v['lokalna']=v['start_utc'].dt.tz_convert('Europe/Warsaw')
+    v['lokalna']=viewer_time_column(v['start_utc'])
     v=v[v['lokalna'].notna()]
     if only_upcoming:v=v[v['start_utc']>=pd.Timestamp.now(tz='UTC')-pd.Timedelta(minutes=5)]
     v=v[v['lokalna']<pd.Timestamp(today+timedelta(days=days))]
     if v.empty:st.info('Brak meczów spełniających filtry.');return
-    v['Termin (PL)']=v['lokalna'].dt.strftime('%d.%m.%Y %H:%M')
+    v['Termin (lokalny)']=v['lokalna'].dt.strftime('%d.%m.%Y %H:%M')
     v['Spotkanie']=v['away']+' @ '+v['home']
     v['Wynik']=v['away_score'].fillna('-').astype(str)+' : '+v['home_score'].fillna('-').astype(str)
     v['Status']=v['status']
     st.dataframe(v[['Termin (PL)','Spotkanie','Status','Wynik','game_id']],hide_index=True,use_container_width=True,height=min(550,len(v)*36+45))
-    mini_legend(['Początek (PL)','Mecz'],{'Termin (PL)':'Termin w lokalnym czasie polskim','Spotkanie':'Drużyna gości @ gospodarze','Status':'Informacja, czy mecz się rozpoczął/ukończył','Wynik':'Wynik gości i gospodarzy','game_id':'Unikatowy numer meczu NBA'})
+    mini_legend(['Początek (PL)','Mecz'],{'Termin (PL)':'Termin w strefie czasowej użytkownika','Spotkanie':'Drużyna gości @ gospodarze','Status':'Informacja, czy mecz się rozpoczął/ukończył','Wynik':'Wynik gości i gospodarzy','game_id':'Unikatowy numer meczu NBA'})
     st.download_button('Eksportuj terminarz CSV',v.to_csv(index=False).encode('utf-8-sig'),file_name='bestbets_terminarz.csv',mime='text/csv')
 
 
@@ -383,7 +394,9 @@ with st.sidebar:
     st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.8</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
-        '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab', '📱 Telefon i publikacja'],index=0,label_visibility='collapsed')
+        '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab'],index=0,label_visibility='collapsed')
+    st.selectbox('Strefa czasowa', ['Automatyczna','Europe/Warsaw','UTC','America/New_York','America/Los_Angeles','Europe/London','Asia/Tokyo','Australia/Sydney'],key='viewer_tz_override',help='Automatyczna korzysta ze strefy przeglądarki. Zmiany DST obsługuje zoneinfo.')
+    st.caption('Godziny meczów: '+str(viewer_timezone()))
     season=st.selectbox('Sezon', ['2026-27','2025-26','2024-25'],index=0)
     st.divider()
     if st.button('↻ Odśwież dostępne dane',use_container_width=True):
@@ -408,16 +421,16 @@ if page == '🏠 Centrum':
     labelled_metric(c4,'Kursy','The Odds API','Automatycznie tylko po skonfigurowaniu klucza')
     r1,r2=st.columns([1.6,1])
     with r1:
-        st.markdown('#### Najbliższe mecze')
+        st.markdown('#### Mecze dzisiaj')
         try:
             sched,meta=load_schedule(st.session_state.nonce)
-            now=pd.Timestamp.now(tz='UTC'); x=sched[(sched['start_utc']>=now)&(sched['start_utc']<now+pd.Timedelta(days=3))].head(14).copy()
-            if x.empty:st.info('Brak potwierdzonych nadchodzących meczów w ciągu 3 dni.')
+            now=pd.Timestamp.now(tz='UTC'); local=viewer_time_column(sched['start_utc']); x=sched[local.dt.date==datetime.now(viewer_timezone()).date()].copy()
+            if x.empty:st.info('Brak meczów na dzisiaj w wybranej strefie czasowej.')
             else:
-                x['Start (PL)']=x['start_utc'].dt.tz_convert('Europe/Warsaw').dt.strftime('%d.%m %H:%M')
+                x['Start (lokalny)']=viewer_time_column(x['start_utc']).dt.strftime('%d.%m %H:%M')
                 x['Mecz']=x['away']+' @ '+x['home']
                 st.dataframe(x[['Start (PL)','Mecz','status']],hide_index=True,use_container_width=True,height=455)
-                mini_legend([],{'Start (PL)':'Data i godzina spotkania w Polsce','Mecz':'Goście @ gospodarze','status':'Etap spotkania: przed grą, na żywo lub zakończone'})
+                mini_legend([],{'Start (PL)':'Data i godzina w strefie użytkownika','Mecz':'Goście @ gospodarze','status':'Etap spotkania: przed grą, na żywo lub zakończone'})
             if 'ESPN' in meta.get('source',''):
                 st.info('Terminarz z ESPN — szybsze źródło wykorzystywane w publicznej wersji BestBets; NBA CDN pozostaje zapasowe.')
             pill(meta)
@@ -979,27 +992,6 @@ elif page == '📚 NBA Data Lab':
             except Exception as ex:st.error(str(ex))
     row_note('Statystyki z linków NBA.com','Dostępne integracje: players/traditional, players/shooting, catch-shoot, player box scores, transition, defense-dash, teams/traditional, lineups, teams/shooting, opponent-shooting, hustle, defense, catch-shoot oraz transition. Każda kategoria pochodzi z odpowiadającego jej endpointu NBA; niektóre są przybliżonym odpowiednikiem widoku strony.')
 
-
-elif page == '📱 Telefon i publikacja':
-    st.subheader('BestBets na telefonie i w internecie')
-    st.caption('Ta wersja jest gotowa do przygotowania publicznego wdrożenia; samo uruchomienie lokalne nie daje jeszcze publicznego adresu.')
-    st.markdown('#### Krok 1 — opublikuj kod na GitHub')
-    st.write('Utwórz repozytorium `bestbets-nba` i prześlij zawartość osobnej, przygotowanej paczki **BestBets_v6_3_GITHUB.zip**. Nie przesyłaj lokalnego folderu z Windows, w którym znajduje się prywatny klucz API.')
-    st.info('Przy ręcznym przesyłaniu w przeglądarce `.gitignore` nie chroni przed omyłkowym wyborem prywatnego pliku. Paczka GitHub nie zawiera klucza ani lokalnych danych; sprawdź ją przed publikacją.')
-    st.link_button('Otwórz GitHub','https://github.com/new')
-    st.markdown('#### Krok 2 — uruchom BestBets na Streamlit Cloud')
-    st.write('Wybierz repozytorium, gałąź `main`, a jako plik startowy `app.py`. W ustawieniach wersji Pythona wybierz **3.12**.')
-    st.link_button('Otwórz Streamlit Community Cloud','https://share.streamlit.io/')
-    st.markdown('#### Krok 3 — dodaj klucz tylko jako sekret serwera')
-    st.write('W Streamlit Cloud → **App settings → Secrets** wpisz wpis z własnym kluczem. **Nie wklejaj klucza do GitHuba ani do publicznego pliku.**')
-    st.code('ODDS_API_KEY = "TU_WSTAW_KLUCZ_W_PANELU_CLOUD"', language='toml')
-    st.caption('To przykład formatu; prawdziwy klucz pozostaje na serwerze. Lokalny plik `.streamlit/secrets.toml` nie zostaje automatycznie przeniesiony do chmury.')
-    st.markdown('#### Krok 4 — ikona BestBets na iPhonie')
-    st.write('Po opublikowaniu otwórz publiczny adres w **Safari** → **Udostępnij** → **Dodaj do ekranu początkowego**. Jeśli pojawi się opcja **Otwórz jako aplikację internetową**, włącz ją, a potem wybierz **Dodaj**.')
-    st.caption('To skrót do strony internetowej, nie natywna aplikacja z App Store. Ostateczny wygląd ikony zależy od Safari i metadanych wdrożenia.')
-    st.markdown('#### Ograniczenia wersji publicznej')
-    st.warning('Wszystkie osoby otwierające publiczną stronę będą korzystać ze wspólnego limitu The Odds API. BestBets ma lokalny budżet żądań, ale nie gwarantuje odporności na duży ruch. Na darmowym hostingu lokalna historia kursów może zniknąć przy restarcie; do archiwizacji potrzebna jest trwała baza.')
-    st.caption('Prognozy mają charakter eksperymentalny; kursy mogą być niedostępne w Polsce. BestBets nie zawiera automatycznego obstawiania.')
 
 st.markdown('''<div class="bb-footer">BestBets v7.8 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)
