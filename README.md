@@ -1,3 +1,13 @@
+# BestBets v7.13 — poprawka TOP10: kompletne dane i zwarty układ
+
+- Naprawa po v7.12: wymuszona nowa wersja cache Streamlit dla rankingu. Stare wyniki zapisane przed dodaniem kolumn minut, przeciwnika i pozycji nie będą już wyświetlane jako aktualne.
+- Karta TOP10: **mecz goście @ gospodarze** w prawym górnym rogu, **nominalna pozycja ESPN obok nazwiska**, a **punkty, zbiórki, asysty oraz rzeczywiste minuty MM:SS w jednym rzędzie**.
+- Rzeczywisty mecz ustalamy z terminarza po ID ESPN, a minuty z ukończonego box score. Dla brakujących pozycji można posłużyć się osobno pobranym składem ESPN **tego samego klubu i identyfikatorem zawodnika**. Nie wolno wnioskować pozycji ze statystyk.
+- Braki w danych nadal są oznaczane **—**. Automatyczne pobranie składu jest zależne od dostępności ESPN.
+- Kontynuacja projektu bez zmian w modelu symulacji, Injury Report ani terminarzu. Testy: `test_center_v713.py`.
+
+---
+
 # BestBets v7.12 — minuty, przeciwnik i pozycja w TOP 10 (8.11.2026)
 
 - W **Centrum → TOP 10** każda karta zawodnika pokazuje teraz **czas gry (MM:SS), przeciwnika (skrót drużyny)** oraz **pozycję (PG/SG/SF/PF/C, jeśli podało ją ESPN)**, oprócz punktów, zbiórek i asyst.

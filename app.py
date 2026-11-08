@@ -45,8 +45,10 @@ def viewer_time_column(values):
     return localize(values, viewer_timezone())
 
 
-@st.cache_data(ttl=30*60, max_entries=14, show_spinner=False)
-def load_daily_ranking(season, local_today, zone_name, nonce):
+@st.cache_data(ttl=15*60, max_entries=14, show_spinner=False)
+def load_daily_ranking_v713(season, local_today, zone_name, nonce):
+    # New cache identity: v7.12 users still had cached TOP10 rows without
+    # minutes, opponent or position. Rebuild them from current ESPN boxscores.
     completed, note=historical_espn_results(season,refresh=nonce>0)
     top, meta=previous_day_ranking(completed,local_today,ZoneInfo(zone_name))
     return top,meta,note
@@ -445,7 +447,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.12</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.13</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab'],index=0,label_visibility='collapsed')
@@ -506,11 +508,11 @@ if page == '🏠 Centrum':
     st.markdown('#### TOP 10 zawodników — poprzedni dzień')
     try:
         today=datetime.now(viewer_timezone()).date()
-        top, coverage, note=load_daily_ranking(season,today,str(viewer_timezone()),st.session_state.nonce)
+        top, coverage, note=load_daily_ranking_v713(season,today,str(viewer_timezone()),st.session_state.nonce)
         if top.empty:
             st.info('Brak zweryfikowanych statystyk zawodników za poprzedni lokalny dzień.')
         else:
-            st.caption('Rzeczywiste statystyki zakończonych meczów ESPN. Minuty = czas na boisku; pozycja = nominalna pozycja według ESPN (brak danych oznaczony —).')
+            st.caption('Rzeczywiste statystyki zakończonych meczów ESPN. U góry: mecz i nominalna pozycja; pod spodem: PTS, REB, AST oraz faktyczne minuty. Brak potwierdzonych danych = —.')
             show_top10(top)
         st.caption(f"Zatwierdzone box score: {coverage['complete_games']}/{coverage['requested_games']} zakończonych spotkań.")
         if coverage['failed_games']:
