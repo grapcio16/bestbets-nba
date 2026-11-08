@@ -25,6 +25,8 @@ from team_logos import logo_data_uri, refresh_logos_in_background
 from simulation_sources import historical_espn_results
 from viewer_time import choices, resolve_zone, localize, games_on_day
 from dashboard_data import previous_day_ranking
+from schedule_ui import day_navigation, display_cards, result_type
+from schedule_data import fixtures_for_day
 from odds_fetcher import automatic_odds
 from simulation_view import render_simulations
 from odds_engine import normalized_offers, best_prices, player_edges, edge_metrics, legend_for, MARKET_LABELS, LABELS
@@ -240,26 +242,66 @@ def get_team():
 
 
 def schedule_page(sched,inj=None):
-    st.subheader('Terminarz NBA — godziny lokalne')
-    if sched is None or sched.empty:
-        st.info('Nie udało się załadować terminarza. Odśwież dane i sprawdź, czy NBA CDN lub ESPN odpowiada.');return
-    today=datetime.now(viewer_timezone())
-    days=st.slider('Ile najbliższych dni pokazać?',1,14,5,key='schedule_days')
-    only_upcoming=st.checkbox('Tylko mecze jeszcze nierozpoczęte',value=True)
-    v=sched.copy()
-    v['lokalna']=viewer_time_column(v['start_utc'])
-    v=v[v['lokalna'].notna()]
-    if only_upcoming:v=v[v['start_utc']>=pd.Timestamp.now(tz='UTC')-pd.Timedelta(minutes=5)]
-    v=v[(v['lokalna'].dt.date>=today.date()) & (v['lokalna'].dt.date<today.date()+timedelta(days=days))]
-    if v.empty:st.info('Brak meczów spełniających filtry.');return
-    v['Termin (lokalny)']=v['lokalna'].dt.strftime('%d.%m.%Y %H:%M')
-    v['Spotkanie']=v['away']+' @ '+v['home']
-    v['Wynik']=v['away_score'].fillna('-').astype(str)+' : '+v['home_score'].fillna('-').astype(str)
-    v['Status']=v['status']
-    st.dataframe(v[['Termin (lokalny)','Spotkanie','Status','Wynik','game_id']],hide_index=True,use_container_width=True,height=min(550,len(v)*36+45))
-    mini_legend(['Początek (lokalny)','Mecz'],{'Termin (PL)':'Termin w strefie czasowej użytkownika','Spotkanie':'Drużyna gości @ gospodarze','Status':'Informacja, czy mecz się rozpoczął/ukończył','Wynik':'Wynik gości i gospodarzy','game_id':'Unikatowy numer meczu NBA'})
-    st.download_button('Eksportuj terminarz CSV',v.to_csv(index=False).encode('utf-8-sig'),file_name='bestbets_terminarz.csv',mime='text/csv')
+    """Full NBA schedule. Cards are primary; table and CSV are optional."""
+    st.subheader("Terminarz NBA")
+    zone = viewer_timezone()
+    selected = day_navigation("schedule", zone)
+    st.caption("Wybierz dowolną datę. Wszystkie godziny odpowiadają Twojej strefie czasowej.")
+    rows, issues = fixtures_for_day(sched, selected, zone, st.session_state.nonce)
+    if issues:
+        st.warning("Niepełne dane dla wybranej daty: " + "; ".join(issues))
+    if rows is None or rows.empty:
+        display_cards(rows, zone)
+        return
 
+    filter_col, view_col = st.columns([1.1, 1.4])
+    with filter_col:
+        status_filter = st.selectbox(
+            "Status meczu",
+            ["Wszystkie", "Zaplanowane", "Na żywo", "Zakończone"],
+            key="bb_schedule_status_filter",
+        )
+    with view_col:
+        table_mode = st.toggle("Widok tabeli zamiast kart", key="bb_schedule_table_mode", value=False)
+    status_value = {"Zaplanowane":"scheduled", "Na żywo":"live", "Zakończone":"final"}
+    if status_filter != "Wszystkie":
+        rows = rows[rows.apply(result_type, axis=1) == status_value[status_filter]].copy()
+
+    if table_mode:
+        if rows.empty:
+            st.info("Brak spotkań o wybranym statusie.")
+        else:
+            table = rows.copy().sort_values("start_utc")
+            table["Termin (lokalny)"] = viewer_time_column(table["start_utc"]).dt.strftime("%d.%m.%Y %H:%M")
+            table["Spotkanie"] = table["away"] + " @ " + table["home"]
+            table["Status"] = table["status"].astype(str)
+            # These are actual feed scores; scheduled games have no score.
+            table["Wynik rzeczywisty"] = table.apply(
+                lambda g: (
+                    f"{int(float(g['away_score']))} : {int(float(g['home_score']))}"
+                    if result_type(g) != "scheduled"
+                    and pd.notna(g.get("away_score"))
+                    and pd.notna(g.get("home_score"))
+                    else "—"
+                ),
+                axis=1,
+            )
+            st.dataframe(
+                table[["Termin (lokalny)", "Spotkanie", "Status", "Wynik rzeczywisty"]],
+                hide_index=True, use_container_width=True,
+            )
+    else:
+        display_cards(rows, zone)
+
+    if not rows.empty:
+        export = rows.copy()
+        export["Termin (lokalny)"] = viewer_time_column(export["start_utc"]).dt.strftime("%d.%m.%Y %H:%M")
+        st.download_button(
+            "Eksportuj mecze z wybranego dnia (CSV)",
+            export.to_csv(index=False).encode("utf-8-sig"),
+            file_name=f"bestbets_terminarz_{selected.isoformat()}.csv",
+            mime="text/csv",
+        )
 
 def injury_status_for(name,inj):
     if inj is None or inj.empty:return None
@@ -402,7 +444,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.9</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.10</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab'],index=0,label_visibility='collapsed')
@@ -434,24 +476,20 @@ if page == '🏠 Centrum':
     labelled_metric(c4,'Kursy','The Odds API','Automatycznie tylko po skonfigurowaniu klucza')
     r1,r2=st.columns([1.6,1])
     with r1:
-        st.markdown('#### Mecze dzisiaj')
+        st.markdown("#### Terminarz dnia")
+        zone = viewer_timezone()
+        selected = day_navigation("center", zone)
         try:
-            sched,meta=load_schedule(st.session_state.nonce)
-            x=games_on_day(sched,datetime.now(viewer_timezone()).date(),viewer_timezone())
-            if x.empty:st.info('Brak meczów na dzisiaj w wybranej strefie czasowej.')
-            else:
-                x['Start (lokalny)']=viewer_time_column(x['start_utc']).dt.strftime('%d.%m %H:%M')
-                x['Mecz']=x['away']+' @ '+x['home']
-                st.dataframe(x[['Start (lokalny)','Mecz','status']],hide_index=True,use_container_width=True,height=455)
-                refresh_logos_in_background()
-                for _,game in x.iterrows():
-                    a,b,c=st.columns([1,2,1]);a.markdown(f'<img src="{logo_data_uri(game["away"])}" width="48" alt="{safe(game["away"])}">',unsafe_allow_html=True);b.caption(str(game['away'])+' @ '+str(game['home'])+' · '+str(game['Start (lokalny)']));c.markdown(f'<img src="{logo_data_uri(game["home"])}" width="48" alt="{safe(game["home"])}">',unsafe_allow_html=True)
-                mini_legend([],{'Start (lokalny)':'Data i godzina w strefie użytkownika','Mecz':'Goście @ gospodarze','status':'Etap spotkania: przed grą, na żywo lub zakończone'})
-            if 'ESPN' in meta.get('source',''):
-                st.info('Terminarz z ESPN — szybsze źródło wykorzystywane w publicznej wersji BestBets; NBA CDN pozostaje zapasowe.')
+            sched, meta = load_schedule(st.session_state.nonce)
+            chosen, problems = fixtures_for_day(sched, selected, zone, st.session_state.nonce)
+            display_cards(chosen, zone, compact=True)
+            if problems:
+                st.warning("Niepełne dane dla wybranej daty: " + "; ".join(problems))
+            if "ESPN" in meta.get("source", ""):
+                st.caption("Terminarz: ESPN (zapasowo NBA CDN).")
             pill(meta)
         except Exception as exc:
-            st.error('Nie udało się pobrać terminarza (NBA CDN ani ESPN): '+str(exc))
+            st.error("Nie udało się pobrać terminarza: " + str(exc))
     with r2:
         st.markdown('#### Injury report')
         try:
@@ -1028,5 +1066,5 @@ elif page == '📚 NBA Data Lab':
     row_note('Statystyki z linków NBA.com','Dostępne integracje: players/traditional, players/shooting, catch-shoot, player box scores, transition, defense-dash, teams/traditional, lineups, teams/shooting, opponent-shooting, hustle, defense, catch-shoot oraz transition. Każda kategoria pochodzi z odpowiadającego jej endpointu NBA; niektóre są przybliżonym odpowiednikiem widoku strony.')
 
 
-st.markdown('''<div class="bb-footer">BestBets v7.9 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
+st.markdown('''<div class="bb-footer">BestBets v7.10 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)
