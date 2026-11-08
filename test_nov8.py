@@ -37,6 +37,18 @@ class Timezones(unittest.TestCase):
         self.assertEqual(games_on_day(g,date(2026,11,8),ZoneInfo("Europe/Warsaw"))["game_id"].tolist(),["1","2"])
 
 
+class InjuryTeams(unittest.TestCase):
+    def test_espn_aliases_and_player_specific_team(self):
+        from sources import injury_rows
+        payload={"teams":[
+            {"team":{"abbreviation":"NY"},"injuries":[{"athlete":{"displayName":"Player One"},"status":"Out"}]},
+            {"team":{"abbreviation":"LAL"},"injuries":[{"athlete":{"displayName":"Player Two","team":{"abbreviation":"GS"}},"status":"Questionable"}]}
+        ]}
+        items=injury_rows(payload)
+        self.assertEqual(items.loc[items.player=="Player One","team"].iloc[0],"NYK")
+        self.assertEqual(items.loc[items.player=="Player Two","team"].iloc[0],"GSW")
+
+
 class CenterRanking(unittest.TestCase):
     def test_rank_from_espn_ids_and_completed_games_only(self):
         games=pd.DataFrame([
