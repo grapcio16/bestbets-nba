@@ -2,6 +2,7 @@
 from __future__ import annotations
 import html
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
@@ -151,9 +152,16 @@ def matchup_roster_tables(g, player_table, nonce):
     return tables,diagnostics,notices
 
 
+def local_timezone():
+    chosen=st.session_state.get('viewer_tz_override','Automatyczna')
+    browser=getattr(st.context,'timezone',None) or 'UTC'
+    try:return ZoneInfo(browser if chosen=='Automatyczna' else chosen)
+    except (ZoneInfoNotFoundError,KeyError,ValueError):return timezone.utc
+
+
 def game_card(sim,g,hist):
     h,a=sim['home'],sim['away']
-    date=pd.to_datetime(g['start_utc'],utc=True).tz_convert('Europe/Warsaw').strftime('%d.%m.%Y • %H:%M')
+    date=pd.to_datetime(g['start_utc'],utc=True).tz_convert(local_timezone()).strftime('%d.%m.%Y • %H:%M')
     pct_h=float(sim['home_win_pct']);pct_a=float(sim['away_win_pct'])
     # HTML is constructed only from trusted static team names, sanitized dates and numeric simulations.
     st.markdown(f'''<div class="bb-gamecard">
@@ -433,7 +441,7 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     games=games.sort_values('start_utc').drop_duplicates('game_id')
     if games.empty:
         st.info(f'W terminie następnych {days} dni nie ma zaplanowanych spotkań NBA (lub terminarz jest niekompletny).');return
-    st.caption(f"Terminarz: {sm.get('source','?')} · {len(games)} spotkań · godziny w Polsce")
+    st.caption(f"Terminarz: {sm.get('source','?')} · {len(games)} spotkań · godziny lokalne użytkownika")
     refresh_logos_in_background()
     st.caption(f'Herby: {cached_official_count()}/30 pobranych i zapisanych lokalnie. Pozostałe drużyny mają dołączone graficzne identyfikatory; źródła ESPN → NBA CDN są sprawdzane automatycznie w tle.')
     # Load team context first. Do not fetch player logs or injuries for every match
@@ -524,7 +532,7 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
                                       injury_rows,injury_meta)
         else:
             a=TEAM_NAMES.get(g['away'],g['away']);h=TEAM_NAMES.get(g['home'],g['home'])
-            start=g['start_utc'].tz_convert('Europe/Warsaw').strftime('%d.%m %H:%M')
+            start=g['start_utc'].tz_convert(local_timezone()).strftime('%d.%m %H:%M')
             st.warning(f'{a} @ {h} · {start} — brak danych do symulacji; meczu nie pominięto w terminarzu.')
     if missing:
         st.caption('Nie wszystkie mecze mogą otrzymać prognozę. Potrzebne są prawdziwe statystyki drużyn, a nie sztuczne domyślne wartości.')
