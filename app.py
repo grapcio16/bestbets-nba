@@ -54,7 +54,7 @@ SEASON='2026-27'
 MARKET_API={'player_points':'PTS','player_rebounds':'REB','player_assists':'AST',
             'player_threes':'FG3M','player_points_rebounds_assists':'PRA'}
 
-st.set_page_config(page_title='BestBets | NBA Intelligence',page_icon=Image.open(PATH/'assets'/'bestbets_icon.png'),layout='wide',initial_sidebar_state='auto')
+st.set_page_config(page_title='BestBets | NBA Intelligence',page_icon=str(PATH/'assets'/'bestbets_brand_icon.svg'),layout='wide',initial_sidebar_state='auto')
 CSS="""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap');
