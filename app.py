@@ -142,7 +142,7 @@ CSS += """
 }
 </style>
 """
-CSS += """<style>.bb-hero{background:linear-gradient(110deg,#0b1220,#10264d);border-color:#1b4382}.bb-title span{color:#ff6a00}.bb-logo{width:88px;height:88px;object-fit:contain;border-radius:22px;flex-shrink:0}.bb-gamecard{border-color:#214780}.bb-tag{color:#ff6a00}</style>"""
+CSS += """<style>.bb-hero{background:linear-gradient(110deg,#0b1220,#10264d);border-color:#1b4382}.bb-title span{color:#ff6a00}.bb-logo{width:88px;height:88px;object-fit:contain;border-radius:22px;flex-shrink:0}.bb-gamecard{border-color:#214780}.bb-tag{color:#ff6a00}.stButton button[kind="primary"],.stDownloadButton button{background:linear-gradient(120deg,#ff9040,#ff641c);color:#0b1220;border-color:#ff7e24}div[data-testid="stMetric"]{border-color:#224575}</style>"""
 st.markdown(CSS,unsafe_allow_html=True)
 
 @st.cache_data(ttl=3600,max_entries=3,show_spinner=False)
@@ -257,7 +257,7 @@ def schedule_page(sched,inj=None):
     v['Wynik']=v['away_score'].fillna('-').astype(str)+' : '+v['home_score'].fillna('-').astype(str)
     v['Status']=v['status']
     st.dataframe(v[['Termin (lokalny)','Spotkanie','Status','Wynik','game_id']],hide_index=True,use_container_width=True,height=min(550,len(v)*36+45))
-    mini_legend(['Początek (PL)','Mecz'],{'Termin (PL)':'Termin w strefie czasowej użytkownika','Spotkanie':'Drużyna gości @ gospodarze','Status':'Informacja, czy mecz się rozpoczął/ukończył','Wynik':'Wynik gości i gospodarzy','game_id':'Unikatowy numer meczu NBA'})
+    mini_legend(['Początek (lokalny)','Mecz'],{'Termin (PL)':'Termin w strefie czasowej użytkownika','Spotkanie':'Drużyna gości @ gospodarze','Status':'Informacja, czy mecz się rozpoczął/ukończył','Wynik':'Wynik gości i gospodarzy','game_id':'Unikatowy numer meczu NBA'})
     st.download_button('Eksportuj terminarz CSV',v.to_csv(index=False).encode('utf-8-sig'),file_name='bestbets_terminarz.csv',mime='text/csv')
 
 
@@ -402,7 +402,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.8</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.9</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab'],index=0,label_visibility='collapsed')
@@ -1028,5 +1028,5 @@ elif page == '📚 NBA Data Lab':
     row_note('Statystyki z linków NBA.com','Dostępne integracje: players/traditional, players/shooting, catch-shoot, player box scores, transition, defense-dash, teams/traditional, lineups, teams/shooting, opponent-shooting, hustle, defense, catch-shoot oraz transition. Każda kategoria pochodzi z odpowiadającego jej endpointu NBA; niektóre są przybliżonym odpowiednikiem widoku strony.')
 
 
-st.markdown('''<div class="bb-footer">BestBets v7.8 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
+st.markdown('''<div class="bb-footer">BestBets v7.9 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)
