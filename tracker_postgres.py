@@ -84,6 +84,7 @@ def init_remote(conn):
         start_utc,away,home,away_points,home_points,away_win_pct,
         home_win_pct,total_points,source,warning,away_score,home_score,
         settled_at_utc FROM bestbets_forecasts
+        WHERE TRUE
         ON CONFLICT (game_id,model_id) DO NOTHING
     """)
     conn.commit()
