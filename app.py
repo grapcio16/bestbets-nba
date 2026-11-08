@@ -25,6 +25,7 @@ from team_logos import logo_data_uri, refresh_logos_in_background
 from simulation_sources import historical_espn_results
 from viewer_time import choices, resolve_zone, localize, games_on_day
 from dashboard_data import previous_day_ranking
+from center_leaderboard import show_top10
 from schedule_ui import day_navigation, display_cards, result_type
 from schedule_data import fixtures_for_day
 from odds_fetcher import automatic_odds
@@ -444,7 +445,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.10</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.11</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab'],index=0,label_visibility='collapsed')
@@ -468,12 +469,6 @@ st.markdown(f'''<div class="bb-hero">
 </div></div>''',unsafe_allow_html=True)
 
 if page == '🏠 Centrum':
-    st.markdown('### Panel główny')
-    c1,c2,c3,c4=st.columns(4)
-    labelled_metric(c1,'Terminarz','NBA CDN / ESPN','NBA oficjalnie, ESPN jako zapasowe źródło')
-    labelled_metric(c2,'Sezon',season,'Sezon rozgrywek wybrany do analiz')
-    labelled_metric(c3,'Rynki zawodników','5','PTS, REB, AST, 3PM i PRA')
-    labelled_metric(c4,'Kursy','The Odds API','Automatycznie tylko po skonfigurowaniu klucza')
     r1,r2=st.columns([1.6,1])
     with r1:
         st.markdown("#### Terminarz dnia")
@@ -515,8 +510,8 @@ if page == '🏠 Centrum':
         if top.empty:
             st.info('Brak zweryfikowanych statystyk zawodników za poprzedni lokalny dzień.')
         else:
-            st.caption('Punkty ↓, remisy: zbiórki i asysty. Wyłącznie zakończone mecze ESPN (rzeczywiste box score).')
-            st.dataframe(top.rename(columns={'PLAYER_NAME':'Zawodnik','TEAM_ABBREVIATION':'Klub','PTS':'Punkty','REB':'Zbiórki','AST':'Asysty'}),hide_index=True,use_container_width=True)
+            st.caption('Ranking według punktów (remisy: zbiórki i asysty). Tylko rzeczywiste statystyki z zakończonych meczów ESPN.')
+            show_top10(top)
         st.caption(f"Zatwierdzone box score: {coverage['complete_games']}/{coverage['requested_games']} zakończonych spotkań.")
         if coverage['failed_games']:
             st.warning('Ranking może być niepełny: nie pobrano statystyk wszystkich zakończonych spotkań.')
@@ -1066,5 +1061,5 @@ elif page == '📚 NBA Data Lab':
     row_note('Statystyki z linków NBA.com','Dostępne integracje: players/traditional, players/shooting, catch-shoot, player box scores, transition, defense-dash, teams/traditional, lineups, teams/shooting, opponent-shooting, hustle, defense, catch-shoot oraz transition. Każda kategoria pochodzi z odpowiadającego jej endpointu NBA; niektóre są przybliżonym odpowiednikiem widoku strony.')
 
 
-st.markdown('''<div class="bb-footer">BestBets v7.10 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
+st.markdown('''<div class="bb-footer">BestBets v7.11 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)

@@ -1,3 +1,13 @@
+# BestBets v7.11 — uporządkowane Centrum (8.11.2026)
+
+- Usunięto wyłącznie cztery **informacyjne** kafelki spod nagłówka Panel główny (Terminarz / Sezon / Rynki zawodników / Kursy); źródła danych oraz obliczenia pozostają bez zmian.
+- **Terminarz dnia w Centrum pozostaje**: karty drużyn, rzeczywiste wyniki, wybór daty i nawigacja dniami bez prognoz symulacji.
+- **Injury Report pozostaje**.
+- Ranking TOP 10 zawodników z poprzedniego dnia ma teraz dwukolumnowy, responsywny układ kart: pozycja, klub/logo oraz duże i czytelne PTS/REB/AST. Źródłem nadal są wyłącznie rzeczywiste box score zakończonych spotkań ESPN.
+- Zachowano oddzielne zakładki Terminarz i Symulacje 5000; algorytmy, kursy i modele **nie uległy zmianie**.
+
+---
+
 # BestBets v7.10 — karty terminarza i nawigacja po datach (8.11.2026)
 
 - **Centrum:** zamiast tabeli dzisiejszych meczów pokazujemy karty z herbami, nazwami drużyn, lokalną godziną i statusem. Dla zakończonych spotkań można zobaczyć **wyłącznie rzeczywisty wynik** z feedu ESPN/NBA; nie pokazujemy prognoz ani rezultatów symulacji.
