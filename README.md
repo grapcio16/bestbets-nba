@@ -1,3 +1,17 @@
+# BestBets v7.16 — Rotation Intelligence (9.11.2026)
+
+Dane rotacji i kontuzji w szczegółach pojedynczego meczu, **bez zmiany wyniku 5000 symulacji**.
+
+- Nowy widok **Symulacje 5000 → Szczegóły meczu → „Rotacja i absencje”**: oddzielnie dla każdej drużyny zobaczysz liczbę zawodników z projekcją minut, statusy ESPN oraz liczbę minut historycznej projekcji przypisanych do graczy oznaczonych Out/Doubtful i Questionable/Day-to-day.
+- **Trend minut 3 vs 7 ostatnich występów** z rzeczywistych box score, z rozróżnieniem „Więcej minut”, „Mniej minut”, „Stabilnie” i „Za mała próba”. Tylko spotkania sprzed analizowanego meczu, bez fałszywych DNP=0.
+- Pokazujemy także **zawodników zgłoszonych jako kontuzjowani bez dostępnych projekcji**, nie tworząc dla nich wymyślonych wartości. Rozpoznawanie łączy pełną znormalizowaną nazwę i drużynę; pozycja tylko z katalogu ESPN bieżącego klubu.
+- Statusy ESPN są orientacyjne, **nie potwierdzają aktywnego składu**; brak statusu nie znaczy, że zawodnik jest zdrowy. Przy danych oznaczonych jako stale/niepełne podsumowanie minut ryzyka jest ukryte i wyświetlany jest alert.
+- Projektowana suma minut zawodników nie jest równa 240 i nie wolno jej używać do automatycznego odejmowania punktów drużynie. Korekta wyniku na podstawie statusów wymaga pregame snapshotów i walidacji wpływu absencji na historycznych spotkaniach.
+- Nie zmieniliśmy żadnej prognozy zwycięzcy, sumy punktów, kursów ani algorytmu. Dane odświeżają się tylko przy otwarciu szczegółów, aby nie przeciążać Streamlit Cloud.
+- Testy jednostkowe `test_rotation_v716.py` oraz dotychczasowe testy regresyjne są uruchamiane w GitHub Actions.
+
+---
+
 # BestBets v7.15 — audyt jakości danych i nowe funkcje badawcze (9.11.2026)
 
 Najważniejszy wniosek audytu: **domyślne 5000 symulacji korzysta z prostego modelu średnich punktowych** — do 12 ostatnich zakończonych meczów obu drużyn lub, jeśli dostępne w świeżym cache, NBA Advanced Pace/OFF/DEF. Dzisiejsze składy, kontuzje, minuty, odpoczynek i H2H **nie korygują automatycznie wyniku drużyn**. Historia ESPN obejmowała maksymalnie trzy ostatnie miesiące sezonu; dane NBA Advanced z stats.nba.com często są niedostępne w chmurze.
