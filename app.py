@@ -447,7 +447,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.19</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.20</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab'],index=0,label_visibility='collapsed')
@@ -839,8 +839,54 @@ elif page == '📈 Performance Tracker':
     else:
         st.caption('Zewnętrzny PostgreSQL skonfigurowany. '
                    'Nie publikujemy hasła ani adresu połączenia.')
-    st.caption('Zapis prognoz następuje podczas odwiedzania symulacji. '
-               'Nie jest to jeszcze samodzielne monitorowanie 24/7.')
+    st.caption('Automatyczne rozliczanie ESPN uruchamia się przy otwarciu Trackera '
+               '(nie częściej niż co 30 min na sesję). Osobne zadanie GitHub Actions '
+               'może też zapisywać prognozy i rozliczać mecze 4 razy dziennie '
+               'bez otwierania aplikacji — pod warunkiem skonfigurowania '
+               'trwałej bazy PostgreSQL w GitHub Secret.')
+    if not cfg['remote']:
+        st.info('Tryb 24/7 jeszcze nieaktywny bez TRACKER_DATABASE_URL. '
+                'Automatyczne rozliczanie podczas wizyty działa także lokalnie, '
+                'ale prognozy SQLite mogą zniknąć po restarcie Streamlit.')
+    last_auto_key=f"bb720_auto_sync_{season}_{'remote' if cfg['remote'] else 'local'}"
+    auto_clock=pd.Timestamp.now(tz='UTC')
+    previous_auto=st.session_state.get(last_auto_key)
+    expired=not previous_auto
+    if previous_auto:
+        try:
+            expired=(auto_clock-pd.Timestamp(previous_auto['time'])).total_seconds()>=1800
+        except (KeyError,ValueError,TypeError):
+            expired=True
+    if expired:
+        try:
+            auto_games,auto_notes=historical_espn_results(season,refresh=False)
+            if auto_notes:
+                st.session_state[last_auto_key]={
+                    'time':auto_clock.isoformat(),'settled':0,
+                    'status':'Ostrzeżenie: niekompletna lub nieaktualna odpowiedź ESPN. '
+                             'Dane nie zostały rozliczone.'}
+            elif auto_games is None or auto_games.empty:
+                st.session_state[last_auto_key]={
+                    'time':auto_clock.isoformat(),'settled':0,
+                    'status':'Brak potwierdzonych wyników ESPN do rozliczenia.'}
+            else:
+                new_count=tracker_settle(auto_games,config=cfg)
+                st.session_state[last_auto_key]={
+                    'time':auto_clock.isoformat(),'settled':int(new_count),
+                    'status':'OK'}
+        except Exception:
+            st.session_state[last_auto_key]={
+                'time':auto_clock.isoformat(),'settled':0,
+                'status':'Automatyczne sprawdzenie nie powiodło się. '
+                         'Sprawdź odpowiedź ESPN i połączenie z bazą.'}
+    current_auto=st.session_state.get(last_auto_key)
+    if current_auto:
+        status=current_auto['status']
+        st.caption(f"Automatyczne sprawdzenie wyników: "
+                   f"{current_auto['time'][:16].replace('T',' ')} UTC · "
+                   f"nowe rozliczenia: {current_auto['settled']} · {status}")
+        if status!='OK':
+            st.warning(status)
     with st.expander('Test historyczny: nowy model kontra stare średnie',expanded=False):
         st.caption('Walk-forward: każdy mecz prognozowany wyłącznie na podstawie '
                    'spotkań zakończonych wcześniej. Porównanie nie obejmuje '
@@ -911,9 +957,15 @@ elif page == '📈 Performance Tracker':
         with st.spinner('Sprawdzam potwierdzone wyniki ESPN…'):
             try:
                 finished,notes=historical_espn_results(season,refresh=True)
-                n=tracker_settle(finished,config=cfg)
-                st.success('Rozliczono nowych spotkań: '+str(n))
-                if notes:st.caption(str(notes))
+                if notes or finished is None or finished.empty:
+                    st.warning('ESPN nie potwierdził pełnych, aktualnych wyników. '
+                               'Nie rozliczamy na podstawie niepewnych danych.')
+                else:
+                    n=tracker_settle(finished,config=cfg)
+                    st.session_state[last_auto_key]={
+                        'time':pd.Timestamp.now(tz='UTC').isoformat(),
+                        'settled':int(n),'status':'OK'}
+                    st.success('Rozliczono nowych spotkań: '+str(n))
             except Exception as exc:
                 st.error('Nie udało się rozliczyć prognoz. Sprawdź połączenie z bazą i odpowiedź ESPN.')
     try:
@@ -1177,5 +1229,5 @@ elif page == '📚 NBA Data Lab':
     row_note('Statystyki z linków NBA.com','Dostępne integracje: players/traditional, players/shooting, catch-shoot, player box scores, transition, defense-dash, teams/traditional, lineups, teams/shooting, opponent-shooting, hustle, defense, catch-shoot oraz transition. Każda kategoria pochodzi z odpowiadającego jej endpointu NBA; niektóre są przybliżonym odpowiednikiem widoku strony.')
 
 
-st.markdown('''<div class="bb-footer">BestBets v7.19 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
+st.markdown('''<div class="bb-footer">BestBets v7.20 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)
