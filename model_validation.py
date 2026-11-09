@@ -28,7 +28,7 @@ def score_model(model, actual_home, actual_away):
     }
 
 
-def evaluate_models(completed, holdout_n=40):
+def evaluate_models(completed, holdout_n=40, include_venue=False):
     cols={'game_id','start_utc','home','away','home_score','away_score','status_code'}
     if completed is None or completed.empty or not cols.issubset(completed.columns):
         return pd.DataFrame(),{}
@@ -53,8 +53,9 @@ def evaluate_models(completed, holdout_n=40):
             'recency':matchup_means(event['home'],event['away'],{},hist),
             'opponent_ridge':regularized_matchup_means(
                 event['home'],event['away'],prior,stamp),
-            'venue_research':venue_research_candidate(prior,event),
         }
+        if include_venue:
+            candidates['venue_research']=venue_research_candidate(prior,event)
         # Keep baseline comparison unchanged when venue split is unavailable.
         # Venue may use a smaller sample: N is always disclosed for each model.
         if any(candidates[k] is None for k in ('legacy','recency','opponent_ridge')):
