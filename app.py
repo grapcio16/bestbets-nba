@@ -447,7 +447,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.17</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.18</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab'],index=0,label_visibility='collapsed')
@@ -792,7 +792,27 @@ elif page == '💹 Kursy i value':
                             st.warning('Za mało rzeczywistych występów (minimum 5) '
                                        'na obliczenie szansy i EV. Historia poniżej '
                                        'pokazuje tylko dostępne spotkania.')
-                        show_calculator_history_chart(sub,player,market,line,projection)
+                        if len(sub)>=10 and not float(line).is_integer():
+                        from prediction_engine_v2 import forecast_v2
+                        try:
+                            candidate=forecast_v2(
+                                sub,market,line,pd.Timestamp.now(tz='UTC'),draws=2048)
+                            st.markdown('##### Prediction Engine 2.0 — wariant badawczy')
+                            r1,r2,r3=st.columns(3)
+                            r1.metric('Szansa OVER v2',f"{100*candidate['p_over']:.1f}%")
+                            r2.metric('Prognoza v2',f"{candidate['mean']:.1f}")
+                            r3.metric('Przewidywane minuty v2',f"{candidate['minutes']:.1f}")
+                            st.caption('Losowania: 2048 · 80% przedział symulowany: '+
+                                       f"{candidate['p10']:.0f}–{candidate['p90']:.0f} · "
+                                       'Próba: '+str(candidate['sample'])+' meczów.')
+                            st.warning('Wariant 2.0 NIE jest skalibrowany. '
+                                       'Nie wykorzystuj różnic procentowych jako dowodu przewagi '
+                                       'ani rekomendacji. Wymaga walk-forward i późniejszych danych.')
+                            if candidate['warnings']:
+                                st.caption(' • '.join(candidate['warnings']))
+                        except (ValueError,KeyError,TypeError) as exc:
+                            st.caption('Prediction Engine 2.0 niedostępny: '+str(exc)[:140])
+                    show_calculator_history_chart(sub,player,market,line,projection)
                         if sub is not None and not sub.empty:
                             st.dataframe(sub[['GAME_DATE','MATCHUP','MIN','PTS','REB',
                                               'AST','FG3M','PRA']].tail(20)
@@ -964,6 +984,92 @@ elif page == '📈 Performance Tracker':
 elif page == '🧪 Backtesting':
     st.subheader('Backtesting i kalibracja — bez przecieku danych z przyszłości')
     row_note('Dlaczego to ważne','W każdej prognozie używamy wyłącznie wcześniejszych występów. Automatyczne archiwum zbiera PRAWDZIWE ceny przed meczem. Zaczyna się ono teraz, nie odtwarza cudownie brakujących starych kursów. Test z liniami symulowanymi nie jest testem rentowności.')
+    with st.expander('🧠 Prediction Engine 2.0 — Model Battle (test badawczy)',expanded=False):
+        st.caption('Porównujemy obecny model z wariantem 2.0 na identycznych '
+                   'późniejszych meczach zawodników. Linia Over/Under pochodzi '
+                   'WYŁĄCZNIE ze wcześniejszej historii (średnia ostatnich 10, '
+                   'zaokrąglona do x,5), a NIE od bukmachera. '
+                   'Wynik NIE dowodzi dodatniego ROI.')
+        c1,c2=st.columns(2)
+        battle_market=c1.selectbox('Statystyka do porównania',list(STAT_NAMES),
+            format_func=lambda k:STAT_NAMES[k],key='bb718_market')
+        seasons=c2.multiselect('Sezony testowe',options=['2026-27','2025-26','2024-25'],
+            default=[season],key='bb718_seasons',
+            help='Starsze sezony są pobierane tylko na żądanie. '
+                 'Jeżeli NBA Stats nie odpowiada, nie wypełniamy luk fikcyjnymi danymi.')
+        max_cases=st.slider('Maksymalna liczba testowanych występów',60,600,240,
+            step=60,key='bb718_cases')
+        if st.button('Uruchom niezależne porównanie modeli',
+                     key='bb718_run',type='primary'):
+            if not seasons:
+                st.warning('Wybierz przynajmniej jeden sezon.')
+            else:
+                from player_model_battle import chronological_battle
+                frames=[]
+                provenance=[]
+                with st.spinner('Ładuję historyczne występy i wykonuję walk-forward…'):
+                    for season_part in seasons:
+                        try:
+                            raw,details=load_logs(season_part,st.session_state.nonce)
+                            normalized=normalize_logs(raw)
+                            frames.append(normalized)
+                            source=(details or {}).get('source','NBA') if isinstance(details,dict) else 'NBA'
+                            coverage=(details or {}).get('coverage','') if isinstance(details,dict) else ''
+                            provenance.append(f"{season_part}: {len(normalized)} występów; {source} {coverage}")
+                            if isinstance(details,dict) and details.get('stale'):
+                                st.warning(f'{season_part}: źródło wskazuje niepełne lub przestarzałe dane.')
+                        except (ValueError,KeyError,TypeError,RuntimeError) as ex:
+                            st.warning(f'{season_part}: historia jest niedostępna — '+str(ex)[:170])
+                    if frames:
+                        df=pd.concat(frames,ignore_index=True)
+                        compared,report=chronological_battle(
+                            df,battle_market,max_cases=max_cases,min_games=10)
+                        st.session_state['bb718_battle']=(compared,report,
+                            (tuple(seasons),battle_market,max_cases),provenance)
+                    else:
+                        st.session_state.pop('bb718_battle',None)
+        cached=st.session_state.get('bb718_battle')
+        if cached:
+            compared,report,config,provenance=cached
+            if config!=(tuple(seasons),battle_market,max_cases):
+                st.info('Zmieniono parametry — uruchom porównanie ponownie.')
+            elif compared.empty:
+                st.warning('Brak wystarczającej liczby prawdziwych meczów z '
+                           'wcześniejszą historią zawodników. Nie oceniamy skuteczności.')
+                for desc in provenance:st.caption(desc)
+            else:
+                for desc in provenance:st.caption(desc)
+                st.markdown('##### Porównanie na tej samej próbie')
+                for stage,label in [('all','Wszystkie dostępne testy'),
+                                    ('later_30pct','Ostatnie 30% w czasie')]:
+                    metrics=report.get(stage,{})
+                    st.markdown('**'+label+' · '+str(metrics.get('n',0))+' obserwacji**')
+                    if metrics.get('legacy') and metrics.get('v2'):
+                        values=[]
+                        for code,model_name in [('legacy','Dotychczasowy'),
+                                                ('v2','Prediction Engine 2.0')]:
+                            m=metrics[code]
+                            values.append({'Model':model_name,
+                                'MAE prognozy':m['mae'],
+                                'Brier (mniej lepiej)':m['brier'],
+                                'Log loss':m['logloss'],
+                                'Trafność Over/Under':f"{100*m['over_under_accuracy']:.1f}%",
+                                'Bias punktowy':m['bias']})
+                        st.dataframe(pd.DataFrame(values),hide_index=True,
+                                     use_container_width=True)
+                st.caption(f"Zawodnicy: {report['n_players']} · "
+                           f"Sezony: {report['n_seasons']} · próg: "
+                           f"{report['line_source']}. "
+                           'Każdy występ rozliczamy tylko wobec meczów sprzed jego daty.')
+                st.warning('Test wyłącznie na SYNTETYCZNYCH liniach, '
+                           'bez historycznych kursów bukmacherów. '
+                           'Próby graczy z jednego meczu są skorelowane, '
+                           'a ostatnie 30% nie jest nowym niezależnym sezonem. '
+                           'Nie uruchamiamy automatycznie żadnych zmian produkcyjnych.')
+                st.download_button('Pobierz porównanie modelu CSV',
+                    compared.to_csv(index=False).encode('utf-8-sig'),
+                    file_name='bestbets_model_battle_v718.csv',
+                    mime='text/csv',key='bb718_export')
     logs,meta=get_logs()
     if logs is not None:
         mode=st.radio('Rodzaj testu',['Automatycznie zapisane kursy','Symulowane linie (bez ROI)','Wgrane historyczne linie i kursy'],horizontal=True)
@@ -1071,5 +1177,5 @@ elif page == '📚 NBA Data Lab':
     row_note('Statystyki z linków NBA.com','Dostępne integracje: players/traditional, players/shooting, catch-shoot, player box scores, transition, defense-dash, teams/traditional, lineups, teams/shooting, opponent-shooting, hustle, defense, catch-shoot oraz transition. Każda kategoria pochodzi z odpowiadającego jej endpointu NBA; niektóre są przybliżonym odpowiednikiem widoku strony.')
 
 
-st.markdown('''<div class="bb-footer">BestBets v7.17 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
+st.markdown('''<div class="bb-footer">BestBets v7.18 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)
