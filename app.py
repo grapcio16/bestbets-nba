@@ -793,26 +793,26 @@ elif page == '💹 Kursy i value':
                                        'na obliczenie szansy i EV. Historia poniżej '
                                        'pokazuje tylko dostępne spotkania.')
                         if len(sub)>=10 and not float(line).is_integer():
-                        from prediction_engine_v2 import forecast_v2
-                        try:
-                            candidate=forecast_v2(
-                                sub,market,line,pd.Timestamp.now(tz='UTC'),draws=2048)
-                            st.markdown('##### Prediction Engine 2.0 — wariant badawczy')
-                            r1,r2,r3=st.columns(3)
-                            r1.metric('Szansa OVER v2',f"{100*candidate['p_over']:.1f}%")
-                            r2.metric('Prognoza v2',f"{candidate['mean']:.1f}")
-                            r3.metric('Przewidywane minuty v2',f"{candidate['minutes']:.1f}")
-                            st.caption('Losowania: 2048 · 80% przedział symulowany: '+
-                                       f"{candidate['p10']:.0f}–{candidate['p90']:.0f} · "
-                                       'Próba: '+str(candidate['sample'])+' meczów.')
-                            st.warning('Wariant 2.0 NIE jest skalibrowany. '
-                                       'Nie wykorzystuj różnic procentowych jako dowodu przewagi '
-                                       'ani rekomendacji. Wymaga walk-forward i późniejszych danych.')
-                            if candidate['warnings']:
-                                st.caption(' • '.join(candidate['warnings']))
-                        except (ValueError,KeyError,TypeError) as exc:
-                            st.caption('Prediction Engine 2.0 niedostępny: '+str(exc)[:140])
-                    show_calculator_history_chart(sub,player,market,line,projection)
+                            from prediction_engine_v2 import forecast_v2
+                            try:
+                                candidate=forecast_v2(
+                                    sub,market,line,pd.Timestamp.now(tz='UTC'),draws=2048)
+                                st.markdown('##### Prediction Engine 2.0 — wariant badawczy')
+                                r1,r2,r3=st.columns(3)
+                                r1.metric('Szansa OVER v2',f"{100*candidate['p_over']:.1f}%")
+                                r2.metric('Prognoza v2',f"{candidate['mean']:.1f}")
+                                r3.metric('Przewidywane minuty v2',f"{candidate['minutes']:.1f}")
+                                st.caption('Losowania: 2048 · 80% przedział symulowany: '+
+                                           f"{candidate['p10']:.0f}–{candidate['p90']:.0f} · "
+                                           'Próba: '+str(candidate['sample'])+' meczów.')
+                                st.warning('Wariant 2.0 NIE jest skalibrowany. '
+                                           'Nie wykorzystuj różnic procentowych jako dowodu przewagi '
+                                           'ani rekomendacji. Wymaga walk-forward i późniejszych danych.')
+                                if candidate['warnings']:
+                                    st.caption(' • '.join(candidate['warnings']))
+                            except (ValueError,KeyError,TypeError) as exc:
+                                st.caption('Prediction Engine 2.0 niedostępny: '+str(exc)[:140])
+                        show_calculator_history_chart(sub,player,market,line,projection)
                         if sub is not None and not sub.empty:
                             st.dataframe(sub[['GAME_DATE','MATCHUP','MIN','PTS','REB',
                                               'AST','FG3M','PRA']].tail(20)
