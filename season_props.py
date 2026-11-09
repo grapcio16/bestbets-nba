@@ -174,3 +174,117 @@ def research_matchup_estimate(logs,market,line,defense=None):
         "sample":int(pred["sample_size"]),
         "model":"V1 / NIEKALIBROWANY",
     }
+
+
+SEASON_RESULT_COLUMNS=[
+    "Zawodnik","Drużyna","Rynek","Linia",
+    "Występy sezon","OVER sezon %","UNDER sezon %","ZWROT sezon %",
+    "OVER L10 %","UNDER L10 %","Śr. sezon","Ostatnie 10: OVER",
+    "Przeciwnik","Obrona: stracone pkt/mecz","Obrona: L10 stracone",
+    "Korekta PTS (%)","P(OVER) v2 %","P(UNDER) v2 %",
+    "P(OVER) bez defensywy %","Status","Źródło statystyk","Uwagi",
+    "Kurs OVER","Kurs UNDER",
+]
+
+
+def analyze_season_offers(offers, histories, identities, events, results,
+                          season, now, min_games=10):
+    """Calculate every known athlete's seasonal frequency; apply cautious
+    PTS-only matchup adjustment to v2 when next game and defense are verified.
+
+    Histories and identities must come from a real NBA/ESPN data source, and
+    schedules are never guessed from the uploaded market screenshot.
+    """
+    from prediction_engine_v2 import forecast_v2
+    from screenshot_import import parse_line, _valid_decimal
+    table=[]
+    for raw in offers.to_dict("records") if isinstance(offers,pd.DataFrame) else []:
+        name=str(raw.get("Zawodnik") or "").strip()
+        market=str(raw.get("Rynek") or "PTS").upper().strip()
+        line=parse_line(raw.get("Linia"))
+        key=norm_name(name)
+        identity=(identities or {}).get(key)
+        event=None
+        notes=[]
+        out={col:None for col in SEASON_RESULT_COLUMNS}
+        out.update({
+            "Zawodnik":name,"Rynek":market,"Linia":line,
+            "Kurs OVER":_valid_decimal(raw.get("Kurs OVER")),
+            "Kurs UNDER":_valid_decimal(raw.get("Kurs UNDER")),
+            "Status":"BRAK DANYCH",
+            "Uwagi":"","Źródło statystyk":"—",
+        })
+        if market not in STAT_NAMES or line is None or not key:
+            out["Uwagi"]="Nieprawidłowe nazwisko, rynek lub linia."
+            table.append(out);continue
+        if not identity or identity.get("ambiguous"):
+            out["Uwagi"]="Nie znaleziono jednoznacznej tożsamości zawodnika w aktualnych danych NBA."
+            table.append(out);continue
+        team=str(identity.get("team") or "")
+        out["Drużyna"]=team
+        out["Źródło statystyk"]=str(identity.get("source") or "Nieokreślone")
+        raw_logs=(histories or {}).get(key)
+        event=(events or {}).get(team)
+        if not event or event.get("ambiguous"):
+            notes.append("Nie potwierdzono jednego meczu tej drużyny we wskazanym dniu — brak korekty przeciwnika.")
+        elif event.get("opponent"):
+            out["Przeciwnik"]=str(event["opponent"])
+        asof=event.get("start_utc") if event and not event.get("ambiguous") else now
+        df=clean_player_season(raw_logs,name,season,asof,identity.get("id"))
+        historical=observed_hit_rates(df,market,line)
+        if historical is None:
+            out["Uwagi"]="Brak poprawnych rzeczywistych występów zawodnika od początku sezonu."
+            table.append(out);continue
+        all_=historical["season"];recent=historical["last10"]
+        out.update({
+            "Występy sezon":all_["n"],
+            "OVER sezon %":all_["over_pct"],
+            "UNDER sezon %":all_["under_pct"],
+            "ZWROT sezon %":all_["push_pct"],
+            "OVER L10 %":recent["over_pct"],
+            "UNDER L10 %":recent["under_pct"],
+            "Śr. sezon":all_["mean"],
+            "Ostatnie 10: OVER":f'{recent["over"]}/{recent["n"]}',
+            "Status":"TYLKO HISTORIA",
+        })
+        if identity.get("stale") or identity.get("partial"):
+            notes.append("Źródło nie gwarantuje pełnej historii sezonowej — częstości dotyczą tylko pobranych występów.")
+        if df["TEAM_ABBREVIATION"].nunique()>1:
+            notes.append("Zmiana drużyny: dane sezonowe obejmują różne role zawodnika.")
+        if all_["n"]<min_games:
+            notes.append(f"Tylko {all_['n']} występów (do modelu minimum {min_games}).")
+        elif abs(line-round(line))<1e-9:
+            notes.append("Linia całkowita: możliwy zwrot. Pokazujemy 3 stany, bez dwustanowego modelu v2.")
+        else:
+            defense=None
+            if out["Przeciwnik"] and event:
+                defense=opponent_defensive_profile(results,out["Przeciwnik"],event["start_utc"])
+                if defense:
+                    out["Obrona: stracone pkt/mecz"]=defense["allowed_season"]
+                    out["Obrona: L10 stracone"]=defense["allowed_last10"]
+                else:
+                    notes.append("Za mało potwierdzonych finałów rywala do korekty defensywy.")
+            factor=(defense["scoring_multiplier"]
+                    if defense and market in ("PTS","PRA") else 1.)
+            if market not in ("PTS","PRA") and defense:
+                notes.append("Obrona w punktach drużyny nie koryguje automatycznie zbiórek, asyst ani trójek.")
+            if factor!=1.:
+                out["Korekta PTS (%)"]=round((factor-1)*100,1)
+            try:
+                model=forecast_v2(df,market,line,asof,min_games=min_games,
+                                  draws=2048,scoring_multiplier=factor)
+                out["P(OVER) v2 %"]=round(100*model["p_over"],1)
+                out["P(UNDER) v2 %"]=round(100*model["p_under"],1)
+                out["Status"]="MODEL TESTOWY"
+                if factor!=1:
+                    base=forecast_v2(df,market,line,asof,min_games=min_games,draws=2048)
+                    out["P(OVER) bez defensywy %"]=round(100*base["p_over"],1)
+                    notes.append("Korekta defensywy to niezweryfikowana hipoteza; nie są to skalibrowane szanse.")
+                elif not defense:
+                    notes.append("Prognoza v2 BEZ zweryfikowanej korekty defensywy przeciwnika.")
+            except (ValueError,KeyError,TypeError) as exc:
+                notes.append("Nie można policzyć eksperymentalnego modelu: "+str(exc)[:90])
+        notes.append("Historyczny % nie jest prognozą kolejnego meczu.")
+        out["Uwagi"]=" ".join(notes)
+        table.append(out)
+    return pd.DataFrame(table,columns=SEASON_RESULT_COLUMNS)
