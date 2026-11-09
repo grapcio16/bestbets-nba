@@ -77,7 +77,7 @@ def _pregame_rows(logs, cutoff_utc, market, min_games=MIN_GAMES):
 
 
 def forecast_v2(logs, market, line, cutoff_utc, *,
-                min_games=MIN_GAMES, draws=N_DRAWS):
+                min_games=MIN_GAMES, draws=N_DRAWS, scoring_multiplier=1.0):
     """Return a bounded stochastic distribution with uncalibrated P(over).
 
     Calls only past completed player logs. No sportsbook line is used to fit
@@ -86,6 +86,14 @@ def forecast_v2(logs, market, line, cutoff_utc, *,
     line = float(line)
     if not math.isfinite(line) or line < 0:
         raise ValueError("Niepoprawna linia")
+    try:
+        scoring_multiplier=float(scoring_multiplier)
+    except (TypeError,ValueError) as exc:
+        raise ValueError("Niepoprawny współczynnik obrony") from exc
+    if not math.isfinite(scoring_multiplier) or not .92<=scoring_multiplier<=1.08:
+        raise ValueError("Korekta drużynowej obrony poza bezpiecznym zakresem")
+    if market not in ("PTS","PRA") and abs(scoring_multiplier-1)>1e-12:
+        raise ValueError("Punktowa korekta defensywy tylko dla PTS/PRA (PRA: składowa PTS)")
     if not 256 <= int(draws) <= 8192:
         raise ValueError("Liczba losowań poza limitem")
     past, cutoff, name, team = _pregame_rows(logs, cutoff_utc, market, min_games)
@@ -144,6 +152,10 @@ def forecast_v2(logs, market, line, cutoff_utc, *,
             # or negative within-game rate comovement, unlike independent L10 averages.
             rate_draw = .65*per_minute[indexes] + .35*rate
             lam = np.clip(rate_draw*minutes, 0, 130)
+            if name_stat=="PTS":
+                # Research-only team points conceded context, not a verified
+                # individual defender matchup or probability calibration.
+                lam=np.clip(lam*scoring_multiplier,0,130)
             outcomes += rng.poisson(lam)
         if market == "PRA":
             explanation += " (wspólny indeks meczowy PTS/REB/AST)"
@@ -171,5 +183,6 @@ def forecast_v2(logs, market, line, cutoff_utc, *,
         "p90":float(np.percentile(outcomes,90)),
         "last10_hits":int((past["VALUE"].tail(10)>line).sum()),
         "last10_n":min(10,n),
-        "method":explanation,"warnings":warnings,
+        "method":explanation,
+        "scoring_multiplier":scoring_multiplier,"warnings":warnings,
     }
