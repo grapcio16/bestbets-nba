@@ -825,7 +825,7 @@ elif page == '📈 Performance Tracker':
                     finished,notes=historical_espn_results(season)
                     compared,score=walk_forward_comparison(finished,max_games=140)
                     from model_validation import evaluate_models
-                    heldout,holdout_score=evaluate_models(finished,holdout_n=40)
+                    heldout,holdout_score=evaluate_models(finished,holdout_n=40,include_venue=True)
                 if holdout_score:
                     st.session_state['tracker_new_holdout_score']=holdout_score
                     st.session_state['tracker_new_holdout_rows']=heldout
