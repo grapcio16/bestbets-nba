@@ -1,3 +1,18 @@
+# BestBets v7.17 — screenshot importer BETA (9.11.2026)
+
+**Nowe:** `Kursy i value → Kalkulator → Import screenshot — analiza wielu pozycji`. Jedno zdjęcie może pokazać wiele osobnych rynków punktowych; importer OCR rozpoznaje pola zawodnik / Over / Under / linia / kurs i wyświetla **edytowalną tabelę do obligatoryjnej weryfikacji przez użytkownika**. Wspieramy czytelne dwukolumnowe PL/EN listy oraz proste listy jednokolumnowe, a **nie wszystkie możliwe aplikacje bukmacherskie**.
+
+- Lokalny OCR Tesseract: `pytesseract` w `requirements.txt`, `tesseract-ocr`, `tesseract-ocr-pol`, `tesseract-ocr-eng` w `packages.txt`. Zrzuty przetwarzane na serwerze po kliknięciu, bez wysyłania ich do zewnętrznych modeli AI i bez zapisywania na dysk ani w GitHub. Limit 8 MB / 12 MP i limit czasu OCR 18 s.
+- **Nie zakładamy poprawności żadnych wyników OCR**: wszystkie wpisy trzeba sprawdzić; nierozpoznane kursy są puste. Użytkownik może poprawić i dodać wiersze przed jednorazowym batch wyliczeniem.
+- Rynki: `PTS`, `REB`, `AST`, `FG3M`, `PRA`. Oddzielnie kurs na Over i Under, jeden gracz / linia / statystyka na wiersz.
+- Wyniki: procenty Over/Under **niekalibrowanego modelu**, przedmeczowy próg wynikający z kursu, dwustronne prawdopodobieństwo bez marży (tylko jeśli są oba kursy), surowe predykcje, próba i hit-rate L10. Wstrzymane analizy są jawnie oznaczone.
+- **Fail closed**: brak dokładnego nazwiska, niewystarczająca próbka 10 występów w aktualnym klubie, stare dane, niepełny kurs, brak rynku lub całkowita linia z możliwością zwrotu → bez procentowej prognozy. Aktualność oferty, skład i matchup nie są potwierdzone przez sam screenshot.
+- Wyniki są informacją badawczą, **nie są rekomendacjami** ani dowodem uzyskania przewagi nad bukmacherem. Screenshot może ujawniać prywatne informacje: nie wgrywaj salda/numeru konta. Kontrola użytkownika jest obowiązkowa.
+- Algorytm 5000 symulacji i stary kalkulator pojedynczego zawodnika **nie są zmieniane**. Nowy tryb jest niezależny; oddzielna praca nad Prediction Engine 2.0 i niezależnym walk-forward jest następna.
+- Testy `test_screen_v717.py` używają wyłącznie syntetycznych tokenów OCR; zdjęcia użytkownika nie są publikowane w repozytorium.
+
+---
+
 # BestBets v7.16 — Rotation Intelligence (9.11.2026)
 
 Dane rotacji i kontuzji w szczegółach pojedynczego meczu, **bez zmiany wyniku 5000 symulacji**.

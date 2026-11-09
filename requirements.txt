@@ -7,3 +7,4 @@ requests>=2.31,<3
 Pillow>=10,<13
 psycopg[binary]>=3.2,<4
 tzdata>=2026.1
+pytesseract>=0.3.13,<1

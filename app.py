@@ -447,7 +447,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.16</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.17</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab'],index=0,label_visibility='collapsed')
@@ -720,76 +720,84 @@ elif page == '💹 Kursy i value':
                         'Rzeczywisty backtesting będzie możliwy po zakończeniu zarejestrowanych spotkań.')
         if selected_view=='🧮 Kalkulator (opcjonalnie)':
             st.markdown('#### Kalkulator zawodników NBA')
-            st.caption('Wyszukaj zawodnika bez wybierania drużyny. Klub ustalamy automatycznie '
-                       'z katalogu ESPN. Wyniki pochodzą z rzeczywistych występów i '
-                       'stanowią niepełną próbkę, a prognozy nie są skalibrowane.')
-            from roster_view import (global_player_selector,player_observed_logs,
-                                     show_calculator_history_chart)
-            player,pid,team,coverage=global_player_selector(st.session_state.nonce)
-            if player is not None:
-                a,b,c=st.columns([1,1,1])
-                market=a.selectbox('Statystyka',list(STAT_NAMES),
-                    format_func=lambda v:STAT_NAMES[v],key='bb7_calculator_market')
-                side=b.selectbox('Wariant',['OVER','UNDER'],key='bb7_calculator_side')
-                line=c.number_input('Linia',min_value=0.5,value=5.5,step=.5,
-                                    key='bb7_calculator_line')
-                odds=st.number_input('Kurs dziesiętny',min_value=1.01,value=1.85,
-                                     step=.01,key='bb7_calculator_odds')
-                selection=(season,team,pid,market,float(line),side,float(odds))
-                if st.button('Oblicz i pokaż wykres występów',key='bb7_calculate',
-                             type='primary'):
-                    st.session_state['bb7_calc_selection']=selection
-                if st.session_state.get('bb7_calc_selection')==selection:
-                    with st.spinner('Ładuję występy wybranego zawodnika…'):
-                        try:
-                            sub,details=player_observed_logs(
-                                team,pid,player,season,st.session_state.nonce)
-                        except (ValueError,KeyError,TypeError,RuntimeError) as exc:
-                            st.warning('Nie udało się pobrać statystyk: '+str(exc)[:180])
-                            sub=pd.DataFrame()
-                            details={}
-                    st.caption('Dostępne występy: '+str(len(sub))+' · '+
-                               str(details.get('coverage','')))
-                    projection=None
-                    if len(sub)>=5:
-                        try:
-                            p=calc_projection(sub,market)
-                            projection=p['prediction']
-                            if float(line).is_integer():
-                                st.info('Linia całkowita może oznaczać zwrot stawki. '
-                                        'Zmień na linię połówkową do analizy EV.')
-                            else:
-                                m=edge_metrics(prop_probability(p,line,side),odds)
-                                k1,k2,k3,k4=st.columns(4)
-                                labelled_metric(k1,'Szansa modelu',
-                                    f"{m['p_model_pct']:.2f}%",'Niekalibrowana prognoza')
-                                labelled_metric(k2,'Próg kursu',
-                                    f"{m['p_break_even_pct']:.2f}%",'100/kurs')
-                                labelled_metric(k3,'Przewaga',
-                                    f"{m['edge_pp']:+.2f} pp",'Niezweryfikowana')
-                                labelled_metric(k4,'EV modelu',
-                                    f"{m['ev_pct']:+.2f}%",'Tylko według modelu')
-                                st.warning('To NIE jest skalibrowana szansa '
-                                           'ani sprawdzona przewaga nad kursem. '
-                                           'Przy małej próbce i nieznanych '
-                                           'absencjach nawet wysokie dodatnie '
-                                           'EV może być poważnie błędne.')
-                                st.caption(f"Prognoza: {p['prediction']:.1f} · "
-                                    f"Minuty: {p['estimated_minutes']:.1f} · "
-                                    f"Próba: {p['sample_size']} meczów. "
-                                    'Dodatnie EV nie dowodzi rentowności.')
-                        except (ValueError,KeyError,TypeError) as exc:
-                            st.warning('Nie można wyznaczyć prognozy: '+str(exc)[:180])
-                    else:
-                        st.warning('Za mało rzeczywistych występów (minimum 5) '
-                                   'na obliczenie szansy i EV. Historia poniżej '
-                                   'pokazuje tylko dostępne spotkania.')
-                    show_calculator_history_chart(sub,player,market,line,projection)
-                    if sub is not None and not sub.empty:
-                        st.dataframe(sub[['GAME_DATE','MATCHUP','MIN','PTS','REB',
-                                          'AST','FG3M','PRA']].tail(20)
-                                     .sort_values('GAME_DATE',ascending=False),
-                                     hide_index=True,use_container_width=True)
+            st.caption('Pojedynczy zawodnik lub beta importu wielu linii z obrazu. '
+                       'Wyniki bazują na dostępnej historii NBA i nie są skalibrowane.')
+            calculator_mode=st.radio(
+                'Tryb kalkulatora',
+                ['📷 Import screenshot — analiza wielu pozycji',
+                 '👤 Kalkulator pojedynczego zawodnika'],
+                horizontal=True,key='bb717_calculator_mode')
+            if calculator_mode.startswith('📷'):
+                from screenshot_ui import render_screenshot_calculator
+                render_screenshot_calculator(season,get_logs)
+            else:
+                from roster_view import (global_player_selector,player_observed_logs,
+                                         show_calculator_history_chart)
+                player,pid,team,coverage=global_player_selector(st.session_state.nonce)
+                if player is not None:
+                    a,b,c=st.columns([1,1,1])
+                    market=a.selectbox('Statystyka',list(STAT_NAMES),
+                        format_func=lambda v:STAT_NAMES[v],key='bb7_calculator_market')
+                    side=b.selectbox('Wariant',['OVER','UNDER'],key='bb7_calculator_side')
+                    line=c.number_input('Linia',min_value=0.5,value=5.5,step=.5,
+                                        key='bb7_calculator_line')
+                    odds=st.number_input('Kurs dziesiętny',min_value=1.01,value=1.85,
+                                         step=.01,key='bb7_calculator_odds')
+                    selection=(season,team,pid,market,float(line),side,float(odds))
+                    if st.button('Oblicz i pokaż wykres występów',key='bb7_calculate',
+                                 type='primary'):
+                        st.session_state['bb7_calc_selection']=selection
+                    if st.session_state.get('bb7_calc_selection')==selection:
+                        with st.spinner('Ładuję występy wybranego zawodnika…'):
+                            try:
+                                sub,details=player_observed_logs(
+                                    team,pid,player,season,st.session_state.nonce)
+                            except (ValueError,KeyError,TypeError,RuntimeError) as exc:
+                                st.warning('Nie udało się pobrać statystyk: '+str(exc)[:180])
+                                sub=pd.DataFrame()
+                                details={}
+                        st.caption('Dostępne występy: '+str(len(sub))+' · '+
+                                   str(details.get('coverage','')))
+                        projection=None
+                        if len(sub)>=5:
+                            try:
+                                p=calc_projection(sub,market)
+                                projection=p['prediction']
+                                if float(line).is_integer():
+                                    st.info('Linia całkowita może oznaczać zwrot stawki. '
+                                            'Zmień na linię połówkową do analizy EV.')
+                                else:
+                                    m=edge_metrics(prop_probability(p,line,side),odds)
+                                    k1,k2,k3,k4=st.columns(4)
+                                    labelled_metric(k1,'Szansa modelu',
+                                        f"{m['p_model_pct']:.2f}%",'Niekalibrowana prognoza')
+                                    labelled_metric(k2,'Próg kursu',
+                                        f"{m['p_break_even_pct']:.2f}%",'100/kurs')
+                                    labelled_metric(k3,'Przewaga',
+                                        f"{m['edge_pp']:+.2f} pp",'Niezweryfikowana')
+                                    labelled_metric(k4,'EV modelu',
+                                        f"{m['ev_pct']:+.2f}%",'Tylko według modelu')
+                                    st.warning('To NIE jest skalibrowana szansa '
+                                               'ani sprawdzona przewaga nad kursem. '
+                                               'Przy małej próbce i nieznanych '
+                                               'absencjach nawet wysokie dodatnie '
+                                               'EV może być poważnie błędne.')
+                                    st.caption(f"Prognoza: {p['prediction']:.1f} · "
+                                        f"Minuty: {p['estimated_minutes']:.1f} · "
+                                        f"Próba: {p['sample_size']} meczów. "
+                                        'Dodatnie EV nie dowodzi rentowności.')
+                            except (ValueError,KeyError,TypeError) as exc:
+                                st.warning('Nie można wyznaczyć prognozy: '+str(exc)[:180])
+                        else:
+                            st.warning('Za mało rzeczywistych występów (minimum 5) '
+                                       'na obliczenie szansy i EV. Historia poniżej '
+                                       'pokazuje tylko dostępne spotkania.')
+                        show_calculator_history_chart(sub,player,market,line,projection)
+                        if sub is not None and not sub.empty:
+                            st.dataframe(sub[['GAME_DATE','MATCHUP','MIN','PTS','REB',
+                                              'AST','FG3M','PRA']].tail(20)
+                                         .sort_values('GAME_DATE',ascending=False),
+                                         hide_index=True,use_container_width=True)
 
     automatic_market_panel()
 
@@ -1063,5 +1071,5 @@ elif page == '📚 NBA Data Lab':
     row_note('Statystyki z linków NBA.com','Dostępne integracje: players/traditional, players/shooting, catch-shoot, player box scores, transition, defense-dash, teams/traditional, lineups, teams/shooting, opponent-shooting, hustle, defense, catch-shoot oraz transition. Każda kategoria pochodzi z odpowiadającego jej endpointu NBA; niektóre są przybliżonym odpowiednikiem widoku strony.')
 
 
-st.markdown('''<div class="bb-footer">BestBets v7.11 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
+st.markdown('''<div class="bb-footer">BestBets v7.17 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)
