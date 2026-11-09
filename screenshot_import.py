@@ -59,14 +59,16 @@ def parse_line(value):
 
 def market_from_header(words, default="PTS"):
     header=ascii_word(" ".join(str(x) for x in words[:40]))
+    if "pra" in header or (("punkty" in header or "point" in header) and
+                            ("zbiork" in header or "rebound" in header) and
+                            ("asyst" in header or "assist" in header)):
+        return "PRA"
     if "zbiork" in header or "rebound" in header:
         return "REB"
     if "asyst" in header or "assist" in header:
         return "AST"
     if "trojk" in header or "3-point" in header or "three point" in header:
         return "FG3M"
-    if "pra" in header or ("punkty" in header and "zbiork" in header and "asyst" in header):
-        return "PRA"
     return default if default in STAT_NAMES else "PTS"
 
 
@@ -240,9 +242,11 @@ def batch_analyze(offers, logs, cutoff_utc=None, min_games=10):
         # team's role unless a validated transfer-aware model is available.
         team=str(g.iloc[-1]["TEAM_ABBREVIATION"])
         sub=g[g["TEAM_ABBREVIATION"]==team].copy()
+        if market not in sub:
+            result["Uwaga"]="Brak kolumny statystyk dla tego rynku."
+            output.append(result);continue
         sub=sub[(pd.to_numeric(sub["MIN"],errors="coerce")>2) &
-                pd.to_numeric(sub[market] if market in sub else pd.Series(dtype=float),
-                              errors="coerce").notna()]
+                pd.to_numeric(sub[market],errors="coerce").notna()]
         n=len(sub)
         result["Próba"]=n
         if n<min_games:
