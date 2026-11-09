@@ -23,9 +23,8 @@ from simulation_sources import historical_espn_results
 from espn_player_data import detailed_espn_gamelog
 
 
-@st.cache_data(ttl=3*3600, max_entries=120, show_spinner=False)
 def _cached_espn_player_season(player_id, name, team, season, nonce):
-    """One season-long ESPN gamelog request per athlete, only on Analyze."""
+    """One season-long ESPN gamelog request per athlete. ESPN requests are disk-cached 6h."""
     raw, meta=detailed_espn_gamelog(player_id,name,team,season)
     return normalize_logs(raw),meta
 
