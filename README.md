@@ -1,3 +1,19 @@
+# BestBets v7.19 — symulacje: własne linie, ryzyko i wrażliwość prognoz (9.11.2026)
+
+Ulepszono `Symulacje 5000 → Szczegóły meczu → 🎯 Linie i wrażliwość`. Aktualizacja **nie zmienia średnich wyników, losowania, liczby przebiegów 5000 ani domyślnego modelu**. Wszystkie procenty są częstościami wystąpienia zdarzeń pod ZAŁOŻENIAMI bieżącego modelu — nie są skalibrowanymi szansami.
+
+- Użytkownik wpisuje własną linię sumy meczu `Over/Under` lub handicap gospodarzy ze znakiem, np. `−6,5`; brak automatycznie wymyślanych kursów.
+- Te same **5000** losowań co na karcie meczu jest sprawdzane względem podanej linii. Wyświetlane osobno procenty obu stron oraz zwrot (push) dla całkowitych linii. Wyrównanie matematyczne: obie strony + zwrot = 100%.
+- Opcjonalnie użytkownik wpisuje rzeczywiste kursy z własnej oferty. Aplikacja oblicza próg rentowności i **wyłącznie niekalibrowane modelowe EV**. Kurs jest ręczny i nie jest potwierdzony w czasie rzeczywistym.
+- Rozkład: 10.–90. percentyl wyników / przewagi punktowej. Wąski błąd próbkowania Monte Carlo NIE zastępuje szerokiej niepewności modelowej.
+- **Badawczy test wrażliwości** uruchamiany dopiero po kliknięciu porównuje obecny model z dostępnymi wariantami `legacy`, `recency`, `opponent-adjusted ridge`, `venue`. Używa tylko prawdziwych wyników sprzed terminu analizowanego meczu. Nie są to niezależne ani skalibrowane prognozy, a rozbieżność między nimi nie jest przedziałem ufności.
+- **Zapis CSV**: ID meczu, data/UTC utworzenia, termin rozpoczęcia, model, linia, prawdopodobieństwa, opcjonalny ręczny kurs i modelowe EV. Flaga `pregame` wyraźnie oznacza zapisy po rozpoczęciu meczu; nie można ich przedstawiać jako wcześniejszych prognoz. Dane nie są przechowywane w backendzie kuponów ani wysyłane do bukmachera.
+- Testy `test_simulation_lines_v719.py` oraz pozostała automatyczna regresja CI zabezpieczają rozliczanie integer push, handicap minus/plus, dokładnie 5000 losowań i brak wykorzystania wyników przyszłych spotkań.
+
+**Dlaczego to ważne:** po dzisiejszej nocy możemy porównać nie tylko trafienie zwycięzcy, ale także odchylenie od dokładnie obstawionych linii. Żaden wynik EV nie oznacza potwierdzonej opłacalności. Przed komercjalizacją nadal potrzebujemy historii rzeczywistych kursów i niezależnej kalibracji.
+
+---
+
 # BestBets v7.18 — Prediction Engine 2.0 (wariant badawczy, 9.11.2026)
 
 Dodano **kandydacki** model Player Props i rygorystyczne porównanie ze starym silnikiem. **Żaden z modeli nie jest kalibrowany; nie wdrażamy automatycznych typów ani nie obiecujemy lepszego ROI.** Podstawowy algorytm 5000 symulacji meczowych, terminarz i darmowe informacje NBA pozostają niezmienione.
