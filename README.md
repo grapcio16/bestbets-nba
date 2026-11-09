@@ -1,3 +1,30 @@
+# BestBets v7.21 — sezonowa analiza screenshotów + naprawa przełącznika modelu (10.11.2026)
+
+## Import screenshotów jest odtąd analizą sezonową, a nie tylko OCR
+
+`Kursy i value → Kalkulator → 📷 Import screenshot`:
+
+- Po weryfikacji OCR wybierz **lokalny dzień rozpoczęcia meczów** z fotografii; aplikacja dopasowuje każdego zawodnika przez pełną nazwę i (jeśli dostępny) stabilny **ESPN Player ID** do aktualnych składów.
+- Na żądanie pobiera **sezonowy gamelog każdego rozpoznanego zawodnika**, nie tylko 10–12 ostatnich spotkań z szybkiego fallbacku. Gdy API ESPN odmawia udostępnienia pełnego gamelogu, próbuje dopasować dane dostępne w NBA Stats/CDN/ESPN, ale **oznacza je jako próbkę częściową**. Niczego nie uzupełnia fikcyjnymi wynikami.
+- Liczy **dokładnie** Over, Under i ewentualny Push w **wszystkich pobranych występach od 1 października bieżącego sezonu** i ostatnich 10 występach na **konkretnej linii** ze screena, wraz z liczbą rozegranych meczów i średnią. Występy DNP nie są liczone jako 0. Brak kursu nie blokuje statystyk.
+- Po wybraniu dnia dopasowuje konkretny przyszły mecz drużyny z terminarza. Jeśli nie da się jednoznacznie ustalić przeciwnika, **nie zgaduje**.
+- Z rzeczywistych finałów ESPN **wyłącznie sprzed meczu** liczy średnią punktów traconych przez CAŁĄ drużynę rywala od początku sezonu oraz w ostatnich 10. Wariant badawczy `Prediction Engine 2.0` stosuje ostrożną, maks. 8% korektę tempa punktowego gracza dla PTS/PRA. Ta korekta **NIE** jest pomiarem obrony pozycji, wpływu kontuzji ani gwarancją trafności. Korekty dla REB, AST i 3PM wymagają innych, rzeczywistych danych.
+- Wyniki są rozdzielone na **historyczny procent występów Over/Under** i **niekalibrowane prawdopodobieństwo kolejnego meczu**, z osobnymi kolumnami, ostrzeżeniami o danych, tabelą defensywy rywali, wykresem wyników zawodnika i CSV. Użytkownik sam wybiera rynek i kierunek; aplikacja nie generuje pewnych rekomendacji.
+- Zrzut jest przetwarzany lokalnie przez Tesseract w sesji Streamlit; nie przechowujemy screena na serwerze ani nie publikujemy go w repozytorium. Pytania o komercyjne prawa do źródeł danych należy rozstrzygnąć przed premierą PRO.
+
+## Dlaczego eksperymentalny model nie zmieniał symulacji?
+
+Gdy działały oficjalne NBA Advanced, oba modele korzystały z **identycznych średnich Pace, OFF/DEF** — przełącznik zmieniał etykietę, ale nie liczby. W v7.21 **wariant badawczy** przy minimum 4 zakończonych meczach każdej drużyny łączy **70% dotychczasowej prognozy NBA Advanced i 30% ważonej formy z ESPN**, z korektą siły rywali i regresją do średniej.
+
+- **Model podstawowy v7.2 i jego 5000 przebiegów pozostają NIEZMIENIONE**.
+- Każda karta pokazuje nazwę faktycznie użytego źródła modelu, a zakładka Symulacje zawiera porównanie obu wariantów i różnice punktów/procentów.
+- Jeśli brak historii pozwalającej na korektę, warianty mogą być identyczne: wyświetlamy jawną informację zamiast wymyślać różnicę.
+- **Nie ma jeszcze dowodu**, że badawcza mieszanka zwiększa trafność. Wymaga osobnego chronologicznego walk-forward i kalibracji.
+
+Testy `test_season_props_v721.py` chronią pełno-sezonowe wyniki, granice daty, statusy odrzuconych zawodników, obronę rywala i realne działanie przełącznika. Nie podnosimy procentów sztucznie — poprawiamy wejścia i transparentność.
+
+---
+
 # BestBets v7.20 — automatyczny Performance Tracker (10.11.2026)
 
 Najważniejsza zmiana: **rozliczanie zapisanych prognoz nie wymaga już ręcznego kliknięcia przycisku**.
