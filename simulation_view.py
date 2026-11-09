@@ -677,9 +677,26 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
         st.caption('Domyślny model v7.2. Tryb badawczy można włączyć powyżej.')
     with st.expander('🔬 Głębsze dane — ustawienia badawcze',expanded=False):
         extended=st.toggle(
-            'Pobierz wcześniejsze miesiące bieżącego sezonu (maksymalnie 6)',
+            'Rozszerz archiwum historii do 6 miesięcy (badawcze)',
             value=False,key='bb715_older_history',
-            help='Domyślnie 3 miesiące; rozszerzenie nie łączy różnych sezonów ani nie zmienia wariantu modelu.')
+            help='Jeśli sezon nie ma jeszcze 3 miesięcy albo ostatnie 12 spotkań '
+                 'drużyny mieści się w zwykłym oknie, opcja nie zmieni prognoz. '
+                 'Nie łączy różnych sezonów ani nie zmienia wariantu modelu.')
+        try:
+            season_year=int(str(season).split('-')[0])
+            season_months=(pd.Timestamp.now(tz='UTC').year-season_year)*12+(
+                pd.Timestamp.now(tz='UTC').month-10)+1
+        except (ValueError,TypeError):
+            season_months=0
+        if extended and 0<season_months<=3:
+            st.info('Aktualny sezon NBA ma dopiero '+str(season_months)+
+                    ' miesiąc(e) kalendarzowy(e). Domyślne 3 miesiące już '
+                    'obejmują CAŁĄ dostępną historię sezonu. '
+                    'Rozszerzenie do 6 nie doda meczów ani nie zmieni symulacji.')
+        elif extended:
+            st.caption('Rozszerzono źródło historii. Sam model wyników korzysta '
+                       'tylko z ostatnich 12 spotkań drużyny; jeśli są już '
+                       'dostępne w oknie podstawowym, prognozy mogą być identyczne.')
         if st.button('Spróbuj pobrać NBA Advanced: tempo / OFF / DEF',key='bb715_advanced_refresh'):
             try:
                 updated,meta=load_dataset('Drużyny • advanced (pace/def)',season,nonce)
