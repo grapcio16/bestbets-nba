@@ -720,9 +720,8 @@ elif page == '💹 Kursy i value':
                         'Rzeczywisty backtesting będzie możliwy po zakończeniu zarejestrowanych spotkań.')
         if selected_view=='🧮 Kalkulator (opcjonalnie)':
             st.markdown('#### Kalkulator zawodników NBA')
-            st.caption('Wyszukaj zawodnika bez wybierania drużyny. Klub ustalamy automatycznie '
-                       'z katalogu ESPN. Wyniki pochodzą z rzeczywistych występów i '
-                       'stanowią niepełną próbkę, a prognozy nie są skalibrowane.')
+            st.caption('Pojedynczy zawodnik lub beta importu wielu linii z obrazu. '
+                       'Wyniki bazują na dostępnej historii NBA i nie są skalibrowane.')
             calculator_mode=st.radio(
                 'Tryb kalkulatora',
                 ['📷 Import screenshot — analiza wielu pozycji',
