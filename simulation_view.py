@@ -182,6 +182,9 @@ def game_card(sim,g,hist):
       <div class="bb-gamefooter">Średnia suma punktów <b>{sim['total_points']:.1f}</b> · Model typuje: <b>{esc(TEAM_NAMES.get(sim['winner'],sim['winner']))}</b></div>
       <div style="font-size:10px;color:#90a4be;margin-top:6px">Procenty = udział zwycięstw w 5 000 symulacji. Duże liczby przy drużynach = prognozowane średnie punkty, a nie aktualny wynik.</div>
     </div>''',unsafe_allow_html=True)
+    st.caption('Wariant wyniku tej karty: '+str(sim.get('source','Nieznany'))+
+               ' · próbka: '+str(sim.get('sample') or 'zaawansowane metryki drużyn')+
+               '. Statystyki nie są skalibrowanymi prawdopodobieństwami.')
     qc=sim.get('quality_check') or {}
     if qc.get('alerts'):
         st.warning('Kontrola prognozy: '+' • '.join(qc['alerts'][:4])+
@@ -735,6 +738,7 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     # Scores are simulated immediately; player estimates are loaded only for
     # the selected game in its details dialog, never across all upcoming games.
     summary,_,missing=build_sims(games,advanced,hist,pd.DataFrame(),pd.DataFrame(),research_mode)
+    other=[]
     # Capture BOTH models before tipoff, even if the user viewed only one.
     # The storage key is (ESPN game_id, model_id). Never rewrite a snapshot.
     try:
@@ -756,6 +760,51 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     except Exception as exc:
         st.warning('Nie udało się zapisać prognoz. Sprawdź konfigurację magazynu danych w ustawieniach serwera.')
 
+    # Make the research toggle objectively observable. A label change alone is
+    # not enough: display BOTH baseline and research forecasts and their deltas.
+    if summary and other:
+        baseline={str(x['game_id']):x for x in (other if research_mode else summary)}
+        experimental={str(x['game_id']):x for x in (summary if research_mode else other)}
+        compare=[]
+        for g in games.to_dict('records'):
+            key=str(g['game_id'])
+            b=baseline.get(key);r=experimental.get(key)
+            if b and r:
+                compare.append({
+                    'Mecz':g['away']+' @ '+g['home'],
+                    'Suma v7.2':b['total_points'],
+                    'Suma badawcza':r['total_points'],
+                    'Różnica sumy':round(r['total_points']-b['total_points'],1),
+                    'P(gospodarze) v7.2':b['home_win_pct'],
+                    'P(gospodarze) badawcza':r['home_win_pct'],
+                    'Różnica pp':round(r['home_win_pct']-b['home_win_pct'],1),
+                })
+        if compare:
+            cf=pd.DataFrame(compare)
+            st.markdown('#### Co zmienia przełącznik eksperymentalnego modelu?')
+            st.caption('Aktywny wariant: '+(
+                'WAŻONA FORMA + SIŁA RYWALI (badawczy)' if research_mode
+                else 'MODEL PODSTAWOWY v7.2')+
+                '. Prognozy obu wariantów na TYCH SAMYCH meczach. '
+                'Różnice to efekt innych średnich, a nie potwierdzona poprawa.')
+            if ((cf['Różnica sumy'].abs()<.05)&
+                    (cf['Różnica pp'].abs()<.05)).all():
+                st.warning('Oba warianty zwracają te same liczby przy obecnej historii. '
+                           'Najczęściej oznacza to brak wystarczających meczów do '
+                           'korekty formy lub brak różnicy po zaokrągleniu. '
+                           'Przełącznik NIE zapewnia wtedy innego wyniku.')
+            else:
+                st.caption(f"Wariant badawczy zmienia wynik w "
+                           f"{int(((cf['Różnica sumy'].abs()>=.05)|"
+                           f"(cf['Różnica pp'].abs()>=.05)).sum())}/{len(cf)} meczach.")
+            with st.expander('Porównaj liczbowe różnice dla każdego meczu',
+                             expanded=research_mode):
+                st.dataframe(cf,hide_index=True,use_container_width=True)
+        else:
+            st.info('Nie udało się policzyć dwóch wariantów na tych samych meczach.')
+    else:
+        st.warning('Porównanie modeli niedostępne z aktualną próbą; '
+                   'nie zakładamy, że warianty są zgodne.')
     st.caption('Szybki widok: prognozy drużyn. W szczegółach sprawdzisz własne linie sum i handicapów, porównasz modele oraz obejrzysz statystyki zawodników. Procenty nie są skalibrowane.')
     done={str(s['game_id']):s for s in summary}
     b1,b2,b3=st.columns(3)
