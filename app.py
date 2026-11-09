@@ -447,7 +447,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.13</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.15</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab'],index=0,label_visibility='collapsed')
@@ -870,7 +870,7 @@ elif page == '📈 Performance Tracker':
                      'Brier':value['brier']}
                     for code,value in heldout_summary.items()
                 ]),hide_index=True,use_container_width=True)
-                st.caption('Na kilkudziesięciu meczach niewielkie różnice '
+                st.caption('Uwaga: wariant venue_research jest tylko hipotezą dom/wyjazd. Zwróć uwagę na N (Mecze) każdego modelu; mniejszej liczby obserwacji nie wolno porównywać jak identycznej próby. Na kilkudziesięciu meczach niewielkie różnice '
                            'nie potwierdzają przewagi modelu. Nie są to '
                            'statystyki rentowności zakładów.')
             if 'tracker_walkforward_rows' in st.session_state:
