@@ -164,6 +164,10 @@ jobs:
           assert selection, "Odds analysis selector absent"
           selection[0].set_value("🧮 Kalkulator (opcjonalnie)").run()
           assert not at.exception, [str(x.message) for x in at.exception]
+          modes=[r for r in at.radio if r.key=="bb717_calculator_mode"]
+          assert modes, "Calculator mode selector absent"
+          modes[0].set_value("👤 Kalkulator pojedynczego zawodnika").run()
+          assert not at.exception, [str(x.message) for x in at.exception]
           players=[s for s in at.selectbox if s.label=="Wyszukaj zawodnika NBA"]
           assert players, "Global player selector absent"
           opts=list(players[0].options)
