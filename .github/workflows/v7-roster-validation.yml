@@ -26,9 +26,24 @@ jobs:
       - name: Install minimum test dependencies
         run: python -m pip install -q pandas numpy plotly streamlit requests 'psycopg[binary]>=3.2,<4'
       - name: Compile updated modules
-        run: python -m py_compile screenshot_import.py screenshot_ui.py rotation_intelligence.py simulation_data_audit.py simulation_sources.py model_validation.py center_leaderboard.py schedule_ui.py schedule_data.py viewer_time.py dashboard_data.py app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py tracker_storage.py tracker_postgres.py match_context.py forecast_quality.py availability_context.py opponent_ratings.py model_validation.py
+        run: python -m py_compile prediction_engine_v2.py player_model_battle.py screenshot_import.py screenshot_ui.py rotation_intelligence.py simulation_data_audit.py simulation_sources.py model_validation.py center_leaderboard.py schedule_ui.py schedule_data.py viewer_time.py dashboard_data.py app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py tracker_storage.py tracker_postgres.py match_context.py forecast_quality.py availability_context.py opponent_ratings.py model_validation.py
       - name: Unit tests for roster parsing
-        run: python -m unittest -v test_screen_v717.py test_rotation_v716.py test_simulation_data_audit.py test_center_v713.py test_center_v712.py test_center_v711.py test_schedule_v710.py test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
+        run: python -m unittest -v test_prediction_v718.py test_screen_v717.py test_rotation_v716.py test_simulation_data_audit.py test_center_v713.py test_center_v712.py test_center_v711.py test_schedule_v710.py test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
+      - name: v7.18 Candidate 2.0 and Model Battle are research-only
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          a=Path('app.py').read_text(encoding='utf-8')
+          b=Path('screenshot_import.py').read_text(encoding='utf-8')
+          c=Path('prediction_engine_v2.py').read_text(encoding='utf-8')
+          d=Path('simulation_engine.py').read_text(encoding='utf-8')
+          assert 'bb718_run' in a and 'chronological_battle(' in a
+          assert 'forecast_v2(' in a
+          assert 'P(OVER) v2 %' in b
+          assert 'model": "Prediction Engine 2.0 / BADAWCZY' in c
+          assert 'forecast_v2(' not in d, 'Existing 5000 simulation model was modified'
+          print('V2 is optional research; 5000 draws remain unchanged')
+          PY
       - name: v7.17 screenshot batch calculator smoke (no OCR server dependency)
         run: |
           python - <<'PY'
