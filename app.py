@@ -859,21 +859,34 @@ elif page == '📈 Performance Tracker':
             expired=True
     if expired:
         try:
-            auto_games,auto_notes=historical_espn_results(season,refresh=False)
-            if auto_notes:
-                st.session_state[last_auto_key]={
-                    'time':auto_clock.isoformat(),'settled':0,
-                    'status':'Ostrzeżenie: niekompletna lub nieaktualna odpowiedź ESPN. '
-                             'Dane nie zostały rozliczone.'}
-            elif auto_games is None or auto_games.empty:
-                st.session_state[last_auto_key]={
-                    'time':auto_clock.isoformat(),'settled':0,
-                    'status':'Brak potwierdzonych wyników ESPN do rozliczenia.'}
+            preview=tracker_read(season,config=cfg)
+            if preview.empty:
+                pending=False
             else:
-                new_count=tracker_settle(auto_games,config=cfg)
+                played=pd.to_datetime(preview['start_utc'],utc=True,errors='coerce')
+                pending=bool(((preview['home_score'].isna() |
+                               preview['away_score'].isna()) &
+                              (played<=auto_clock)).any())
+            if not pending:
                 st.session_state[last_auto_key]={
-                    'time':auto_clock.isoformat(),'settled':int(new_count),
-                    'status':'OK'}
+                    'time':auto_clock.isoformat(),'settled':0,
+                    'status':'Brak rozpoczętych spotkań oczekujących na rozliczenie.'}
+            else:
+                auto_games,auto_notes=historical_espn_results(season,refresh=False)
+                if auto_notes:
+                    st.session_state[last_auto_key]={
+                        'time':auto_clock.isoformat(),'settled':0,
+                        'status':'Ostrzeżenie: niekompletna lub nieaktualna odpowiedź ESPN. '
+                                 'Dane nie zostały rozliczone.'}
+                elif auto_games is None or auto_games.empty:
+                    st.session_state[last_auto_key]={
+                        'time':auto_clock.isoformat(),'settled':0,
+                        'status':'Brak potwierdzonych wyników ESPN do rozliczenia.'}
+                else:
+                    new_count=tracker_settle(auto_games,config=cfg)
+                    st.session_state[last_auto_key]={
+                        'time':auto_clock.isoformat(),'settled':int(new_count),
+                        'status':'OK'}
         except Exception:
             st.session_state[last_auto_key]={
                 'time':auto_clock.isoformat(),'settled':0,
@@ -885,7 +898,7 @@ elif page == '📈 Performance Tracker':
         st.caption(f"Automatyczne sprawdzenie wyników: "
                    f"{current_auto['time'][:16].replace('T',' ')} UTC · "
                    f"nowe rozliczenia: {current_auto['settled']} · {status}")
-        if status!='OK':
+        if status not in ('OK','Brak rozpoczętych spotkań oczekujących na rozliczenie.'):
             st.warning(status)
     with st.expander('Test historyczny: nowy model kontra stare średnie',expanded=False):
         st.caption('Walk-forward: każdy mecz prognozowany wyłącznie na podstawie '
