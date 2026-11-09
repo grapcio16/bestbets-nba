@@ -26,9 +26,34 @@ jobs:
       - name: Install minimum test dependencies
         run: python -m pip install -q pandas numpy plotly streamlit requests 'psycopg[binary]>=3.2,<4'
       - name: Compile updated modules
-        run: python -m py_compile tracker_automation.py simulation_lines.py prediction_engine_v2.py player_model_battle.py screenshot_import.py screenshot_ui.py rotation_intelligence.py simulation_data_audit.py simulation_sources.py model_validation.py center_leaderboard.py schedule_ui.py schedule_data.py viewer_time.py dashboard_data.py app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py tracker_storage.py tracker_postgres.py match_context.py forecast_quality.py availability_context.py opponent_ratings.py model_validation.py
+        run: python -m py_compile season_props.py tracker_automation.py simulation_lines.py prediction_engine_v2.py player_model_battle.py screenshot_import.py screenshot_ui.py rotation_intelligence.py simulation_data_audit.py simulation_sources.py model_validation.py center_leaderboard.py schedule_ui.py schedule_data.py viewer_time.py dashboard_data.py app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py tracker_storage.py tracker_postgres.py match_context.py forecast_quality.py availability_context.py opponent_ratings.py model_validation.py
       - name: Unit tests for roster parsing
-        run: python -m unittest -v test_tracker_v720.py test_simulation_lines_v719.py test_prediction_v718.py test_screen_v717.py test_rotation_v716.py test_simulation_data_audit.py test_center_v713.py test_center_v712.py test_center_v711.py test_schedule_v710.py test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
+        run: python -m unittest -v test_season_props_v721.py test_tracker_v720.py test_simulation_lines_v719.py test_prediction_v718.py test_screen_v717.py test_rotation_v716.py test_simulation_data_audit.py test_center_v713.py test_center_v712.py test_center_v711.py test_schedule_v710.py test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
+      - name: v7.21 seasonal props UI and visible research changes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from streamlit.testing.v1 import AppTest
+          ui=Path('screenshot_ui.py').read_text(encoding='utf-8')
+          for item in ('Wyniki Over / Under','Obrona rywala i niepewność',
+                       'bb721_game_date','bb721_result','Ostatnie 10: OVER'):
+              assert item in ui or item in Path('season_props.py').read_text(), item
+          research=Path('simulation_engine.py').read_text(encoding='utf-8')
+          assert 'NBA Advanced 70% + ważona forma ESPN 30%' in research
+          simulation=Path('simulation_view.py').read_text(encoding='utf-8')
+          assert 'Co zmienia przełącznik eksperymentalnego modelu?' in simulation
+          at=AppTest.from_file('app.py',default_timeout=90).run()
+          assert not at.exception,[str(x.message) for x in at.exception]
+          at.sidebar.radio[0].set_value('💹 Kursy i value').run()
+          assert not at.exception,[str(x.message) for x in at.exception]
+          choice=next(x for x in at.radio if x.key=='bb64_odds_view')
+          choice.set_value('🧮 Kalkulator (opcjonalnie)').run()
+          assert not at.exception,[str(x.message) for x in at.exception]
+          assert any(x.key=='bb721_game_date' for x in at.get('date_input'))
+          at.sidebar.radio[0].set_value('🏀 Symulacje 5000').run()
+          assert not at.exception,[str(x.message) for x in at.exception]
+          print('Seasonal history + matchup research UI and model contrast loaded')
+          PY
       - name: v7.20 auto tracker workflow present and UI fallback active
         run: |
           python - <<'PY'
@@ -89,7 +114,10 @@ jobs:
           from streamlit.testing.v1 import AppTest
           src=Path("screenshot_ui.py").read_text(encoding="utf-8")
           assert "st.file_uploader(" in src and "st.data_editor(" in src
-          assert "bb717_verified" in src and "batch_analyze(" in src
+          assert "bb717_verified" in src and "analyze_season_offers(" in src
+          assert "detailed_espn_gamelog" in src
+          assert "upcoming_team_games(" in src
+          assert "historical_espn_results(" in src
           assert "batch_analyze(" not in Path("simulation_engine.py").read_text()
           at=AppTest.from_file("app.py",default_timeout=90).run()
           assert not at.exception,[str(x.message) for x in at.exception]
