@@ -14,14 +14,17 @@ import unicodedata
 import pandas as pd
 
 from core import STAT_NAMES, calc_projection, norm_name, prop_probability
+from prediction_engine_v2 import forecast_v2
 
 
 EDIT_COLUMNS = ["Zawodnik", "Rynek", "Linia", "Kurs OVER", "Kurs UNDER", "Weryfikacja OCR"]
 RESULT_COLUMNS = [
     "Zawodnik", "Rynek", "Linia", "Kurs OVER", "Kurs UNDER",
     "Prognoza", "P(OVER) model %", "P(UNDER) model %",
-    "Próg OVER %", "Próg UNDER %", "Rynek bez marży OVER %",
-    "Ostatnie 10 OVER", "Próba", "Status", "Uwaga",
+    "Prognoza v2", "P(OVER) v2 %", "P(UNDER) v2 %",
+    "Minuty v2", "Próg OVER %", "Próg UNDER %",
+    "Rynek bez marży OVER %", "Ostatnie 10 OVER", "Próba",
+    "Status", "Uwaga", "Wariant v2",
 ]
 MAX_IMAGE_BYTES = 8_000_000
 MAX_IMAGE_PIXELS = 12_000_000
@@ -219,6 +222,9 @@ def batch_analyze(offers, logs, cutoff_utc=None, min_games=10):
                 "Kurs OVER":over,"Kurs UNDER":under,
                 "Prognoza":None,"P(OVER) model %":None,
                 "P(UNDER) model %":None,
+                "Prognoza v2":None,"P(OVER) v2 %":None,
+                "P(UNDER) v2 %":None,"Minuty v2":None,
+                "Wariant v2":"BRAK DANYCH",
                 "Próg OVER %":round(100/over,1) if over else None,
                 "Próg UNDER %":round(100/under,1) if under else None,
                 "Rynek bez marży OVER %":round(100*(1/over)/((1/over)+(1/under)),1)
@@ -265,6 +271,18 @@ def batch_analyze(offers, logs, cutoff_utc=None, min_games=10):
                            "Ostatnie 10 OVER":f"{int((sub[market].tail(10)>line).sum())}/{min(10,n)}",
                            "Status":"MODEL TESTOWY",
                            "Uwaga":"Niezweryfikowane prawdopodobieństwo; brak matchupu i potwierdzenia daty/aktywności."})
+            # Candidate 2.0 is displayed side-by-side, NEVER substituted for
+            # the current production percentage unless later validated.
+            try:
+                v2=forecast_v2(sub,market,line,time,min_games=max(10,min_games),
+                               draws=2048)
+                result.update({"Prognoza v2":round(v2["mean"],1),
+                               "P(OVER) v2 %":round(100*v2["p_over"],1),
+                               "P(UNDER) v2 %":round(100*v2["p_under"],1),
+                               "Minuty v2":v2["minutes"],
+                               "Wariant v2":"BADAWCZY, NIEKALIBROWANY"})
+            except (ValueError,TypeError,KeyError,OverflowError) as exc:
+                result["Wariant v2"]="WSTRZYMANY: "+str(exc)[:90]
         except (ValueError,TypeError,KeyError,ZeroDivisionError) as exc:
             result["Uwaga"]="Brak możliwej do zweryfikowania projekcji: "+str(exc)[:100]
         output.append(result)

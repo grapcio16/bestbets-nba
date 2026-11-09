@@ -112,12 +112,24 @@ def render_screenshot_calculator(season, get_logs):
         y.metric("Próba ≥10 występów",computed)
         z.metric("Wstrzymane",missing)
         st.caption(
-            "P(OVER) i P(UNDER) są NIEKALIBROWANYMI wynikami starego modelu "
-            "statystycznego, nie zweryfikowanymi szansami na wygraną. "
-            "Próg = 100/kurs. Porównanie z rynkiem bez marży uwzględnia "
-            "tylko dwustronne kursy z tego screena.")
-        st.dataframe(result,hide_index=True,use_container_width=True,
-                     height=min(680,70+max(1,total)*39))
+            "Wyświetlamy DWA eksperymentalne modele na dokładnie tych samych liniach. "
+            "Dotychczasowy model nie został zastąpiony przez Prediction Engine 2.0. "
+            "Oba procenty pozostają NIEKALIBROWANE — nie są potwierdzonymi szansami. "
+            "Próg = 100/kurs. Rynek bez marży jest dostępny, jeżeli odczytano oba kursy.")
+        tab_compare,tab_full=st.tabs(['Porównanie prognoz', 'Pełne wyniki i braki'])
+        with tab_compare:
+            cols=['Zawodnik','Rynek','Linia','Kurs OVER','Kurs UNDER',
+                  'P(OVER) model %','P(OVER) v2 %','P(UNDER) model %',
+                  'P(UNDER) v2 %','Prognoza','Prognoza v2','Próba',
+                  'Status','Wariant v2']
+            st.dataframe(result[[c for c in cols if c in result]],
+                         hide_index=True,use_container_width=True,
+                         height=min(680,70+max(1,total)*39))
+            st.caption('Różnice są hipotezą do walk-forward, '
+                       'a nie dowodem poprawy skuteczności lub EV.')
+        with tab_full:
+            st.dataframe(result,hide_index=True,use_container_width=True,
+                         height=min(680,70+max(1,total)*39))
         st.download_button(
             "Eksportuj sprawdzane pozycje i wyniki CSV",
             result.to_csv(index=False).encode("utf-8-sig"),

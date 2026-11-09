@@ -1,3 +1,30 @@
+# BestBets v7.18 — Prediction Engine 2.0 (wariant badawczy, 9.11.2026)
+
+Dodano **kandydacki** model Player Props i rygorystyczne porównanie ze starym silnikiem. **Żaden z modeli nie jest kalibrowany; nie wdrażamy automatycznych typów ani nie obiecujemy lepszego ROI.** Podstawowy algorytm 5000 symulacji meczowych, terminarz i darmowe informacje NBA pozostają niezmienione.
+
+## Jak działa v2
+
+- **Minuty:** ważona średnia ostatnich 5, 10 i wcześniejszych meczów tej samej drużyny, z osobną symulacją zmienności minut, zakres 3–48.
+- **Produkcja per minute:** ważone historyczne punkty, zbiórki lub asysty na minutę z losowaniem indeksów wcześniejszych meczów i mieszanką Poissona. **PRA** sumuje składowe z tym samym wylosowanym poprzednim meczem, częściowo zachowując ich współzależność.
+- **Trójki:** kiedy rzeczywiste `FG3A` są dostępne, symuluje liczbę prób za trzy na minutę i skuteczność z łagodnym priorem Beta-Binomial. W przeciwnym razie stosuje wariant historyczny per-minute + Poisson.
+- **Minimum 10 występów** odpowiedniej drużyny; nie dorabiamy zawodnikom danych bez logów, nie przenosimy automatycznie historii nowego klubu ze starego. Każda prognoza jest deterministyczna dla tej samej historii i daty.
+- Dane **tylko sprzed meczu**, bez look-ahead; nie wykorzystujemy niepotwierdzonych absencji jako mnożnika. Prawdopodobieństwa z 2048 losowań są **NIEKALIBROWANE**.
+
+## Gdzie zobaczyć
+
+- `Kursy i value → Kalkulator → Import screenshot`: dla każdej zweryfikowanej pozycji wyświetlamy obok siebie obecny model i `P(OVER) v2` z prognozą oraz minutami v2. Brak danych oznacza wstrzymanie, nie sztuczne procenty.
+- `Kursy i value → Kalkulator pojedynczego zawodnika`: po wyliczeniu szczegóły kandydata v2 pojawiają się obok standardowej analizy, gdy jest minimum 10 rzeczywistych występów.
+- `Backtesting → Prediction Engine 2.0 — Model Battle`: **dopiero po kliknięciu** pobieramy wybrane sezony (2024/25, 2025/26, 2026/27; pełna historia zależy od NBA Stats), liczymy przewidywania dla rzeczywistych spotkań zawodników w porządku chronologicznym, z tym samym zbiorze dla obu modeli. Widoczne: MAE, Brier, log loss, trafność Over/Under, bias, okres późniejszych 30% i eksport CSV.
+- Testowane **linie są syntetyczne**: `floor(średnia z poprzednich 10) + 0.5`, nie są kursami bukmacherów. Taki test NIE udowadnia dodatniego ROI. Rok/sezon i klub są oddzielane przy trenowaniu, co zapobiega mieszaniu zawodników sprzed transferów oraz przyszłych meczów.
+
+## Co jeszcze jest potrzebne przed PRO
+
+Zbieranie rzeczywistych, oznaczonych czasem linii i kursów przed meczami, potwierdzenie źródeł danych o kontuzjach i rotacji, niezależne daty walidacji, kalibracja dla osobnych rynków oraz kontrola licencji na komercyjne wykorzystanie danych.
+
+Testy: `test_prediction_v718.py`, dotychczasowy `test_screen_v717.py` i pozostały CI. Nowy silnik to kandydat, który może okazać się gorszy — wyniki muszą zdecydować, czy w przyszłości go zastosujemy.
+
+---
+
 # BestBets v7.17 — screenshot importer BETA (9.11.2026)
 
 **Nowe:** `Kursy i value → Kalkulator → Import screenshot — analiza wielu pozycji`. Jedno zdjęcie może pokazać wiele osobnych rynków punktowych; importer OCR rozpoznaje pola zawodnik / Over / Under / linia / kurs i wyświetla **edytowalną tabelę do obligatoryjnej weryfikacji przez użytkownika**. Wspieramy czytelne dwukolumnowe PL/EN listy oraz proste listy jednokolumnowe, a **nie wszystkie możliwe aplikacje bukmacherskie**.
