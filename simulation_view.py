@@ -20,6 +20,7 @@ from forecast_quality import quality_report
 from simulation_data_audit import matchup_audit, venue_research_candidate
 from availability_context import matchup_injuries,player_minutes_brief
 from rotation_intelligence import minutes_trends, rotation_report
+from simulation_lines import score_line_probabilities, quoted_price_diagnostics, scenario_line_table
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -321,7 +322,8 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
     # Only render the selected section. Stats are immediately visible by default.
     view = st.radio('Pokaż szczegóły',
                      ['👥 Zawodnicy', '🩺 Rotacja i absencje',
-                      '📊 Rozkład punktów', '💹 Kursy bukmacherów'],
+                      '🎯 Linie i wrażliwość', '📊 Rozkład punktów',
+                      '💹 Kursy bukmacherów'],
                      horizontal=True, key=f"bb61_detail_view_{g['game_id']}")
     if view == '🩺 Rotacja i absencje':
         st.markdown('#### Dostępność i ostatnia rotacja — analiza badawcza')
@@ -449,6 +451,123 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
         abs(recomputed['total_points']-sim['total_points'])>0.11):
         st.error('Niespójność wariantu modelu: szczegóły nie odpowiadają '
                  'prognozie z karty meczu. Odśwież stronę przed analizą.')
+        return
+
+    if view == '🎯 Linie i wrażliwość':
+        st.markdown('#### Linie bukmachera na dokładnie 5 000 symulowanych wyników')
+        st.caption('Wpisz WŁASNĄ linię. Nie pobieramy ani nie zgadujemy kursów. '
+                   'Każda liczba procentowa poniżej jest częstością z bieżącego '
+                   'modelu 5000 przebiegów, nie skalibrowaną szansą wygranej.')
+        kind=st.radio('Rynek do zbadania',
+                      ['Suma punktów (Over/Under)',
+                       'Handicap gospodarzy'],
+                      horizontal=True,key=f"bb719_market_{g['game_id']}")
+        is_total=kind.startswith('Suma')
+        if is_total:
+            raw=st.text_input('Suma punktów — wpisz linię bukmachera',
+                              value='',placeholder='np. 228,5',
+                              key=f"bb719_total_{g['game_id']}")
+        else:
+            raw=st.text_input(
+                'Handicap gospodarzy '+TEAM_NAMES.get(home,home)+' (ze znakiem)',
+                value='',placeholder='np. -6,5 lub +4,5',
+                key=f"bb719_spread_{g['game_id']}")
+            st.caption('Handicap −6,5 gospodarzy: trzeba wygrać co najmniej 7 pkt. '
+                       'Dla gości pokazujemy przeciwną stronę tego samego rynku.')
+        if not raw.strip():
+            st.info('Wpisz linię z aktualnego kursu bukmachera, aby '
+                    'policzyć częstość jej pokrycia w symulacji.')
+            return
+        try:
+            entered=float(raw.replace(',','.').replace(' ',''))
+            # The second market is not shown; a neutral reference is used
+            # internally only because the shared function returns both markets.
+            total_line=entered if is_total else float(sim['total_points'])
+            handicap=0.0 if is_total else entered
+            sampled=score_line_probabilities(
+                home_draws,away_draws,total_line,handicap)
+        except (ValueError,TypeError) as exc:
+            st.warning('Nieprawidłowa linia: '+str(exc)[:140])
+            return
+        first=sampled['total_over'] if is_total else sampled['home_cover']
+        second=sampled['total_under'] if is_total else sampled['away_cover']
+        push=sampled['total_push'] if is_total else sampled['spread_push']
+        label_a='Over' if is_total else TEAM_NAMES.get(home,home)+' pokryje'
+        label_b='Under' if is_total else TEAM_NAMES.get(away,away)+' pokryje'
+        m1,m2,m3=st.columns(3)
+        m1.metric(label_a,f'{100*first:.1f}%')
+        m2.metric(label_b,f'{100*second:.1f}%')
+        m3.metric('Zwrot przy równej linii',f'{100*push:.1f}%')
+        st.caption(f'{sampled["n"]:,} przebiegów · '
+                   'całkowite linie mogą zakończyć się zwrotem, '
+                   'dlatego OVER + UNDER + ZWROT = 100%. '
+                   'Przebiegi współdzielą te same założenia modelowe.'
+                   .replace(',', ' ' ,1))
+        if is_total:
+            st.caption(f'80% SYMULOWANYCH sum: {sampled["total_p10"]:.0f}–'
+                       f'{sampled["total_p90"]:.0f} pkt. '
+                       f'Średnia: {sampled["total_mean"]:.1f} pkt.')
+        else:
+            st.caption('Różnica punktów gospodarze − goście: '
+                       f'średnia {sampled["margin_mean"]:+.1f}, '
+                       f'80% symulacji {sampled["margin_p10"]:+.0f} '
+                       f'do {sampled["margin_p90"]:+.0f}.')
+        # Simulation sampling error, NOT the much larger, unmeasured model error.
+        sampling_uncertainty=1.96*(max(0.0,first*(1-first))/sampled['n'])**.5
+        st.caption(f'Orientacyjny błąd MONTE CARLO dla pierwszej strony: '
+                   f'±{100*sampling_uncertainty:.1f} pp (95%, gdyby model był poprawny). '
+                   'Nie obejmuje błędu danych, kalibracji, kontuzji i samego modelu.')
+        c1,c2=st.columns(2)
+        price_one=c1.text_input('Kurs pierwszej strony (opcjonalny)',
+            value='',placeholder='np. 1,85',
+            key=f"bb719_odds_first_{g['game_id']}")
+        price_two=c2.text_input('Kurs drugiej strony (opcjonalny)',
+            value='',placeholder='np. 1,91',
+            key=f"bb719_odds_second_{g['game_id']}")
+        prices=[]
+        for label,p,quote in ((label_a,first,price_one),(label_b,second,price_two)):
+            try:
+                detail=quoted_price_diagnostics(p,push,quote)
+                if detail is not None:
+                    prices.append({'Strona':label,
+                       'Kurs (wpisany ręcznie)':detail['odds'],
+                       'Próg rentowności %':round(100*detail['conditional_break_even'],1),
+                       'EV modelowe %':round(detail['model_ev_pct'],1)})
+            except ValueError as exc:
+                st.warning('Kurs '+label+': '+str(exc))
+        if prices:
+            st.dataframe(pd.DataFrame(prices),hide_index=True,use_container_width=True)
+            st.warning('EV jest wyłącznie wynikiem NIEKALIBROWANEGO modelu '
+                       'i nie dowodzi rzeczywistej przewagi nad bukmacherem. '
+                       'Kursów nie zweryfikowano w czasie rzeczywistym.')
+        with st.expander('🔬 Wrażliwość na wybór modelu — porównaj warianty',expanded=False):
+            st.caption('Porównanie wyłącznie na zakończonych meczach PRZED '
+                       'rozpoczęciem spotkania. Każdy wariant ma własne 5000 prób. '
+                       'Modele są skorelowane i NIE są niezależnym konsensusem.')
+            if st.button('Przelicz alternatywne modele',
+                         key=f"bb719_sensitivity_{g['game_id']}"):
+                with st.spinner('Przeliczam warianty historyczne…'):
+                    comparisons,interpretation=scenario_line_table(
+                        g,hist,advanced,total_line,handicap,sim,
+                        home_draws,away_draws)
+                st.session_state[f"bb719_comparison_{g['game_id']}"]=(
+                    raw,kind,research_mode,str(sim['source']),comparisons,interpretation)
+            stored=st.session_state.get(f"bb719_comparison_{g['game_id']}")
+            if stored and stored[:4]==(raw,kind,research_mode,str(sim['source'])):
+                table,interpretation=stored[4],stored[5]
+                cols=(['Wariant','Średnia suma','Suma OVER (%)']
+                      if is_total else
+                      ['Wariant','Średni handicap','Gospodarze pokryją (%)'])
+                st.dataframe(table[cols],hide_index=True,use_container_width=True)
+                if interpretation.get('available'):
+                    disagreement=(interpretation['total_spread_pp']
+                                  if is_total else interpretation['cover_spread_pp'])
+                    st.metric('Rozbieżność wariantów',f'{disagreement:.1f} pp',
+                              help='Różnica maksimum minus minimum; nie jest to błąd statystyczny ani przedział ufności.')
+                st.warning(interpretation['warning'])
+            else:
+                st.caption('Porównanie uruchamia się wyłącznie po kliknięciu. '
+                           'Zmiana linii wymaga ponownego obliczenia.')
         return
 
     if view == '📊 Rozkład punktów':
@@ -599,7 +718,7 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     except Exception as exc:
         st.warning('Nie udało się zapisać prognoz. Sprawdź konfigurację magazynu danych w ustawieniach serwera.')
 
-    st.caption('Szybki widok: mecze i wyniki drużyn. Statystyki zawodników pobierane są automatycznie po kliknięciu szczegółów wybranego meczu.')
+    st.caption('Szybki widok: prognozy drużyn. W szczegółach sprawdzisz własne linie sum i handicapów, porównasz modele oraz obejrzysz statystyki zawodników. Procenty nie są skalibrowane.')
     done={str(s['game_id']):s for s in summary}
     b1,b2,b3=st.columns(3)
     b1.metric('Mecze w terminarzu',len(games),help='Zaplanowane spotkania w wybranym okresie')
