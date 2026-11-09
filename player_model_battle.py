@@ -62,11 +62,14 @@ def chronological_battle(logs, market="PTS", *, max_cases=300, min_games=10):
     if "GAME_ID" in src:
         src=src.drop_duplicates(["id_key","GAME_ID"],keep="last")
     candidates=[]
+    groups={}
     for (player,team,year), g in src.groupby(
             ["id_key","TEAM_ABBREVIATION","season_key"],sort=False):
         # Only within-season, same-team roles. Previous seasons provide independent
         # tests, NOT future information or post-trade role substitutions.
         g=g.sort_values("GAME_DATE").reset_index(drop=True)
+        key=(player,team,year)
+        groups[key]=g
         if len(g)<=min_games:
             continue
         for i in range(min_games,len(g)):
@@ -79,13 +82,29 @@ def chronological_battle(logs, market="PTS", *, max_cases=300, min_games=10):
                 continue
             if not np.isfinite(target[market]):
                 continue
-            candidates.append((stamp,prior,target,year))
-    # Use most recent eligible dates, but all analyzed models receive exactly the
-    # same selected games. Do NOT rank by model predictions before evaluation.
+            # Store only the row index, NOT a full prior DataFrame per game;
+            # the full NBA seasons can contain tens of thousands of outcomes.
+            candidates.append((stamp,key,i))
+    # Select recent observations FROM EACH season (capped overall). This tests
+    # earlier seasons too, without pooling their player roles during training.
     candidates=sorted(candidates,key=lambda x:x[0])
-    cases=candidates[-max(1,min(int(max_cases),1500)):]
+    cap=max(1,min(int(max_cases),1500))
+    years=sorted({key[2] for _,key,_ in candidates})
+    per_year=max(1,cap//max(1,len(years)))
+    chosen=set()
+    for year in years:
+        options=[i for i,(_,key,_) in enumerate(candidates) if key[2]==year]
+        chosen.update(options[-per_year:])
+    for i in range(len(candidates)-1,-1,-1):
+        if len(chosen)>=cap:break
+        chosen.add(i)
+    cases=[candidates[i] for i in sorted(chosen,key=lambda j:candidates[j][0])][:cap]
     rows=[]
-    for stamp,prior,target,year in cases:
+    for stamp,key,index in cases:
+        g=groups[key]
+        target=g.iloc[index]
+        prior=g[g["GAME_DATE"]<stamp]
+        year=key[2]
         line=max(.5,math.floor(float(prior[market].tail(10).mean()))+.5)
         try:
             legacy=calc_projection(prior,market)
