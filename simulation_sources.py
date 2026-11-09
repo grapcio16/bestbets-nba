@@ -4,11 +4,13 @@ import pandas as pd
 from sources import ESPN_SCOREBOARD, memoized_json, parse_espn_schedule
 
 
-def historical_espn_results(season: str, refresh=False):
-    """Read current & prior month; do not fetch a different season by accident.
+def historical_espn_results(season: str, refresh=False, lookback_months=3):
+    """Season-scoped completed games from ESPN, with configurable cached depth.
 
-    At 2026/27 season start the month-window covers October and November, and
-    grows as the season progresses. Maximum 3 months to minimize live API calls.
+    Default stays at 3 months for fast startup. The research/audit option can
+    load up to 8 calendar months of THIS season, never past-season matches.
+    On November 2026 the season has only October/November available: larger
+    lookback cannot invent more season data.
     """
     start=int(str(season).split('-')[0])
     now=pd.Timestamp.now(tz='UTC')
@@ -16,7 +18,11 @@ def historical_espn_results(season: str, refresh=False):
     season_end=pd.Timestamp(year=start+1,month=7,day=1,tz='UTC')
     if not (season_start<=now<season_end):
         return pd.DataFrame(), 'ESPN: dane historyczne tej wersji tylko dla aktualnego sezonu.'
-    months=pd.period_range((now-pd.DateOffset(months=2)).strftime('%Y-%m'),now.strftime('%Y-%m'),freq='M')
+    try:
+        window=max(1,min(8,int(lookback_months)))
+    except (ValueError,TypeError):
+        window=3
+    months=pd.period_range((now-pd.DateOffset(months=window-1)).strftime('%Y-%m'),now.strftime('%Y-%m'),freq='M')
     chunks=[];errors=[]
     for period in months:
         if period.to_timestamp().tz_localize('UTC')<season_start:continue
