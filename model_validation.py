@@ -9,6 +9,7 @@ import pandas as pd
 
 from simulation_engine import completed_team_scores, legacy_matchup_means, matchup_means
 from opponent_ratings import regularized_matchup_means
+from simulation_data_audit import venue_research_candidate
 
 
 def score_model(model, actual_home, actual_away):
@@ -27,7 +28,7 @@ def score_model(model, actual_home, actual_away):
     }
 
 
-def evaluate_models(completed, holdout_n=40):
+def evaluate_models(completed, holdout_n=40, include_venue=False):
     cols={'game_id','start_utc','home','away','home_score','away_score','status_code'}
     if completed is None or completed.empty or not cols.issubset(completed.columns):
         return pd.DataFrame(),{}
@@ -51,12 +52,18 @@ def evaluate_models(completed, holdout_n=40):
             'legacy':legacy_matchup_means(event['home'],event['away'],{},hist),
             'recency':matchup_means(event['home'],event['away'],{},hist),
             'opponent_ridge':regularized_matchup_means(
-                event['home'],event['away'],prior,stamp)
+                event['home'],event['away'],prior,stamp),
         }
-        if any(v is None for v in candidates.values()):
+        if include_venue:
+            candidates['venue_research']=venue_research_candidate(prior,event)
+        # Keep baseline comparison unchanged when venue split is unavailable.
+        # Venue may use a smaller sample: N is always disclosed for each model.
+        if any(candidates[k] is None for k in ('legacy','recency','opponent_ridge')):
             continue
         h,a=float(event['home_score']),float(event['away_score'])
         for name,model in candidates.items():
+            if model is None:
+                continue
             metrics=score_model(model,h,a)
             out.append({'game_id':str(event['game_id']),'start_utc':stamp,
                         'model':name,**metrics})

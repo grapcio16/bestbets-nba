@@ -17,6 +17,7 @@ from espn_player_data import matchup_espn_logs
 from roster_data import team_roster
 from matchup_roster import roster_projection_table
 from forecast_quality import quality_report
+from simulation_data_audit import matchup_audit, venue_research_candidate
 from availability_context import matchup_injuries,player_minutes_brief
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -232,6 +233,28 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
         aa.caption(f"Ostatnie {past_away['games']} rozegranych meczów, bez symulacji")
         hh.metric('Średnia zdobytych pkt — gospodarze (historia)',f"{past_home['mean']:.1f} pkt")
         hh.caption(f"Ostatnie {past_home['games']} rozegranych meczów, bez symulacji")
+    with st.expander('📈 Audyt danych: próba 5/10/20, dom/wyjazd, obrona, tempo i zmienność',expanded=False):
+        st.caption('Wszystkie liczby wyliczono WYŁĄCZNIE z zakończonych meczów przed datą analizowanego spotkania. '
+                   'Używanie większej próby nie gwarantuje dokładniejszej prognozy. '
+                   'To informacje badawcze — NIE są dodatkowymi mnożnikami symulacji.')
+        report_rows, audit_flags=matchup_audit(hist,g,advanced)
+        st.dataframe(report_rows,hide_index=True,use_container_width=True)
+        st.caption('Historia 5/10/20 to liczba dostępnych meczów z ostatnich N; '
+                   '„U siebie / wyjazd” to liczba rzeczywistych spotkań w miejscu odpowiadającym meczowi. '
+                   'Odchylenie sumy = rzeczywista zmienność punktów.')
+        if audit_flags:
+            st.warning('Ograniczenia danych: '+' • '.join(audit_flags[:5]))
+        candidate=venue_research_candidate(hist,g)
+        if candidate is not None:
+            st.caption('Dodatkowa hipoteza badawcza (bez wpływu na wynik meczu): '
+                       f"historyczne splity dom/wyjazd sugerują średnie "
+                       f"{candidate['away']:.1f} : {candidate['home']:.1f}. "
+                       f"Próba venue: gospodarze {candidate['venue_samples'][0]} / "
+                       f"goście {candidate['venue_samples'][1]}. "
+                       'Nie jest to skalibrowany ani produkcyjny model.')
+        else:
+            st.caption('Nie uruchomiono hipotezy dom/wyjazd: '
+                       'brak minimum 4 zakończonych spotkań w odpowiednich lokalizacjach dla obu drużyn.')
     from match_context import matchup_schedule_context
     contexts=matchup_schedule_context(hist,g)
     st.markdown('#### Odpoczynek i intensywność terminarza')
@@ -431,6 +454,24 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
                    'Nie uwzględnia jeszcze potwierdzonych składów i kontuzji.')
     else:
         st.caption('Domyślny model v7.2. Tryb badawczy można włączyć powyżej.')
+    with st.expander('🔬 Głębsze dane — ustawienia badawcze',expanded=False):
+        extended=st.toggle(
+            'Pobierz wcześniejsze miesiące bieżącego sezonu (maksymalnie 6)',
+            value=False,key='bb715_older_history',
+            help='Domyślnie 3 miesiące; rozszerzenie nie łączy różnych sezonów ani nie zmienia wariantu modelu.')
+        if st.button('Spróbuj pobrać NBA Advanced: tempo / OFF / DEF',key='bb715_advanced_refresh'):
+            try:
+                updated,meta=load_dataset('Drużyny • advanced (pace/def)',season,nonce)
+                if updated is None or updated.empty or meta.get('stale'):
+                    st.warning('Nie udało się uzyskać aktualnych NBA Advanced. '
+                               'Stare dane nie zastąpią bieżących statystyk.')
+                else:
+                    st.success(f"Pobrano aktualne NBA Advanced ({len(updated)} drużyn). "
+                               "Model może je wykorzystać w kolejnych prognozach.")
+            except Exception as exc:
+                st.warning('NBA Advanced niedostępne z hostingu: '+str(exc)[:160])
+        st.caption('NBA Stats bywa blokowane w chmurze. Pobieranie tylko po kliknięciu; '
+                   'nie przeliczamy retrospektywnie wcześniej zapisanych prognoz.')
     days=st.select_slider('Pokaż nadchodzące mecze przez',options=[1,3,5,7,10,14],value=1,format_func=lambda d:f'{d} dni')
     try:
         schedule,sm=load_schedule(nonce)
@@ -464,10 +505,15 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
                 warnings.append('NBA advanced nie jest zapisane lokalnie — użyto danych meczowych ESPN.')
         except Exception as e:
             warnings.append('NBA advanced niedostępne: '+str(e)[:130])
-        try:hist,msg=historical_espn_results(season,refresh=nonce>0)
+        try:hist,msg=historical_espn_results(season,refresh=nonce>0,
+                                                lookback_months=6 if extended else 3)
         except Exception as e:msg='ESPN wyniki: '+str(e)
         if msg:warnings.append(msg)
     for warn in warnings:st.caption('⚠️ '+warn)
+    st.caption(f"Historia do symulacji: {len(hist)} zweryfikowanych finałów, "
+               f"okno {'maks. 6' if extended else 'maks. 3'} miesięcy bieżącego sezonu. "
+               "Ostatnich 12 spotkań drużyny używa model domyślny; "
+               "dla starszych meczów rozszerzenie pomaga tylko wtedy, gdy sezon już trwa wystarczająco długo.")
     # Scores are simulated immediately; player estimates are loaded only for
     # the selected game in its details dialog, never across all upcoming games.
     summary,_,missing=build_sims(games,advanced,hist,pd.DataFrame(),pd.DataFrame(),research_mode)
