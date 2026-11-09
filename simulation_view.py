@@ -19,6 +19,7 @@ from matchup_roster import roster_projection_table
 from forecast_quality import quality_report
 from simulation_data_audit import matchup_audit, venue_research_candidate
 from availability_context import matchup_injuries,player_minutes_brief
+from rotation_intelligence import minutes_trends, rotation_report
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -108,7 +109,7 @@ def team_scoring_history(hist, code, games=10):
 
 
 @st.cache_data(ttl=3*3600,max_entries=8,show_spinner=False)
-def matchup_players_cached(season, g, hist, advanced, nonce, research_mode=False):
+def matchup_players_cached(season, g, hist, advanced, nonce, research_mode=False, cache_revision='v716'):
     """Fetch selected teams ONLY; streamlit and per-event disk cache prevent repeats."""
     selected, source=matchup_espn_logs(hist,g,games_per_team=7)
     if selected.empty:return pd.DataFrame(),source
@@ -118,11 +119,14 @@ def matchup_players_cached(season, g, hist, advanced, nonce, research_mode=False
     except (ValueError,KeyError,TypeError) as exc:
         return pd.DataFrame(),{'source':'ESPN','warning':'Niepełne statystyki zawodników: '+str(exc)[:150]}
     single=pd.DataFrame([g])
+    # Only earlier observed minutes; separate context, never a points multiplier.
+    trend=minutes_trends(logs,g['start_utc'],g['home'],g['away'])
+    extra=dict(source) if isinstance(source,dict) else {'source':str(source)}
+    extra['minutes_trends']=trend.to_dict('records')
     # Injury data is deliberately not fetched for EVERY matchup/card.
     # Without a recent confirmed report, availability stays unverified.
     _,per_game,_=build_sims(single,advanced,hist,logs,pd.DataFrame(),research_mode)
-    return per_game.get(str(g['game_id']),pd.DataFrame()),source
-
+    return per_game.get(str(g['game_id']),pd.DataFrame()),extra
 
 @st.cache_data(ttl=12*3600,max_entries=60,show_spinner=False)
 def selected_team_roster(code, nonce):
@@ -316,8 +320,65 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
 
     # Only render the selected section. Stats are immediately visible by default.
     view = st.radio('Pokaż szczegóły',
-                    ['👥 Zawodnicy', '📊 Rozkład punktów', '💹 Kursy bukmacherów'],
-                    horizontal=True, key=f"bb61_detail_view_{g['game_id']}")
+                     ['👥 Zawodnicy', '🩺 Rotacja i absencje',
+                      '📊 Rozkład punktów', '💹 Kursy bukmacherów'],
+                     horizontal=True, key=f"bb61_detail_view_{g['game_id']}")
+    if view == '🩺 Rotacja i absencje':
+        st.markdown('#### Dostępność i ostatnia rotacja — analiza badawcza')
+        st.caption('Rzeczywiste minuty z ostatnich 3/7 występów, '
+                   'historyczne minuty modelu, wpisy ESPN i pozycje z katalogu drużyny. '
+                   'To nie jest potwierdzony skład przedmeczowy.')
+        prior=pd.DataFrame((player_meta or {}).get('minutes_trends') or [])
+        details,teams,alerts=rotation_report(
+            player_table,report,home,away,rosters=roster_tables,
+            trends=prior,injury_meta=report_meta,player_meta=player_meta)
+        if not teams.empty:
+            for team in (away,home):
+                snap=teams[teams['Drużyna']==team].iloc[0]
+                st.markdown('**'+TEAM_NAMES.get(team,team)+'**')
+                a,b,c=st.columns(3)
+                a.metric('Zawodnicy z prognozą minut',int(snap['Zawodnicy z projekcją minut']))
+                exposure=snap['Minuty modelu: Out/Doubtful']
+                b.metric('Historyczne minuty pod ryzykiem',
+                         f"{exposure:.1f}" if pd.notna(exposure) else "Brak danych")
+                c.metric('Zmienność rotacji (≥4 min)',
+                         int(snap['Zawodnicy z wahaniem minut >=4']))
+                if not snap['Dane statusu aktualne']:
+                    st.caption('Brak świeżego raportu ESPN dla tego meczu. '
+                               'Brak wpisu nie potwierdza dostępności.')
+                else:
+                    doubt=snap['Minuty modelu: Questionable/DTD']
+                    st.caption(f"Minuty zawodników Questionable/Day-to-day "
+                               f"w historycznej projekcji: {doubt:.1f}. "
+                               'To NIE są minuty na pewno stracone.')
+        if details.empty:
+            st.info('Nie udało się połączyć historii minut z raportem obu drużyn.')
+        else:
+            filter_status=st.selectbox(
+                'Pokaż zawodników',
+                ['Wszyscy','Zgłoszone problemy','Wyraźna zmiana minut'],
+                key=f"bb716_rotation_filter_{g['game_id']}")
+            visible=details.copy()
+            if filter_status=='Zgłoszone problemy':
+                visible=visible[visible['Ocena statusu'].isin(
+                    ['Out','Doubtful','Questionable','Day-to-day','Probable','Sprzeczne wpisy'])]
+            elif filter_status=='Wyraźna zmiana minut':
+                visible=visible[pd.to_numeric(
+                    visible['Zmiana 3 vs 7'],errors='coerce').abs()>=4]
+            if visible.empty:
+                st.info('Brak zawodników spełniających filtr w dostępnej próbce.')
+            else:
+                st.dataframe(visible,hide_index=True,use_container_width=True,
+                             height=min(620,60+len(visible)*36))
+                st.caption('Zmiana minut = średnia z ostatnich 3 minus średnia z '
+                           'maksymalnie 7 wcześniejszych występów. Przy mniej niż '
+                           '5 występach nie oceniamy trendu.')
+        for note in alerts:
+            st.caption('⚠️ '+note)
+        st.info('**Model bez zmian:** raport rotacji nie koryguje wyniku ani szans '
+                'zwycięstwa. Potrzebna jest niezależna walidacja na historycznych '
+                'statusach zapisanych przed meczami.')
+        return
     if view == '👥 Zawodnicy':
         st.markdown('#### Forma i przewidywane minuty kluczowych zawodników')
         brief=player_minutes_brief(player_table,home,away,report)
