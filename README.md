@@ -1,3 +1,38 @@
+# BestBets v7.20 — automatyczny Performance Tracker (10.11.2026)
+
+Najważniejsza zmiana: **rozliczanie zapisanych prognoz nie wymaga już ręcznego kliknięcia przycisku**.
+
+### Automatycznie podczas wizyty
+- Otworzenie zakładki `Performance Tracker` sprawdza lokalną lub zewnętrzną bazę: jeśli są **rozpoczęte i nierozliczone** spotkania, pobiera historię wyników ESPN i rozlicza wszystkie mecze z finalnym statusem.
+- Automatyczne sprawdzenie jest ograniczone do raz na **30 minut na sesję**; gdy brak oczekujących prognoz, nie wykonuje niepotrzebnych zapytań do ESPN.
+- Widać czas ostatniego sprawdzenia, liczbę rozliczonych prognoz lub problem z danymi. Nadal istnieje ręczny przycisk ponownej weryfikacji.
+- Odrzucamy częściowe i nieaktualne dane ESPN zamiast na ich podstawie zamykać zakłady. Zamrożonych prognoz nie zmieniamy, a finalne wyniki rozliczamy wyłącznie raz.
+
+### Bez otwierania BestBets — GitHub Actions
+- `.github/workflows/tracker-auto.yml` uruchamia `tracker_automation.py` o **07:25, 12:25, 18:25 i 23:25 UTC** (harmonogram GitHub jest *best effort*, może się opóźnić; możliwy też ręczny `workflow_dispatch`).
+- Worker używa wyłącznie aktualnych danych ESPN, zapisuje pregame prognozy dla spotkań do **36 godzin naprzód**, z minimum 15 minut przed początkiem meczu, a następnie rozlicza zakończone spotkania.
+- Zapisuje osobno `auto_legacy_v72` i `auto_research_form_v74`. **Nie nadpisuje** ręcznych prognoz `legacy_v72` i `research_form_v74`, bo runner może mieć inne dostępne dane NBA Advanced niż aktywny Streamlit.
+- Algorytmy symulacji nie są zmienione; standardowa kalkulacja nadal wykonuje **5000 losowań** na mecz.
+- Nie wymyśla prognoz dla meczu bez minimum zakończonych spotkań i nie odtwarza nieznanych przedmeczowych wartości po zakończeniu spotkania.
+
+### Konfiguracja konieczna do działania bez wizyt użytkownika
+
+1. Utwórz własną **trwałą bazę PostgreSQL** (zewnętrzny dostawca).
+2. W ustawieniach aplikacji **Streamlit Cloud → Settings → Secrets** dodaj `TRACKER_DATABASE_URL = "postgresql://..."`.
+3. W repozytorium **GitHub → Settings → Secrets and variables → Actions → New repository secret** dodaj `TRACKER_DATABASE_URL` z **tym samym** URL. Nie zapisuj haseł w repozytorium ani screenshotach.
+4. Otwórz **GitHub → Actions → BestBets — automatic pregame tracking and results → Run workflow** i zweryfikuj `success`. Pierwszy uruchomiony cykl może zapisać 0 prognoz, jeśli nie ma jeszcze odpowiedniej historii lub zaplanowanych meczów.
+5. Na stronie Performance Tracker wybierz właściwy wariant `auto_...` i sprawdź daty zamrożonych prognoz. Trwałość zależy od poprawnej konfiguracji zewnętrznej bazy.
+
+**Bez `TRACKER_DATABASE_URL` na GitHub Actions zadanie harmonogramu zgłosi błąd i NIE będzie autonomicznie zapisywało danych.** Lokalne SQLite działa podczas wizyty, ale dane mogą zniknąć po restarcie Streamlit. Dopóki ustawienia bazy nie są potwierdzone, nie należy obiecywać automatyzacji 24/7.
+
+### Ograniczenia i następne testy
+- Rozliczanie dotyczy **prognoz modelu NBA (zwycięzca, suma i punkty drużyn)**. Nie ma jeszcze automatycznego dopasowania i rozliczenia prywatnych kuponów Betclic, kursów i Player Props. Wprowadzanie kuponów wymaga osobnego źródła danych, identyfikacji rynku i czasu zakupu.
+- Prognozy `auto_*` używają bieżących wyników ESPN, nie tworzą domniemanych statystyk o kontuzjach ani alternatywnych danych Advanced.
+- Brak dowodów na lepszą skuteczność wyników: automatyzacja polepsza jakość zbierania danych, nie trafność modelu.
+- Testy `test_tracker_v720.py` sprawdzają izolację wariantów, zapis raz przed tipoff, idempotencję rozliczeń, odrzucanie wyników przyszłych i brak cichego fallback SQLite w trybie harmonogramu.
+
+---
+
 # BestBets v7.19 — symulacje: własne linie, ryzyko i wrażliwość prognoz (9.11.2026)
 
 Ulepszono `Symulacje 5000 → Szczegóły meczu → 🎯 Linie i wrażliwość`. Aktualizacja **nie zmienia średnich wyników, losowania, liczby przebiegów 5000 ani domyślnego modelu**. Wszystkie procenty są częstościami wystąpienia zdarzeń pod ZAŁOŻENIAMI bieżącego modelu — nie są skalibrowanymi szansami.
