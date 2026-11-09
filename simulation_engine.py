@@ -143,13 +143,47 @@ def matchup_means(home:str,away:str,adv:dict,hist:dict, minimum_history:int=4):
     h=adv.get(home);a=adv.get(away)
     if h and a:
         pace=(h['pace']+a['pace'])/2
-        home_mean=pace*(h['off']+a['def'])/200
-        away_mean=pace*(a['off']+h['def'])/200
-        return {'home':home_mean+1.5,'away':away_mean-1.5,
-                'source':'NBA Stats advanced • pace / OFF / DEF',
+        home_mean=pace*(h['off']+a['def'])/200+1.5
+        away_mean=pace*(a['off']+h['def'])/200-1.5
+        # Research mode must NOT silently equal the v7.2 baseline whenever
+        # NBA Advanced is available. Blend genuinely observed recent form,
+        # only when BOTH clubs have >=4 true completed games.
+        # Keep the old v7.2 baseline untouched and validate this variant
+        # independently before claiming any accuracy gain.
+        values=[float(r[1]) for rows in hist.values()
+                for r in rows if 50<float(r[1])<200]
+        if values:
+            league_mean=float(np.mean(values))
+            hf=_team_form_stats(home,hist,league_mean,minimum_history)
+            af=_team_form_stats(away,hist,league_mean,minimum_history)
+        else:
+            hf=af=None
+        if hf is not None and af is not None:
+            form_home=(hf['off']+af['def'])/2+1.5
+            form_away=(af['off']+hf['def'])/2-1.5
+            home_mean=.70*home_mean+.30*form_home
+            away_mean=.70*away_mean+.30*form_away
+            return {'home':float(home_mean),'away':float(away_mean),
+                    'source':'NBA Advanced 70% + ważona forma ESPN 30% (BADAWCZY)',
+                    'samples':(hf['n'],af['n']),
+                    'form':{
+                      home:{'recent_scored':round(hf['raw_off'],1),
+                            'recent_allowed':round(hf['raw_def'],1),
+                            'sample_weight':round(hf['sample_weight'],2),
+                            'adjusted_opponents':hf['opponent_adjusted']},
+                      away:{'recent_scored':round(af['raw_off'],1),
+                            'recent_allowed':round(af['raw_def'],1),
+                            'sample_weight':round(af['sample_weight'],2),
+                            'adjusted_opponents':af['opponent_adjusted']}},
+                    'warning':'BADAWCZY blend: 70% NBA Advanced + 30% obserwowanej '
+                              'formy ESPN, korekta siły rywali i regresja do średniej. '
+                              'Niezweryfikowana poprawa, bez potwierdzonych absencji.'}
+        return {'home':float(home_mean),'away':float(away_mean),
+                'source':'NBA Stats advanced • pace / OFF / DEF (BRAK historii do korekty)',
                 'samples':None,
-                'warning':'Przewaga parkietu: umowna korekta +1,5 / −1,5 pkt. '
-                          'Status graczy i kalibracja szans niepotwierdzone.'}
+                'warning':'Brak min. 4 zakończonych meczów obu drużyn. '
+                          'Tryb eksperymentalny pozostaje liczbowo identyczny '
+                          'z modelem podstawowym — nie sugerujemy fikcyjnej różnicy.'}
     values=[]
     for records in hist.values():
         values.extend(float(r[1]) for r in records if 50<float(r[1])<200)
