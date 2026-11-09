@@ -498,11 +498,10 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
         m1.metric(label_a,f'{100*first:.1f}%')
         m2.metric(label_b,f'{100*second:.1f}%')
         m3.metric('Zwrot przy równej linii',f'{100*push:.1f}%')
-        st.caption(f'{sampled["n"]:,} przebiegów · '
+        st.caption(f'{sampled["n"]} przebiegów · '
                    'całkowite linie mogą zakończyć się zwrotem, '
                    'dlatego OVER + UNDER + ZWROT = 100%. '
-                   'Przebiegi współdzielą te same założenia modelowe.'
-                   .replace(',', ' ' ,1))
+                   'Przebiegi współdzielą te same założenia modelowe.')
         if is_total:
             st.caption(f'80% SYMULOWANYCH sum: {sampled["total_p10"]:.0f}–'
                        f'{sampled["total_p90"]:.0f} pkt. '
@@ -540,6 +539,45 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
             st.warning('EV jest wyłącznie wynikiem NIEKALIBROWANEGO modelu '
                        'i nie dowodzi rzeczywistej przewagi nad bukmacherem. '
                        'Kursów nie zweryfikowano w czasie rzeczywistym.')
+        # Immutable *downloadable* pregame evidence for tomorrow's manual
+        # comparison: no persistent user-bet storage or account information.
+        evidence=[]
+        timestamp=pd.Timestamp.now(tz='UTC')
+        start=pd.to_datetime(g['start_utc'],utc=True,errors='coerce')
+        for side,p,quote in ((label_a,first,price_one),(label_b,second,price_two)):
+            optional=None
+            try:
+                optional=quoted_price_diagnostics(p,push,quote)
+            except ValueError:
+                pass
+            evidence.append({
+                'generated_at_utc':timestamp.isoformat(),
+                'tipoff_utc':start.isoformat() if pd.notna(start) else '',
+                'pregame':bool(pd.notna(start) and timestamp<start),
+                'event_id':str(g['game_id']),
+                'away':away,'home':home,
+                'model_source':str(sim['source']),
+                'model_id':'research_form_v74' if research_mode else 'legacy_v72',
+                'n_simulations':sampled['n'],
+                'market':'TOTAL' if is_total else 'HOME_HANDICAP',
+                'line':entered,'side':side,
+                'model_probability_uncalibrated':round(p,4),
+                'push_probability':round(push,4),
+                'bookmaker_quote_unverified':optional['odds'] if optional else None,
+                'break_even_if_quote':round(optional['conditional_break_even'],4) if optional else None,
+                'model_ev_pct_uncalibrated':round(optional['model_ev_pct'],2) if optional else None,
+            })
+        if pd.notna(start) and timestamp>=start:
+            st.warning('Mecz rozpoczął się lub minął termin rozpoczęcia. '
+                       'Zapis NIE jest dowodem prognozy przedmeczowej.')
+        st.download_button(
+            '💾 Zapisz analizę linii CSV do jutrzejszego rozliczenia',
+            pd.DataFrame(evidence).to_csv(index=False).encode('utf-8-sig'),
+            file_name=f"bestbets_line_{str(g['game_id'])}.csv",
+            mime='text/csv',key=f"bb719_export_{g['game_id']}")
+        st.caption('CSV zawiera datę odczytu, ID meczu, źródło modelu, '
+                   'wpisaną linię i procenty przed spotkaniem. '
+                   'Nie przechowujemy Twojego kuponu ani danych konta.')
         with st.expander('🔬 Wrażliwość na wybór modelu — porównaj warianty',expanded=False):
             st.caption('Porównanie wyłącznie na zakończonych meczach PRZED '
                        'rozpoczęciem spotkania. Każdy wariant ma własne 5000 prób. '
