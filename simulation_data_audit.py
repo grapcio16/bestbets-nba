@@ -15,7 +15,7 @@ MODEL_MIN_VENUE_GAMES=4
 
 def verified_history(completed, cutoff_utc):
     """Unique final events strictly earlier than tipoff. Discard corrupt scores."""
-    empty=pd.DataFrame(columns=list(REQUIRED)|{"game_id"} if False else [
+    empty=pd.DataFrame(columns=[
         "game_id","start_utc","away","home","away_score","home_score","status_code"
     ])
     if completed is None or completed.empty or not REQUIRED.issubset(completed.columns):
