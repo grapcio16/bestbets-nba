@@ -1,3 +1,19 @@
+# BestBets v7.15 — audyt jakości danych i nowe funkcje badawcze (9.11.2026)
+
+Najważniejszy wniosek audytu: **domyślne 5000 symulacji korzysta z prostego modelu średnich punktowych** — do 12 ostatnich zakończonych meczów obu drużyn lub, jeśli dostępne w świeżym cache, NBA Advanced Pace/OFF/DEF. Dzisiejsze składy, kontuzje, minuty, odpoczynek i H2H **nie korygują automatycznie wyniku drużyn**. Historia ESPN obejmowała maksymalnie trzy ostatnie miesiące sezonu; dane NBA Advanced z stats.nba.com często są niedostępne w chmurze.
+
+**Nowe funkcje (bez zmiany produkcyjnego modelu):**
+
+- W zakładce Symulacje → „Głębsze dane — ustawienia badawcze” opcjonalna historia **do 6 miesięcy** bieżącego sezonu; domyślnie wciąż 3, na początku listopada dostępne są tylko rzeczywiste mecze od startu sezonu, nie łączymy sezonów.
+- Przycisk ręcznego pobrania aktualnych **NBA Advanced** (Pace, OFF/DEF Rating) z zachowaniem fallback ESPN i jawnych ostrzeżeń, jeśli Stats jest blokowane. Bez dodatkowych żądań przy zwykłym przeglądaniu kart.
+- W szczegółach meczu rozwijany **audyt jakości danych**: próby 5/10/20, punkty zdobyte i stracone, margines, odchylenie sumy, splity dom/wyjazd, przerwa/back-to-back, prawdziwe Pace/OFF/DEF jeśli dostępne. Każdy wynik liczymy tylko na meczach zakończonych PRZED analizowanym spotkaniem (brak look-ahead).
+- **Badawczy model venue**: 25% historycznej korekty dom/wyjazd, ograniczonej do ±3 punktów i minimum 4 meczów odpowiedniego typu dla obu drużyn; widoczny wyłącznie jako hipoteza. W osobnym chronologicznym holdoucie pojawia się jako `venue_research`; nigdy nie zastępuje domyślnego modelu bez testów na niezależnych danych.
+- Testy `test_simulation_data_audit.py` w CI sprawdzają brak przecieku przyszłych spotkań, minimalne próby, oficjalne dane Advanced i niewrażliwość hipotezy na wyniki przyszłych meczów.
+
+Rozszerzenie danych **nie stanowi dowodu poprawy prognoz**. Nadal potrzebne: pregame injury report, potwierdzona rotacja, zweryfikowane minute projections i niezależna kalibracja, przed używaniem tych czynników jako modyfikatorów wyniku.
+
+---
+
 # BestBets v7.13 — poprawka TOP10: kompletne dane i zwarty układ
 
 - Naprawa po v7.12: wymuszona nowa wersja cache Streamlit dla rankingu. Stare wyniki zapisane przed dodaniem kolumn minut, przeciwnika i pozycji nie będą już wyświetlane jako aktualne.
