@@ -794,9 +794,9 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
                            'korekty formy lub brak różnicy po zaokrągleniu. '
                            'Przełącznik NIE zapewnia wtedy innego wyniku.')
             else:
-                st.caption(f"Wariant badawczy zmienia wynik w "
-                           f"{int(((cf['Różnica sumy'].abs()>=.05)|"
-                           f"(cf['Różnica pp'].abs()>=.05)).sum())}/{len(cf)} meczach.")
+                changed=int(((cf['Różnica sumy'].abs()>=.05) |
+                             (cf['Różnica pp'].abs()>=.05)).sum())
+                st.caption(f'Wariant badawczy zmienia wynik w {changed}/{len(cf)} meczach.')
             with st.expander('Porównaj liczbowe różnice dla każdego meczu',
                              expanded=research_mode):
                 st.dataframe(cf,hide_index=True,use_container_width=True)
