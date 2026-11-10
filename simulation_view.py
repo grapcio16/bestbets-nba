@@ -637,7 +637,8 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
         # Tracking is automated. Do not clutter the public score cards.
         st.session_state['bb_mvp_last_tracker_save']=int(result['saved'])
     except Exception as exc:
-        st.warning('Nie udało się zapisać prognoz. Sprawdź konfigurację magazynu danych w ustawieniach serwera.')
+        warnings.append('Zapis prognoz do Trackera nie powiódł się. '
+                        'Sprawdź konfigurację magazynu danych w panelu technicznym.')
 
     done={str(s['game_id']):s for s in summary}
     b1,b2,b3=st.columns(3)
