@@ -36,7 +36,7 @@ def _label(row):
             f"{_value(row['Linia'],suffix='',precision=1)}")
 
 
-def show_season_cards(result, histories, season, events, now):
+def show_season_cards(result, histories, season, events, now, key_prefix='bb722'):
     """One compact summary per screenshot line, then an expanded hero chart."""
     st.markdown("### 🏀 Linie zawodników — analiza Over / Under")
     st.caption("Zielony = historyczne OVER, czerwony = historyczne UNDER. "
@@ -80,7 +80,7 @@ def show_season_cards(result, histories, season, events, now):
     options=list(range(size))
     chosen=st.selectbox("Szczegółowa karta i interaktywny wykres",
                          options,format_func=lambda i:_label(result.iloc[i]),
-                         key="bb722_focus")
+                         key=key_prefix+"_focus")
     row=result.iloc[chosen]
     key=str(row["Zawodnik"])
     market=str(row["Rynek"])
@@ -135,12 +135,12 @@ def show_season_cards(result, histories, season, events, now):
             return
         period=st.radio("Zakres wykresu",
                         ["L5","L10","L15","SEZON"],horizontal=True,
-                        key="bb722_period")
+                        key=key_prefix+"_period")
         scope=({"L5":5,"L10":10,"L15":15}.get(period))
         displayed=game.tail(scope).copy() if scope else game.copy()
         selected_team=st.selectbox("Rozgrywki dom / wyjazd",
                                    ["Wszystkie","Dom","Wyjazd"],
-                                   key="bb722_venue")
+                                   key=key_prefix+"_venue")
         if "MATCHUP" in displayed:
             venue=displayed["MATCHUP"].astype(str)
             if selected_team=="Dom":
@@ -186,7 +186,7 @@ def show_season_cards(result, histories, season, events, now):
             margin=dict(l=20,r=20,t=35,b=25),
         )
         st.plotly_chart(fig,use_container_width=True,
-                        key="bb722_chart")
+                        key=key_prefix+"_chart")
         selected_rates=observed_hit_rates(displayed,market,line)
         if selected_rates:
             current=selected_rates["season"]
@@ -202,3 +202,41 @@ def show_season_cards(result, histories, season, events, now):
                        " na mecz · ostatnie 10: "+
                        _value(row.get("Obrona: L10 stracone"),suffix=" pkt",precision=1))
         st.caption(str(row.get("Uwagi") or ""))
+
+
+
+def show_manual_player_card(history,player,market,line,season,team="",position=""):
+    """Reuse the same premium graph in the manual single-athlete calculator."""
+    from season_props import observed_hit_rates, SEASON_RESULT_COLUMNS
+    date=pd.Timestamp.now(tz="UTC")
+    played=clean_player_season(history,player,season,date)
+    if played.empty:
+        st.warning("Nie udało się pobrać sezonowych występów zawodnika.")
+        return
+    historical=observed_hit_rates(played,market,line)
+    if not historical:
+        st.warning("Brak rzeczywistych statystyk dla wybranego rynku.")
+        return
+    vals=historical
+    row={k:None for k in SEASON_RESULT_COLUMNS}
+    row.update({
+        "Zawodnik":player,"Drużyna":team or str(played.iloc[-1]["TEAM_ABBREVIATION"]),
+        "Pozycja":position or "—","Rynek":market,"Linia":float(line),
+        "Występy sezon":vals["season"]["n"],
+        "OVER sezon %":vals["season"]["over_pct"],
+        "UNDER sezon %":vals["season"]["under_pct"],
+        "ZWROT sezon %":vals["season"]["push_pct"],
+        "Śr. sezon":vals["season"]["mean"],
+        "Status":"TYLKO HISTORIA",
+        "Źródło statystyk":"ESPN/NBA — zweryfikowane występy",
+        "Uwagi":"Nie utożsamiaj historycznej częstości z prognozą przyszłego meczu.",
+    })
+    for code in (5,10,15):
+        v=vals[f"last{code}"]
+        row[f"OVER L{code} %"]=v["over_pct"]
+        row[f"UNDER L{code} %"]=v["under_pct"]
+        row[f"Ostatnie {code}: OVER"]=f'{v["over"]}/{v["n"]}'
+    show_season_cards(
+        pd.DataFrame([row],columns=SEASON_RESULT_COLUMNS),
+        {norm_name(player):played},season,{},date,
+        key_prefix="bb722_manual")
