@@ -19,6 +19,7 @@ from screenshot_import import EDIT_COLUMNS, read_screenshot
 from season_props import (
     analyze_season_offers, clean_player_season, upcoming_team_games,
 )
+from screenshot_cards import show_season_cards
 from simulation_sources import historical_espn_results
 from espn_player_data import detailed_espn_gamelog
 
@@ -192,10 +193,10 @@ def _player_chart(history, name, season, market, line, asof):
 
 def render_screenshot_calculator(season, get_logs, load_schedule=None, nonce=0,
                                   viewer_timezone=None):
-    st.markdown("#### 📷 Screenshot → analiza całego sezonu i obrony rywala")
+    st.markdown("#### 📷 BestBets Screenshot Intelligence 2.0")
     st.caption(
         "Obraz służy WYŁĄCZNIE do odczytania zawodników, linii i kursów. "
-        "Rzeczywiste statystyki pobieramy osobno z sezonowych logów ESPN/NBA. "
+        "Pobieramy rzeczywiste sezonowe logi ESPN/NBA i boxscore drużyn. "
         "Najpierw zobaczysz częstość Over/Under w rozegranych występach, "
         "a obok testowy model po uwzględnieniu defensywy przeciwnika.")
     st.warning(
@@ -306,63 +307,62 @@ def render_screenshot_calculator(season, get_logs, load_schedule=None, nonce=0,
                 st.session_state.bb721_result=pd.DataFrame()
     result=st.session_state.bb721_result
     if not result.empty and st.session_state.get("bb721_result_hash")==config_hash:
-        st.markdown("##### 2. Wyniki dla wszystkich zawodników")
-        valid=int(result["Występy sezon"].notna().sum())
-        modeled=int((result["Status"]=="MODEL TESTOWY").sum())
-        x,y,z=st.columns(3)
-        x.metric("Rynki ze screena",len(result))
-        y.metric("Z historią sezonu",valid)
-        z.metric("Model eksperymentalny",modeled)
-        st.caption("OVER/UNDER sezon = rzeczywisty odsetek rozegranych WYSTĘPÓW na "
-                   "tej konkretnej linii. Prognoza v2 = osobne, niekalibrowane "
-                   "prawdopodobieństwo kolejnego meczu, warunkowo skorygowane "
-                   "o obronę CAŁEJ drużyny przeciwnika dla PTS/PRA.")
-        tabs=st.tabs(["Wyniki Over / Under","Obrona rywala i niepewność",
-                      "Historia każdego zawodnika"])
+        st.markdown("##### 2. Analiza wszystkich rozpoznanych zdarzeń")
+        known=int(result["Występy sezon"].notna().sum())
+        with_model=int((result["Status"]=="MODEL TESTOWY").sum())
+        good_sample=int((pd.to_numeric(result["Występy sezon"],errors="coerce")>=10).sum())
+        one_game=int((pd.to_numeric(result["Występy sezon"],errors="coerce")<=1).sum())
+        a,b,c=st.columns(3)
+        a.metric("Zdarzenia",len(result))
+        b.metric("Historia zawodnika",f"{known}/{len(result)}")
+        c.metric("Min. 10 występów",f"{good_sample}/{len(result)}")
+        if one_game:
+            st.warning(
+                f"{one_game} pozycja/pozycje mają tylko 0–1 rozegrany występ w "
+                "dostępnej bazie. Wynik 100% z jednego występu NIE jest "
+                "wiarygodną oceną szans. Przedstawiamy liczebność próby.")
+        if with_model==0:
+            st.info("Brak wystarczających danych do prognoz v2. "
+                    "Historyczne Over/Under widoczne są tylko dla "
+                    "rzeczywiście pobranych występów.")
+        tabs=st.tabs(["🏀 Karty zawodników i wykresy",
+                      "🛡️ Obrona i jakość danych",
+                      "📄 Szczegółowe statystyki"])
         with tabs[0]:
-            fields=["Zawodnik","Drużyna","Przeciwnik","Linia",
-                    "Występy sezon","OVER sezon %","UNDER sezon %",
-                    "OVER L10 %","UNDER L10 %","P(OVER) v2 %",
-                    "P(UNDER) v2 %","Status"]
-            st.dataframe(result[fields],hide_index=True,use_container_width=True,
-                         height=min(710,80+len(result)*37))
+            show_season_cards(
+                result,
+                st.session_state.get("bb721_histories") or {},
+                season,
+                st.session_state.get("bb721_events") or {},
+                pd.Timestamp.now(tz="UTC"))
         with tabs[1]:
+            st.caption("Ocena obrony bazuje na rzeczywistych punktach traconych "
+                       "przez CAŁĄ drużynę rywala. Nie zastępuje obrony "
+                       "konkretnej pozycji ani potwierdzonej dostępności zawodników.")
             fields=["Zawodnik","Rynek","Przeciwnik",
-                    "Obrona: stracone pkt/mecz","Obrona: L10 stracone",
-                    "Korekta PTS (%)","P(OVER) bez defensywy %",
+                    "Występy sezon","Obrona: stracone pkt/mecz",
+                    "Obrona: L10 stracone","Korekta PTS (%)",
+                    "P(OVER) bez defensywy %",
                     "P(OVER) v2 %","P(UNDER) v2 %",
                     "Źródło statystyk","Uwagi"]
-            st.dataframe(result[fields],hide_index=True,use_container_width=True,
-                         height=min(710,80+len(result)*37))
+            st.dataframe(result[fields],hide_index=True,use_container_width=True)
             st.warning(
-                "Korekta rywala to hipoteza na podstawie punktów traconych "
-                "przez całą drużynę. Nie jest to pomiar obrony konkretnej pozycji. "
-                "NIE potwierdzono kalibracji, wpływu kontuzji ani przewagi nad kursami.")
+                "Przy braku pełnego sezonowego gamelogu NIE podstawiamy "
+                "brakujących wyników. Model v2 jest niekalibrowany. "
+                "Zapisane kursy nie dowodzą dodatniej wartości oczekiwanej.")
         with tabs[2]:
-            names=result["Zawodnik"].tolist()
-            selected=st.selectbox("Szczegóły i wykres punktów z sezonu",
-                                  names,key="bb721_selected_player")
-            entry=result[result["Zawodnik"]==selected].iloc[0]
-            st.caption(
-                f"{selected} · {entry['Drużyna'] or 'klub nieznany'} · "
-                f"linia {entry['Linia']} {entry['Rynek']} · "
-                f"sezon: {entry['Występy sezon'] or 0} występów.")
-            sub=(st.session_state.get("bb721_histories") or {}).get(norm_name(selected))
-            event=(st.session_state.get("bb721_events") or {}).get(entry["Drużyna"])
-            end=(event.get("start_utc") if event and not event.get("ambiguous")
-                 else pd.Timestamp.now(tz="UTC"))
-            if sub is not None and not sub.empty and pd.notna(entry["Linia"]):
-                _player_chart(sub,selected,season,entry["Rynek"],float(entry["Linia"]),end)
-            st.caption(str(entry["Uwagi"]))
-        st.download_button(
-            "Eksportuj sprawdzone statystyki sezonu i prognozy CSV",
-            result.to_csv(index=False).encode("utf-8-sig"),
-            file_name="bestbets_season_props_v721.csv",mime="text/csv",
-            key="bb721_export")
-        st.info(
-            "Wybór zakładu należy do użytkownika. BestBets nie oznacza żadnej "
-            "pozycji jako pewnej ani automatycznie nie wybiera Over/Under. "
-            "Próbki poniżej 10 meczów nie otrzymują prognoz modelu; "
-            "brakujące dane są jawnie opisane.")
+            st.caption("Wszystkie sezony/L5/L10/L15 w tabeli — "
+                       "do porównywania i ręcznej kontroli OCR.")
+            st.dataframe(result,hide_index=True,use_container_width=True)
+            st.download_button(
+                "Pobierz szczegóły analizy CSV",
+                result.to_csv(index=False).encode("utf-8-sig"),
+                file_name="bestbets_season_props_v722.csv",
+                mime="text/csv",key="bb721_export")
+        st.caption("Informacje o wszystkich liniach są historyczne lub "
+                   "pochodzą z niekalibrowanych wariantów modelu. "
+                   "Sam procent trafień historycznych nie gwarantuje wyniku "
+                   "kolejnego spotkania.")
+
     elif not result.empty:
         st.info("Zmieniono linie lub dzień spotkań. Uruchom analizę ponownie.")
