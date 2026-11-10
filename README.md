@@ -1,3 +1,43 @@
+# BestBets v7.23 — spójny wygląd premium całej aplikacji + wyszukiwarka Player Props
+
+## Jeden system projektowania we wszystkich zakładkach
+
+Nowy moduł `premium_theme.py` stosuje globalny system wizualny do **Centrum, Terminarza, Symulacji 5000, Zawodników, Drużyn, Kursów i value, Performance Trackera, Backtestingu i NBA Data Lab**. Zamiast mieszanki szarych tabel i niejednolitych kart stosujemy jeden oryginalny motyw: głęboki granat, subtelny indygo, karty o jasnym kontraście, czytelną typografię, przyciski w niebiesko-fioletowym gradiencie, zielony Over i czerwony Under, responsywną nawigację i metryki. Stare algorytmy i funkcje zakładek zostały zachowane. Używamy własnego projektu, a nie kopiujemy grafiki konkurencji ani jej znaków towarowych.
+
+## Wyszukaj typ naturalnym językiem
+
+Wejdź w `Kursy i value → Kalkulator → 🔎 Wyszukiwarka typów — premium`. To jest teraz domyślny tryb kalkulatora.
+
+Wklej jedno zdarzenie albo wiele wierszy, np.:
+
+```text
+Jayson Tatum over 25,5 points
+Jayson Tatum under 3,5 assists
+Jayson Tatum over 2,5 three point
+Jayson Tatum over 7,5 rebounds
+```
+
+Parser `prop_search.py` rozumie też warianty **Jason Tatum**, **uver**, **asist**, **rebunds**, polskie **powyżej / poniżej**, przecinek/kropkę w liczbach oraz **PRA**. Zawodnik jest rozpoznawany przez katalog ESPN/NBA, lecz **dopasowania literówek muszą być ręcznie potwierdzone**. Brak lub wiele zgodnych nazwisk oznaczamy i nie wymyślamy zawodników ani kursów.
+
+Po potwierdzeniu zdarzeń aplikacja pobiera rzeczywiste występy sezonu (z poprawionego ESPN gamelogu i, gdy trzeba, finałowych boxscore) oraz sprawdza rywala wybranego dnia. Gdy próba jest za mała, UI podaje wyraźną liczbę meczów i nie prezentuje sztucznych prognoz.
+
+## Nowa karta zawodnika
+
+- **Nagłówek** zawodnik / drużyna / pozycja / przeciwnik, wybrany OVER/UNDER i linia.
+- **Duże metryki** średnia sezonu, OVER, UNDER, wybrany kierunek i liczbę zaobserwowanych występów. Szybkie kafle L5 / L10 / L15 / SEZON.
+- **Duży wykres** rzeczywistych wyników, zielone słupki Over, czerwone Under, bursztynowa linia progu i konkretne daty; filtry: L5/L10/L15/sezon, dom/wyjazd oraz przeciwnik.
+- Użytkownik może **bezpośrednio w karcie** zmienić rynek, linię i kierunek. Wykres i historyczny procent są automatycznie liczone na nowo, bez ponownego importowania screena. Wyświetlana prognoza badawcza jest ponownie liczona lub wyraźnie oznaczona jako niedostępna przy zmianie linii/rynku (nie używa nieaktualnych wartości).
+- **Model v2** jest eksperymentalny, niekalibrowany. Jeżeli brak 10 rzeczywistych występów albo nie ma danych, nie obiecujemy prawdopodobieństw.
+- Ta sama karta wyświetlana jest zarówno po wyszukiwaniu zdania, imporcie OCR, jak i w **ręcznym kalkulatorze pojedynczego zawodnika**.
+
+## Zgodność z wcześniejszymi funkcjami
+
+`📷 Import screenshot — analiza wielu pozycji` oraz `👤 Kalkulator pojedynczego zawodnika` pozostają dostępne jako osobne tryby. Dotychczasowe źródła spotkań, symulacja 5000, backtest i Performance Tracker nie są zmieniane obliczeniowo. Zmiana jest wizualna i dotyczy metod wprowadzania oraz prezentacji Player Props. Nie poprawia automatycznie trafności bukmacherskiej; poprawę trzeba wykazać w niezależnym teście predykcji i rzeczywistych kursów.
+
+Testy: `test_prop_search_v723.py`, wcześniejsze testy sezonowych występów i automatyczne smoke testy wszystkich stron w `.github/workflows/v7-roster-validation.yml`.
+
+---
+
 # BestBets v7.22 — Screenshot Intelligence 2.0: źródła pełnosezonowe i karty zawodników
 
 Najważniejsze: naprawiamy główną przyczynę błędów z 1 rozegranym występem. W API ESPN surowe `events` zawierają przede wszystkim metadane spotkań, natomiast **rzeczywiste statystyki zawodników są przechowywane głębiej, w `seasonTypes → categories → events → stats`**. Poprzedni parser nie przetwarzał pełnego zestawu statystyk. Nowy parser pobiera statystyki z właściwej struktury, zachowuje ID spotkania, datę, rywala, minuty, PTS, REB, AST i 3PM, odrzuca DNP i deduplikuje gry.
