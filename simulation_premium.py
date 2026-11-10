@@ -176,3 +176,53 @@ def injury_preview_html(report, metadata):
         '<span>'+str(count)+' entries in ESPN injury data'+tail+
         ' · see player statuses below</span></div>'
     )
+
+
+
+def player_previews_html(team_code,team_name,table):
+    """Summarize up to five actual player projections. Never fabricate blanks."""
+    import pandas as pd
+    title=_safe(team_name)
+    header=(
+        '<div class="bb81-players-head"><b>'+title+'</b>'
+        '<span>HISTORICAL PLAYER PROJECTIONS</span></div>'
+    )
+    if table is None or not isinstance(table,pd.DataFrame) or table.empty:
+        return (header+'<div class="bb81-player-empty">'
+                'No verified player projection available.</div>')
+    required=["Zawodnik","PTS","REB","AST","3PM","Minuty"]
+    if not set(required).issubset(table.columns):
+        return (header+'<div class="bb81-player-empty">'
+                'Player statistics unavailable in source.</div>')
+    players=table.copy()
+    for field in ["PTS","REB","AST","3PM","Minuty"]:
+        players[field]=pd.to_numeric(players[field],errors="coerce")
+    players=players.dropna(subset=["PTS"])
+    if players.empty:
+        return (header+'<div class="bb81-player-empty">'
+                'Insufficient game logs for player projections.</div>')
+    players=players.sort_values("PTS",ascending=False).head(5)
+    parts=[header]
+    parts.append(
+        '<div class="bb81-player-row bb81-player-heading">'
+        '<span>PLAYER</span><span>PTS</span><span>REB</span>'
+        '<span>AST</span><span>3PM</span><span>MIN</span></div>'
+    )
+    for record in players.to_dict("records"):
+        raw_status=str(record.get("Status ESPN") or "").strip()
+        warning=raw_status.lower() not in ("","nan","none","healthy","available")
+        label=str(record["Zawodnik"])
+        parts.append(
+            '<div class="bb81-player-row"><span><strong>'+_safe(label)+
+            '</strong>'+
+            ('<small class="bb81-status-warning">'+_safe(raw_status)+'</small>'
+             if warning else '')+'</span>'+
+            ''.join(
+                '<span>'+_numeric(record.get(k),1)+'</span>'
+                for k in ["PTS","REB","AST","3PM","Minuty"]
+            )+'</div>'
+        )
+    parts.append('<div class="bb81-player-disclaimer">'
+                 'Means inferred from observed games; not confirmed starters or minutes.'
+                 '</div>')
+    return ''.join(parts)
