@@ -38,82 +38,133 @@ def _safe_catalog(nonce):
 
 
 def _load_full_season(edited, season, nonce, get_logs):
-    """Resolve roster ID and bulk-load each requested player with bounded workers.
-
-    Fallback data is visibly marked PARTIAL. Never fabricate missing players or
-    seasons from league averages. No private screenshot leaves the Streamlit app.
-    """
+    """Obtain real ESPN season appearances; never call a one-game fallback full."""
+    from espn_player_data import full_season_team_boxscores
     catalog,coverage=_safe_catalog(nonce)
-    identities={}
-    histories={}
+    identities={};histories={}
     candidates={}
-    rows=catalog.to_dict("records") if isinstance(catalog,pd.DataFrame) else []
-    for row in rows:
+    for row in (catalog.to_dict("records") if isinstance(catalog,pd.DataFrame) else []):
         key=norm_name(str(row.get("PLAYER_NAME") or ""))
         if key:
             candidates.setdefault(key,[]).append(row)
-    misses=[]
-    for name in edited["Zawodnik"].dropna().astype(str).unique():
+    names=edited["Zawodnik"].dropna().astype(str).unique().tolist()
+    unresolved=[]
+    for name in names:
         key=norm_name(name)
         options=candidates.get(key,[])
         if len(options)==1:
             found=options[0]
-            player_id=str(found.get("PLAYER_ID") or "")
-            team=str(found.get("TEAM_ABBREVIATION") or "")
-            identities[key]={"id":player_id,"team":team,
-                             "source":"ESPN — sezonowy gamelog",
-                             "partial":False,"stale":False}
+            identities[key]={
+                "id":str(found.get("PLAYER_ID") or ""),
+                "team":str(found.get("TEAM_ABBREVIATION") or ""),
+                "position":str(found.get("POSITION") or ""),
+                "source":"ESPN — sezonowy gamelog",
+                "partial":False,"stale":False,
+            }
         elif len(options)>1:
             identities[key]={"ambiguous":True}
         else:
-            misses.append(name)
+            unresolved.append(name)
+
     def one(name,player):
         key=norm_name(name)
-        player_id=player["id"]
-        if not player_id.isdigit():
+        if not player["id"].isdigit():
             return key,None,"Nieznany identyfikator ESPN."
         try:
-            data,meta=_cached_espn_player_season(
-                player_id,name,player["team"],season,nonce)
-            return key,(data,meta),None
+            raw,meta=_cached_espn_player_season(
+                player["id"],name,player["team"],season,nonce)
+            return key,(raw,meta),None
         except (ValueError,KeyError,TypeError,RuntimeError) as exc:
-            return key,None,str(exc)[:130]
-    tasks=[]
+            return key,None,str(exc)[:140]
+
     with ThreadPoolExecutor(max_workers=5) as pool:
         futures={
             pool.submit(one,name,identities[norm_name(name)]):norm_name(name)
-            for name in edited["Zawodnik"].dropna().astype(str).unique()
+            for name in names
             if norm_name(name) in identities and identities[norm_name(name)].get("id")}
         for completed in as_completed(futures):
             key,bundle,error=completed.result()
             if bundle:
                 data,meta=bundle
-                histories[key]=data
-                identities[key]["stale"]=bool(meta.get("stale",False))
-                if meta.get("stale"):
+                if data is not None and not data.empty:
+                    histories[key]=data
+                    identities[key]["source"]=str(meta.get("source") or "ESPN")
+                    identities[key]["stale"]=bool(meta.get("stale"))
+                    identities[key]["partial"]=bool(meta.get("partial") or meta.get("stale"))
+                    identities[key]["source_games"]=len(data)
+                else:
                     identities[key]["partial"]=True
             else:
-                misses.append(
-                    next((n for n in edited["Zawodnik"].astype(str)
-                          if norm_name(n)==key),key))
-    if misses:
-        # Existing NBA Stats can provide all game logs; its CDN/ESPN fallback
-        # may be partial, hence an explicit partial label rather than all-season.
-        raw,meta=get_logs()
-        if raw is not None and not raw.empty:
-            source=meta.get("source","Nieznane") if isinstance(meta,dict) else "Nieznane"
-            for name in misses:
+                identities[key]["partial"]=True
+                identities[key]["fetch_error"]=error or "Brak gamelogu ESPN"
+
+    # ESPN's per-player gamelog may be unavailable, malformed or shortened.
+    # Reconstruct actual performances from confirmed FINAL team boxscores,
+    # grouped and fetched once per match for ALL affected players.
+    weak=[key for key,v in identities.items()
+          if not v.get("ambiguous") and v.get("id") and
+             (v.get("partial") or len(histories.get(key,pd.DataFrame()))<10)]
+    if weak:
+        try:
+            from simulation_sources import historical_espn_results
+            finished,notes=historical_espn_results(
+                season,refresh=False,lookback_months=6)
+            teams={identities[k]["team"] for k in weak if identities[k].get("team")}
+            if finished is not None and not finished.empty and teams:
+                from espn_player_data import full_season_team_boxscores
+                box,box_meta=full_season_team_boxscores(
+                    finished,teams,pd.Timestamp.now(tz="UTC"))
+                if not box.empty:
+                    normalized=normalize_logs(box)
+                    for key in weak:
+                        ident=identities[key]
+                        pid=ident.get("id") or ""
+                        selection=normalized[
+                            normalized["PLAYER_ID"].astype(str)==str(pid)
+                        ].copy() if "PLAYER_ID" in normalized else pd.DataFrame()
+                        if selection.empty:
+                            continue
+                        original=histories.get(key,pd.DataFrame())
+                        combined=pd.concat([original,selection],ignore_index=True)
+                        combined=combined.drop_duplicates(
+                            subset=["GAME_ID","PLAYER_ID"],keep="last")
+                        histories[key]=combined.sort_values("GAME_DATE")
+                        ident["source"]="ESPN sezon: gamelog + zweryfikowane boxscore"
+                        ident["source_games"]=len(histories[key])
+                        ident["partial"]=bool(box_meta.get("partial") or notes)
+                        ident["fallback_coverage"]=(
+                            f'{box_meta.get("success",0)}/'
+                            f'{box_meta.get("attempted",0)} meczów drużyn')
+        except (ValueError,KeyError,RuntimeError,TypeError):
+            pass
+
+    # Last resort only: an explicitly PARTIAL league-wide sample. Never label
+    # a single appearance '100% season' without the sample-size warning.
+    still_missing=[name for name in names
+                   if norm_name(name) not in histories and
+                      not identities.get(norm_name(name),{}).get("ambiguous")]
+    if still_missing:
+        try:
+            raw,meta=get_logs()
+        except (ValueError,RuntimeError,KeyError,TypeError):
+            raw,meta=pd.DataFrame(),{}
+        if isinstance(raw,pd.DataFrame) and not raw.empty and "PLAYER_NAME" in raw:
+            for name in still_missing:
                 key=norm_name(name)
-                subset=raw[raw["PLAYER_NAME"].map(norm_name)==key].copy()
-                if subset.empty:continue
-                by_club=subset.sort_values("GAME_DATE")
-                team=str(by_club.iloc[-1]["TEAM_ABBREVIATION"])
-                ids=by_club["PLAYER_ID"].dropna().astype(str).unique().tolist() if "PLAYER_ID" in by_club else []
-                identities[key]={"id":ids[0] if len(ids)==1 else None,
-                                 "team":team,
-                                 "source":str(source)+" — możliwa próbka częściowa",
-                                 "partial":True,"stale":bool((meta or {}).get("stale"))}
-                histories[key]=subset
+                sample=raw[raw["PLAYER_NAME"].map(norm_name)==key].copy()
+                if sample.empty:continue
+                sample=sample.sort_values("GAME_DATE")
+                team=str(sample.iloc[-1]["TEAM_ABBREVIATION"])
+                ids=(sample["PLAYER_ID"].dropna().astype(str).unique().tolist()
+                     if "PLAYER_ID" in sample else [])
+                identities[key]={
+                    "id":ids[0] if len(ids)==1 else None,
+                    "team":team,"position":"",
+                    "source":str(meta.get("source","NBA/ESPN") if isinstance(meta,dict) else "NBA/ESPN")+
+                             " — próbka NIEPEŁNA",
+                    "partial":True,"stale":bool(meta.get("stale")) if isinstance(meta,dict) else True,
+                }
+                histories[key]=sample
     return histories,identities,coverage
 
 
