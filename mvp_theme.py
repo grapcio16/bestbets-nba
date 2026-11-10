@@ -222,6 +222,188 @@ h1{font-size:2.2rem!important}h2{font-size:1.6rem!important}h3{font-size:1.23rem
 }
 .bb-gamecard .bb-versus b{color:#d6e8ff!important}
 .bb-gamecard .bb-gamefooter{border-top:1px solid #233b5b}
+
+/* BESTBETS MATCHUP INTELLIGENCE — vibrant, compact game cards */
+.bbm-sim-game{
+ margin:11px 0 6px;padding:17px 20px 14px;
+ border-radius:19px;border:1px solid #33547c;
+ background:
+  radial-gradient(ellipse at 0 0,rgba(24,166,245,.12),transparent 42%),
+  radial-gradient(ellipse at 100% 100%,rgba(255,119,29,.12),transparent 42%),
+  linear-gradient(111deg,#122640 0%,#0e1b32 58%,#111c32 100%);
+ box-shadow:0 10px 34px rgba(0,0,0,.15),inset 0 1px rgba(104,173,244,.12);
+}
+.bbm-sim-game-top{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:10px;padding-bottom:13px;border-bottom:1px solid #2a456a;
+ font-size:12px;font-weight:800;color:#c9dcf4;flex-wrap:wrap;
+}
+.bbm-live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#fb8d37;box-shadow:0 0 12px #fa8b36;margin-right:8px}
+.bbm-sim-source{
+ padding:5px 9px;border:1px solid #325b84;border-radius:99px;
+ color:#76c5fa!important;font-size:10px!important;letter-spacing:.06em;
+}
+.bbm-sim-game-grid{
+ display:grid;grid-template-columns:minmax(0,2.4fr) minmax(155px,1fr);
+ gap:18px;align-items:center;padding:12px 0 12px;
+}
+.bbm-sim-matchup{display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;gap:10px;min-width:0}
+.bbm-sim-team{display:flex;align-items:center;gap:10px;min-width:0}
+.bbm-sim-team img{width:46px!important;height:46px!important;flex-shrink:0;filter:drop-shadow(0 3px 8px rgba(0,0,0,.36))}
+.bbm-sim-team>div{min-width:0;flex:1}
+.bbm-sim-abbr{font-size:10px;font-weight:850;letter-spacing:.11em;color:#9eb2d0;margin-bottom:2px}
+.bbm-sim-team strong{font-size:13px;font-weight:850;display:block;color:#eff6ff;line-height:1.28}
+.bbm-sim-score{font-size:23px;font-weight:900;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bbm-sim-versus{font-weight:900;font-size:11px;color:#637da1;text-align:center}
+.bbm-sim-summary{
+ border-left:1px solid #2c4868;padding-left:21px;text-align:right;
+}
+.bbm-sim-small{font-size:10px;letter-spacing:.07em;color:#9cb2d3;font-weight:750}
+.bbm-sim-small b{color:#e9f3ff;font-weight:850}
+.bbm-sim-total{font-size:clamp(29px,3vw,35px);font-weight:900;color:#fff;line-height:1.35;font-variant-numeric:tabular-nums}
+.bbm-orange{color:#ff9c52!important}.bbm-green{color:#23e29c!important}
+.bbm-sim-winbar{display:flex;overflow:hidden;height:9px;background:#233a57;border-radius:99px}
+.bbm-sim-winbar>div:first-child{background:linear-gradient(90deg,#ea7541,#ffa54a)}
+.bbm-sim-winbar>div:last-child{background:linear-gradient(90deg,#2acaad,#17dd88)}
+.bbm-sim-winlabels{
+ display:flex;justify-content:space-between;font-weight:850;
+ font-size:11px;letter-spacing:.03em;margin-top:9px
+}
+.bbm-sim-detail-hero{
+ padding:17px 20px 15px;border-radius:19px;
+ background:
+ radial-gradient(ellipse at 0 100%,rgba(16,163,230,.20),transparent 43%),
+ radial-gradient(ellipse at 100% 0%,rgba(255,116,42,.20),transparent 43%),
+ linear-gradient(115deg,#152943,#111e32 52%,#14223b);
+ border:1px solid #42628b;box-shadow:inset 0 1px rgba(142,201,255,.16);
+ margin-bottom:10px;
+}
+.bbm-sim-detail-kicker{
+ color:#a9bddb;font-size:10px;letter-spacing:.17em;font-weight:850;text-align:center;margin-bottom:10px
+}
+.bbm-sim-detail-match{
+ display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+ align-items:center;gap:10px;
+}
+.bbm-sim-detail-side{display:flex;gap:12px;align-items:center;min-width:0}
+.bbm-sim-detail-side.right{flex-direction:row-reverse;text-align:right}
+.bbm-sim-detail-side img{height:62px!important;width:62px!important;flex:0 0 auto;object-fit:contain}
+.bbm-sim-detail-side strong{
+ display:block;color:#f5faff;font-size:clamp(14px,1.6vw,18px);
+ font-weight:900;line-height:1.21;
+}
+.bbm-sim-detail-side em{display:block;font-size:11px;font-style:normal;font-weight:850;margin-top:5px}
+.bbm-sim-detail-code{display:block;font-size:10px;color:#99afcb;letter-spacing:.12em;font-weight:800;margin-bottom:3px}
+.bbm-sim-detail-middle{text-align:center;min-width:150px}
+.bbm-sim-projected{
+ font-size:clamp(27px,3.5vw,43px);font-weight:950;letter-spacing:-.05em;
+ line-height:1.06;color:#f4f9ff;white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+.bbm-sim-projected span{font-size:22px;color:#879ebc;margin:0 5px}
+.bbm-sim-detail-middle small{color:#9bb2d1;font-size:9px;letter-spacing:.12em;font-weight:800}
+.bbm-sim-kpis{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:10px 0
+}
+.bbm-sim-kpis>div{
+ padding:11px 12px;border:1px solid #2d5176;border-radius:13px;
+ background:linear-gradient(136deg,#142c49,#0f1b31);
+}
+.bbm-sim-kpis small{font-size:9px;display:block;color:#95afd0;font-weight:850;letter-spacing:.07em;min-height:22px}
+.bbm-sim-kpis strong{font-size:clamp(18px,2.2vw,25px);display:block;color:#f2f9ff;font-weight:900;font-variant-numeric:tabular-nums;margin-top:4px}
+.bbm-sim-section-title{
+ display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+ color:#f4f9ff;font-size:15px;font-weight:900;
+ margin:14px 0 9px;letter-spacing:.02em;
+}
+.bbm-sim-section-title>span{color:#83a3c6;font-weight:600;font-size:11px;letter-spacing:0}
+.bbm-sim-section-title>img{height:30px!important;width:30px!important;object-fit:contain}
+.bbm-sim-form-card{
+ background:linear-gradient(137deg,#162e46,#101e33);
+ border:1px solid #2f6884;border-radius:16px;padding:14px;min-height:172px
+}
+.bbm-sim-form-card.home{
+ border-color:#327559;background:linear-gradient(137deg,#133c36,#0d2531)
+}
+.bbm-sim-form-heading{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.bbm-sim-form-heading img{width:39px!important;height:39px!important;object-fit:contain}
+.bbm-sim-form-heading small{font-size:9px;letter-spacing:.12em;color:#9ab7cc;font-weight:850;display:block}
+.bbm-sim-form-heading strong{font-size:13px;font-weight:900;color:#fff}
+.bbm-sim-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.bbm-sim-form-grid>div{padding:7px 10px;border-radius:10px;background:rgba(2,11,23,.26);border:1px solid #2a465e}
+.bbm-sim-form-grid small{color:#87a8c3;font-weight:850;display:block;font-size:9px;letter-spacing:.08em}
+.bbm-sim-form-grid b{font-size:18px;color:#f2faff;font-weight:950;display:block;margin-top:2px}
+.bbm-sim-injury{
+ display:flex;align-items:center;justify-content:space-between;gap:9px;
+ padding:9px 12px;border:1px solid #68445b;border-radius:11px;
+ background:linear-gradient(90deg,rgba(122,41,63,.27),rgba(21,29,51,.78));
+ margin-bottom:6px
+}
+.bbm-sim-injury b{color:#fff;font-size:12px;font-weight:850}
+.bbm-sim-injury span{color:#ffc091;font-weight:750;font-size:11px;text-align:right}
+.bbm-sim-take{
+ display:flex;align-items:center;gap:17px;
+ margin:15px 0 0;border-radius:14px;padding:13px 15px;
+ background:linear-gradient(111deg,rgba(191,88,39,.20),#112338 64%,rgba(27,101,172,.18));
+ border:1px solid rgba(255,132,59,.56);
+}
+.bbm-sim-take strong{font-size:13px;font-weight:950;color:#ffab6c;white-space:nowrap}
+.bbm-sim-take span{font-size:11px;color:#cfddf1;line-height:1.5}
+/* Streamlit dialogs render in a portal; give them the same dark-blue shell. */
+div[data-testid="stDialog"] div[role="dialog"],
+div[data-testid="stDialog"] div[data-testid="stDialogContent"],
+div[data-testid="stDialog"] [data-testid="stVerticalBlockBorderWrapper"]{
+ background:linear-gradient(153deg,#0d1a31,#0a1328)!important;
+ border-color:#304f79!important;color:#e7f1ff!important;
+}
+div[data-testid="stDialog"] div[role="dialog"]{
+ width:min(1120px,96vw)!important;max-width:1120px!important;
+ border:1px solid #3c6089!important;border-radius:22px!important;
+ box-shadow:0 22px 95px rgba(1,4,15,.8),0 0 40px rgba(15,113,207,.10)!important;
+}
+div[data-testid="stDialog"] [data-testid="stMarkdownContainer"] p{
+ color:#a6bcd8;
+}
+div[data-testid="stDialog"] [data-testid="stRadio"] label{
+ background:#12233c!important;border:1px solid #355b84!important;
+ border-radius:10px!important;padding:8px 12px!important;
+}
+div[data-testid="stDialog"] [data-testid="stRadio"] label:has(input:checked){
+ background:#183d60!important;border-color:#ff8b3e!important;
+ color:#fff!important;box-shadow:inset 2px 0 #ff8b3e!important;
+}
+@media(max-width:980px){
+ .bbm-sim-game-grid{grid-template-columns:1fr;gap:9px}
+ .bbm-sim-summary{border-left:0;border-top:1px solid #2c4868;padding:10px 0 0;text-align:left}
+ .bbm-sim-total{display:inline;margin-right:10px}
+ .bbm-sim-detail-side img{width:48px!important;height:48px!important}
+ .bbm-sim-detail-middle{min-width:115px}
+}
+@media(max-width:640px){
+ .bbm-sim-game{padding:12px}
+ .bbm-sim-game-top{font-size:10px}
+ .bbm-sim-source{font-size:9px!important}
+ .bbm-sim-matchup{grid-template-columns:1fr 21px 1fr;gap:4px}
+ .bbm-sim-team{flex-direction:column;align-items:flex-start;gap:4px}
+ .bbm-sim-team img{width:38px!important;height:38px!important}
+ .bbm-sim-score{font-size:21px}
+ .bbm-sim-detail-hero{padding:10px 9px}
+ .bbm-sim-detail-match{gap:4px}
+ .bbm-sim-detail-side{flex-direction:column;align-items:center;text-align:center;gap:3px}
+ .bbm-sim-detail-side.right{flex-direction:column;align-items:center;text-align:center}
+ .bbm-sim-detail-side img{height:38px!important;width:38px!important}
+ .bbm-sim-detail-side strong{font-size:11px}
+ .bbm-sim-detail-code{font-size:8px}
+ .bbm-sim-detail-middle{min-width:87px}
+ .bbm-sim-projected{font-size:20px}
+ .bbm-sim-projected span{font-size:13px}
+ .bbm-sim-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .bbm-sim-kpis strong{font-size:20px}
+ .bbm-sim-form-grid{gap:5px}
+ .bbm-sim-form-grid b{font-size:15px}
+ .bbm-sim-take{display:block}
+ .bbm-sim-take span{display:block;margin-top:7px}
+}
+
 @media(max-width:950px){
  .bbm-player-head{flex-wrap:wrap}
  .bbm-player-stats{max-width:100%;width:100%}
