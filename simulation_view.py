@@ -166,165 +166,60 @@ def local_timezone():
 
 
 def game_card(sim,g,hist):
-    h,a=sim['home'],sim['away']
-    date=pd.to_datetime(g['start_utc'],utc=True).tz_convert(local_timezone()).strftime('%d.%m.%Y • %H:%M')
-    pct_h=float(sim['home_win_pct']);pct_a=float(sim['away_win_pct'])
-    # HTML is constructed only from trusted static team names, sanitized dates and numeric simulations.
-    st.markdown(f'''<div class="bb-gamecard">
-      <div class="bb-gamehead">🏀 {esc(date)} <span>5 000 symulacji</span></div>
-      <div class="bb-versus">
-        <div>{logo_html(a)}<strong>{esc(TEAM_NAMES.get(a,a))}</strong><small>Goście · średnia z symulacji</small><b>{sim['away_points']:.1f} pkt</b></div>
-        <span class="bb-at">VS</span>
-        <div>{logo_html(h)}<strong>{esc(TEAM_NAMES.get(h,h))}</strong><small>Gospodarze · średnia z symulacji</small><b>{sim['home_points']:.1f} pkt</b></div>
-      </div>
-      <div class="bb-winbar"><div style="width:{pct_a:.1f}%;background:#E8AD58"></div><div style="width:{pct_h:.1f}%;background:#62C7AE"></div></div>
-      <div class="bb-winlabels"><span>{pct_a:.1f}% • {esc(a)}</span><span>{pct_h:.1f}% • {esc(h)}</span></div>
-      <div class="bb-gamefooter">Średnia suma punktów <b>{sim['total_points']:.1f}</b> · Model typuje: <b>{esc(TEAM_NAMES.get(sim['winner'],sim['winner']))}</b></div>
-      <div style="font-size:10px;color:#90a4be;margin-top:6px">Procenty = udział zwycięstw w 5 000 symulacji. Duże liczby przy drużynach = prognozowane średnie punkty, a nie aktualny wynik.</div>
-    </div>''',unsafe_allow_html=True)
+    """Original premium card with a proper two-team horizontal layout."""
+    from simulation_premium_ui import matchup_card_html
+    date=pd.to_datetime(g['start_utc'],utc=True).tz_convert(
+        local_timezone()).strftime('%d.%m.%Y · %H:%M')
+    st.markdown(
+        matchup_card_html(sim,date,logo_html,TEAM_NAMES),
+        unsafe_allow_html=True)
     qc=sim.get('quality_check') or {}
     if qc.get('alerts'):
-        st.warning('Jakość danych: '+' • '.join(qc['alerts'][:3]))
-    with st.expander('Weryfikacja źródeł i historyczne średnie',expanded=False):
-        st.caption('Wariant: '+str(sim.get('source','Nieznany')))
-        st.caption('Próba: '+str(sim.get('sample') or 'metyki drużyn')
-                   +'. Procenty są niekalibrowane.')
-        away_hist=team_scoring_history(hist,a)
-        home_hist=team_scoring_history(hist,h)
-        if away_hist and home_hist:
-            st.caption(
-                f"{a}: {away_hist['mean']:.1f} pkt z "
-                f"{away_hist['games']} meczów · "
-                f"{h}: {home_hist['mean']:.1f} pkt z "
-                f"{home_hist['games']} meczów.")
+        with st.expander('⚠️ Ograniczenia tej prognozy',expanded=False):
+            for alert in qc['alerts'][:4]:
+                st.caption(str(alert))
+    # Detailed source checks are available inside the modal, not in every card.
 
-@st.dialog('🏀 Szczegóły meczu i statystyki zawodników', width='large')
+
+@st.dialog('🏀 Matchup Intelligence', width='large')
 def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
                       roster_tables=None, roster_diagnostics=None, roster_notices=None,
                       research_mode=False, injury_table=None, injury_meta=None):
-    """One-click modal. Player statistics are the FIRST view, not below the cards."""
-    home, away = sim['home'], sim['away']
-    st.markdown(f'### {TEAM_NAMES.get(away,away)} — {TEAM_NAMES.get(home,home)}')
-    st.caption('5 000 symulacji • model eksperymentalny • nie jest to pewny wynik meczu')
-    st.markdown('<div class="bb-versus" style="max-width:560px;margin:0 auto 12px">'
-        + f'<div>{logo_html(away)}<strong>{esc(TEAM_NAMES.get(away,away))}</strong></div>'
-        + '<span class="bb-at">VS</span>'
-        + f'<div>{logo_html(home)}<strong>{esc(TEAM_NAMES.get(home,home))}</strong></div>'
-        + '</div>', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric('Szansa gości', f"{sim['away_win_pct']:.1f}%")
-    c1.caption('Udział wygranych gości w symulacji, nie szansa potwierdzona.')
-    c2.metric('Szansa gospodarzy', f"{sim['home_win_pct']:.1f}%")
-    c2.caption('Udział wygranych gospodarzy w symulacji, nie szansa potwierdzona.')
-    c3.metric('Średni wynik', f"{sim['away_points']:.1f} : {sim['home_points']:.1f}")
-    c3.caption('Punkty gości : gospodarzy, średnia z 5 000 prób.')
-    c4.metric('Średnia suma', f"{sim['total_points']:.1f} pkt")
-    c4.caption(f"80% symulacji: {sim['total_p10']}–{sim['total_p90']} pkt.")
-    st.caption(f"Źródło modelu: {sim['source']}. {sim.get('warning','')}")
-    qc=sim.get('quality_check') or {}
-    if qc.get('alternate_available'):
-        st.caption('Kontrola wrażliwości — drugi wariant modelu: '
-                   f"{qc['alternate_away']:.1f} : {qc['alternate_home']:.1f} "
-                   '(goście : gospodarze). '
-                   f"Różnica handicapów {qc['margin_disagreement']:.1f} pkt. "
-                   'Wariant nie jest gwarantowanie dokładniejszy.')
-    if qc.get('alerts'):
-        st.warning('Ograniczenia tej prognozy: '+' • '.join(qc['alerts']))
-    past_away=team_scoring_history(hist,away)
-    past_home=team_scoring_history(hist,home)
-    if past_away and past_home:
-        aa,hh=st.columns(2)
-        aa.metric('Średnia zdobytych pkt — goście (historia)',f"{past_away['mean']:.1f} pkt")
-        aa.caption(f"Ostatnie {past_away['games']} rozegranych meczów, bez symulacji")
-        hh.metric('Średnia zdobytych pkt — gospodarze (historia)',f"{past_home['mean']:.1f} pkt")
-        hh.caption(f"Ostatnie {past_home['games']} rozegranych meczów, bez symulacji")
-    with st.expander('📈 Audyt danych: próba 5/10/20, dom/wyjazd, obrona, tempo i zmienność',expanded=False):
-        st.caption('Wszystkie liczby wyliczono WYŁĄCZNIE z zakończonych meczów przed datą analizowanego spotkania. '
-                   'Używanie większej próby nie gwarantuje dokładniejszej prognozy. '
-                   'To informacje badawcze — NIE są dodatkowymi mnożnikami symulacji.')
-        report_rows, audit_flags=matchup_audit(hist,g,advanced)
-        st.dataframe(report_rows,hide_index=True,use_container_width=True)
-        st.caption('Historia 5/10/20 to liczba dostępnych meczów z ostatnich N; '
-                   '„U siebie / wyjazd” to liczba rzeczywistych spotkań w miejscu odpowiadającym meczowi. '
-                   'Odchylenie sumy = rzeczywista zmienność punktów.')
-        if audit_flags:
-            st.warning('Ograniczenia danych: '+' • '.join(audit_flags[:5]))
-        candidate=venue_research_candidate(hist,g)
-        if candidate is not None:
-            st.caption('Dodatkowa hipoteza badawcza (bez wpływu na wynik meczu): '
-                       f"historyczne splity dom/wyjazd sugerują średnie "
-                       f"{candidate['away']:.1f} : {candidate['home']:.1f}. "
-                       f"Próba venue: gospodarze {candidate['venue_samples'][0]} / "
-                       f"goście {candidate['venue_samples'][1]}. "
-                       'Nie jest to skalibrowany ani produkcyjny model.')
-        else:
-            st.caption('Nie uruchomiono hipotezy dom/wyjazd: '
-                       'brak minimum 4 zakończonych spotkań w odpowiednich lokalizacjach dla obu drużyn.')
-    from match_context import matchup_schedule_context
-    contexts=matchup_schedule_context(hist,g)
-    st.markdown('#### Odpoczynek i intensywność terminarza')
-    st.caption('Dane oparte na faktycznie zakończonych spotkaniach ESPN. '
-               'Daty wg strefy NBA ET; to nie jest pełna analiza podróży. '
-               'Liczby te NIE zmieniają na razie symulacji.')
-    for side,code in (('away',away),('home',home)):
-        ctx=contexts[side]
-        if not ctx.get('available'):
-            st.caption(TEAM_NAMES.get(code,code)+': '+ctx.get('reason','Brak danych'))
-        else:
-            st.caption(f"{TEAM_NAMES.get(code,code)}: "
-                       f"odpoczynek {ctx['rest_days']} dzień/dni · "
-                       f"back-to-back: {'TAK' if ctx['back_to_back'] else 'NIE'} · "
-                       f"{ctx['games_in_4_days']} mecz(e) w ciągu 4 dni · "
-                       f"ostatnie {ctx['played_last5']} spotkań: "
-                       f"{ctx['wins_last5']} wygranych, "
-                       f"średnia różnica {ctx['margin_last5']:+.1f} pkt.")
-    st.markdown('#### Forma ostatnich meczów — dane rzeczywiste')
-    st.caption('Poniższe statystyki są kontekstem, a nie dodatkowym '
-               'mnożnikiem prawdopodobieństw. Nie potwierdzają dostępności '
-               'zawodników w dniu meczu.')
-    ac=advanced_ratings(advanced)
-    for code in (away,home):
-        form=team_form_diagnostics(hist,code,asof=g.get('start_utc'))
-        st.markdown('**'+TEAM_NAMES.get(code,code)+'**')
-        if form:
-            st.caption(f"Ostatnie {form['games_last5']} meczów: "
-                       f"{form['wins_last5']} zwycięstw · "
-                       f"zdobyte {form['scored_last5']:.1f} pkt/mecz · "
-                       f"stracone {form['allowed_last5']:.1f} pkt/mecz · "
-                       f"ry wale: {form['opponents_last5']}".replace('ry wale','rywale'))
-        else:
-            st.caption('Brak wystarczających zakończonych spotkań.')
-        if code in ac:
-            v=ac[code]
-            st.caption(f"NBA advanced: tempo {v['pace']:.1f} posiadań/48 min · "
-                       f"OFF Rating {v['off']:.1f} · DEF Rating {v['def']:.1f}")
-        else:
-            st.caption('Tempo posiadań, OFF i DEF Rating: brak zweryfikowanych '
-                       'danych NBA advanced, nie szacujemy ich z punktów.')
-    if player_meta:
-        st.caption('Dane zawodników: '+str(player_meta.get('source','ESPN'))+
-                   ' · '+str(player_meta.get('coverage','')))
-    report,report_meta=matchup_injuries(injury_table,home,away,injury_meta)
-    st.markdown('#### Statusy zawodników — raport ESPN')
-    if report.empty:
-        st.info('Brak rozpoznanych informacji o kontuzjach obu drużyn. '
-                'To NIE oznacza, że wszyscy zawodnicy są dostępni.')
-    else:
-        st.dataframe(report,hide_index=True,use_container_width=True,
-                     height=min(290,52+len(report)*36))
-    if report_meta.get('stale'):
-        st.warning('ESPN: dane kontuzji z nieaktualnej pamięci podręcznej.')
-    st.caption(report_meta.get('warning','Statusy wymagają potwierdzenia.'))
-    if report.empty:
-        st.caption('Dostępność kluczowych zawodników przed meczem pozostaje niepotwierdzona.')
-
-
-    # Only render the selected section. Stats are immediately visible by default.
-    view = st.radio('Pokaż szczegóły',
-                     ['👥 Zawodnicy', '🩺 Rotacja i absencje',
-                      '🎯 Linie i wrażliwość', '📊 Rozkład punktów',
-                      '💹 Kursy bukmacherów'],
-                     horizontal=True, key=f"bb61_detail_view_{g['game_id']}")
+    """Compact hero and paged real-data details; inactive views are not fetched."""
+    from simulation_premium_ui import (
+        detail_hero_html,render_matchup_overview,
+        render_injuries,render_model_audit,show_number,
+    )
+    away,home=sim['away'],sim['home']
+    st.markdown(detail_hero_html(sim,logo_html,TEAM_NAMES),
+                unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="bbm-sim-kpis">
+      <div><small>AWAY WIN SHARE</small>
+        <strong class="bbm-orange">{show_number(sim.get('away_win_pct'),1,'%')}</strong></div>
+      <div><small>HOME WIN SHARE</small>
+        <strong class="bbm-green">{show_number(sim.get('home_win_pct'),1,'%')}</strong></div>
+      <div><small>PROJECTED TOTAL</small>
+        <strong>{show_number(sim.get('total_points'),1)}</strong></div>
+      <div><small>80% SIMULATED TOTAL</small>
+        <strong>{show_number(sim.get('total_p10'),0)}–{show_number(sim.get('total_p90'),0)}</strong></div>
+    </div>
+    """,unsafe_allow_html=True)
+    st.caption('Win share = udział zwycięstw w symulacji, a nie '
+               'skalibrowana szansa wygrania zakładu. '
+               'Średnie wyniki są modelowane, nie rzeczywiste.')
+    view=st.radio(
+        'Analiza meczu',
+        ['🏟️ Przegląd','👥 Zawodnicy','🩺 Rotacja i absencje',
+         '🎯 Linie i wrażliwość','📊 Rozkład punktów','🔬 Dane modelu'],
+        horizontal=True,key=f"bb61_detail_view_{g['game_id']}")
+    if view=='🏟️ Przegląd':
+        render_matchup_overview(
+            sim,g,hist,advanced,injury_table,injury_meta,logo_html)
+        return
+    if view=='🔬 Dane modelu':
+        render_model_audit(sim,g,hist,advanced)
+        return
     if view == '🩺 Rotacja i absencje':
         st.markdown('#### Dostępność i ostatnia rotacja — analiza badawcza')
         st.caption('Rzeczywiste minuty z ostatnich 3/7 występów, '
