@@ -26,9 +26,40 @@ jobs:
       - name: Install minimum test dependencies
         run: python -m pip install -q pandas numpy plotly streamlit requests 'psycopg[binary]>=3.2,<4'
       - name: Compile updated modules
-        run: python -m py_compile screenshot_cards.py season_props.py tracker_automation.py simulation_lines.py prediction_engine_v2.py player_model_battle.py screenshot_import.py screenshot_ui.py rotation_intelligence.py simulation_data_audit.py simulation_sources.py model_validation.py center_leaderboard.py schedule_ui.py schedule_data.py viewer_time.py dashboard_data.py app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py tracker_storage.py tracker_postgres.py match_context.py forecast_quality.py availability_context.py opponent_ratings.py model_validation.py
+        run: python -m py_compile premium_theme.py prop_search.py prop_search_ui.py screenshot_cards.py season_props.py tracker_automation.py simulation_lines.py prediction_engine_v2.py player_model_battle.py screenshot_import.py screenshot_ui.py rotation_intelligence.py simulation_data_audit.py simulation_sources.py model_validation.py center_leaderboard.py schedule_ui.py schedule_data.py viewer_time.py dashboard_data.py app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py tracker_storage.py tracker_postgres.py match_context.py forecast_quality.py availability_context.py opponent_ratings.py model_validation.py
       - name: Unit tests for roster parsing
-        run: python -m unittest -v test_screenshot_v722.py test_season_props_v721.py test_tracker_v720.py test_simulation_lines_v719.py test_prediction_v718.py test_screen_v717.py test_rotation_v716.py test_simulation_data_audit.py test_center_v713.py test_center_v712.py test_center_v711.py test_schedule_v710.py test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
+        run: python -m unittest -v test_prop_search_v723.py test_screenshot_v722.py test_season_props_v721.py test_tracker_v720.py test_simulation_lines_v719.py test_prediction_v718.py test_screen_v717.py test_rotation_v716.py test_simulation_data_audit.py test_center_v713.py test_center_v712.py test_center_v711.py test_schedule_v710.py test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
+      - name: v7.23 global premium visual system and natural search UI
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from streamlit.testing.v1 import AppTest
+          main=Path('app.py').read_text(encoding='utf-8')
+          assert 'apply_premium_theme()' in main
+          assert 'render_natural_prop_search(' in main
+          assert 'NBA / v7.23' in main
+          from prop_search import parse_prop_batch
+          examples=('Jason Tatum uver 25,5 point\n'
+                    'Jayson Tatum under 3,5 asist\n'
+                    'Jayson Tatum over 2,5 three point\n'
+                    'Jayson Tatum over 7,5 rebunds')
+          rows,errors=parse_prop_batch(examples)
+          assert len(rows)==4 and not errors,(rows,errors)
+          assert [r['market'] for r in rows]==['PTS','AST','FG3M','REB']
+          at=AppTest.from_file('app.py',default_timeout=90).run()
+          assert not at.exception,[str(x.message) for x in at.exception]
+          at.sidebar.radio[0].set_value('💹 Kursy i value').run()
+          assert not at.exception,[str(x.message) for x in at.exception]
+          x=next(r for r in at.radio if r.key=='bb64_odds_view')
+          x.set_value('🧮 Kalkulator (opcjonalnie)').run()
+          assert not at.exception,[str(x.message) for x in at.exception]
+          mode=next(r for r in at.radio if r.key=='bb717_calculator_mode')
+          assert mode.value.startswith('🔎')
+          assert any(a.key=='bb723_search_text' for a in at.text_area)
+          at.sidebar.radio[0].set_value('🏀 Symulacje 5000').run()
+          assert not at.exception,[str(x.message) for x in at.exception]
+          print('BestBets premium theme, new search and existing tabs loaded')
+          PY
       - name: v7.22 ESPN nested full season and premium cards
         run: |
           python - <<'PY'
@@ -50,7 +81,11 @@ jobs:
           panel=next(x for x in at.radio if x.key=='bb64_odds_view')
           panel.set_value('🧮 Kalkulator (opcjonalnie)').run()
           assert not at.exception,[str(x.message) for x in at.exception]
-          assert next(x for x in at.radio if x.key=='bb717_calculator_mode').value.startswith('📷')
+          selection=next(x for x in at.radio if x.key=='bb717_calculator_mode')
+          assert selection.value.startswith('🔎')
+          selection.set_value('📷 Import screenshot — analiza wielu pozycji').run()
+          assert not at.exception,[str(x.message) for x in at.exception]
+          assert any(x.key=='bb721_game_date' for x in at.get('date_input'))
           print('Updated screenshot flow loads without fetching unrequested games.')
           PY
       - name: v7.21 seasonal props UI and visible research changes
@@ -75,6 +110,9 @@ jobs:
           assert not at.exception,[str(x.message) for x in at.exception]
           choice=next(x for x in at.radio if x.key=='bb64_odds_view')
           choice.set_value('🧮 Kalkulator (opcjonalnie)').run()
+          assert not at.exception,[str(x.message) for x in at.exception]
+          mode=next(x for x in at.radio if x.key=='bb717_calculator_mode')
+          mode.set_value('📷 Import screenshot — analiza wielu pozycji').run()
           assert not at.exception,[str(x.message) for x in at.exception]
           assert any(x.key=='bb721_game_date' for x in at.get('date_input'))
           at.sidebar.radio[0].set_value('🏀 Symulacje 5000').run()
@@ -154,8 +192,12 @@ jobs:
           option.set_value("🧮 Kalkulator (opcjonalnie)").run()
           assert not at.exception,[str(x.message) for x in at.exception]
           new=next(r for r in at.radio if r.key=="bb717_calculator_mode")
-          assert new.value.startswith("📷")
+          assert new.value.startswith("🔎")
           assert "👤 Kalkulator pojedynczego zawodnika" in new.options
+          assert "📷 Import screenshot — analiza wielu pozycji" in new.options
+          new.set_value("📷 Import screenshot — analiza wielu pozycji").run()
+          assert not at.exception,[str(x.message) for x in at.exception]
+          assert any(x.key=="bb717_screen_upload" for x in at.get("file_uploader"))
           print("v7.17 uploader/editor exists; legacy calculator remains selectable")
           PY
       - name: v7.16 rotation analysis isolated from team-score model
