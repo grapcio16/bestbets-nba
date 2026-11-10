@@ -176,6 +176,25 @@ def render_player_card(row,logs,season,asof,slug="bb_mvp_prop"):
         return
     all_=rates["season"]
     selected_rate=all_["over_pct"] if side=="OVER" else all_["under_pct"]
+    if market=="PRA":
+        # All three components use the SAME completed games; do not sum
+        # independent or incomplete per-stat samples.
+        components=games[["PTS","REB","AST"]].apply(
+            pd.to_numeric,errors="coerce")
+        components=components.dropna()
+        if not components.empty:
+            averages=components.mean()
+            st.markdown(
+                '<div class="bbm-pra-breakdown">'
+                '<strong>PRA · PUNKTY + ZBIÓRKI + ASYSTY</strong>'
+                f'<span><b>{averages["PTS"]:.1f}</b> PTS</span>'
+                '<em>+</em>'
+                f'<span><b>{averages["REB"]:.1f}</b> REB</span>'
+                '<em>+</em>'
+                f'<span><b>{averages["AST"]:.1f}</b> AST</span>'
+                '<em>=</em>'
+                f'<span class="bbm-pra-total"><b>{averages.sum():.1f}</b> PRA / mecz</span>'
+                '</div>',unsafe_allow_html=True)
     s1,s2=st.columns([1.25,1.2],vertical_alignment="bottom")
     with s1:
         period=st.radio(
