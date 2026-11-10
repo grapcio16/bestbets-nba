@@ -484,21 +484,41 @@ def favorites_page():
     st.markdown("### Teams")
     if not teams:st.info("W Teams wybierz drużynę i kliknij ☆ Add to Favorites.")
     for code in teams:
-        col1,col2=st.columns([3,1])
+        col1,col2,col3=st.columns([3,1,1],vertical_alignment="center")
         col1.markdown(
             '<div class="bbm-card">'+_logo_img(code,37)+
             '<strong style="margin-left:12px">'+escape(TEAM_FULL.get(code,code))+
             '</strong></div>',unsafe_allow_html=True)
-        if col2.button("View team",key=f"bbm_open_team_{code}"):
+        if col2.button("View",key=f"bbm_open_team_{code}",
+                       use_container_width=True):
             st.session_state["bbm_selected_team"]=code
             set_page("teams");st.rerun()
+        if col3.button("Remove",key=f"bbm_rm_team_{code}",
+                       use_container_width=True):
+            st.session_state["bb_mvp_favorite_teams"]=[
+                t for t in teams if t!=code]
+            st.rerun()
     st.markdown("### Players")
     if not people:st.info("Zapisz zawodnika w Player Props lub Players.")
     for player in people:
-        st.markdown(
-            '<div class="bbm-card"><strong>'+escape(str(player.get("name") or ""))+
-            '</strong><div class="bbm-compact">'+escape(str(player.get("team") or ""))+
+        name=str(player.get("name") or "")
+        team=str(player.get("team") or "")
+        col1,col2,col3=st.columns([3,1,1],vertical_alignment="center")
+        col1.markdown(
+            '<div class="bbm-card"><strong>'+escape(name)+
+            '</strong><div class="bbm-compact">'+escape(team)+
             '</div></div>',unsafe_allow_html=True)
+        if col2.button("View",key="bbm_open_person_"+name,
+                       use_container_width=True):
+            if team in TEAM_FULL:
+                st.session_state["bbm_player_team"]=team
+            set_page("players")
+            st.rerun()
+        if col3.button("Remove",key="bbm_rm_person_"+name,
+                       use_container_width=True):
+            st.session_state["bb_mvp_favorite_players"]=[
+                p for p in people if p.get("name")!=name]
+            st.rerun()
 
 
 def trends_page():
