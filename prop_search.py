@@ -32,8 +32,12 @@ SIDES={
 }
 
 MARKET_PATTERNS=[
-    ("PRA", r"\b(?:pra|points?\s*[+/]\s*rebounds?\s*[+/]\s*assists?|"
-            r"pts?\s*[+/]\s*reb?\s*[+/]\s*ast?|punkty\s*\+\s*zbiorki\s*\+\s*asysty|"
+    ("PRA", r"\b(?:pra|p\s*\+\s*r\s*\+\s*a|"
+            r"points?\s*[+/]\s*rebounds?\s*[+/]\s*assists?|"
+            r"pts?\s*[+/]\s*reb?\s*[+/]\s*ast?|"
+            r"punkty\s*\+\s*zbiorki\s*\+\s*asysty|"
+            r"punktow\s*\+\s*zbiorek\s*\+\s*asyst|"
+            r"punkty\s*,\s*zbiorki\s+i\s+asysty|"
             r"points?\s+rebounds?\s+assists?)\b"),
     ("FG3M",r"\b(?:3\s*(?:pt|pm|pointers?)|three[\s-]*pointers?|three[\s-]*points?|"
              r"triples?|trojki|trojek|celne?\s+rzuty?\s+za\s+3|"
@@ -76,7 +80,7 @@ def parse_prop_query(text):
               if re.search(pattern,tail,re.I)]
     if not detected:
         raise ValueError(
-            "Podaj rynek: points, assists, rebounds, three-pointers lub PRA.")
+            "Podaj rynek: PTS, REB, AST, 3PM lub PRA (punkty + zbiórki + asysty).")
     chosen=detected[0]
     return {
         "name_input":before,

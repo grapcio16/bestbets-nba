@@ -49,8 +49,10 @@ def clean_player_season(logs, player, season, cutoff_utc, player_id=None):
     if "MIN" in df:df=df[df["MIN"]>0]
     if "GAME_ID" in df:
         df=df.drop_duplicates(["GAME_ID","PLAYER_NAME"],keep="last")
-    if "PRA" not in df:
-        df["PRA"]=df[["PTS","REB","AST"]].sum(axis=1,min_count=3)
+    # PRA must always equal the sum of THREE observed statistics from
+    # the same completed appearance. Do not trust an upstream PRA column:
+    # caches and providers sometimes leave it missing or stale.
+    df["PRA"]=df[["PTS","REB","AST"]].sum(axis=1,min_count=3)
     return df.sort_values("GAME_DATE").reset_index(drop=True)
 
 

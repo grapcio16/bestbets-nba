@@ -1,3 +1,17 @@
+## Player Props v8.2 — PRA i skróty wyszukiwania
+
+W wyszukiwarce Player Props znajduje się piąty szybki przycisk **PRA** (punkty + zbiórki + asysty). Obok widać zawsze legendę skrótów: **PTS** (punkty), **REB** (zbiórki), **AST** (asysty), **3PM** (celne trójki), **PRA** (punkty + zbiórki + asysty).
+
+Wpisywanie PRA:
+- `Jayson Tatum over 35.5 PRA`
+- `Jayson Tatum under 35,5 PRA`
+- `Jayson Tatum powyżej 35,5 punkty+zbiórki+asysty`
+- `Jayson Tatum poniżej 35,5 p+r+a`
+
+Wymagane jest pełne nazwisko lub jego bezpiecznie potwierdzone dopasowanie. Nazwy rynków wpisuje się **po linii**, kierunek **OVER/UNDER** lub **powyżej/poniżej** przed linią. Przycisk PRA automatycznie wstawia przykładowe zdarzenie do pola. Po analizie wynik PRA stanowi sumę rzeczywistych PTS, REB i AST **z tego samego zakończonego występu**, z widocznym podziałem średniej na 3 składowe, wykresem i historycznymi częstościami Over/Under. Brak jednej składowej wyłącza występ z tej analizy; nie zastępujemy go zgadywaną wartością. Historyczny hit rate nie jest skalibrowanym prawdopodobieństwem przyszłego wyniku.
+
+---
+
 # BestBets MVP v8.1 — kompaktowe, kolorowe Symulacje 5000
 
 Nowy wygląd **zrealizowany bez zmiany algorytmu prognoz**:

@@ -18,11 +18,13 @@ from season_props import analyze_season_offers, upcoming_team_games
 from simulation_sources import historical_espn_results
 from mvp_player_card import render_player_card
 
+# (visible abbreviation, actual editable search query)
 EXAMPLES=(
-    "Jayson Tatum over 25.5 points",
-    "Jayson Tatum under 3.5 assists",
-    "Jayson Tatum over 2.5 three-pointers",
-    "Jayson Tatum over 7.5 rebounds",
+    ("PTS · 25.5", "Jayson Tatum over 25.5 points"),
+    ("AST · 3.5", "Jayson Tatum under 3.5 assists"),
+    ("3PM · 2.5", "Jayson Tatum over 2.5 three-pointers"),
+    ("REB · 7.5", "Jayson Tatum over 7.5 rebounds"),
+    ("PRA · 35.5", "Jayson Tatum over 35.5 PRA"),
 )
 
 
@@ -96,22 +98,31 @@ def render_player_props(season,nonce,timezone,load_schedule,get_logs):
     with st.form("bb_mvp_search_form",border=False):
         term=st.text_input(
             "🔎 Wyszukaj zawodnika i rynek",
-            placeholder="Jayson Tatum over 25.5 points",
+            placeholder="Jayson Tatum over 35.5 PRA",
             key="bb_mvp_search_text")
         submitted=st.form_submit_button(
             "🔎 Analizuj zawodnika",type="primary",
             use_container_width=True)
-    st.caption("Szybkie przykłady:")
-    chips=st.columns(4,gap="small")
-    for i,(col,example) in enumerate(zip(chips,EXAMPLES)):
+    st.caption("Szybkie przykłady — kliknij, aby wypełnić wyszukiwarkę:")
+    chips=st.columns(len(EXAMPLES),gap="small")
+    for i,(col,(label,example)) in enumerate(zip(chips,EXAMPLES)):
         with col:
             st.button(
-                ("PTS" if i==0 else "AST" if i==1 else
-                 "3PM" if i==2 else "REB")+
-                " · "+example.split("over ")[-1].split("under ")[-1].split(" ")[0],
-                key=f"bbm_example_{i}",use_container_width=True,
-                on_click=_preset,args=(example,),
-                help=example)
+                label,key=f"bbm_example_{i}",use_container_width=True,
+                on_click=_preset,args=(example,),help=example)
+    st.markdown(
+        '<div class="bbm-prop-shortcuts">'
+        '<span><b>PTS</b> punkty</span>'
+        '<span><b>REB</b> zbiórki</span>'
+        '<span><b>AST</b> asysty</span>'
+        '<span><b>3PM</b> celne trójki</span>'
+        '<span class="bbm-pra-chip"><b>PRA</b> PTS + REB + AST</span>'
+        '</div>',unsafe_allow_html=True)
+    st.caption(
+        "Jak wpisać PRA: `Jayson Tatum over 35.5 PRA` "
+        "lub `Jayson Tatum powyżej 35,5 punkty+zbiórki+asysty`. "
+        "Możesz też użyć skrótu `p+r+a`. "
+        "Wpisuj pełne imię i nazwisko, kierunek, linię oraz rynek.")
     zone=timezone or "Europe/Warsaw"
     with st.expander("📆 Dzień meczu i wiele zdarzeń",expanded=False):
         day=st.date_input(

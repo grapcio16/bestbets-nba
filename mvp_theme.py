@@ -124,6 +124,52 @@ h1{font-size:2.2rem!important}h2{font-size:1.6rem!important}h3{font-size:1.23rem
 .bbm-player-stat small{color:#87a3c6;font-size:10px;font-weight:800;letter-spacing:.08em}
 .bbm-player-stat b{font-size:24px;color:#f6fbff;display:block;margin-top:3px}
 .bbm-player-stat em{font-size:10px;color:#7698bd;font-style:normal}
+
+/* Player Props: market abbreviations are visible without opening a help pane. */
+.bbm-prop-shortcuts{
+ display:flex;gap:7px;align-items:center;flex-wrap:wrap;
+ margin:7px 0 8px;
+}
+.bbm-prop-shortcuts>span{
+ display:inline-flex;align-items:center;gap:5px;
+ padding:6px 9px;border:1px solid #304e78;border-radius:10px;
+ background:linear-gradient(111deg,#112640,#0e1b34);
+ font-size:10px;font-weight:700;color:#afc6e2;
+}
+.bbm-prop-shortcuts b{
+ font-size:11px;font-weight:900;letter-spacing:.06em;color:#59c0ff;
+}
+.bbm-prop-shortcuts>.bbm-pra-chip{
+ border-color:#d87d42;
+ background:linear-gradient(105deg,rgba(255,117,37,.23),#182a48);
+ color:#f9c7a5;
+ box-shadow:0 0 14px rgba(255,122,31,.10);
+}
+.bbm-prop-shortcuts>.bbm-pra-chip b{color:#ffaf6c}
+.bbm-pra-breakdown{
+ display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+ margin:10px 0 8px;padding:11px 15px;border-radius:14px;
+ background:linear-gradient(105deg,rgba(248,133,56,.18),#152843 54%,rgba(20,113,177,.18));
+ border:1px solid #54749c;color:#dbeaf8;
+}
+.bbm-pra-breakdown>strong{
+ margin-right:auto;color:#ffb77e;font-size:11px;
+ font-weight:900;letter-spacing:.06em;
+}
+.bbm-pra-breakdown>span{font-size:11px;white-space:nowrap;color:#c9dcee}
+.bbm-pra-breakdown>span b{
+ color:#f5faff;font-weight:900;font-size:17px;
+}
+.bbm-pra-breakdown>em{
+ font-style:normal;color:#7495bb;font-size:15px;font-weight:900
+}
+.bbm-pra-breakdown>.bbm-pra-total{
+ padding:5px 10px;border-radius:9px;
+ background:rgba(25,196,140,.12);
+ border:1px solid #29946b;color:#a8f3d7;
+}
+.bbm-pra-breakdown>.bbm-pra-total b{color:#28e3a1}
+
 .bbm-hero-search{
  padding:19px 20px 12px;border:1px solid #315b86;border-radius:18px;
  background:radial-gradient(ellipse at 92% -12%,rgba(255,126,31,.17),transparent 48%),

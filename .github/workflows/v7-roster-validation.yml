@@ -29,7 +29,7 @@ jobs:
           python -m py_compile tracker_automation.py tracker_storage.py tracker_postgres.py
       - name: Regression suite — NBA and UI business logic
         run: |
-          python -m unittest -v test_simulation_premium_v81.py test_mvp_v800.py test_prop_search_v723.py test_screenshot_v722.py test_season_props_v721.py test_tracker_v720.py test_simulation_lines_v719.py test_prediction_v718.py test_screen_v717.py test_rotation_v716.py test_simulation_data_audit.py test_center_v713.py test_center_v712.py test_center_v711.py test_schedule_v710.py test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
+          python -m unittest -v test_player_props_pra_v82.py test_simulation_premium_v81.py test_mvp_v800.py test_prop_search_v723.py test_screenshot_v722.py test_season_props_v721.py test_tracker_v720.py test_simulation_lines_v719.py test_prediction_v718.py test_screen_v717.py test_rotation_v716.py test_simulation_data_audit.py test_center_v713.py test_center_v712.py test_center_v711.py test_schedule_v710.py test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
       - name: Product scope and research isolation
         run: |
           python - <<'PY'
@@ -106,7 +106,11 @@ jobs:
                     'analyze_season_offers','_run_research'):
               assert s in search,s
           assert 'render_screenshot_calculator' not in search
-          print('Search and dynamic verified prop chart connected')
+          assert 'PRA · 35.5' in search and 'bbm-pra-chip' in search
+          from prop_search import parse_prop_query
+          assert parse_prop_query('Jayson Tatum over 35.5 PRA')['market']=='PRA'
+          assert parse_prop_query('Jayson Tatum ponizej 35,5 p+r+a')['market']=='PRA'
+          print('Search and dynamic verified prop chart, PRA aliases and visible shortcuts connected')
           PY
       - name: Chronological matchup candidate holdout (optional audit)
         continue-on-error: true
