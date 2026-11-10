@@ -1,3 +1,43 @@
+# BestBets MVP v8.0 — nowa architektura interfejsu (10 listopada 2026)
+
+Aplikacja uruchamia się przez nowy, znacznie lżejszy `app.py → mvp_app.main()`. Poprzedni rozbudowany routing jest zachowany w historii GitHub; źródła statystyk, modele, harmonogram Trackera i kod niepublicznych funkcji nadal istnieją w repozytorium. Nie usunięto zgromadzonych danych ani silnika symulacji.
+
+## Nawigacja — sześć funkcji produktu i cztery narzędzia pomocnicze
+
+**MAIN MENU (6):**
+- **Home**: terminarz i aktualne alerty kontuzji z ESPN, skróty do analizy
+- **Player Props**: nowoczesna wyszukiwarka tekstowa typów NBA (PTS/REB/AST/3PM/PRA) i kompletna karta zawodnika
+- **Games**: karty terminów i rzeczywistych wyników z filtrami statusu, datą lokalną i przejściem do Symulacji
+- **Simulations**: ten sam silnik 5000 losowań / mecz, prognozowane wyniki i rozbudowane szczegóły
+- **Players**: wyszukiwarka zawodnika w rzeczywistym składzie, karta z historią po kliknięciu
+- **Teams**: profil drużyny, W/L, punkty zdobyte i tracone oraz wykres ostatnich finałów
+
+**WORKSPACE (4):** inspirowane widoczną na przesłanym screenie nawigacją, ale z rzeczywistą funkcjonalnością zamiast pustych zakładek:
+- **Favorites**: zapisywani zawodnicy i drużyny *w obrębie bieżącej sesji*, bez nieistniejącego logowania i synchronizacji
+- **Trends**: obliczane z zakończonych meczów zestawienie formy ostatnich pięciu spotkań i średniej różnicy punktów
+- **Tools**: kalkulator progu opłacalności i EV; wynik zależy od oceny podanej przez użytkownika, nie od niekalibrowanego modelu
+- **Settings**: sezon NBA, strefa czasowa, ponowne pobranie danych i źródła
+
+## Co zostało ukryte
+
+**Nie ma w menu ani w routingu publicznym**: OCR / kalkulatora screenshotów, automatycznej porównywarki kursów, Performance Trackera, Backtestingu i NBA Data Lab. Cały kod badawczy tych modułów pozostaje w repozytorium do przyszłego powrotu; autonomiczny worker Trackera pozostaje w `.github/workflows/tracker-auto.yml`, jeśli został osobno skonfigurowany z PostgreSQL.
+
+## Nowy wygląd
+
+Nowy `mvp_theme.py` i kompletne strony z `mvp_app.py` implementują **jeden spójny, oryginalny dark sportsbook analytics design** (granat, niebieskie poświaty, pomarańczowy akcent, zielony Over/czerwony Under) w stylu referencji użytkownika. Tekstowe wstępy są krótkie, techniczne szczegóły przeniesiono do sekcji rozwijanych, a statystyki i wykresy stały się głównym elementem.
+
+**Player Props** (`mvp_prop_ui.py`, `mvp_player_card.py`): wpisanie `Jayson Tatum over 25.5 points` rozpoznaje zawodnika, stronę, rynek i linię; testowane również warianty PL, `uver`, `asist`, `rebunds`. Niepewne dopasowanie zawodnika wymaga potwierdzenia. Wykres i rzeczywiste historyczne procenty przeliczają się po zmianie rynku, linii, strony, filtra L5/L10/L15/sezon oraz home/away. Karta pokazuje średnią, faktyczną próbę, hit rates, meczowy kontekst, ale **nie tworzy fikcyjnego matchup grade A+ ani rankingów pozycyjnych**. ESPN/NBA headshot jest zewnętrzną ilustracją; prawa do komercyjnego wykorzystania zdjęć i herbów wymagają odrębnej weryfikacji przed premierą.
+
+## Jakość danych i rozwój
+
+- Mecze i trendy są liczone wyłącznie ze zweryfikowanych finałów przed chwilą analizy; nie generujemy fikcyjnych próbek.
+- Symulacje 5000 i ich niezależne testy zachowano, ale model pozostaje eksperymentalny. Porównanie wariantów, źródła i research w Symulacjach ukryto w zwijanych panelach.
+- Ani historyczny odsetek występów Over/Under, ani wynik wariantu eksperymentalnego **nie są dowodem na skalibrowane przyszłe prawdopodobieństwo lub dodatni ROI**.
+- Rozliczanie kuponów, płatności, logowanie i trwałe Favorites pozostają przyszłym zakresem; nie przedstawiamy ich jako już działających.
+- Poza testami jednostkowymi `test_mvp_v800.py`, workflow `.github/workflows/v7-roster-validation.yml` weryfikuje wszystkie nowe zakładki na Streamlit AppTest przed merge.
+
+---
+
 # BestBets v7.23 — spójny wygląd premium całej aplikacji + wyszukiwarka Player Props
 
 ## Jeden system projektowania we wszystkich zakładkach

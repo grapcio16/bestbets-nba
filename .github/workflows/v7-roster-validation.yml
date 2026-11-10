@@ -1,393 +1,103 @@
-name: BestBets automated quality checks
+name: BestBets MVP quality checks
 on:
   workflow_dispatch:
   pull_request:
     branches:
       - main
 
-# One check per Pull Request commit instead of overlapping push+PR runs.
-# Cancel superseded test runs after each new commit.
-concurrency:
-  group: bestbets-ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
 permissions:
   contents: read
 
 jobs:
-  roster-validation:
+  regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install minimum test dependencies
-        run: python -m pip install -q pandas numpy plotly streamlit requests 'psycopg[binary]>=3.2,<4'
-      - name: Compile updated modules
-        run: python -m py_compile premium_theme.py prop_search.py prop_search_ui.py screenshot_cards.py season_props.py tracker_automation.py simulation_lines.py prediction_engine_v2.py player_model_battle.py screenshot_import.py screenshot_ui.py rotation_intelligence.py simulation_data_audit.py simulation_sources.py model_validation.py center_leaderboard.py schedule_ui.py schedule_data.py viewer_time.py dashboard_data.py app.py roster_data.py roster_view.py global_player_catalog.py espn_player_data.py simulation_view.py matchup_roster.py forecast_audit.py performance_tracker.py simulation_backtest.py tracker_storage.py tracker_postgres.py match_context.py forecast_quality.py availability_context.py opponent_ratings.py model_validation.py
-      - name: Unit tests for roster parsing
-        run: python -m unittest -v test_prop_search_v723.py test_screenshot_v722.py test_season_props_v721.py test_tracker_v720.py test_simulation_lines_v719.py test_prediction_v718.py test_screen_v717.py test_rotation_v716.py test_simulation_data_audit.py test_center_v713.py test_center_v712.py test_center_v711.py test_schedule_v710.py test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
-      - name: v7.23 global premium visual system and natural search UI
+      - name: Install dependencies
+        run: python -m pip install -q pandas numpy plotly streamlit requests pillow 'psycopg[binary]>=3.2,<4'
+      - name: Compile all active screens and research engines
+        run: |
+          python -m py_compile app.py mvp_app.py mvp_theme.py mvp_data.py mvp_prop_ui.py mvp_player_card.py
+          python -m py_compile simulation_view.py simulation_engine.py simulation_data_audit.py simulation_sources.py
+          python -m py_compile roster_view.py roster_data.py global_player_catalog.py season_props.py
+          python -m py_compile screenshot_ui.py screenshot_cards.py screenshot_import.py prop_search.py prediction_engine_v2.py
+          python -m py_compile schedule_ui.py schedule_data.py viewer_time.py
+          python -m py_compile tracker_automation.py tracker_storage.py tracker_postgres.py
+      - name: Regression suite — NBA and UI business logic
+        run: |
+          python -m unittest -v test_mvp_v800.py test_prop_search_v723.py test_screenshot_v722.py test_season_props_v721.py test_tracker_v720.py test_simulation_lines_v719.py test_prediction_v718.py test_screen_v717.py test_rotation_v716.py test_simulation_data_audit.py test_center_v713.py test_center_v712.py test_center_v711.py test_schedule_v710.py test_nov8.py test_roster_data.py test_matchup_roster.py test_forecast_audit.py test_calculator_catalog.py test_performance_tracker.py test_v75.py test_v76.py test_v77.py test_v78.py test_v78_tracker.py
+      - name: Product scope and research isolation
         run: |
           python - <<'PY'
           from pathlib import Path
-          from streamlit.testing.v1 import AppTest
-          main=Path('app.py').read_text(encoding='utf-8')
-          assert 'apply_premium_theme()' in main
-          assert 'render_natural_prop_search(' in main
-          assert 'NBA INTELLIGENCE · v7.23' in main
+          import mvp_app
+          from mvp_theme import MVP_CSS
           from prop_search import parse_prop_batch
-          examples=('Jason Tatum uver 25,5 point\n'
-                    'Jayson Tatum under 3,5 asist\n'
-                    'Jayson Tatum over 2,5 three point\n'
-                    'Jayson Tatum over 7,5 rebunds')
-          rows,errors=parse_prop_batch(examples)
-          assert len(rows)==4 and not errors,(rows,errors)
-          assert [r['market'] for r in rows]==['PTS','AST','FG3M','REB']
-          at=AppTest.from_file('app.py',default_timeout=90).run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          at.sidebar.radio[0].set_value('💹 Kursy i value').run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          x=next(r for r in at.radio if r.key=='bb64_odds_view')
-          x.set_value('🧮 Kalkulator (opcjonalnie)').run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          mode=next(r for r in at.radio if r.key=='bb717_calculator_mode')
-          assert mode.value.startswith('🔎')
-          assert any(a.key=='bb723_search_text' for a in at.text_area)
-          at.sidebar.radio[0].set_value('🏀 Symulacje 5000').run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          print('BestBets premium theme, new search and existing tabs loaded')
+          source=Path('app.py').read_text(encoding='utf8')
+          assert 'from mvp_app import main' in source
+          assert 'screenshot_ui' not in source and 'odds_fetcher' not in source
+          core=[x for x,_ in mvp_app.MAIN_PAGES]
+          extra=[x for x,_ in mvp_app.EXTRA_PAGES]
+          assert core==['home','props','games','simulations','players','teams']
+          assert extra==['favorites','trends','tools','settings']
+          for token in ('bbm-topbar','bbm-player-head','bbm-card','bbm-sidebar-footer','--bb-orange','--bb-blue'):
+              assert token in MVP_CSS,token
+          assert 'score_line_probabilities(' not in Path('simulation_engine.py').read_text(), '5000-draw engine was changed'
+          assert "run_scheduled_job" in Path('tracker_automation.py').read_text(), 'Tracker worker deleted'
+          assert Path('.github/workflows/tracker-auto.yml').exists()
+          queries,errors=parse_prop_batch('Jason Tatum uver 25,5 point\nJayson Tatum under 3.5 asist\nJayson Tatum over 2.5 three-pointers')
+          assert len(queries)==3 and not errors
+          assert [x['market'] for x in queries]==['PTS','AST','FG3M']
+          print('MVP lean, core simulations intact, archived modules remain')
           PY
-      - name: v7.22 ESPN nested full season and premium cards
+      - name: Streamlit smoke — ten navigable premium pages
         run: |
           python - <<'PY'
-          from pathlib import Path
           from streamlit.testing.v1 import AppTest
-          espn=Path('espn_player_data.py').read_text(encoding='utf-8')
-          src=Path('screenshot_ui.py').read_text(encoding='utf-8')
-          cards=Path('screenshot_cards.py').read_text(encoding='utf-8')
-          assert 'seasonTypes' in espn
-          assert 'full_season_team_boxscores' in espn
-          assert 'full_season_team_boxscores' in src
-          assert 'show_season_cards' in src
-          assert 'L5' in cards and 'L10' in cards and 'L15' in cards
-          assert 'SEZON' in cards and 'go.Figure()' in cards
-          at=AppTest.from_file('app.py',default_timeout=90).run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          at.sidebar.radio[0].set_value('💹 Kursy i value').run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          panel=next(x for x in at.radio if x.key=='bb64_odds_view')
-          panel.set_value('🧮 Kalkulator (opcjonalnie)').run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          selection=next(x for x in at.radio if x.key=='bb717_calculator_mode')
-          assert selection.value.startswith('🔎')
-          selection.set_value('📷 Import screenshot — analiza wielu pozycji').run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          assert any(x.key=='bb721_game_date' for x in at.get('date_input'))
-          print('Updated screenshot flow loads without fetching unrequested games.')
-          PY
-      - name: v7.21 seasonal props UI and visible research changes
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from streamlit.testing.v1 import AppTest
-          ui=Path('screenshot_ui.py').read_text(encoding='utf-8')
-          for item in ('Karty zawodników i wykresy','Obrona i jakość danych',
-                       'bb721_game_date','bb721_result','show_season_cards('):
-              assert item in ui, item
-          cards=Path('screenshot_cards.py').read_text(encoding='utf-8')
-          assert 'key_prefix+"_focus"' in cards and 'plotly_chart(' in cards
-          assert 'last15' in Path('season_props.py').read_text(encoding='utf-8')
-          research=Path('simulation_engine.py').read_text(encoding='utf-8')
-          assert 'NBA Advanced 70% + ważona forma ESPN 30%' in research
-          simulation=Path('simulation_view.py').read_text(encoding='utf-8')
-          assert 'Co zmienia przełącznik eksperymentalnego modelu?' in simulation
-          at=AppTest.from_file('app.py',default_timeout=90).run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          at.sidebar.radio[0].set_value('💹 Kursy i value').run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          choice=next(x for x in at.radio if x.key=='bb64_odds_view')
-          choice.set_value('🧮 Kalkulator (opcjonalnie)').run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          mode=next(x for x in at.radio if x.key=='bb717_calculator_mode')
-          mode.set_value('📷 Import screenshot — analiza wielu pozycji').run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          assert any(x.key=='bb721_game_date' for x in at.get('date_input'))
-          at.sidebar.radio[0].set_value('🏀 Symulacje 5000').run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          print('Seasonal history + matchup research UI and model contrast loaded')
-          PY
-      - name: v7.20 auto tracker workflow present and UI fallback active
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from streamlit.testing.v1 import AppTest
-          main = Path("app.py").read_text(encoding="utf-8")
-          worker = Path("tracker_automation.py").read_text(encoding="utf-8")
-          workflow = Path(".github/workflows/tracker-auto.yml").read_text(encoding="utf-8")
-          assert "bb720_auto_sync_" in main
-          assert "tracker_settle(auto_games,config=cfg)" in main
-          assert "run_scheduled_job" in worker
-          assert "auto_legacy_v72" in worker
-          assert "auto_research_form_v74" in worker
-          assert "TRACKER_DATABASE_URL" in workflow
-          assert "workflow_dispatch:" in workflow and "schedule:" in workflow
-          assert "tracker_automation.py" in workflow
-          at=AppTest.from_file("app.py",default_timeout=90).run()
-          assert not at.exception, [str(e.message) for e in at.exception]
-          at.sidebar.radio[0].set_value("📈 Performance Tracker").run()
-          assert not at.exception, [str(e.message) for e in at.exception]
-          print("On-visit auto settlement and cron background worker wiring verified")
-          PY
-      - name: v7.19 totals / handicap are derived from EXACT SAME 5000 draws
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from streamlit.testing.v1 import AppTest
-          s=Path('simulation_view.py').read_text(encoding='utf-8')
-          for name in ('🎯 Linie i wrażliwość','score_line_probabilities(',
-                       'scenario_line_table(', 'bb719_export_'):
-              assert name in s, name
-          assert 'score_line_probabilities(' not in Path('simulation_engine.py').read_text()
-          at=AppTest.from_file('app.py',default_timeout=90).run()
-          assert not at.exception, [str(e.message) for e in at.exception]
-          at.sidebar.radio[0].set_value('🏀 Symulacje 5000').run()
-          assert not at.exception, [str(e.message) for e in at.exception]
-          print('Simulation v7.19 controls are lazy-loaded, 5000 model unchanged.')
-          PY
-      - name: v7.18 Candidate 2.0 and Model Battle are research-only
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          a=Path('app.py').read_text(encoding='utf-8')
-          b=Path('screenshot_import.py').read_text(encoding='utf-8')
-          c=Path('prediction_engine_v2.py').read_text(encoding='utf-8')
-          d=Path('simulation_engine.py').read_text(encoding='utf-8')
-          assert 'bb718_run' in a and 'chronological_battle(' in a
-          assert 'forecast_v2(' in a
-          assert 'P(OVER) v2 %' in b
-          assert 'model": "Prediction Engine 2.0 / BADAWCZY' in c
-          assert 'forecast_v2(' not in d, 'Existing 5000 simulation model was modified'
-          print('V2 is optional research; 5000 draws remain unchanged')
-          PY
-      - name: v7.17 screenshot batch calculator smoke (no OCR server dependency)
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from streamlit.testing.v1 import AppTest
-          src=Path("screenshot_ui.py").read_text(encoding="utf-8")
-          assert "st.file_uploader(" in src and "st.data_editor(" in src
-          assert "bb717_verified" in src and "analyze_season_offers(" in src
-          assert "detailed_espn_gamelog" in src
-          assert "upcoming_team_games(" in src
-          assert "historical_espn_results(" in src
-          assert "batch_analyze(" not in Path("simulation_engine.py").read_text()
-          at=AppTest.from_file("app.py",default_timeout=90).run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          at.sidebar.radio[0].set_value("💹 Kursy i value").run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          option=next(r for r in at.radio if r.key=="bb64_odds_view")
-          option.set_value("🧮 Kalkulator (opcjonalnie)").run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          new=next(r for r in at.radio if r.key=="bb717_calculator_mode")
-          assert new.value.startswith("🔎")
-          assert "👤 Kalkulator pojedynczego zawodnika" in new.options
-          assert "📷 Import screenshot — analiza wielu pozycji" in new.options
-          new.set_value("📷 Import screenshot — analiza wielu pozycji").run()
-          assert not at.exception,[str(x.message) for x in at.exception]
-          assert any(x.key=="bb717_screen_upload" for x in at.get("file_uploader"))
-          print("v7.17 uploader/editor exists; legacy calculator remains selectable")
-          PY
-      - name: v7.16 rotation analysis isolated from team-score model
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from streamlit.testing.v1 import AppTest
-          code=Path('simulation_view.py').read_text(encoding='utf-8')
-          assert "'🩺 Rotacja i absencje'" in code
-          assert "minutes_trends(logs,g['start_utc'],g['home'],g['away'])" in code
-          assert "rotation_report(" in code
+          from mvp_app import MAIN_PAGES,EXTRA_PAGES
           at=AppTest.from_file('app.py',default_timeout=90).run()
           assert not at.exception,[str(e.message) for e in at.exception]
-          at.sidebar.radio[0].set_value('🏀 Symulacje 5000').run()
-          assert not at.exception,[str(e.message) for e in at.exception]
-          print('Research-only rotation context and unchanged general simulation page passed')
+          for name,_ in (*MAIN_PAGES,*EXTRA_PAGES):
+              control=next((b for b in at.sidebar.button if b.key=='bb_nav_'+name),None)
+              assert control is not None, 'Nav missing: '+name
+          for name in ['props','games','simulations','players','teams','favorites','trends','tools','settings','home']:
+              at.sidebar.button(key='bb_nav_'+name).click().run()
+              assert not at.exception, (name,[str(e.message) for e in at.exception])
+              print('Page passed:',name,flush=True)
+          at.sidebar.button(key='bb_nav_props').click().run()
+          assert not at.exception, [str(e.message) for e in at.exception]
+          assert any(x.key=='bb_mvp_search_text' for x in at.text_input)
+          assert not any(x.key=='bb717_screen_upload' for x in at.get('file_uploader'))
+          print('All MVP pages plus search loaded; screenshot UI hidden')
           PY
-      - name: v7.15 research controls do not alter default simulations
+      - name: Core Player Props — dynamic real history, no synthetic data
         run: |
           python - <<'PY'
           from pathlib import Path
-          from streamlit.testing.v1 import AppTest
-          at=AppTest.from_file("app.py",default_timeout=90).run()
-          assert not at.exception, [str(e.message) for e in at.exception]
-          at.sidebar.radio[0].set_value("🏀 Symulacje 5000").run()
-          assert not at.exception, [str(e.message) for e in at.exception]
-          research=[x for x in at.toggle if x.key=="bb715_older_history"]
-          assert len(research)==1 and research[0].value is False
-          buttons=[x for x in at.button if x.key=="bb715_advanced_refresh"]
-          assert len(buttons)==1
-          code=Path("simulation_view.py").read_text(encoding="utf-8")
-          assert "lookback_months=6 if extended else 3" in code
-          assert "select_matchup_means" in code
-          print("Optional research only. Existing model toggles preserved.")
+          props=Path('mvp_player_card.py').read_text(encoding='utf8')
+          search=Path('mvp_prop_ui.py').read_text(encoding='utf8')
+          for s in ('render_player_card','observed_hit_rates(games,market,line)',
+                    'st.plotly_chart','last5','last10','last15','HIT RATE','GAME_DATE','_plot('):
+              assert s in props,s
+          for s in ('parse_prop_batch','_load_full_season','_safe_catalog',
+                    'analyze_season_offers','_run_research'):
+              assert s in search,s
+          assert 'render_screenshot_calculator' not in search
+          print('Search and dynamic verified prop chart connected')
           PY
-      - name: November 8 public UI checks
-        run: |
-          python - <<'PY'
-          from streamlit.testing.v1 import AppTest
-          at=AppTest.from_file("app.py",default_timeout=90).run()
-          assert not at.exception, [str(e.message) for e in at.exception]
-          assert "📱 Telefon i publikacja" not in at.sidebar.radio[0].options
-          tz=[x for x in at.sidebar.selectbox if x.label=="Strefa czasowa"]
-          assert len(tz)==1 and "America/Chicago" in tz[0].options
-          assert "Asia/Tokyo" in tz[0].options
-          at.sidebar.radio[0].set_value("📆 Terminarz").run()
-          assert not at.exception, [str(e.message) for e in at.exception]
-          print("Nov 8: new navigation, all IANA timezones, and schedule render OK")
-          PY
-      - name: v7.10 navigation - Center and Schedule calendar controls
-        run: |
-          python - <<'PY'
-          from datetime import date,timedelta
-          from streamlit.testing.v1 import AppTest
-          at=AppTest.from_file("app.py",default_timeout=90).run()
-          assert not at.exception, [str(e.message) for e in at.exception]
-          prev=next(b for b in at.button if b.key=="center_previous_day")
-          nextday=next(b for b in at.button if b.key=="center_next_day")
-          today=next(b for b in at.button if b.key=="center_today")
-          picker=next(p for p in at.date_input if p.key=="bb_schedule_calendar")
-          start=picker.value
-          prev.click().run()
-          assert not at.exception, [str(e.message) for e in at.exception]
-          assert next(p for p in at.date_input if p.key=="bb_schedule_calendar").value==start-timedelta(days=1)
-          next(b for b in at.button if b.key=="center_next_day").click().run()
-          assert next(p for p in at.date_input if p.key=="bb_schedule_calendar").value==start
-          next(p for p in at.date_input if p.key=="bb_schedule_calendar").set_value(date(2026,11,12)).run()
-          assert next(p for p in at.date_input if p.key=="bb_schedule_calendar").value==date(2026,11,12)
-          at.sidebar.radio[0].set_value("📆 Terminarz").run()
-          assert not at.exception, [str(e.message) for e in at.exception]
-          assert next(p for p in at.date_input if p.key=="bb_schedule_calendar").value==date(2026,11,12)
-          assert any(b.key=="schedule_previous_day" for b in at.button)
-          assert any(b.key=="schedule_next_day" for b in at.button)
-          assert any(t.key=="bb_schedule_table_mode" for t in at.toggle)
-          print("v7.10: date buttons, manual calendar and shared selected date verified")
-          PY
-      - name: Center v7.11 compact dashboard smoke
-        run: |
-          python - <<'PY'
-          from streamlit.testing.v1 import AppTest
-          at=AppTest.from_file("app.py",default_timeout=90).run()
-          assert not at.exception, [str(e.message) for e in at.exception]
-          labels={x.label for x in at.metric}
-          assert "Terminarz" not in labels, labels
-          assert "Sezon" not in labels, labels
-          assert "Rynki zawodników" not in labels, labels
-          assert "Kursy" not in labels, labels
-          assert any(b.key=="center_previous_day" for b in at.button), "Center date navigation removed"
-          assert any(p.key=="bb_schedule_calendar" for p in at.date_input), "Calendar missing"
-          print("Redundant dashboard KPIs gone; fixture navigation remains available")
-          PY
-      - name: Streamlit smoke check - landing page and player browser
-        run: |
-          python - <<'PY'
-          from streamlit.testing.v1 import AppTest
-          at = AppTest.from_file("app.py", default_timeout=65).run()
-          assert len(at.exception) == 0, [str(e.message) for e in at.exception]
-          assert len(at.sidebar.radio) > 0, "Sidebar navigation missing"
-          at.sidebar.radio[0].set_value("🧑‍🚀 Zawodnicy").run()
-          assert len(at.exception) == 0, [str(e.message) for e in at.exception]
-          assert len(at.selectbox) >= 2, "Team or player roster selector missing"
-          assert any("Stephen Curry" == str(v) for sb in at.selectbox for v in sb.options), "Stephen Curry not in GSW selector"
-          print("Streamlit pages render, GSW roster and Stephen Curry selector verified")
-          PY
-      - name: Calculator smoke - global selector with Gordon and Curry
-        run: |
-          python - <<'PY'
-          from streamlit.testing.v1 import AppTest
-          at=AppTest.from_file("app.py", default_timeout=90).run()
-          assert not at.exception, [str(x.message) for x in at.exception]
-          at.sidebar.radio[0].set_value("💹 Kursy i value").run()
-          assert not at.exception, [str(x.message) for x in at.exception]
-          selection=[r for r in at.radio if r.label=="Wybierz analizę kursów"]
-          assert selection, "Odds analysis selector absent"
-          selection[0].set_value("🧮 Kalkulator (opcjonalnie)").run()
-          assert not at.exception, [str(x.message) for x in at.exception]
-          modes=[r for r in at.radio if r.key=="bb717_calculator_mode"]
-          assert modes, "Calculator mode selector absent"
-          modes[0].set_value("👤 Kalkulator pojedynczego zawodnika").run()
-          assert not at.exception, [str(x.message) for x in at.exception]
-          players=[s for s in at.selectbox if s.label=="Wyszukaj zawodnika NBA"]
-          assert players, "Global player selector absent"
-          opts=list(players[0].options)
-          assert any("Aaron Gordon (DEN)"==str(o) for o in opts), "Aaron Gordon missing"
-          assert any("Stephen Curry (GSW)"==str(o) for o in opts), "Stephen Curry missing"
-          assert not any(s.label=="Drużyna NBA" for s in at.selectbox), "Team selector still present"
-          print("Calculator renders; global roster contains Gordon & Curry; team picker removed")
-          PY
-      - name: Tracker page Streamlit smoke
-        run: |
-          python - <<'PY'
-          from streamlit.testing.v1 import AppTest
-          at=AppTest.from_file("app.py",default_timeout=65).run()
-          assert not at.exception, [str(x.message) for x in at.exception]
-          at.sidebar.radio[0].set_value("📈 Performance Tracker").run()
-          assert not at.exception, [str(x.message) for x in at.exception]
-          assert any(x.label=="Pobierz i rozlicz zakończone mecze" for x in at.button)
-          print("Performance Tracker renders without exceptions")
-          PY
-      - name: Descriptive actual-season walk-forward benchmark
+      - name: Chronological matchup candidate holdout (optional audit)
         continue-on-error: true
-        run: |
-          python - <<'PY'
-          from simulation_sources import historical_espn_results
-          from simulation_backtest import walk_forward_comparison
-          games,notes=historical_espn_results('2026-27')
-          _,metrics=walk_forward_comparison(games,max_games=140)
-          print("WALKFORWARD METRICS:",metrics)
-          print("ESPN WARNINGS:",notes)
-          PY
-      - name: Tracker storage selection and context smoke
-        run: |
-          python - <<'PY'
-          from tracker_storage import tracker_backend
-          from match_context import team_schedule_context
-          import pandas as pd
-          assert tracker_backend()['remote'] is False
-          sample=pd.DataFrame([{'start_utc':'2026-11-06T22:00:00Z',
-              'home':'SAS','away':'POR','home_score':119,'away_score':105,
-              'status_code':3}])
-          d=team_schedule_context(sample,'SAS','2026-11-07T23:00:00Z')
-          assert d['back_to_back'] and d['rest_days']==0
-          print('v7.5 storage fallback and rest diagnostics OK')
-          PY
-      - name: Chronological NBA candidate model holdout (research)
-        continue-on-error: true
-        timeout-minutes: 5
+        timeout-minutes: 4
         run: |
           python - <<'PY'
           from simulation_sources import historical_espn_results
           from model_validation import evaluate_models
-          games,notes=historical_espn_results('2026-27')
-          frame,summary=evaluate_models(games,holdout_n=40)
-          print("OPPONENT_HOLDOUT_RESULTS:",summary,flush=True)
-          print("OPPONENT_HOLDOUT_DATA_WARNINGS:",notes,flush=True)
-          if not summary:
-              print("CANDIDATE NOT VALIDATED: insufficient completed games",flush=True)
-          PY
-      - name: Live ESPN availability diagnostic
-        continue-on-error: true
-        run: |
-          python - <<'PY'
-          from roster_data import team_roster
-          for team in ("GSW", "UTA", "BOS", "DEN"):
-              roster, metadata = team_roster(team)
-              print(team, "players", len(roster), "source", metadata.get("source"))
-              if team == "DEN":
-                  print("DEN players:", roster["PLAYER_NAME"].tolist())
-                  assert any("Aaron Gordon" == name for name in roster["PLAYER_NAME"]), "Aaron Gordon missing from ESPN DEN roster"
-              assert len(roster) >= 8, "Too few players for " + team
-              if team == "GSW":
-                  assert any("Curry" in name for name in roster["PLAYER_NAME"]), "Curry missing from GSW roster"
+          results,notes=historical_espn_results('2026-27')
+          _,summary=evaluate_models(results,holdout_n=40)
+          print('HOLDOUT:',summary)
+          print('DATA NOTES:',notes)
           PY

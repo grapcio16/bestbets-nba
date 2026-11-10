@@ -69,16 +69,17 @@ class RankingMetadataTests(unittest.TestCase):
             return pd.DataFrame([{"PLAYER_ID":"987","POSITION":"PG"}]),{"stale":False}
         self.assertEqual(fill_missing_positions(top,mismatched).iloc[0]["POSITION"],"")
 
-    def test_cache_key_changed_and_center_fixture_remains(self):
+    def test_legacy_ranking_is_preserved_but_mvp_home_is_focused(self):
         app=Path("app.py").read_text(encoding="utf-8")
-        self.assertIn("def load_daily_ranking_v713(",app)
-        self.assertIn("load_daily_ranking_v713(season,today",app)
-        start=app.index("if page == '🏠 Centrum':")
-        end=app.index("elif page == '📆 Terminarz':",start)
-        center=app[start:end]
-        self.assertIn('day_navigation("center", zone)',center)
-        self.assertIn("show_top10(top)",center)
-        self.assertIn("Injury report",center)
+        center=Path("mvp_app.py").read_text(encoding="utf-8")
+        self.assertIn("from mvp_app import main",app)
+        self.assertIn('day_navigation("center",tz)',center)
+        self.assertIn("get_injuries(",center)
+        self.assertIn("def home_page():",center)
+        # The detailed ranking engine remains tested above, but its high
+        # latency is no longer loaded by default on the MVP Home screen.
+        self.assertNotIn("show_top10(",center)
+
 
 
 if __name__=="__main__":

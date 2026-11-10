@@ -182,24 +182,21 @@ def game_card(sim,g,hist):
       <div class="bb-gamefooter">Średnia suma punktów <b>{sim['total_points']:.1f}</b> · Model typuje: <b>{esc(TEAM_NAMES.get(sim['winner'],sim['winner']))}</b></div>
       <div style="font-size:10px;color:#90a4be;margin-top:6px">Procenty = udział zwycięstw w 5 000 symulacji. Duże liczby przy drużynach = prognozowane średnie punkty, a nie aktualny wynik.</div>
     </div>''',unsafe_allow_html=True)
-    st.caption('Wariant wyniku tej karty: '+str(sim.get('source','Nieznany'))+
-               ' · próbka: '+str(sim.get('sample') or 'zaawansowane metryki drużyn')+
-               '. Statystyki nie są skalibrowanymi prawdopodobieństwami.')
     qc=sim.get('quality_check') or {}
     if qc.get('alerts'):
-        st.warning('Kontrola prognozy: '+' • '.join(qc['alerts'][:4])+
-                   '. To sygnały niepewności, a nie pewne typy.')
-    elif qc:
-        st.caption('Kontrola modelu: brak dodatkowych alertów jakości danych. '
-                   'Nie oznacza to skalibrowanej szansy wygranej.')
-    away_hist=team_scoring_history(hist,a)
-    home_hist=team_scoring_history(hist,h)
-    if away_hist and home_hist:
-        st.caption(f"Historyczna średnia zdobytych punktów (ostatnie dostępne mecze): "
-            f"{TEAM_NAMES.get(a,a)} {away_hist['mean']:.1f} pkt ({away_hist['games']} meczów) · "
-            f"{TEAM_NAMES.get(h,h)} {home_hist['mean']:.1f} pkt ({home_hist['games']} meczów). "
-            "To dane historyczne, NIE prognoza.")
-
+        st.warning('Jakość danych: '+' • '.join(qc['alerts'][:3]))
+    with st.expander('Weryfikacja źródeł i historyczne średnie',expanded=False):
+        st.caption('Wariant: '+str(sim.get('source','Nieznany')))
+        st.caption('Próba: '+str(sim.get('sample') or 'metyki drużyn')
+                   +'. Procenty są niekalibrowane.')
+        away_hist=team_scoring_history(hist,a)
+        home_hist=team_scoring_history(hist,h)
+        if away_hist and home_hist:
+            st.caption(
+                f"{a}: {away_hist['mean']:.1f} pkt z "
+                f"{away_hist['games']} meczów · "
+                f"{h}: {home_hist['mean']:.1f} pkt z "
+                f"{home_hist['games']} meczów.")
 
 @st.dialog('🏀 Szczegóły meczu i statystyki zawodników', width='large')
 def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
@@ -657,59 +654,35 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
 
 
 def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_injuries):
-    st.markdown('### 🏀 Symulacje NBA — 5 000 przebiegów dla każdego spotkania')
-    st.caption('Karty pokazują 5 000 symulacji wyniku i osobne średnie punktów drużyn. '
-               'Po kliknięciu szczegółów automatycznie pobieramy historię graczy WYŁĄCZNIE dwóch wybranych drużyn. '
-               'Model jest eksperymentalny.')
-    st.markdown('''<div class="bb-panel"><strong>Co pokazujemy?</strong>
-    <p>Pełne nazwy drużyn oraz pobrane herby (lub lokalne oznaczenia zastępcze), szansę zwycięstwa obu drużyn, średni przewidywany wynik i łączną sumę punktów. Kliknij przycisk pod dowolnym meczem, aby otworzyć jego wyniki i statystyki zawodników bez przewijania przez pozostałe mecze. Jeśli brakuje danych, model nie wyświetla fikcyjnego wyniku.</p></div>''',unsafe_allow_html=True)
-    research_mode=st.toggle(
-        'Eksperymentalny model: ważona forma i siła rywali',
-        value=False,key='bb74_research_form',
-        help='Do badań, nie potwierdzona poprawa: wynik na 131 meczach '
-             'poprawił MAE sumy, ale pogorszył skuteczność zwycięzcy.'
-    )
-    if research_mode:
-        st.warning('Tryb badawczy: ważona forma i przybliżona siła przeciwników. '
-                   'W testach model miał gorszą trafność zwycięzców niż stary. '
-                   'Nie uwzględnia jeszcze potwierdzonych składów i kontuzji.')
-    else:
-        st.caption('Domyślny model v7.2. Tryb badawczy można włączyć powyżej.')
-    with st.expander('🔬 Głębsze dane — ustawienia badawcze',expanded=False):
+    st.markdown('### NBA game simulations')
+    with st.expander('⚙️ Model i opcje badawcze',expanded=False):
+        research_mode=st.toggle(
+            'Eksperymentalny model — ważona forma i siła rywali',
+            value=False,key='bb74_research_form',
+            help='Niekalibrowany wariant badawczy; nie potwierdzono lepszej '
+                 'skuteczności zwycięzców w testach.')
         extended=st.toggle(
-            'Rozszerz archiwum historii do 6 miesięcy (badawcze)',
+            'Rozszerz historię tego sezonu do 6 miesięcy',
             value=False,key='bb715_older_history',
-            help='Jeśli sezon nie ma jeszcze 3 miesięcy albo ostatnie 12 spotkań '
-                 'drużyny mieści się w zwykłym oknie, opcja nie zmieni prognoz. '
-                 'Nie łączy różnych sezonów ani nie zmienia wariantu modelu.')
-        try:
-            season_year=int(str(season).split('-')[0])
-            season_months=(pd.Timestamp.now(tz='UTC').year-season_year)*12+(
-                pd.Timestamp.now(tz='UTC').month-10)+1
-        except (ValueError,TypeError):
-            season_months=0
-        if extended and 0<season_months<=3:
-            st.info('Aktualny sezon NBA ma dopiero '+str(season_months)+
-                    ' miesiąc(e) kalendarzowy(e). Domyślne 3 miesiące już '
-                    'obejmują CAŁĄ dostępną historię sezonu. '
-                    'Rozszerzenie do 6 nie doda meczów ani nie zmieni symulacji.')
-        elif extended:
-            st.caption('Rozszerzono źródło historii. Sam model wyników korzysta '
-                       'tylko z ostatnich 12 spotkań drużyny; jeśli są już '
-                       'dostępne w oknie podstawowym, prognozy mogą być identyczne.')
-        if st.button('Spróbuj pobrać NBA Advanced: tempo / OFF / DEF',key='bb715_advanced_refresh'):
+            help='Na początku sezonu 3 miesiące obejmują całą historię; '
+                 'zwiększenie okna często nie zmienia 12 ostatnich meczów.')
+        if research_mode:
+            st.caption('Tryb badawczy: inne parametry symulacji. '
+                       'W historycznych testach nie zawsze był skuteczniejszy.')
+        if st.button('Pobierz NBA Advanced (pace, OFF, DEF)',
+                     key='bb715_advanced_refresh'):
             try:
-                updated,meta=load_dataset('Drużyny • advanced (pace/def)',season,nonce)
-                if updated is None or updated.empty or meta.get('stale'):
-                    st.warning('Nie udało się uzyskać aktualnych NBA Advanced. '
-                               'Stare dane nie zastąpią bieżących statystyk.')
+                updated,meta=load_dataset(
+                    'Drużyny • advanced (pace/def)',season,nonce)
+                if updated is None or updated.empty or (
+                        isinstance(meta,dict) and meta.get('stale')):
+                    st.warning('Brak aktualnych metryk NBA Advanced.')
                 else:
-                    st.success(f"Pobrano aktualne NBA Advanced ({len(updated)} drużyn). "
-                               "Model może je wykorzystać w kolejnych prognozach.")
+                    st.success(f"Pobrano aktualne NBA Advanced ({len(updated)} drużyn).")
             except Exception as exc:
-                st.warning('NBA Advanced niedostępne z hostingu: '+str(exc)[:160])
-        st.caption('NBA Stats bywa blokowane w chmurze. Pobieranie tylko po kliknięciu; '
-                   'nie przeliczamy retrospektywnie wcześniej zapisanych prognoz.')
+                st.warning('NBA Advanced niedostępne: '+str(exc)[:160])
+    st.caption('MODEL BADAWCZY' if research_mode
+               else 'MODEL PODSTAWOWY · prawdopodobieństwa niekalibrowane')
     days=st.select_slider('Pokaż nadchodzące mecze przez',options=[1,3,5,7,10,14],value=1,format_func=lambda d:f'{d} dni')
     try:
         schedule,sm=load_schedule(nonce)
@@ -720,9 +693,7 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
     games=games.sort_values('start_utc').drop_duplicates('game_id')
     if games.empty:
         st.info(f'W terminie następnych {days} dni nie ma zaplanowanych spotkań NBA (lub terminarz jest niekompletny).');return
-    st.caption(f"Terminarz: {sm.get('source','?')} · {len(games)} spotkań · godziny lokalne użytkownika")
     refresh_logos_in_background()
-    st.caption(f'Herby: {cached_official_count()}/30 pobranych i zapisanych lokalnie. Pozostałe drużyny mają dołączone graficzne identyfikatory; źródła ESPN → NBA CDN są sprawdzane automatycznie w tle.')
     # Load team context first. Do not fetch player logs or injuries for every match
     # while the user is only browsing the game cards.
     advanced=pd.DataFrame();hist=pd.DataFrame()
@@ -747,11 +718,14 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
                                                 lookback_months=6 if extended else 3)
         except Exception as e:msg='ESPN wyniki: '+str(e)
         if msg:warnings.append(msg)
-    for warn in warnings:st.caption('⚠️ '+warn)
-    st.caption(f"Historia do symulacji: {len(hist)} zweryfikowanych finałów, "
-               f"okno {'maks. 6' if extended else 'maks. 3'} miesięcy bieżącego sezonu. "
-               "Ostatnich 12 spotkań drużyny używa model domyślny; "
-               "dla starszych meczów rozszerzenie pomaga tylko wtedy, gdy sezon już trwa wystarczająco długo.")
+    with st.expander('Źródła danych i kompletność',expanded=False):
+        st.caption(f"Terminarz: {sm.get('source','?')} · "
+                   f"{len(games)} spotkań · {len(hist)} potwierdzonych finałów "
+                   f"· okno {'6' if extended else '3'} miesięcy sezonu.")
+        for warn in warnings:
+            st.caption('⚠ '+str(warn))
+        st.caption('Model podstawowy używa ostatnich 12 spotkań drużyny. '
+                   'Dane nieobecne w źródłach nie są wymyślane.')
     # Scores are simulated immediately; player estimates are loaded only for
     # the selected game in its details dialog, never across all upcoming games.
     summary,_,missing=build_sims(games,advanced,hist,pd.DataFrame(),pd.DataFrame(),research_mode)
@@ -770,69 +744,62 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
             record['model_id']=other_id
         cfg=tracker_backend()
         result=save(summary+other,season,config=cfg)
-        st.caption('Tracker: zapisano '+str(result['saved'])+
-                   ' nowych prognoz przed rozpoczęciem meczu '
-                   '(modele podstawowy i eksperymentalny osobno). '
-                   'Źródło danych: '+cfg['label']+'.')
+        # Tracking is automated. Do not clutter the public score cards.
+        st.session_state['bb_mvp_last_tracker_save']=int(result['saved'])
     except Exception as exc:
         st.warning('Nie udało się zapisać prognoz. Sprawdź konfigurację magazynu danych w ustawieniach serwera.')
 
-    # Make the research toggle objectively observable. A label change alone is
-    # not enough: display BOTH baseline and research forecasts and their deltas.
-    if summary and other:
-        baseline={str(x['game_id']):x for x in (other if research_mode else summary)}
-        experimental={str(x['game_id']):x for x in (summary if research_mode else other)}
-        compare=[]
-        for g in games.to_dict('records'):
-            key=str(g['game_id'])
-            b=baseline.get(key);r=experimental.get(key)
-            if b and r:
-                compare.append({
-                    'Mecz':g['away']+' @ '+g['home'],
-                    'Suma v7.2':b['total_points'],
-                    'Suma badawcza':r['total_points'],
-                    'Różnica sumy':round(r['total_points']-b['total_points'],1),
-                    'P(gospodarze) v7.2':b['home_win_pct'],
-                    'P(gospodarze) badawcza':r['home_win_pct'],
-                    'Różnica pp':round(r['home_win_pct']-b['home_win_pct'],1),
-                })
-        if compare:
-            cf=pd.DataFrame(compare)
-            st.markdown('#### Co zmienia przełącznik eksperymentalnego modelu?')
-            st.caption('Aktywny wariant: '+(
-                'WAŻONA FORMA + SIŁA RYWALI (badawczy)' if research_mode
-                else 'MODEL PODSTAWOWY v7.2')+
-                '. Prognozy obu wariantów na TYCH SAMYCH meczach. '
-                'Różnice to efekt innych średnich, a nie potwierdzona poprawa.')
-            if ((cf['Różnica sumy'].abs()<.05)&
-                    (cf['Różnica pp'].abs()<.05)).all():
-                st.warning('Oba warianty zwracają te same liczby przy obecnej historii. '
-                           'Najczęściej oznacza to brak wystarczających meczów do '
-                           'korekty formy lub brak różnicy po zaokrągleniu. '
-                           'Przełącznik NIE zapewnia wtedy innego wyniku.')
+    with st.expander('Porównanie wariantów modelu · badawcze',expanded=False):
+        if summary and other:
+            baseline={str(x['game_id']):x for x in (other if research_mode else summary)}
+            experimental={str(x['game_id']):x for x in (summary if research_mode else other)}
+            compare=[]
+            for g in games.to_dict('records'):
+                key=str(g['game_id'])
+                b=baseline.get(key);r=experimental.get(key)
+                if b and r:
+                    compare.append({
+                        'Mecz':g['away']+' @ '+g['home'],
+                        'Suma v7.2':b['total_points'],
+                        'Suma badawcza':r['total_points'],
+                        'Różnica sumy':round(r['total_points']-b['total_points'],1),
+                        'P(gospodarze) v7.2':b['home_win_pct'],
+                        'P(gospodarze) badawcza':r['home_win_pct'],
+                        'Różnica pp':round(r['home_win_pct']-b['home_win_pct'],1),
+                    })
+            if compare:
+                cf=pd.DataFrame(compare)
+                st.markdown('#### Co zmienia przełącznik eksperymentalnego modelu?')
+                st.caption('Aktywny wariant: '+(
+                    'WAŻONA FORMA + SIŁA RYWALI (badawczy)' if research_mode
+                    else 'MODEL PODSTAWOWY v7.2')+
+                    '. Prognozy obu wariantów na TYCH SAMYCH meczach. '
+                    'Różnice to efekt innych średnich, a nie potwierdzona poprawa.')
+                if ((cf['Różnica sumy'].abs()<.05)&
+                        (cf['Różnica pp'].abs()<.05)).all():
+                    st.warning('Oba warianty zwracają te same liczby przy obecnej historii. '
+                               'Najczęściej oznacza to brak wystarczających meczów do '
+                               'korekty formy lub brak różnicy po zaokrągleniu. '
+                               'Przełącznik NIE zapewnia wtedy innego wyniku.')
+                else:
+                    changed=int(((cf['Różnica sumy'].abs()>=.05) |
+                                 (cf['Różnica pp'].abs()>=.05)).sum())
+                    st.caption(f'Wariant badawczy zmienia wynik w {changed}/{len(cf)} meczach.')
+                with st.expander('Porównaj liczbowe różnice dla każdego meczu',
+                                 expanded=research_mode):
+                    st.dataframe(cf,hide_index=True,use_container_width=True)
             else:
-                changed=int(((cf['Różnica sumy'].abs()>=.05) |
-                             (cf['Różnica pp'].abs()>=.05)).sum())
-                st.caption(f'Wariant badawczy zmienia wynik w {changed}/{len(cf)} meczach.')
-            with st.expander('Porównaj liczbowe różnice dla każdego meczu',
-                             expanded=research_mode):
-                st.dataframe(cf,hide_index=True,use_container_width=True)
+                st.info('Nie udało się policzyć dwóch wariantów na tych samych meczach.')
         else:
-            st.info('Nie udało się policzyć dwóch wariantów na tych samych meczach.')
-    else:
-        st.warning('Porównanie modeli niedostępne z aktualną próbą; '
-                   'nie zakładamy, że warianty są zgodne.')
-    st.caption('Szybki widok: prognozy drużyn. W szczegółach sprawdzisz własne linie sum i handicapów, porównasz modele oraz obejrzysz statystyki zawodników. Procenty nie są skalibrowane.')
+            st.warning('Porównanie modeli niedostępne z aktualną próbą; '
+                       'nie zakładamy, że warianty są zgodne.')
     done={str(s['game_id']):s for s in summary}
     b1,b2,b3=st.columns(3)
     b1.metric('Mecze w terminarzu',len(games),help='Zaplanowane spotkania w wybranym okresie')
-    b1.caption('Liczba spotkań z aktualnego terminarza.')
-    b2.metric('Pełne symulacje',f'{len(done)} × 5 000',help='Dla każdego spotkania liczono osobno 5000 przebiegów')
-    b2.caption('Symulacje bazujące na dostępnych statystykach drużyn.')
+    b2.metric('Symulacje',f'{len(done)} × 5 000',help='5000 losowań na dostępny mecz')
     b3.metric('Brak danych',len(missing))
-    b3.caption('Mecze bez minimalnych danych; nie generujemy sztucznych prognoz.')
-    st.markdown('#### Mecze i przewidywany wynik')
-    st.caption('Żółty pasek = szansa gości · zielony = szansa gospodarzy. Wyniki to średnie z symulacji, nie wynik rzeczywisty.')
+    st.markdown('#### Game projections')
+    st.caption('Orange: goście · green: gospodarze. Wyniki są prognozami, nie wynikami rzeczywistymi.')
     for i,(_,g) in enumerate(games.iterrows()):
         sid=str(g['game_id']);sim=done.get(sid)
         if sim:
