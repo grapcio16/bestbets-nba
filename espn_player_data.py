@@ -264,6 +264,56 @@ def detailed_espn_gamelog(player_id,name,team,season):
     return df,meta
 
 
+def full_season_team_boxscores(results, teams, before_utc, max_games_per_team=28,
+                               max_workers=6, boxscore_fetch=fetch_boxscore):
+    """Recover a full season sample directly from completed team game boxscores.
+
+    ESPN per-athlete endpoint can be incomplete/unavailable. Collect one boxscore
+    PER TEAM GAME, share same fetched event among player queries, and report
+    explicit coverage. Only completed games strictly before cutoff, no DNP zeroes.
+    """
+    required={"game_id","start_utc","home","away","status_code"}
+    if not isinstance(results,pd.DataFrame) or not required.issubset(results.columns):
+        return pd.DataFrame(),{"source":"ESPN final boxscores","partial":True,"attempted":0,"success":0}
+    now=pd.to_datetime(before_utc,utc=True,errors="coerce")
+    if pd.isna(now):raise ValueError("Nieprawidłowa data odniesienia")
+    wanted={str(t) for t in teams if str(t)}
+    games=results.copy()
+    games["start_utc"]=pd.to_datetime(games["start_utc"],utc=True,errors="coerce")
+    games["status_code"]=pd.to_numeric(games["status_code"],errors="coerce")
+    games=games[(games["status_code"]==3)&(games["start_utc"]<now)&
+                (games["home"].isin(wanted)|games["away"].isin(wanted))]
+    unique={}
+    truncated=False
+    for team in sorted(wanted):
+        subset=games[(games["home"]==team)|(games["away"]==team)].sort_values("start_utc")
+        if len(subset)>max_games_per_team:
+            truncated=True
+        for g in subset.tail(max_games_per_team).to_dict("records"):
+            if str(g.get("game_id") or "").isdigit():
+                unique[str(g["game_id"])]=g
+    rows=[];failures=0
+    if unique:
+        with ThreadPoolExecutor(max_workers=min(max_workers,8)) as pool:
+            futures={pool.submit(boxscore_fetch,g):k for k,g in unique.items()}
+            for fut in as_completed(futures):
+                try:
+                    one=fut.result()
+                    if one:rows.extend(one)
+                    else:failures+=1
+                except Exception:
+                    failures+=1
+    out=pd.DataFrame(rows)
+    if not out.empty:
+        out=out.drop_duplicates(subset=["GAME_ID","PLAYER_ID"],keep="last")
+    return out,{
+        "source":"ESPN — zakończone boxscore drużyn sezonu",
+        "attempted":len(unique),"success":len(unique)-failures,
+        "partial":bool(failures or truncated),
+        "truncated":truncated,"failed_games":failures,
+    }
+
+
 def matchup_espn_logs(history, game, games_per_team=7):
     """Fetch only real, final ESPN boxscores for the TWO selected teams.
 
