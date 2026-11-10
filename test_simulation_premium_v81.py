@@ -122,6 +122,28 @@ class PremiumSimulationTests(unittest.TestCase):
         self.assertNotIn("<script>",card)
         self.assertIn("&lt;script&gt;",card)
 
+    def test_details_default_view_loads_without_roster_fetch(self):
+        from pathlib import Path
+        source=Path("simulation_view.py").read_text(encoding="utf8")
+        start=source.index("def show_game_details(")
+        section=source[start:source.index("def render_simulations(",start)]
+        self.assertIn('["🏟️ Przegląd","👥 Zawodnicy"',section)
+        overview=section.index('if view=="🏟️ Przegląd":')
+        fetch=section.index('matchup_players_cached(',overview)
+        self.assertLess(overview,fetch)
+        self.assertIn('if view in ("👥 Zawodnicy","🩺 Rotacja i absencje")',section)
+        self.assertIn("season=None, nonce=0",section)
+
+    def test_technical_panels_appear_after_projected_cards(self):
+        source=Path("simulation_view.py").read_text(encoding="utf8")
+        body=source[source.index("def render_simulations("):]
+        first=body.index("done={str(s[\"game_id\"]):s for s in summary}")
+        second=body.index("with st.expander('Źródła danych i kompletność'")
+        self.assertLess(first,second)
+        self.assertIn("season=season,nonce=nonce",body)
+        handler=body[body.index("if st.button(\n                         \"📊 MATCHUP INTELLIGENCE"):]
+        self.assertNotIn("players,player_meta=matchup_players_cached(",handler)
+
     def test_compact_responsive_global_visuals(self):
         for selector in (
             "bb81-game-tile","bb81-game-match","bb81-matchup-hero",
