@@ -181,7 +181,8 @@ def game_card(sim,g,hist):
 @st.dialog('🏀 Szczegóły meczu i statystyki zawodników', width='large')
 def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
                       roster_tables=None, roster_diagnostics=None, roster_notices=None,
-                      research_mode=False, injury_table=None, injury_meta=None):
+                      research_mode=False, injury_table=None, injury_meta=None,
+                      season=None, nonce=0):
     """Fast, dense matchup overview with additional analyses on separate tabs."""
     from simulation_premium import (
         matchup_hero_html, matchup_metrics_html,
@@ -216,11 +217,28 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
     # No long run of captions/audits above the actual player statistics.
     view=st.radio(
         "Szczegółowa analiza",
-        ["👥 Zawodnicy","🩺 Rotacja i absencje",
+        ["🏟️ Przegląd","👥 Zawodnicy","🩺 Rotacja i absencje",
          "🎯 Linie i wrażliwość","📊 Rozkład punktów",
          "🔬 Dane i metodologia"],
         horizontal=True,
         key=f"bb61_detail_view_{g['game_id']}")
+    # The first screen already shows the real team context and injury
+    # snapshot. Load expensive player logs only on demand for Players/Rotation.
+    if view=="🏟️ Przegląd":
+        st.caption("Forma, odpoczynek i statusy ESPN są kontekstem, "
+                   "a nie dodatkowymi mnożnikami w obecnej symulacji.")
+        return
+    if view in ("👥 Zawodnicy","🩺 Rotacja i absencje") and season:
+        with st.spinner("Pobieram zakończone mecze i skład wybranych drużyn…"):
+            try:
+                player_table,player_meta=matchup_players_cached(
+                    season,g,hist,advanced,nonce,research_mode)
+            except Exception as exc:
+                player_table=pd.DataFrame()
+                player_meta={"source":"ESPN",
+                             "warning":"Niedostępny gamelog: "+str(exc)[:130]}
+            roster_tables,roster_diagnostics,roster_notices=matchup_roster_tables(
+                g,player_table,nonce)
     qc=sim.get("quality_check") or {}
     if view=="🔬 Dane i metodologia":
         st.markdown("#### Jakość i źródła danych")
@@ -677,14 +695,6 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
                                                 lookback_months=6 if extended else 3)
         except Exception as e:msg='ESPN wyniki: '+str(e)
         if msg:warnings.append(msg)
-    with st.expander('Źródła danych i kompletność',expanded=False):
-        st.caption(f"Terminarz: {sm.get('source','?')} · "
-                   f"{len(games)} spotkań · {len(hist)} potwierdzonych finałów "
-                   f"· okno {'6' if extended else '3'} miesięcy sezonu.")
-        for warn in warnings:
-            st.caption('⚠ '+str(warn))
-        st.caption('Model podstawowy używa ostatnich 12 spotkań drużyny. '
-                   'Dane nieobecne w źródłach nie są wymyślane.')
     # Scores are simulated immediately; player estimates are loaded only for
     # the selected game in its details dialog, never across all upcoming games.
     summary,_,missing=build_sims(games,advanced,hist,pd.DataFrame(),pd.DataFrame(),research_mode)
@@ -706,8 +716,79 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
         # Tracking is automated. Do not clutter the public score cards.
         st.session_state['bb_mvp_last_tracker_save']=int(result['saved'])
     except Exception as exc:
-        st.warning('Nie udało się zapisać prognoz. Sprawdź konfigurację magazynu danych w ustawieniach serwera.')
+        warnings.append("Nie udało się zapisać prognoz Trackera. "
+                        "Weryfikacja w panelu danych technicznych.")
 
+    done={str(s["game_id"]):s for s in summary}
+    b1,b2,b3=st.columns(3)
+    b1.metric("Zaplanowane mecze",len(games))
+    b2.metric("Przeprowadzone symulacje",f"{len(done)} × 5 000")
+    b3.metric("Brak danych",len(missing))
+    st.markdown(
+        '<div class="bb81-section-label"><span>🏀 GAME PROJECTIONS</span>'
+        '<small>orange = away · green = home · simulated, not live</small>'
+        '</div>',unsafe_allow_html=True)
+    games_list=games.to_dict("records")
+    unavailable=[]
+    for index in range(0,len(games_list),2):
+        cols=st.columns(2,gap="medium")
+        for col,game in zip(cols,games_list[index:index+2]):
+            sid=str(game["game_id"])
+            sim=done.get(sid)
+            with col:
+                if sim:
+                    game_card(sim,game,hist)
+                    if st.button(
+                        "📊 MATCHUP INTELLIGENCE · VIEW DETAILS",
+                        key=f"open_sim_{sid}",
+                        use_container_width=True,
+                        type="primary"):
+                        # Open overview immediately; player history is expensive.
+                        # Other tabs load their own real logs only when selected.
+                        injury_rows=pd.DataFrame()
+                        injury_meta={}
+                        try:
+                            injury_rows,injury_meta=load_injuries(nonce)
+                        except Exception:
+                            injury_meta={"stale":True}
+                        show_game_details(
+                            sim,game,pd.DataFrame(),advanced,hist,
+                            player_meta={},roster_tables=None,
+                            roster_diagnostics=None,roster_notices=None,
+                            research_mode=research_mode,
+                            injury_table=injury_rows,injury_meta=injury_meta,
+                            season=season,nonce=nonce)
+                else:
+                    a=TEAM_NAMES.get(game["away"],game["away"])
+                    h=TEAM_NAMES.get(game["home"],game["home"])
+                    date=pd.to_datetime(
+                        game["start_utc"],utc=True).tz_convert(
+                            local_timezone()).strftime("%d.%m · %H:%M")
+                    unavailable.append(f"{a} @ {h} · {date}")
+                    st.markdown(
+                        '<div class="bb81-game-tile">'
+                        '<div class="bb81-game-top">NBA MATCHUP · '+
+                        esc(date)+'</div>'
+                        '<div class="bb81-player-empty" style="margin-top:16px">'
+                        '<strong>'+esc(a)+' @ '+esc(h)+'</strong>'
+                        '<p>Brak kompletnych rzeczywistych danych '
+                        'do symulacji tego spotkania.</p></div></div>',
+                        unsafe_allow_html=True)
+    if unavailable:
+        with st.expander("Mecze bez symulacji · brak danych",expanded=False):
+            for item in unavailable:
+                st.caption(item)
+            st.caption("Nie wypełniamy brakujących danych sztucznymi prognozami.")
+    st.markdown("---")
+    st.caption("Źródła danych i warianty badawcze — informacje techniczne:")
+    with st.expander('Źródła danych i kompletność',expanded=False):
+        st.caption(f"Terminarz: {sm.get('source','?')} · "
+                   f"{len(games)} spotkań · {len(hist)} potwierdzonych finałów "
+                   f"· okno {'6' if extended else '3'} miesięcy sezonu.")
+        for warn in warnings:
+            st.caption('⚠ '+str(warn))
+        st.caption('Model podstawowy używa ostatnich 12 spotkań drużyny. '
+                   'Dane nieobecne w źródłach nie są wymyślane.')
     with st.expander('Porównanie wariantów modelu · badawcze',expanded=False):
         if summary and other:
             baseline={str(x['game_id']):x for x in (other if research_mode else summary)}
@@ -752,72 +833,4 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
         else:
             st.warning('Porównanie modeli niedostępne z aktualną próbą; '
                        'nie zakładamy, że warianty są zgodne.')
-    done={str(s["game_id"]):s for s in summary}
-    b1,b2,b3=st.columns(3)
-    b1.metric("Zaplanowane mecze",len(games))
-    b2.metric("Przeprowadzone symulacje",f"{len(done)} × 5 000")
-    b3.metric("Brak danych",len(missing))
-    st.markdown(
-        '<div class="bb81-section-label"><span>🏀 GAME PROJECTIONS</span>'
-        '<small>orange = away · green = home · simulated, not live</small>'
-        '</div>',unsafe_allow_html=True)
-    games_list=games.to_dict("records")
-    unavailable=[]
-    for index in range(0,len(games_list),2):
-        cols=st.columns(2,gap="medium")
-        for col,game in zip(cols,games_list[index:index+2]):
-            sid=str(game["game_id"])
-            sim=done.get(sid)
-            with col:
-                if sim:
-                    game_card(sim,game,hist)
-                    if st.button(
-                        "📊 MATCHUP INTELLIGENCE · VIEW DETAILS",
-                        key=f"open_sim_{sid}",
-                        use_container_width=True,
-                        type="primary"):
-                        players=pd.DataFrame()
-                        player_meta={}
-                        with st.spinner(
-                            "Pobieram rzeczywiste występy i raport zawodników…"):
-                            try:
-                                players,player_meta=matchup_players_cached(
-                                    season,game,hist,advanced,nonce,
-                                    research_mode)
-                            except Exception as exc:
-                                player_meta={
-                                    "source":"ESPN",
-                                    "warning":"Błąd pobierania: "+str(exc)[:180]}
-                        tables,diagnostics,notices=matchup_roster_tables(
-                            game,players,nonce)
-                        injury_rows=pd.DataFrame()
-                        injury_meta={}
-                        try:
-                            injury_rows,injury_meta=load_injuries(nonce)
-                        except Exception:
-                            injury_meta={"stale":True}
-                        show_game_details(
-                            sim,game,players,advanced,hist,player_meta,
-                            tables,diagnostics,notices,research_mode,
-                            injury_rows,injury_meta)
-                else:
-                    a=TEAM_NAMES.get(game["away"],game["away"])
-                    h=TEAM_NAMES.get(game["home"],game["home"])
-                    date=pd.to_datetime(
-                        game["start_utc"],utc=True).tz_convert(
-                            local_timezone()).strftime("%d.%m · %H:%M")
-                    unavailable.append(f"{a} @ {h} · {date}")
-                    st.markdown(
-                        '<div class="bb81-game-tile">'
-                        '<div class="bb81-game-top">NBA MATCHUP · '+
-                        esc(date)+'</div>'
-                        '<div class="bb81-player-empty" style="margin-top:16px">'
-                        '<strong>'+esc(a)+' @ '+esc(h)+'</strong>'
-                        '<p>Brak kompletnych rzeczywistych danych '
-                        'do symulacji tego spotkania.</p></div></div>',
-                        unsafe_allow_html=True)
-    if unavailable:
-        with st.expander("Mecze bez symulacji · brak danych",expanded=False):
-            for item in unavailable:
-                st.caption(item)
-            st.caption("Nie wypełniamy brakujących danych sztucznymi prognozami.")
+
