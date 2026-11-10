@@ -164,6 +164,9 @@ def _topbar(page):
         '<span class="bbm-mini-tag">SEASON '+escape(_season())+
         '</span></div>',
         unsafe_allow_html=True)
+    # Player Props already has a full-size search hero — avoid two search bars.
+    if page=="props":
+        return
     left,right=st.columns([5,1],vertical_alignment="bottom")
     with left:
         query=st.text_input(
@@ -597,9 +600,7 @@ def settings_page():
             "Symulacje: model eksperymentalny oparty na dostępnych wynikach. "
             "Jeśli dane są niekompletne, aplikacja ich nie uzupełnia fikcyjnymi "
             "wartościami. Ulubione są zapisywane wyłącznie w sesji.")
-    st.info("Pozostałe moduły badawcze (OCR, kursy, Tracker, "
-            "Backtesting, Data Lab) pozostają w repozytorium, "
-            "ale są tymczasowo wyłączone z menu MVP.")
+
 
 
 def main():
