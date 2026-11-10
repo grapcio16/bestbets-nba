@@ -467,9 +467,9 @@ from base64 import b64encode
 brand_icon_base64=b64encode((PATH/'assets'/'bestbets_brand_icon_64.png').read_bytes()).decode('ascii')
 st.markdown(f'''<div class="bb-hero">
 <img class="bb-logo" src="data:image/png;base64,{brand_icon_base64}" alt="BestBets"/><div>
-<div class="bb-kicker">NBA intelligence platform · season 2026–27</div>
+<div class="bb-kicker">NBA INTELLIGENCE · SEZON {season}</div>
 <div class="bb-title">Best<span>Bets</span></div>
-<div class="bb-sub">Oficjalne statystyki NBA, analiza matchupów, przewidywane minuty, raport kontuzji i porównanie kursów. Wszystko w jednym panelu, z widocznymi ograniczeniami danych.</div>
+<div class="bb-sub">Wyniki meczów, Player Props, 5 000 symulacji i analiza każdego matchup'u. Jedna platforma premium — z rzeczywistymi danymi i jawnymi ograniczeniami prognoz.</div>
 </div></div>''',unsafe_allow_html=True)
 
 if page == '🏠 Centrum':
@@ -721,15 +721,22 @@ elif page == '💹 Kursy i value':
                         'aplikacja nie działa w tle po zamknięciu serwera. '
                         'Rzeczywisty backtesting będzie możliwy po zakończeniu zarejestrowanych spotkań.')
         if selected_view=='🧮 Kalkulator (opcjonalnie)':
-            st.markdown('#### Kalkulator zawodników NBA')
-            st.caption('Pojedynczy zawodnik lub beta importu wielu linii z obrazu. '
-                       'Wyniki bazują na dostępnej historii NBA i nie są skalibrowane.')
+            st.markdown('### BestBets Player Props')
+            st.caption('Inteligentna wyszukiwarka zdarzeń, analiza screenshotów '
+                       'i ręczne badanie zawodników. Wszystkie procenty historyczne '
+                       'pokazują liczbę rzeczywistych występów.')
             calculator_mode=st.radio(
                 'Tryb kalkulatora',
-                ['📷 Import screenshot — analiza wielu pozycji',
+                ['🔎 Wyszukiwarka typów — premium',
+                 '📷 Import screenshot — analiza wielu pozycji',
                  '👤 Kalkulator pojedynczego zawodnika'],
                 horizontal=True,key='bb717_calculator_mode')
-            if calculator_mode.startswith('📷'):
+            if calculator_mode.startswith('🔎'):
+                from prop_search_ui import render_natural_prop_search
+                render_natural_prop_search(
+                    season,get_logs,load_schedule,st.session_state.nonce,
+                    viewer_timezone())
+            elif calculator_mode.startswith('📷'):
                 from screenshot_ui import render_screenshot_calculator
                 render_screenshot_calculator(
                     season,get_logs,load_schedule,st.session_state.nonce,
