@@ -201,6 +201,27 @@ h1{font-size:2.2rem!important}h2{font-size:1.6rem!important}h3{font-size:1.23rem
  background:linear-gradient(120deg,#14233e,#0e1a30);
 }
 .bbm-compact{font-size:11px;color:#839fc3}
+
+/* Existing fixture and 5000-draw card internals share MVP colors. */
+.bb-fixture-card,.bb-gamecard{
+ background:linear-gradient(125deg,#11213a,#0b1629)!important;
+ border:1px solid #314c75!important;border-radius:17px!important;
+ box-shadow:0 8px 29px rgba(1,5,17,.16)!important;
+}
+.bb-fixture-date,.bb-gamehead span,.bb-gamefooter b{
+ color:#ffab63!important
+}
+.bb-fixture-bottom{display:none!important}
+.bb-fixture-top{margin-bottom:10px!important}
+.bb-fixture-state.live{color:#ffc28c!important}
+.bb-gamecard .bb-winbar>div:first-child{
+ background:var(--bb-orange)!important
+}
+.bb-gamecard .bb-winbar>div:nth-child(2){
+ background:var(--bb-green)!important
+}
+.bb-gamecard .bb-versus b{color:#d6e8ff!important}
+.bb-gamecard .bb-gamefooter{border-top:1px solid #233b5b}
 @media(max-width:950px){
  .bbm-player-head{flex-wrap:wrap}
  .bbm-player-stats{max-width:100%;width:100%}
