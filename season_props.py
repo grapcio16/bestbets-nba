@@ -78,7 +78,10 @@ def observed_hit_rates(logs, market, line, recent=10):
                 "push_pct":round(100*float((x==threshold).mean()),1),
                 "mean":round(float(x.mean()),1),
                 "median":round(float(x.median()),1)}
-    return {"season":subset(vals),"last10":subset(vals.tail(recent))}
+    return {"season":subset(vals),
+            "last5":subset(vals.tail(5)),
+            "last10":subset(vals.tail(recent)),
+            "last15":subset(vals.tail(15))}
 
 
 def opponent_defensive_profile(results, opponent, cutoff_utc, min_games=5):
@@ -177,9 +180,11 @@ def research_matchup_estimate(logs,market,line,defense=None):
 
 
 SEASON_RESULT_COLUMNS=[
-    "Zawodnik","Drużyna","Rynek","Linia",
+    "Zawodnik","Drużyna","Pozycja","Rynek","Linia",
     "Występy sezon","OVER sezon %","UNDER sezon %","ZWROT sezon %",
-    "OVER L10 %","UNDER L10 %","Śr. sezon","Ostatnie 10: OVER",
+    "OVER L5 %","UNDER L5 %","OVER L10 %","UNDER L10 %",
+    "OVER L15 %","UNDER L15 %","Śr. sezon",
+    "Ostatnie 5: OVER","Ostatnie 10: OVER","Ostatnie 15: OVER",
     "Przeciwnik","Obrona: stracone pkt/mecz","Obrona: L10 stracone",
     "Korekta PTS (%)","P(OVER) v2 %","P(UNDER) v2 %",
     "P(OVER) bez defensywy %","Status","Źródło statystyk","Uwagi",
@@ -222,6 +227,7 @@ def analyze_season_offers(offers, histories, identities, events, results,
             table.append(out);continue
         team=str(identity.get("team") or "")
         out["Drużyna"]=team
+        out["Pozycja"]=str(identity.get("position") or "—")
         out["Źródło statystyk"]=str(identity.get("source") or "Nieokreślone")
         raw_logs=(histories or {}).get(key)
         event=(events or {}).get(team)
@@ -236,15 +242,22 @@ def analyze_season_offers(offers, histories, identities, events, results,
             out["Uwagi"]="Brak poprawnych rzeczywistych występów zawodnika od początku sezonu."
             table.append(out);continue
         all_=historical["season"];recent=historical["last10"]
+        last5=historical["last5"];last15=historical["last15"]
         out.update({
             "Występy sezon":all_["n"],
             "OVER sezon %":all_["over_pct"],
             "UNDER sezon %":all_["under_pct"],
             "ZWROT sezon %":all_["push_pct"],
+            "OVER L5 %":last5["over_pct"],
+            "UNDER L5 %":last5["under_pct"],
             "OVER L10 %":recent["over_pct"],
             "UNDER L10 %":recent["under_pct"],
+            "OVER L15 %":last15["over_pct"],
+            "UNDER L15 %":last15["under_pct"],
             "Śr. sezon":all_["mean"],
+            "Ostatnie 5: OVER":f'{last5["over"]}/{last5["n"]}',
             "Ostatnie 10: OVER":f'{recent["over"]}/{recent["n"]}',
+            "Ostatnie 15: OVER":f'{last15["over"]}/{last15["n"]}',
             "Status":"TYLKO HISTORIA",
         })
         if identity.get("stale") or identity.get("partial"):

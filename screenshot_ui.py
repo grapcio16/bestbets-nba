@@ -19,6 +19,7 @@ from screenshot_import import EDIT_COLUMNS, read_screenshot
 from season_props import (
     analyze_season_offers, clean_player_season, upcoming_team_games,
 )
+from screenshot_cards import show_season_cards
 from simulation_sources import historical_espn_results
 from espn_player_data import detailed_espn_gamelog
 
@@ -38,82 +39,133 @@ def _safe_catalog(nonce):
 
 
 def _load_full_season(edited, season, nonce, get_logs):
-    """Resolve roster ID and bulk-load each requested player with bounded workers.
-
-    Fallback data is visibly marked PARTIAL. Never fabricate missing players or
-    seasons from league averages. No private screenshot leaves the Streamlit app.
-    """
+    """Obtain real ESPN season appearances; never call a one-game fallback full."""
+    from espn_player_data import full_season_team_boxscores
     catalog,coverage=_safe_catalog(nonce)
-    identities={}
-    histories={}
+    identities={};histories={}
     candidates={}
-    rows=catalog.to_dict("records") if isinstance(catalog,pd.DataFrame) else []
-    for row in rows:
+    for row in (catalog.to_dict("records") if isinstance(catalog,pd.DataFrame) else []):
         key=norm_name(str(row.get("PLAYER_NAME") or ""))
         if key:
             candidates.setdefault(key,[]).append(row)
-    misses=[]
-    for name in edited["Zawodnik"].dropna().astype(str).unique():
+    names=edited["Zawodnik"].dropna().astype(str).unique().tolist()
+    unresolved=[]
+    for name in names:
         key=norm_name(name)
         options=candidates.get(key,[])
         if len(options)==1:
             found=options[0]
-            player_id=str(found.get("PLAYER_ID") or "")
-            team=str(found.get("TEAM_ABBREVIATION") or "")
-            identities[key]={"id":player_id,"team":team,
-                             "source":"ESPN — sezonowy gamelog",
-                             "partial":False,"stale":False}
+            identities[key]={
+                "id":str(found.get("PLAYER_ID") or ""),
+                "team":str(found.get("TEAM_ABBREVIATION") or ""),
+                "position":str(found.get("POSITION") or ""),
+                "source":"ESPN — sezonowy gamelog",
+                "partial":False,"stale":False,
+            }
         elif len(options)>1:
             identities[key]={"ambiguous":True}
         else:
-            misses.append(name)
+            unresolved.append(name)
+
     def one(name,player):
         key=norm_name(name)
-        player_id=player["id"]
-        if not player_id.isdigit():
+        if not player["id"].isdigit():
             return key,None,"Nieznany identyfikator ESPN."
         try:
-            data,meta=_cached_espn_player_season(
-                player_id,name,player["team"],season,nonce)
-            return key,(data,meta),None
+            raw,meta=_cached_espn_player_season(
+                player["id"],name,player["team"],season,nonce)
+            return key,(raw,meta),None
         except (ValueError,KeyError,TypeError,RuntimeError) as exc:
-            return key,None,str(exc)[:130]
-    tasks=[]
+            return key,None,str(exc)[:140]
+
     with ThreadPoolExecutor(max_workers=5) as pool:
         futures={
             pool.submit(one,name,identities[norm_name(name)]):norm_name(name)
-            for name in edited["Zawodnik"].dropna().astype(str).unique()
+            for name in names
             if norm_name(name) in identities and identities[norm_name(name)].get("id")}
         for completed in as_completed(futures):
             key,bundle,error=completed.result()
             if bundle:
                 data,meta=bundle
-                histories[key]=data
-                identities[key]["stale"]=bool(meta.get("stale",False))
-                if meta.get("stale"):
+                if data is not None and not data.empty:
+                    histories[key]=data
+                    identities[key]["source"]=str(meta.get("source") or "ESPN")
+                    identities[key]["stale"]=bool(meta.get("stale"))
+                    identities[key]["partial"]=bool(meta.get("partial") or meta.get("stale"))
+                    identities[key]["source_games"]=len(data)
+                else:
                     identities[key]["partial"]=True
             else:
-                misses.append(
-                    next((n for n in edited["Zawodnik"].astype(str)
-                          if norm_name(n)==key),key))
-    if misses:
-        # Existing NBA Stats can provide all game logs; its CDN/ESPN fallback
-        # may be partial, hence an explicit partial label rather than all-season.
-        raw,meta=get_logs()
-        if raw is not None and not raw.empty:
-            source=meta.get("source","Nieznane") if isinstance(meta,dict) else "Nieznane"
-            for name in misses:
+                identities[key]["partial"]=True
+                identities[key]["fetch_error"]=error or "Brak gamelogu ESPN"
+
+    # ESPN's per-player gamelog may be unavailable, malformed or shortened.
+    # Reconstruct actual performances from confirmed FINAL team boxscores,
+    # grouped and fetched once per match for ALL affected players.
+    weak=[key for key,v in identities.items()
+          if not v.get("ambiguous") and v.get("id") and
+             (v.get("partial") or len(histories.get(key,pd.DataFrame()))<10)]
+    if weak:
+        try:
+            from simulation_sources import historical_espn_results
+            finished,notes=historical_espn_results(
+                season,refresh=False,lookback_months=6)
+            teams={identities[k]["team"] for k in weak if identities[k].get("team")}
+            if finished is not None and not finished.empty and teams:
+                from espn_player_data import full_season_team_boxscores
+                box,box_meta=full_season_team_boxscores(
+                    finished,teams,pd.Timestamp.now(tz="UTC"))
+                if not box.empty:
+                    normalized=normalize_logs(box)
+                    for key in weak:
+                        ident=identities[key]
+                        pid=ident.get("id") or ""
+                        selection=normalized[
+                            normalized["PLAYER_ID"].astype(str)==str(pid)
+                        ].copy() if "PLAYER_ID" in normalized else pd.DataFrame()
+                        if selection.empty:
+                            continue
+                        original=histories.get(key,pd.DataFrame())
+                        combined=pd.concat([original,selection],ignore_index=True)
+                        combined=combined.drop_duplicates(
+                            subset=["GAME_ID","PLAYER_ID"],keep="last")
+                        histories[key]=combined.sort_values("GAME_DATE")
+                        ident["source"]="ESPN sezon: gamelog + zweryfikowane boxscore"
+                        ident["source_games"]=len(histories[key])
+                        ident["partial"]=bool(box_meta.get("partial") or notes)
+                        ident["fallback_coverage"]=(
+                            f'{box_meta.get("success",0)}/'
+                            f'{box_meta.get("attempted",0)} meczów drużyn')
+        except (ValueError,KeyError,RuntimeError,TypeError):
+            pass
+
+    # Last resort only: an explicitly PARTIAL league-wide sample. Never label
+    # a single appearance '100% season' without the sample-size warning.
+    still_missing=[name for name in names
+                   if norm_name(name) not in histories and
+                      not identities.get(norm_name(name),{}).get("ambiguous")]
+    if still_missing:
+        try:
+            raw,meta=get_logs()
+        except (ValueError,RuntimeError,KeyError,TypeError):
+            raw,meta=pd.DataFrame(),{}
+        if isinstance(raw,pd.DataFrame) and not raw.empty and "PLAYER_NAME" in raw:
+            for name in still_missing:
                 key=norm_name(name)
-                subset=raw[raw["PLAYER_NAME"].map(norm_name)==key].copy()
-                if subset.empty:continue
-                by_club=subset.sort_values("GAME_DATE")
-                team=str(by_club.iloc[-1]["TEAM_ABBREVIATION"])
-                ids=by_club["PLAYER_ID"].dropna().astype(str).unique().tolist() if "PLAYER_ID" in by_club else []
-                identities[key]={"id":ids[0] if len(ids)==1 else None,
-                                 "team":team,
-                                 "source":str(source)+" — możliwa próbka częściowa",
-                                 "partial":True,"stale":bool((meta or {}).get("stale"))}
-                histories[key]=subset
+                sample=raw[raw["PLAYER_NAME"].map(norm_name)==key].copy()
+                if sample.empty:continue
+                sample=sample.sort_values("GAME_DATE")
+                team=str(sample.iloc[-1]["TEAM_ABBREVIATION"])
+                ids=(sample["PLAYER_ID"].dropna().astype(str).unique().tolist()
+                     if "PLAYER_ID" in sample else [])
+                identities[key]={
+                    "id":ids[0] if len(ids)==1 else None,
+                    "team":team,"position":"",
+                    "source":str(meta.get("source","NBA/ESPN") if isinstance(meta,dict) else "NBA/ESPN")+
+                             " — próbka NIEPEŁNA",
+                    "partial":True,"stale":bool(meta.get("stale")) if isinstance(meta,dict) else True,
+                }
+                histories[key]=sample
     return histories,identities,coverage
 
 
@@ -141,10 +193,10 @@ def _player_chart(history, name, season, market, line, asof):
 
 def render_screenshot_calculator(season, get_logs, load_schedule=None, nonce=0,
                                   viewer_timezone=None):
-    st.markdown("#### 📷 Screenshot → analiza całego sezonu i obrony rywala")
+    st.markdown("#### 📷 BestBets Screenshot Intelligence 2.0")
     st.caption(
         "Obraz służy WYŁĄCZNIE do odczytania zawodników, linii i kursów. "
-        "Rzeczywiste statystyki pobieramy osobno z sezonowych logów ESPN/NBA. "
+        "Pobieramy rzeczywiste sezonowe logi ESPN/NBA i boxscore drużyn. "
         "Najpierw zobaczysz częstość Over/Under w rozegranych występach, "
         "a obok testowy model po uwzględnieniu defensywy przeciwnika.")
     st.warning(
@@ -255,63 +307,62 @@ def render_screenshot_calculator(season, get_logs, load_schedule=None, nonce=0,
                 st.session_state.bb721_result=pd.DataFrame()
     result=st.session_state.bb721_result
     if not result.empty and st.session_state.get("bb721_result_hash")==config_hash:
-        st.markdown("##### 2. Wyniki dla wszystkich zawodników")
-        valid=int(result["Występy sezon"].notna().sum())
-        modeled=int((result["Status"]=="MODEL TESTOWY").sum())
-        x,y,z=st.columns(3)
-        x.metric("Rynki ze screena",len(result))
-        y.metric("Z historią sezonu",valid)
-        z.metric("Model eksperymentalny",modeled)
-        st.caption("OVER/UNDER sezon = rzeczywisty odsetek rozegranych WYSTĘPÓW na "
-                   "tej konkretnej linii. Prognoza v2 = osobne, niekalibrowane "
-                   "prawdopodobieństwo kolejnego meczu, warunkowo skorygowane "
-                   "o obronę CAŁEJ drużyny przeciwnika dla PTS/PRA.")
-        tabs=st.tabs(["Wyniki Over / Under","Obrona rywala i niepewność",
-                      "Historia każdego zawodnika"])
+        st.markdown("##### 2. Analiza wszystkich rozpoznanych zdarzeń")
+        known=int(result["Występy sezon"].notna().sum())
+        with_model=int((result["Status"]=="MODEL TESTOWY").sum())
+        good_sample=int((pd.to_numeric(result["Występy sezon"],errors="coerce")>=10).sum())
+        one_game=int((pd.to_numeric(result["Występy sezon"],errors="coerce")<=1).sum())
+        a,b,c=st.columns(3)
+        a.metric("Zdarzenia",len(result))
+        b.metric("Historia zawodnika",f"{known}/{len(result)}")
+        c.metric("Min. 10 występów",f"{good_sample}/{len(result)}")
+        if one_game:
+            st.warning(
+                f"{one_game} pozycja/pozycje mają tylko 0–1 rozegrany występ w "
+                "dostępnej bazie. Wynik 100% z jednego występu NIE jest "
+                "wiarygodną oceną szans. Przedstawiamy liczebność próby.")
+        if with_model==0:
+            st.info("Brak wystarczających danych do prognoz v2. "
+                    "Historyczne Over/Under widoczne są tylko dla "
+                    "rzeczywiście pobranych występów.")
+        tabs=st.tabs(["🏀 Karty zawodników i wykresy",
+                      "🛡️ Obrona i jakość danych",
+                      "📄 Szczegółowe statystyki"])
         with tabs[0]:
-            fields=["Zawodnik","Drużyna","Przeciwnik","Linia",
-                    "Występy sezon","OVER sezon %","UNDER sezon %",
-                    "OVER L10 %","UNDER L10 %","P(OVER) v2 %",
-                    "P(UNDER) v2 %","Status"]
-            st.dataframe(result[fields],hide_index=True,use_container_width=True,
-                         height=min(710,80+len(result)*37))
+            show_season_cards(
+                result,
+                st.session_state.get("bb721_histories") or {},
+                season,
+                st.session_state.get("bb721_events") or {},
+                pd.Timestamp.now(tz="UTC"))
         with tabs[1]:
+            st.caption("Ocena obrony bazuje na rzeczywistych punktach traconych "
+                       "przez CAŁĄ drużynę rywala. Nie zastępuje obrony "
+                       "konkretnej pozycji ani potwierdzonej dostępności zawodników.")
             fields=["Zawodnik","Rynek","Przeciwnik",
-                    "Obrona: stracone pkt/mecz","Obrona: L10 stracone",
-                    "Korekta PTS (%)","P(OVER) bez defensywy %",
+                    "Występy sezon","Obrona: stracone pkt/mecz",
+                    "Obrona: L10 stracone","Korekta PTS (%)",
+                    "P(OVER) bez defensywy %",
                     "P(OVER) v2 %","P(UNDER) v2 %",
                     "Źródło statystyk","Uwagi"]
-            st.dataframe(result[fields],hide_index=True,use_container_width=True,
-                         height=min(710,80+len(result)*37))
+            st.dataframe(result[fields],hide_index=True,use_container_width=True)
             st.warning(
-                "Korekta rywala to hipoteza na podstawie punktów traconych "
-                "przez całą drużynę. Nie jest to pomiar obrony konkretnej pozycji. "
-                "NIE potwierdzono kalibracji, wpływu kontuzji ani przewagi nad kursami.")
+                "Przy braku pełnego sezonowego gamelogu NIE podstawiamy "
+                "brakujących wyników. Model v2 jest niekalibrowany. "
+                "Zapisane kursy nie dowodzą dodatniej wartości oczekiwanej.")
         with tabs[2]:
-            names=result["Zawodnik"].tolist()
-            selected=st.selectbox("Szczegóły i wykres punktów z sezonu",
-                                  names,key="bb721_selected_player")
-            entry=result[result["Zawodnik"]==selected].iloc[0]
-            st.caption(
-                f"{selected} · {entry['Drużyna'] or 'klub nieznany'} · "
-                f"linia {entry['Linia']} {entry['Rynek']} · "
-                f"sezon: {entry['Występy sezon'] or 0} występów.")
-            sub=(st.session_state.get("bb721_histories") or {}).get(norm_name(selected))
-            event=(st.session_state.get("bb721_events") or {}).get(entry["Drużyna"])
-            end=(event.get("start_utc") if event and not event.get("ambiguous")
-                 else pd.Timestamp.now(tz="UTC"))
-            if sub is not None and not sub.empty and pd.notna(entry["Linia"]):
-                _player_chart(sub,selected,season,entry["Rynek"],float(entry["Linia"]),end)
-            st.caption(str(entry["Uwagi"]))
-        st.download_button(
-            "Eksportuj sprawdzone statystyki sezonu i prognozy CSV",
-            result.to_csv(index=False).encode("utf-8-sig"),
-            file_name="bestbets_season_props_v721.csv",mime="text/csv",
-            key="bb721_export")
-        st.info(
-            "Wybór zakładu należy do użytkownika. BestBets nie oznacza żadnej "
-            "pozycji jako pewnej ani automatycznie nie wybiera Over/Under. "
-            "Próbki poniżej 10 meczów nie otrzymują prognoz modelu; "
-            "brakujące dane są jawnie opisane.")
+            st.caption("Wszystkie sezony/L5/L10/L15 w tabeli — "
+                       "do porównywania i ręcznej kontroli OCR.")
+            st.dataframe(result,hide_index=True,use_container_width=True)
+            st.download_button(
+                "Pobierz szczegóły analizy CSV",
+                result.to_csv(index=False).encode("utf-8-sig"),
+                file_name="bestbets_season_props_v722.csv",
+                mime="text/csv",key="bb721_export")
+        st.caption("Informacje o wszystkich liniach są historyczne lub "
+                   "pochodzą z niekalibrowanych wariantów modelu. "
+                   "Sam procent trafień historycznych nie gwarantuje wyniku "
+                   "kolejnego spotkania.")
+
     elif not result.empty:
         st.info("Zmieniono linie lub dzień spotkań. Uruchom analizę ponownie.")

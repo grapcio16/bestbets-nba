@@ -134,18 +134,73 @@ def roster_selector(team_key: str, player_key: str, nonce: int = 0):
 
 
 def player_observed_logs(team: str, player_id: str, name: str, season: str, nonce: int = 0):
-    """Find the selected athlete by stable ESPN ID, with normalized-name fallback."""
-    raw,meta = cached_team_logs(team,season,nonce)
-    if raw is None or raw.empty:
-        return pd.DataFrame(),meta
-    logs = normalize_logs(raw)
-    selection = pd.DataFrame()
-    if "PLAYER_ID" in logs.columns and str(player_id):
-        selection = logs[logs["PLAYER_ID"].astype(str)==str(player_id)].copy()
-    if selection.empty:
-        selection = logs[logs["PLAYER_NAME"].map(norm_name)==norm_name(name)].copy()
-    selection = selection[selection["TEAM_ABBREVIATION"]==team]
-    return selection.sort_values("GAME_DATE"),meta
+    """Find genuine current-season athlete appearances, never a 1-game proxy.
+
+    ESPN gamelog is primary; verified finalized team boxscores fill gaps and
+    older fallback samples remain explicitly marked partial.
+    """
+    from espn_player_data import detailed_espn_gamelog, full_season_team_boxscores
+    from simulation_sources import historical_espn_results
+    from season_props import clean_player_season
+    frames=[];notes=[];source="ESPN — pełna historia"
+    try:
+        athlete,meta=detailed_espn_gamelog(player_id,name,team,season)
+        if not athlete.empty:
+            frames.append(normalize_logs(athlete))
+            source=str(meta.get("source") or source)
+            if meta.get("partial") or meta.get("stale"):
+                notes.append("Indywidualny gamelog ESPN jest potencjalnie niepełny.")
+    except (ValueError,KeyError,TypeError,RuntimeError) as exc:
+        notes.append("Gamelog ESPN niedostępny: "+str(exc)[:80])
+    count=sum(len(frame) for frame in frames)
+    if count<10 or notes:
+        try:
+            finals,warning=historical_espn_results(
+                season,lookback_months=6)
+            recovered,coverage=full_season_team_boxscores(
+                finals,{team},pd.Timestamp.now(tz="UTC"))
+            if not recovered.empty:
+                indexed=normalize_logs(recovered)
+                matched=indexed[indexed["PLAYER_ID"].astype(str)==str(player_id)]
+                if not matched.empty:
+                    frames.append(matched)
+                    source="ESPN gamelog + sezonowe boxscore drużyn"
+                    if coverage.get("partial") or warning:
+                        notes.append("Nie wszystkie zespołowe boxscore zostały potwierdzone.")
+        except (ValueError,KeyError,TypeError,RuntimeError) as exc:
+            notes.append("Niepełne wyniki drużyny ESPN: "+str(exc)[:80])
+    if not frames:
+        try:
+            sample,meta=cached_team_logs(team,season,nonce)
+            if sample is not None and not sample.empty:
+                frames.append(normalize_logs(sample))
+                source=str(meta.get("source","ESPN próba częściowa"))
+                notes.append("Dostępne tylko wycinkowe wyniki drużyny.")
+        except (ValueError,KeyError,TypeError,RuntimeError):
+            pass
+    if not frames:
+        return pd.DataFrame(),{
+            "source":"Brak historii","partial":True,"coverage":"0 występów",
+            "warning":" ".join(notes)}
+    raw=pd.concat(frames,ignore_index=True)
+    if "PLAYER_ID" in raw:
+        found=raw[raw["PLAYER_ID"].astype(str)==str(player_id)]
+    else:
+        found=pd.DataFrame()
+    if found.empty:
+        found=raw[raw["PLAYER_NAME"].map(norm_name)==norm_name(name)]
+    unique=found.drop_duplicates(subset=["GAME_ID","PLAYER_ID"],keep="last")
+    valid=clean_player_season(
+        unique,name,season,pd.Timestamp.now(tz="UTC"),player_id=player_id)
+    if len(valid)<5:
+        notes.append("Bardzo mała próbka meczów — procenty nie mogą być interpretowane jako przyszła szansa.")
+    return valid,{
+        "source":source,
+        "coverage":f'{len(valid)} rozegranych występów tego sezonu',
+        "partial":bool(notes),
+        "warning":" ".join(notes),
+        "stale":False,
+    }
 
 
 def render_player_profile(season: str, nonce: int):

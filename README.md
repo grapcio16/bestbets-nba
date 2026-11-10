@@ -1,3 +1,24 @@
+# BestBets v7.22 — Screenshot Intelligence 2.0: źródła pełnosezonowe i karty zawodników
+
+Najważniejsze: naprawiamy główną przyczynę błędów z 1 rozegranym występem. W API ESPN surowe `events` zawierają przede wszystkim metadane spotkań, natomiast **rzeczywiste statystyki zawodników są przechowywane głębiej, w `seasonTypes → categories → events → stats`**. Poprzedni parser nie przetwarzał pełnego zestawu statystyk. Nowy parser pobiera statystyki z właściwej struktury, zachowuje ID spotkania, datę, rywala, minuty, PTS, REB, AST i 3PM, odrzuca DNP i deduplikuje gry.
+
+## Co robi aplikacja po kliknięciu „Analizuj cały sezon”
+1. Odczytuje wiersze OCR; użytkownik potwierdza zawodnika, **rynek** (np. PTS, AST, 3PM), linię i kurs. Importer rozpoznaje teraz również rynki występujące **osobno w poszczególnych wierszach screena**, a nie tylko jeden rynek dla całego obrazu.
+2. Pobiera pełny indywidualny gamelog ESPN dla wskazanego sezonu. Jeśli historia nadal jest niepełna lub niedostępna, **na żądanie** odtwarza statystyki z rzeczywistych zakończonych boxscore drużyn. ESPN summary jest cache'owane per spotkanie; liczbę udanych pobrań i częściowe źródła ujawniamy użytkownikowi. Gdy API odmawia dostępu i są jedynie szczątkowe dane, **nadal nie udajemy pełnego sezonu**.
+3. Wylicza na **rzeczywistej, niezdublowanej historii od 1 października** procent występów OVER, UNDER i PUSH dla konkretnej linii ze zdjęcia; L5, L10, L15 i cały sezon. Wcześniejsze statystyki i średnia nie są równe prawdopodobieństwu przyszłego meczu.
+4. Pokazuje **nowoczesne karty zawodników** z dwukolumnowymi statystykami, a poniżej dużą interaktywną kartę wybranego gracza: ciemna stylistyka, zielone słupki OVER, czerwone UNDER, bursztynowa linia, daty/mecze, przełącznik L5/L10/L15/SEZON i dom/wyjazd. Obok informacja o defensywie rywala i **oddzielna, niekalibrowana** prognoza v2 tylko przy wystarczającej próbie.
+5. Ten sam typ karty jest widoczny również w **manualnym kalkulatorze pojedynczego zawodnika**, po wyliczeniu jego rzeczywistej historii.
+
+## Uczciwe ograniczenia
+- OCR nadal wymaga weryfikacji, nie wszystkie możliwe screenshoty bukmacherów są obsługiwane. Część rynku może wymagać ręcznej korekty.
+- Przy próbie 0–1 występu pokazujemy **wyraźne ostrzeżenie**, gdyż 100% z 1/1 nie jest dowodem na przewagę. Przy mniej niż 10 występach nie wyświetlamy modelu v2.
+- Korekta defensywy nadal dotyczy przybliżonej drużynowej liczby punktów traconych, a nie analizy obrony konkretnej pozycji i nie jest skalibrowana.
+- Importer działa na żądanie; odzyskiwanie pełnego sezonu z wielu boxscore może potrwać dłużej przy pierwszym użyciu, następnie odpowiedzi są cache'owane. Bez udanego dostępu do rzeczywistych wyników nie generujemy danych.
+- Skuteczność nowego widoku musi być weryfikowana na historycznych próbach i przedmeczowych kursach; jest to poprawa prezentacji i źródeł, nie wykazany wzrost ROI.
+- Testy `test_screenshot_v722.py` kontrolują parsowanie 13 spotkań, brak wymyślonych DNP/Playoff, deduplikację, sezonowe odsetki i poprawne rozróżnienie AST/3PM.
+
+---
+
 # BestBets v7.21 — sezonowa analiza screenshotów + naprawa przełącznika modelu (10.11.2026)
 
 ## Import screenshotów jest odtąd analizą sezonową, a nie tylko OCR
