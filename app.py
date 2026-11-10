@@ -815,7 +815,7 @@ elif page == '💹 Kursy i value':
                             except (ValueError,KeyError,TypeError) as exc:
                                 st.caption('Prediction Engine 2.0 niedostępny: '+str(exc)[:140])
                         from screenshot_cards import show_manual_player_card
-                         show_manual_player_card(sub,player,market,line,season,team)
+                        show_manual_player_card(sub,player,market,line,season,team)
                         if sub is not None and not sub.empty:
                             st.dataframe(sub[['GAME_DATE','MATCHUP','MIN','PTS','REB',
                                               'AST','FG3M','PRA']].tail(20)
