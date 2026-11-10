@@ -34,19 +34,19 @@ class CenterRedesignTests(unittest.TestCase):
         self.assertIn("&lt;img src=x",html)
         self.assertIn("#03",html)
 
-    def test_center_keeps_schedule_and_injury(self):
-        app=Path("app.py").read_text(encoding="utf-8")
-        start=app.index("if page == '🏠 Centrum':")
-        end=app.index("elif page == '📆 Terminarz':", start)
-        center=app[start:end]
-        self.assertIn('st.markdown("#### Terminarz dnia")',center)
-        self.assertIn('day_navigation("center", zone)',center)
-        self.assertIn("display_cards(chosen, zone, compact=True)",center)
-        self.assertIn("st.markdown('#### Injury report')",center)
-        self.assertIn("show_top10(top)",center)
-        self.assertNotIn("c1,c2,c3,c4=st.columns(4)",center)
+    def test_new_mvp_home_keeps_actual_schedule_and_injury_without_old_clutter(self):
+        code=Path("mvp_app.py").read_text(encoding="utf-8")
+        start=code.index("def home_page():")
+        end=code.index("\ndef games_page():",start)
+        center=code[start:end]
+        self.assertIn('day_navigation("center",tz)',center)
+        self.assertIn('display_cards(chosen,tz,compact=True)',center)
+        self.assertIn("get_injuries(",center)
+        self.assertIn("Injury alerts",center)
+        self.assertNotIn("show_top10(",center)
         self.assertNotIn("labelled_metric(",center)
-        self.assertNotIn("st.dataframe(top.rename",center)
+        self.assertNotIn("st.dataframe(",center)
+
 
 
 if __name__=="__main__":
