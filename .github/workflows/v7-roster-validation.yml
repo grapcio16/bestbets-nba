@@ -63,7 +63,7 @@ jobs:
                        'bb721_game_date','bb721_result','show_season_cards('):
               assert item in ui, item
           cards=Path('screenshot_cards.py').read_text(encoding='utf-8')
-          assert 'bb722_focus' in cards and 'plotly_chart(' in cards
+          assert 'key_prefix+"_focus"' in cards and 'plotly_chart(' in cards
           assert 'last15' in Path('season_props.py').read_text(encoding='utf-8')
           research=Path('simulation_engine.py').read_text(encoding='utf-8')
           assert 'NBA Advanced 70% + ważona forma ESPN 30%' in research
