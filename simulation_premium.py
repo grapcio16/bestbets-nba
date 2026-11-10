@@ -226,3 +226,52 @@ def player_previews_html(team_code,team_name,table):
                  'Means inferred from observed games; not confirmed starters or minutes.'
                  '</div>')
     return ''.join(parts)
+
+
+
+def injury_status_cards_html(report,away,home,names):
+    """Show explicit ESPN reported statuses; never infer healthy from silence."""
+    import pandas as pd
+
+    def one(code):
+        relevant=(
+            report[report["Drużyna"]==code]
+            if isinstance(report,pd.DataFrame) and
+               not report.empty and "Drużyna" in report else pd.DataFrame()
+        )
+        output=[
+            '<div class="bb81-injury-team"><div class="bb81-players-head">'
+            '<b>'+_safe(names.get(code,code))+'</b><span>ESPN STATUS</span></div>'
+        ]
+        if relevant.empty:
+            output.append(
+                '<div class="bb81-player-empty">No ESPN status entries. '
+                'Player availability is not confirmed.</div>')
+        else:
+            for item in relevant.to_dict("records")[:9]:
+                text=str(item.get("Status ESPN") or "")
+                lower=text.lower()
+                color=("out" if "out" in lower or "doubt" in lower
+                       else "question" if any(x in lower for x in
+                            ("question","day-to-day","probable"))
+                       else "other")
+                info=str(item.get("Informacja") or "")
+                output.append(
+                    '<div class="bb81-injury-person"><div><strong>'+
+                    _safe(item.get("Zawodnik") or "Unknown")+'</strong>'+
+                    ('<small>'+_safe(info[:84])+'</small>' if info else '')+
+                    '</div><span class="bb81-injury-badge '+color+'">'+
+                    _safe(text)+'</span></div>'
+                )
+            if len(relevant)>9:
+                output.append(
+                    '<div class="bb81-player-disclaimer">+ '+
+                    str(len(relevant)-9)+' more status entries below</div>')
+        output.append('</div>')
+        return ''.join(output)
+
+    return (
+        '<div class="bb81-section-label"><span>INJURY REPORT</span>'
+        '<small>ESPN — verify official game-day report</small></div>'
+        '<div class="bb81-context-pair">'+one(away)+one(home)+'</div>'
+    )
