@@ -3,6 +3,7 @@
 These tests never call the network or imply statistical calibration.
 """
 import unittest
+from pathlib import Path
 import pandas as pd
 
 from simulation_premium import (
