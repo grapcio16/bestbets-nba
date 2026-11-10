@@ -387,6 +387,22 @@ h1{font-size:2.2rem!important}h2{font-size:1.6rem!important}h3{font-size:1.23rem
  background:#101d32;color:#9fb8d6;padding:22px 13px;
  border:1px solid #29486a;border-radius:0 0 9px 9px;font-size:11px;
 }
+
+.bb81-injury-team{min-width:0;background:#0b192e;border-radius:12px;overflow:hidden}
+.bb81-injury-person{
+ display:flex;justify-content:space-between;align-items:center;
+ padding:10px 12px;gap:8px;
+ background:#101f37;border:1px solid #273e61;border-top:0;
+}
+.bb81-injury-person strong{display:block;color:#eaf3ff;font-size:11px}
+.bb81-injury-person small{color:#8da8c9;font-size:9px;display:block;margin-top:2px}
+.bb81-injury-badge{
+ white-space:nowrap;border:1px solid #51739b;background:#182e4b;color:#b3d1f7;
+ border-radius:9px;padding:6px 9px;font-size:10px;font-weight:850;
+}
+.bb81-injury-badge.out{border-color:#a54f62;background:#401c2c;color:#ff9dae}
+.bb81-injury-badge.question{border-color:#b17c43;background:#392b20;color:#ffca8f}
+.bb81-injury-badge.other{border-color:#497c93;background:#173143;color:#9ce6f1}
 .bb81-player-disclaimer{
  border-radius:0 0 10px 10px;background:#0b192d;border:1px solid #273d5d;
  border-top:0;color:#8aa7c8;padding:8px 11px;font-size:9px;
