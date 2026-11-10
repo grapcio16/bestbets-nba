@@ -447,7 +447,7 @@ if 'api_props' not in st.session_state:st.session_state.api_props=pd.DataFrame()
 if 'api_key' not in st.session_state:st.session_state.api_key=''
 
 with st.sidebar:
-    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.21</small></div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:22px;font-family:Space Grotesk;font-weight:800;color:#f5c46b;margin:4px 0 20px">🪙 BestBets <small style="color:#8e9fb2;font-size:11px">NBA / v7.22</small></div>',unsafe_allow_html=True)
     page=st.radio('Nawigacja',[
         '🏠 Centrum', '📆 Terminarz', '🏀 Symulacje 5000', '🧑‍🚀 Zawodnicy', '🏟️ Drużyny',
         '💹 Kursy i value','📈 Performance Tracker','🧪 Backtesting', '📚 NBA Data Lab'],index=0,label_visibility='collapsed')
@@ -814,7 +814,8 @@ elif page == '💹 Kursy i value':
                                     st.caption(' • '.join(candidate['warnings']))
                             except (ValueError,KeyError,TypeError) as exc:
                                 st.caption('Prediction Engine 2.0 niedostępny: '+str(exc)[:140])
-                        show_calculator_history_chart(sub,player,market,line,projection)
+                        from screenshot_cards import show_manual_player_card
+                         show_manual_player_card(sub,player,market,line,season,team)
                         if sub is not None and not sub.empty:
                             st.dataframe(sub[['GAME_DATE','MATCHUP','MIN','PTS','REB',
                                               'AST','FG3M','PRA']].tail(20)
@@ -1244,5 +1245,5 @@ elif page == '📚 NBA Data Lab':
     row_note('Statystyki z linków NBA.com','Dostępne integracje: players/traditional, players/shooting, catch-shoot, player box scores, transition, defense-dash, teams/traditional, lineups, teams/shooting, opponent-shooting, hustle, defense, catch-shoot oraz transition. Każda kategoria pochodzi z odpowiadającego jej endpointu NBA; niektóre są przybliżonym odpowiednikiem widoku strony.')
 
 
-st.markdown('''<div class="bb-footer">BestBets v7.21 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
+st.markdown('''<div class="bb-footer">BestBets v7.22 · Dane NBA: NBA CDN / stats.nba.com przez nba_api · Kontuzje: ESPN (nieoficjalne) · Kursy: automatycznie przez The Odds API, wymagany klucz; brak potwierdzenia Betclic Polska. 
 Nie jest to strona NBA ani Betclic. Model jest eksperymentalny i jego prognozy wymagają walidacji.</div>''',unsafe_allow_html=True)
