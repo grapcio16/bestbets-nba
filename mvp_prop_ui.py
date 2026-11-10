@@ -142,6 +142,20 @@ def render_player_props(season,nonce,timezone,load_schedule,get_logs):
                 offers=_match_proposals(parsed,catalog)
             st.session_state["bb_mvp_search_parse"]=(offers,sig)
             st.session_state.pop("bb_mvp_search_results",None)
+            # Exact, unique roster matches need only ONE search click.
+            # Suggested/ambiguous matches still require explicit verification.
+            if not offers.empty and bool(
+                (offers["Dopasowanie"]=="exact").all()):
+                with st.spinner("Pobieram sezonowe występy i analizę rywala…"):
+                    try:
+                        table,histories,events,issues=_run_research(
+                            offers,season,nonce,day,zone,load_schedule,get_logs)
+                        st.session_state["bb_mvp_search_results"]={
+                            "signature":sig,"table":table,
+                            "histories":histories,"events":events,
+                            "issues":issues}
+                    except (ValueError,RuntimeError,KeyError,TypeError) as exc:
+                        st.warning("Nie udało się pobrać historii: "+str(exc)[:160])
 
     parsed=st.session_state.get("bb_mvp_search_parse")
     if not parsed or parsed[1]!=sig:
@@ -179,8 +193,11 @@ def render_player_props(season,nonce,timezone,load_schedule,get_logs):
                          expanded=False):
             st.dataframe(offers[["Zawodnik","Kierunek","Rynek","Linia"]],
                          hide_index=True,use_container_width=True)
+    has_current=(st.session_state.get("bb_mvp_search_results") or {}).get(
+        "signature")==sig
     if st.button(
-        "📊 Pokaż analizę i wykresy",type="primary",
+        "↻ Odśwież wyniki" if has_current else "📊 Pokaż analizę i wykresy",
+        type="secondary" if has_current else "primary",
         key="bb_mvp_fetch_full",use_container_width=True):
         with st.spinner("Pobieram realne sezonowe wyniki zawodników…"):
             try:
