@@ -1,3 +1,19 @@
+# BestBets v8.1 — kompaktowe, kolorowe Symulacje i szczegóły meczów
+
+Przebudowano widok `Simulations` w istniejącym MVP bez zmiany modelu, liczby 5000 losowań, sposobu pobierania danych lub kryteriów jakości.
+
+- **Karta meczu**: poziomy układ herbów/nazw drużyn, prognozowane punkty obok siebie, duża suma, pomarańczowo-zielony pasek udziału wygranych, godzina w strefie użytkownika oraz jeden przycisk `Matchup details`. Układ nie zależy już od niezaładowanych starych reguł CSS.
+- **Szczegóły meczu**: kolorowy hero ze średnim wynikiem, cztery metryki, sześć przełączanych widoków (`Przegląd`, `Zawodnicy`, `Rotacja i absencje`, `Linie i wrażliwość`, `Rozkład punktów`, `Dane modelu`). Ekran startowy mieści obie drużyny i formę L5 obok siebie, odpoczynek, historię sum i skróconą listę zgłoszonych urazów.
+- **Zawodnicy**: krótkie tabele dwóch drużyn obok siebie, a pełna historia i statusy pod rozwijanymi panelami. Nie mylimy liczby minut z potwierdzonym składem.
+- **Kontuzje i rotacja**: graficzne oznaczenia oraz metryki dla obu drużyn; tabela tylko po wybraniu tej zakładki.
+- **Dane źródłowe i porównanie modeli**: przeniesione poniżej kart do zwijanych sekcji, zamiast zajmować pierwszy ekran.
+- **Usunięte**: dostęp do automatycznej porównywarki bukmacherów z okna meczu — ten moduł pozostaje poza zakresem obecnego MVP.
+- **Rzetelność**: udziały wygranych w 5000 próbach nie są kalibrowanymi prawdopodobieństwami wygranej kuponu. Forma, odpoczynek i statusy ESPN są opisowym kontekstem; obecnie nie wpływają na wynik 5000 przebiegów. Dane nieznane są jawnie oznaczone.
+- **Responsywność**: dialog dopasowany do szerokości, układ poziomy na desktopie i dwukolumnowe metryki na telefonie; ciemny granat, neonowy błękit, pomarańczowy i zielony.
+- **Testy**: `test_simulation_premium_v81.py` (symulowane wartości testowe tylko w fixture, escapowanie HTML, brak wymyślonych statystyk, izolacja modelu i reguły CSS), weryfikacja kompilacji i `AppTest` w workflow.
+
+---
+
 # BestBets MVP v8.0 — nowa architektura interfejsu (10 listopada 2026)
 
 Aplikacja uruchamia się przez nowy, znacznie lżejszy `app.py → mvp_app.main()`. Poprzedni rozbudowany routing jest zachowany w historii GitHub; źródła statystyk, modele, harmonogram Trackera i kod niepublicznych funkcji nadal istnieją w repozytorium. Nie usunięto zgromadzonych danych ani silnika symulacji.
