@@ -1,3 +1,16 @@
+# BestBets MVP v8.1 — kompaktowe, kolorowe Symulacje 5000
+
+Nowy wygląd **zrealizowany bez zmiany algorytmu prognoz**:
+- Lista nadchodzących meczów: **dwie karty w jednym rzędzie na desktopie**, jedna kolumna na mobile; każda z logo, przewidywanymi średnimi punktami, udziałem zwycięstw w 5000 symulacji (pomarańczowy = goście, zielony = gospodarze), przewidywaną sumą, liderem symulacji oraz jednym przyciskiem otwierającym mecz.
+- Szczegóły wybranego meczu: jedno zwarte okno z **dużym przewidywanym wynikiem, proporcjonalnym paskiem udziałów zwycięstw, zakresem 80% symulowanych sum punktów i porównaniem obu drużyn OBOK SIEBIE** (forma L5, zdobywane i tracone punkty, odpoczynek, B2B, prawdziwe metryki NBA Advanced jeśli dostępne).
+- Domyślny widok zawodników: zestawione równolegle **dwie przejrzyste mini-tabele projektowanych PTS/REB/AST/3PM/MIN**, po maksymalnie 5 zawodników z każdej drużyny, tylko dla obserwowanych występów; wszystkie pełne dane w osobnym rozwijanym panelu.
+- Kontuzje i rotacja: karty statusów ESPN osobno dla obu zespołów, kolorowe statusy Out / Questionable / DTD, skrócone podsumowanie minut; szczegółowy raport rotacji dostępny po rozwinięciu.
+- Linie własne użytkownika i rozkład punktów pozostają dostępne przez przełącznik sekcji. Audyt 5/10/20, porównanie alternatywnego modelu i inne ostrzeżenia są przeniesione do jawnie opisanej sekcji badawczej zamiast dominować nad ekranem.
+- Brak fikcyjnych ocen A+ czy gwarancji wygranej. Kontuzje, odpoczynek i forma są **kontekstem**, nie są dopisywane jako niezweryfikowane mnożniki prawdopodobieństw. Procenty zwycięstw to odsetki 5000 losowań, nie skalibrowane prawdopodobieństwo bukmacherskie.
+- Niezależny plik renderujący `simulation_premium.py`; testy prezentacji `test_simulation_premium_v81.py`; pełny workflow regresji zawiera nadal dotychczasowe testy silnika 5000 losowań.
+
+---
+
 # BestBets MVP v8.0 — nowa architektura interfejsu (10 listopada 2026)
 
 Aplikacja uruchamia się przez nowy, znacznie lżejszy `app.py → mvp_app.main()`. Poprzedni rozbudowany routing jest zachowany w historii GitHub; źródła statystyk, modele, harmonogram Trackera i kod niepublicznych funkcji nadal istnieją w repozytorium. Nie usunięto zgromadzonych danych ani silnika symulacji.

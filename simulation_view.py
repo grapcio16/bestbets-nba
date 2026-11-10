@@ -166,272 +166,231 @@ def local_timezone():
 
 
 def game_card(sim,g,hist):
-    h,a=sim['home'],sim['away']
-    date=pd.to_datetime(g['start_utc'],utc=True).tz_convert(local_timezone()).strftime('%d.%m.%Y • %H:%M')
-    pct_h=float(sim['home_win_pct']);pct_a=float(sim['away_win_pct'])
-    # HTML is constructed only from trusted static team names, sanitized dates and numeric simulations.
-    st.markdown(f'''<div class="bb-gamecard">
-      <div class="bb-gamehead">🏀 {esc(date)} <span>5 000 symulacji</span></div>
-      <div class="bb-versus">
-        <div>{logo_html(a)}<strong>{esc(TEAM_NAMES.get(a,a))}</strong><small>Goście · średnia z symulacji</small><b>{sim['away_points']:.1f} pkt</b></div>
-        <span class="bb-at">VS</span>
-        <div>{logo_html(h)}<strong>{esc(TEAM_NAMES.get(h,h))}</strong><small>Gospodarze · średnia z symulacji</small><b>{sim['home_points']:.1f} pkt</b></div>
-      </div>
-      <div class="bb-winbar"><div style="width:{pct_a:.1f}%;background:#E8AD58"></div><div style="width:{pct_h:.1f}%;background:#62C7AE"></div></div>
-      <div class="bb-winlabels"><span>{pct_a:.1f}% • {esc(a)}</span><span>{pct_h:.1f}% • {esc(h)}</span></div>
-      <div class="bb-gamefooter">Średnia suma punktów <b>{sim['total_points']:.1f}</b> · Model typuje: <b>{esc(TEAM_NAMES.get(sim['winner'],sim['winner']))}</b></div>
-      <div style="font-size:10px;color:#90a4be;margin-top:6px">Procenty = udział zwycięstw w 5 000 symulacji. Duże liczby przy drużynach = prognozowane średnie punkty, a nie aktualny wynik.</div>
-    </div>''',unsafe_allow_html=True)
-    qc=sim.get('quality_check') or {}
-    if qc.get('alerts'):
-        st.warning('Jakość danych: '+' • '.join(qc['alerts'][:3]))
-    with st.expander('Weryfikacja źródeł i historyczne średnie',expanded=False):
-        st.caption('Wariant: '+str(sim.get('source','Nieznany')))
-        st.caption('Próba: '+str(sim.get('sample') or 'metyki drużyn')
-                   +'. Procenty są niekalibrowane.')
-        away_hist=team_scoring_history(hist,a)
-        home_hist=team_scoring_history(hist,h)
-        if away_hist and home_hist:
-            st.caption(
-                f"{a}: {away_hist['mean']:.1f} pkt z "
-                f"{away_hist['games']} meczów · "
-                f"{h}: {home_hist['mean']:.1f} pkt z "
-                f"{home_hist['games']} meczów.")
+    """Compact 2-column dashboard tile for the current 5,000-run simulation."""
+    from simulation_premium import game_tile_html
+    start=pd.to_datetime(g["start_utc"],utc=True,errors="coerce")
+    label=(start.tz_convert(local_timezone()).strftime("%d.%m.%Y · %H:%M")
+           if pd.notna(start) else "Termin niepotwierdzony")
+    st.markdown(
+        game_tile_html(
+            sim,g,TEAM_NAMES,
+            logo_html(sim["away"]),logo_html(sim["home"]),label),
+        unsafe_allow_html=True)
+
 
 @st.dialog('🏀 Szczegóły meczu i statystyki zawodników', width='large')
 def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
                       roster_tables=None, roster_diagnostics=None, roster_notices=None,
                       research_mode=False, injury_table=None, injury_meta=None):
-    """One-click modal. Player statistics are the FIRST view, not below the cards."""
-    home, away = sim['home'], sim['away']
-    st.markdown(f'### {TEAM_NAMES.get(away,away)} — {TEAM_NAMES.get(home,home)}')
-    st.caption('5 000 symulacji • model eksperymentalny • nie jest to pewny wynik meczu')
-    st.markdown('<div class="bb-versus" style="max-width:560px;margin:0 auto 12px">'
-        + f'<div>{logo_html(away)}<strong>{esc(TEAM_NAMES.get(away,away))}</strong></div>'
-        + '<span class="bb-at">VS</span>'
-        + f'<div>{logo_html(home)}<strong>{esc(TEAM_NAMES.get(home,home))}</strong></div>'
-        + '</div>', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric('Szansa gości', f"{sim['away_win_pct']:.1f}%")
-    c1.caption('Udział wygranych gości w symulacji, nie szansa potwierdzona.')
-    c2.metric('Szansa gospodarzy', f"{sim['home_win_pct']:.1f}%")
-    c2.caption('Udział wygranych gospodarzy w symulacji, nie szansa potwierdzona.')
-    c3.metric('Średni wynik', f"{sim['away_points']:.1f} : {sim['home_points']:.1f}")
-    c3.caption('Punkty gości : gospodarzy, średnia z 5 000 prób.')
-    c4.metric('Średnia suma', f"{sim['total_points']:.1f} pkt")
-    c4.caption(f"80% symulacji: {sim['total_p10']}–{sim['total_p90']} pkt.")
-    st.caption(f"Źródło modelu: {sim['source']}. {sim.get('warning','')}")
-    qc=sim.get('quality_check') or {}
-    if qc.get('alternate_available'):
-        st.caption('Kontrola wrażliwości — drugi wariant modelu: '
-                   f"{qc['alternate_away']:.1f} : {qc['alternate_home']:.1f} "
-                   '(goście : gospodarze). '
-                   f"Różnica handicapów {qc['margin_disagreement']:.1f} pkt. "
-                   'Wariant nie jest gwarantowanie dokładniejszy.')
-    if qc.get('alerts'):
-        st.warning('Ograniczenia tej prognozy: '+' • '.join(qc['alerts']))
-    past_away=team_scoring_history(hist,away)
-    past_home=team_scoring_history(hist,home)
-    if past_away and past_home:
-        aa,hh=st.columns(2)
-        aa.metric('Średnia zdobytych pkt — goście (historia)',f"{past_away['mean']:.1f} pkt")
-        aa.caption(f"Ostatnie {past_away['games']} rozegranych meczów, bez symulacji")
-        hh.metric('Średnia zdobytych pkt — gospodarze (historia)',f"{past_home['mean']:.1f} pkt")
-        hh.caption(f"Ostatnie {past_home['games']} rozegranych meczów, bez symulacji")
-    with st.expander('📈 Audyt danych: próba 5/10/20, dom/wyjazd, obrona, tempo i zmienność',expanded=False):
-        st.caption('Wszystkie liczby wyliczono WYŁĄCZNIE z zakończonych meczów przed datą analizowanego spotkania. '
-                   'Używanie większej próby nie gwarantuje dokładniejszej prognozy. '
-                   'To informacje badawcze — NIE są dodatkowymi mnożnikami symulacji.')
-        report_rows, audit_flags=matchup_audit(hist,g,advanced)
+    """Fast, dense matchup overview with additional analyses on separate tabs."""
+    from simulation_premium import (
+        matchup_hero_html, matchup_metrics_html,
+        compact_team_context_html, injury_preview_html,
+    )
+    from match_context import matchup_schedule_context
+    home,away=sim["home"],sim["away"]
+    timestamp=pd.to_datetime(g["start_utc"],utc=True,errors="coerce")
+    date_label=(timestamp.tz_convert(local_timezone()).strftime("%d.%m.%Y · %H:%M")
+                if pd.notna(timestamp) else "Termin niepotwierdzony")
+    st.markdown(
+        matchup_hero_html(sim,g,TEAM_NAMES,logo_html(away),
+                          logo_html(home),date_label),
+        unsafe_allow_html=True)
+    st.markdown(matchup_metrics_html(sim),unsafe_allow_html=True)
+    contexts=matchup_schedule_context(hist,g)
+    forms={
+        "away":team_form_diagnostics(hist,away,asof=g.get("start_utc")),
+        "home":team_form_diagnostics(hist,home,asof=g.get("start_utc")),
+    }
+    ac=advanced_ratings(advanced)
+    st.markdown(
+        compact_team_context_html(
+            away,home,TEAM_NAMES,forms,contexts,ac,
+            {away:logo_html(away),home:logo_html(home)}),
+        unsafe_allow_html=True)
+    report,report_meta=matchup_injuries(injury_table,home,away,injury_meta)
+    st.markdown(injury_preview_html(report,report_meta),unsafe_allow_html=True)
+    if report_meta.get("stale"):
+        st.caption("⚠ ESPN: raport kontuzji może być nieaktualny.")
+
+    # No long run of captions/audits above the actual player statistics.
+    view=st.radio(
+        "Szczegółowa analiza",
+        ["👥 Zawodnicy","🩺 Rotacja i absencje",
+         "🎯 Linie i wrażliwość","📊 Rozkład punktów",
+         "🔬 Dane i metodologia"],
+        horizontal=True,
+        key=f"bb61_detail_view_{g['game_id']}")
+    qc=sim.get("quality_check") or {}
+    if view=="🔬 Dane i metodologia":
+        st.markdown("#### Jakość i źródła danych")
+        st.caption("Model: "+str(sim.get("source","Nieznany"))+
+                   ". To udział wygranych w 5,000 próbach; "
+                   "wartości nie są skalibrowanymi szansami.")
+        if sim.get("warning"):
+            st.warning(str(sim["warning"]))
+        if qc.get("alerts"):
+            st.warning("Ograniczenia tej prognozy: "+" • ".join(qc["alerts"]))
+        if qc.get("alternate_available"):
+            st.caption("Drugi wariant: "+
+                       f'{qc["alternate_away"]:.1f} : '
+                       f'{qc["alternate_home"]:.1f} pkt (goście : gospodarze). '
+                       "Nie potwierdzono wyższej dokładności.")
+        st.markdown("**Zakończone mecze — historia 5/10/20, dom/wyjazd, obrona i tempo**")
+        report_rows,audit_flags=matchup_audit(hist,g,advanced)
         st.dataframe(report_rows,hide_index=True,use_container_width=True)
-        st.caption('Historia 5/10/20 to liczba dostępnych meczów z ostatnich N; '
-                   '„U siebie / wyjazd” to liczba rzeczywistych spotkań w miejscu odpowiadającym meczowi. '
-                   'Odchylenie sumy = rzeczywista zmienność punktów.')
         if audit_flags:
-            st.warning('Ograniczenia danych: '+' • '.join(audit_flags[:5]))
+            st.warning("Ograniczenia: "+" • ".join(audit_flags[:5]))
         candidate=venue_research_candidate(hist,g)
         if candidate is not None:
-            st.caption('Dodatkowa hipoteza badawcza (bez wpływu na wynik meczu): '
-                       f"historyczne splity dom/wyjazd sugerują średnie "
-                       f"{candidate['away']:.1f} : {candidate['home']:.1f}. "
-                       f"Próba venue: gospodarze {candidate['venue_samples'][0]} / "
-                       f"goście {candidate['venue_samples'][1]}. "
-                       'Nie jest to skalibrowany ani produkcyjny model.')
-        else:
-            st.caption('Nie uruchomiono hipotezy dom/wyjazd: '
-                       'brak minimum 4 zakończonych spotkań w odpowiednich lokalizacjach dla obu drużyn.')
-    from match_context import matchup_schedule_context
-    contexts=matchup_schedule_context(hist,g)
-    st.markdown('#### Odpoczynek i intensywność terminarza')
-    st.caption('Dane oparte na faktycznie zakończonych spotkaniach ESPN. '
-               'Daty wg strefy NBA ET; to nie jest pełna analiza podróży. '
-               'Liczby te NIE zmieniają na razie symulacji.')
-    for side,code in (('away',away),('home',home)):
-        ctx=contexts[side]
-        if not ctx.get('available'):
-            st.caption(TEAM_NAMES.get(code,code)+': '+ctx.get('reason','Brak danych'))
-        else:
-            st.caption(f"{TEAM_NAMES.get(code,code)}: "
-                       f"odpoczynek {ctx['rest_days']} dzień/dni · "
-                       f"back-to-back: {'TAK' if ctx['back_to_back'] else 'NIE'} · "
-                       f"{ctx['games_in_4_days']} mecz(e) w ciągu 4 dni · "
-                       f"ostatnie {ctx['played_last5']} spotkań: "
-                       f"{ctx['wins_last5']} wygranych, "
-                       f"średnia różnica {ctx['margin_last5']:+.1f} pkt.")
-    st.markdown('#### Forma ostatnich meczów — dane rzeczywiste')
-    st.caption('Poniższe statystyki są kontekstem, a nie dodatkowym '
-               'mnożnikiem prawdopodobieństw. Nie potwierdzają dostępności '
-               'zawodników w dniu meczu.')
-    ac=advanced_ratings(advanced)
-    for code in (away,home):
-        form=team_form_diagnostics(hist,code,asof=g.get('start_utc'))
-        st.markdown('**'+TEAM_NAMES.get(code,code)+'**')
-        if form:
-            st.caption(f"Ostatnie {form['games_last5']} meczów: "
-                       f"{form['wins_last5']} zwycięstw · "
-                       f"zdobyte {form['scored_last5']:.1f} pkt/mecz · "
-                       f"stracone {form['allowed_last5']:.1f} pkt/mecz · "
-                       f"ry wale: {form['opponents_last5']}".replace('ry wale','rywale'))
-        else:
-            st.caption('Brak wystarczających zakończonych spotkań.')
-        if code in ac:
-            v=ac[code]
-            st.caption(f"NBA advanced: tempo {v['pace']:.1f} posiadań/48 min · "
-                       f"OFF Rating {v['off']:.1f} · DEF Rating {v['def']:.1f}")
-        else:
-            st.caption('Tempo posiadań, OFF i DEF Rating: brak zweryfikowanych '
-                       'danych NBA advanced, nie szacujemy ich z punktów.')
-    if player_meta:
-        st.caption('Dane zawodników: '+str(player_meta.get('source','ESPN'))+
-                   ' · '+str(player_meta.get('coverage','')))
-    report,report_meta=matchup_injuries(injury_table,home,away,injury_meta)
-    st.markdown('#### Statusy zawodników — raport ESPN')
-    if report.empty:
-        st.info('Brak rozpoznanych informacji o kontuzjach obu drużyn. '
-                'To NIE oznacza, że wszyscy zawodnicy są dostępni.')
-    else:
-        st.dataframe(report,hide_index=True,use_container_width=True,
-                     height=min(290,52+len(report)*36))
-    if report_meta.get('stale'):
-        st.warning('ESPN: dane kontuzji z nieaktualnej pamięci podręcznej.')
-    st.caption(report_meta.get('warning','Statusy wymagają potwierdzenia.'))
-    if report.empty:
-        st.caption('Dostępność kluczowych zawodników przed meczem pozostaje niepotwierdzona.')
+            st.caption(
+                "Hipoteza badawcza venue (BEZ wpływu na aktualne symulacje): "+
+                f'{candidate["away"]:.1f} : {candidate["home"]:.1f} pkt. '
+                "Nie została skalibrowana.")
+        with st.expander("Historię punktową porównaj z wynikami, nie z prognozą"):
+            for code in (away,home):
+                previous=team_scoring_history(hist,code)
+                if previous:
+                    st.caption(
+                        f'{TEAM_NAMES.get(code,code)}: {previous["mean"]:.1f} '
+                        f'punktów z {previous["games"]} zakończonych spotkań.')
+        st.caption("Kontekst odpoczynku i tempa jest opisowy; "
+                   "nie modyfikuje automatycznie szans zwycięstwa.")
+        return
 
-
-    # Only render the selected section. Stats are immediately visible by default.
-    view = st.radio('Pokaż szczegóły',
-                     ['👥 Zawodnicy', '🩺 Rotacja i absencje',
-                      '🎯 Linie i wrażliwość', '📊 Rozkład punktów',
-                      '💹 Kursy bukmacherów'],
-                     horizontal=True, key=f"bb61_detail_view_{g['game_id']}")
     if view == '🩺 Rotacja i absencje':
-        st.markdown('#### Dostępność i ostatnia rotacja — analiza badawcza')
-        st.caption('Rzeczywiste minuty z ostatnich 3/7 występów, '
-                   'historyczne minuty modelu, wpisy ESPN i pozycje z katalogu drużyny. '
-                   'To nie jest potwierdzony skład przedmeczowy.')
-        prior=pd.DataFrame((player_meta or {}).get('minutes_trends') or [])
+        from simulation_premium import injury_status_cards_html
+        st.markdown(
+            injury_status_cards_html(report,away,home,TEAM_NAMES),
+            unsafe_allow_html=True)
+        if report_meta.get("warning"):
+            st.caption(str(report_meta["warning"]))
+        prior=pd.DataFrame((player_meta or {}).get("minutes_trends") or [])
         details,teams,alerts=rotation_report(
             player_table,report,home,away,rosters=roster_tables,
             trends=prior,injury_meta=report_meta,player_meta=player_meta)
-        if not teams.empty:
-            for team in (away,home):
-                snap=teams[teams['Drużyna']==team].iloc[0]
-                st.markdown('**'+TEAM_NAMES.get(team,team)+'**')
-                a,b,c=st.columns(3)
-                a.metric('Zawodnicy z prognozą minut',int(snap['Zawodnicy z projekcją minut']))
-                exposure=snap['Minuty modelu: Out/Doubtful']
-                b.metric('Historyczne minuty pod ryzykiem',
-                         f"{exposure:.1f}" if pd.notna(exposure) else "Brak danych")
-                c.metric('Zmienność rotacji (≥4 min)',
-                         int(snap['Zawodnicy z wahaniem minut >=4']))
-                if not snap['Dane statusu aktualne']:
-                    st.caption('Brak świeżego raportu ESPN dla tego meczu. '
-                               'Brak wpisu nie potwierdza dostępności.')
+        st.markdown(
+            '<div class="bb81-section-label"><span>ROTATION INTELLIGENCE</span>'
+            '<small>historical minutes, not confirmed lineup</small>'
+            '</div>',unsafe_allow_html=True)
+        summary_cols=st.columns(2,gap="small")
+        for index,code in enumerate((away,home)):
+            with summary_cols[index]:
+                st.caption(TEAM_NAMES.get(code,code))
+                selected=(teams[teams["Drużyna"]==code]
+                          if not teams.empty and "Drużyna" in teams else pd.DataFrame())
+                if selected.empty:
+                    st.info("Brak wiarygodnych danych o rotacji.")
+                    continue
+                snap=selected.iloc[0]
+                a,b=st.columns(2)
+                a.metric(
+                    "Zawodnicy z prognozą minut",
+                    int(snap["Zawodnicy z projekcją minut"]))
+                exposure=snap["Minuty modelu: Out/Doubtful"]
+                b.metric(
+                    "Minuty zawodników Out/Doubtful",
+                    f"{float(exposure):.1f}" if pd.notna(exposure)
+                    else "—")
+                note=(
+                    "Źródło statusów może być nieaktualne."
+                    if not snap["Dane statusu aktualne"] else
+                    "Zmienność minut nie jest prognozą absencji.")
+                st.caption(note)
+        with st.expander("Pełna tabela minut i obserwowanych zmian",expanded=False):
+            if details.empty:
+                st.info("Brak danych do szczegółowego raportu rotacji.")
+            else:
+                choice=st.selectbox(
+                    "Filtr zawodników",
+                    ["Wszyscy","Zgłoszone problemy",
+                     "Wyraźna zmiana minut"],
+                    key=f"bb716_rotation_filter_{g['game_id']}")
+                filtered=details.copy()
+                if choice=="Zgłoszone problemy":
+                    filtered=filtered[filtered["Ocena statusu"].isin(
+                        ["Out","Doubtful","Questionable",
+                         "Day-to-day","Probable","Sprzeczne wpisy"])]
+                elif choice=="Wyraźna zmiana minut":
+                    filtered=filtered[
+                        pd.to_numeric(filtered["Zmiana 3 vs 7"],
+                                      errors="coerce").abs()>=4]
+                if filtered.empty:
+                    st.info("Brak zawodników spełniających filtr.")
                 else:
-                    doubt=snap['Minuty modelu: Questionable/DTD']
-                    st.caption(f"Minuty zawodników Questionable/Day-to-day "
-                               f"w historycznej projekcji: {doubt:.1f}. "
-                               'To NIE są minuty na pewno stracone.')
-        if details.empty:
-            st.info('Nie udało się połączyć historii minut z raportem obu drużyn.')
-        else:
-            filter_status=st.selectbox(
-                'Pokaż zawodników',
-                ['Wszyscy','Zgłoszone problemy','Wyraźna zmiana minut'],
-                key=f"bb716_rotation_filter_{g['game_id']}")
-            visible=details.copy()
-            if filter_status=='Zgłoszone problemy':
-                visible=visible[visible['Ocena statusu'].isin(
-                    ['Out','Doubtful','Questionable','Day-to-day','Probable','Sprzeczne wpisy'])]
-            elif filter_status=='Wyraźna zmiana minut':
-                visible=visible[pd.to_numeric(
-                    visible['Zmiana 3 vs 7'],errors='coerce').abs()>=4]
-            if visible.empty:
-                st.info('Brak zawodników spełniających filtr w dostępnej próbce.')
-            else:
-                st.dataframe(visible,hide_index=True,use_container_width=True,
-                             height=min(620,60+len(visible)*36))
-                st.caption('Zmiana minut = średnia z ostatnich 3 minus średnia z '
-                           'maksymalnie 7 wcześniejszych występów. Przy mniej niż '
-                           '5 występach nie oceniamy trendu.')
-        for note in alerts:
-            st.caption('⚠️ '+note)
-        st.info('**Model bez zmian:** raport rotacji nie koryguje wyniku ani szans '
-                'zwycięstwa. Potrzebna jest niezależna walidacja na historycznych '
-                'statusach zapisanych przed meczami.')
+                    st.dataframe(filtered,hide_index=True,
+                                 use_container_width=True)
+            for note in alerts:
+                st.caption("⚠ "+str(note))
+            st.caption(
+                "Historyczne minuty z ostatnich 3/7 występów, "
+                "niepotwierdzona rotacja. Dane o kontuzjach nadal "
+                "NIE zmieniają wyników modelu drużyn.")
         return
+
     if view == '👥 Zawodnicy':
-        st.markdown('#### Forma i przewidywane minuty kluczowych zawodników')
-        brief=player_minutes_brief(player_table,home,away,report)
-        if brief.empty:
-            st.info('Nie udało się potwierdzić wystarczającej historii minut zawodników.')
-        else:
-            st.dataframe(brief,hide_index=True,use_container_width=True)
-            st.caption('Minuty to prognoza na podstawie ostatnich występów, '
-                       'nie potwierdzona rotacja ani pierwsza piątka.')
-            at_risk=brief[brief['Status kontuzji'].str.contains(
-                r'out|doubtful|questionable|inactive|suspended',
-                case=False,regex=True,na=False)]
-            if not at_risk.empty:
-                names=', '.join(at_risk['Zawodnik'].astype(str).head(5))
-                st.warning('Uwaga na status zawodników: '+names+
-                           '. Minuty i statystyki są szacunkami historycznymi; '
-                           'symulacja drużyn NIE koryguje aktualnie wyniku '
-                           'o absencje. Sprawdź oficjalny raport przed meczem.')
-        st.markdown('#### Zawodnicy w składach i dostępne prognozy')
-        st.caption('Katalog ESPN pokazuje zawodników przypisanych do drużyny, NIE oficjalną listę '
-                   'aktywnych na ten mecz. Brak historii występów oznacza puste wartości statystyk.')
-        player_df = player_table if isinstance(player_table, pd.DataFrame) else pd.DataFrame()
-        tables = roster_tables or {}
-        diagnostics = roster_diagnostics or {}
-        notices = roster_notices or {}
-        for code in (away,home):
-            st.markdown(f'**{TEAM_NAMES.get(code,code)}**')
+        from simulation_premium import player_previews_html
+        st.markdown(
+            '<div class="bb81-section-label"><span>PLAYER PROJECTIONS</span>'
+            '<small>last completed games · not confirmed starters</small>'
+            '</div>',unsafe_allow_html=True)
+        player_df=(player_table if isinstance(player_table,pd.DataFrame)
+                   else pd.DataFrame())
+        tables=roster_tables or {}
+        diagnostics=roster_diagnostics or {}
+        notices=roster_notices or {}
+        team_cols=st.columns(2,gap="small")
+        for slot,code in enumerate((away,home)):
             df=tables.get(code)
-            details=diagnostics.get(code,{})
             if df is None:
-                df=player_df[player_df['Drużyna']==code] if not player_df.empty else pd.DataFrame()
-            if details.get('roster_available'):
-                st.caption(f"Skład ESPN: {details['roster_count']} zawodników · "
-                           f"z prognozą: {details['projected']} · "
-                           f"bez dostatecznej historii: {details['missing']}.")
-                if details.get('not_on_roster'):
-                    st.caption('Pominięto prognozy dla zawodników spoza bieżącego katalogu ESPN: '+
-                               str(details['not_on_roster'])+'.')
-            if notices.get(code):
-                st.warning(str(notices[code]))
-            if df.empty:
-                st.info('Nie udało się uzyskać zawodników lub wystarczających logów tej drużyny.')
-            else:
-                st.dataframe(df,hide_index=True,use_container_width=True,
-                             height=min(500,52+len(df)*36))
-        if player_meta and player_meta.get('warning'):
-            st.caption(str(player_meta['warning']))
-        st.caption('PTS = punkty • REB = zbiórki • AST = asysty • 3PM = celne trójki. '
-                   'Prognozy powstały z dostępnych logów i uproszczonego modelu, '
-                   'nie są potwierdzonymi statystykami następnego meczu. '
-                   'Status składu nie potwierdza udziału w spotkaniu.')
+                df=(player_df[player_df["Drużyna"]==code]
+                    if not player_df.empty and "Drużyna" in player_df
+                    else pd.DataFrame())
+            with team_cols[slot]:
+                st.markdown(
+                    player_previews_html(code,TEAM_NAMES.get(code,code),df),
+                    unsafe_allow_html=True)
+                if notices.get(code):
+                    st.caption("⚠ "+str(notices[code])[:160])
+        brief=player_minutes_brief(player_table,home,away,report)
+        if not brief.empty:
+            at_risk=brief[
+                brief["Status kontuzji"].str.contains(
+                    r"out|doubtful|questionable|inactive|suspended",
+                    case=False,regex=True,na=False)]
+            if not at_risk.empty:
+                st.warning(
+                    "Przy niepotwierdzonych statusach zawodników "
+                    "prognozy punktów nie uwzględniają absencji: "+
+                    ", ".join(at_risk["Zawodnik"].astype(str).head(5)))
+        with st.expander("Całe składy, próbki i szczegółowe minuty",expanded=False):
+            for code in (away,home):
+                st.markdown("**"+TEAM_NAMES.get(code,code)+"**")
+                df=tables.get(code)
+                if df is None:
+                    df=(player_df[player_df["Drużyna"]==code]
+                        if not player_df.empty and "Drużyna" in player_df
+                        else pd.DataFrame())
+                stats=diagnostics.get(code,{})
+                if stats.get("roster_available"):
+                    st.caption(
+                        f'ESPN roster {stats.get("roster_count",0)} · '
+                        f'with projections {stats.get("projected",0)} · '
+                        f'insufficient history {stats.get("missing",0)}.')
+                if df is not None and not df.empty:
+                    st.dataframe(df,hide_index=True,use_container_width=True)
+                else:
+                    st.caption("No verified roster data.")
+            if not brief.empty:
+                st.markdown("**Last observed playing minutes**")
+                st.dataframe(brief,hide_index=True,use_container_width=True)
+            if player_meta:
+                st.caption(
+                    str(player_meta.get("source","ESPN"))+" · "+
+                    str(player_meta.get("coverage",""))+" · "+
+                    str(player_meta.get("warning","")))
+        st.caption("PTS, REB, AST, 3PM and minutes are estimates based on "
+                   "available observed appearances, not confirmed game-day figures.")
         return
 
     # The detailed score distribution and odds comparison are computed ONLY
@@ -793,43 +752,72 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
         else:
             st.warning('Porównanie modeli niedostępne z aktualną próbą; '
                        'nie zakładamy, że warianty są zgodne.')
-    done={str(s['game_id']):s for s in summary}
+    done={str(s["game_id"]):s for s in summary}
     b1,b2,b3=st.columns(3)
-    b1.metric('Mecze w terminarzu',len(games),help='Zaplanowane spotkania w wybranym okresie')
-    b2.metric('Symulacje',f'{len(done)} × 5 000',help='5000 losowań na dostępny mecz')
-    b3.metric('Brak danych',len(missing))
-    st.markdown('#### Game projections')
-    st.caption('Orange: goście · green: gospodarze. Wyniki są prognozami, nie wynikami rzeczywistymi.')
-    for i,(_,g) in enumerate(games.iterrows()):
-        sid=str(g['game_id']);sim=done.get(sid)
-        if sim:
-            game_card(sim,g,hist)
-            cbtn, _ = st.columns([3, 1])
-            with cbtn:
-                if st.button('📊 Szczegóły meczu i statystyki zawodników',
-                             key=f'open_sim_{sid}', use_container_width=True, type='primary'):
-                    players=pd.DataFrame()
-                    player_meta={}
-                    with st.spinner('Pobieram ostatnie mecze wyłącznie tych dwóch drużyn…'):
+    b1.metric("Zaplanowane mecze",len(games))
+    b2.metric("Przeprowadzone symulacje",f"{len(done)} × 5 000")
+    b3.metric("Brak danych",len(missing))
+    st.markdown(
+        '<div class="bb81-section-label"><span>🏀 GAME PROJECTIONS</span>'
+        '<small>orange = away · green = home · simulated, not live</small>'
+        '</div>',unsafe_allow_html=True)
+    games_list=games.to_dict("records")
+    unavailable=[]
+    for index in range(0,len(games_list),2):
+        cols=st.columns(2,gap="medium")
+        for col,game in zip(cols,games_list[index:index+2]):
+            sid=str(game["game_id"])
+            sim=done.get(sid)
+            with col:
+                if sim:
+                    game_card(sim,game,hist)
+                    if st.button(
+                        "📊 MATCHUP INTELLIGENCE · VIEW DETAILS",
+                        key=f"open_sim_{sid}",
+                        use_container_width=True,
+                        type="primary"):
+                        players=pd.DataFrame()
+                        player_meta={}
+                        with st.spinner(
+                            "Pobieram rzeczywiste występy i raport zawodników…"):
+                            try:
+                                players,player_meta=matchup_players_cached(
+                                    season,game,hist,advanced,nonce,
+                                    research_mode)
+                            except Exception as exc:
+                                player_meta={
+                                    "source":"ESPN",
+                                    "warning":"Błąd pobierania: "+str(exc)[:180]}
+                        tables,diagnostics,notices=matchup_roster_tables(
+                            game,players,nonce)
+                        injury_rows=pd.DataFrame()
+                        injury_meta={}
                         try:
-                            players,player_meta=matchup_players_cached(season,g.to_dict(),hist,advanced,nonce,
-                                                                      research_mode)
-                        except Exception as exc:
-                            player_meta={'source':'ESPN','warning':'Błąd pobierania: '+str(exc)[:180]}
-                    tables,diagnostics,notices=matchup_roster_tables(
-                        g.to_dict(),players,nonce)
-                    injury_rows=pd.DataFrame()
-                    injury_meta={}
-                    try:
-                        injury_rows,injury_meta=load_injuries(nonce)
-                    except Exception:
-                        injury_meta={'stale':True}
-                    show_game_details(sim,g.to_dict(),players,advanced,hist,player_meta,
-                                      tables,diagnostics,notices,research_mode,
-                                      injury_rows,injury_meta)
-        else:
-            a=TEAM_NAMES.get(g['away'],g['away']);h=TEAM_NAMES.get(g['home'],g['home'])
-            start=g['start_utc'].tz_convert(local_timezone()).strftime('%d.%m %H:%M')
-            st.warning(f'{a} @ {h} · {start} — brak danych do symulacji; meczu nie pominięto w terminarzu.')
-    if missing:
-        st.caption('Nie wszystkie mecze mogą otrzymać prognozę. Potrzebne są prawdziwe statystyki drużyn, a nie sztuczne domyślne wartości.')
+                            injury_rows,injury_meta=load_injuries(nonce)
+                        except Exception:
+                            injury_meta={"stale":True}
+                        show_game_details(
+                            sim,game,players,advanced,hist,player_meta,
+                            tables,diagnostics,notices,research_mode,
+                            injury_rows,injury_meta)
+                else:
+                    a=TEAM_NAMES.get(game["away"],game["away"])
+                    h=TEAM_NAMES.get(game["home"],game["home"])
+                    date=pd.to_datetime(
+                        game["start_utc"],utc=True).tz_convert(
+                            local_timezone()).strftime("%d.%m · %H:%M")
+                    unavailable.append(f"{a} @ {h} · {date}")
+                    st.markdown(
+                        '<div class="bb81-game-tile">'
+                        '<div class="bb81-game-top">NBA MATCHUP · '+
+                        esc(date)+'</div>'
+                        '<div class="bb81-player-empty" style="margin-top:16px">'
+                        '<strong>'+esc(a)+' @ '+esc(h)+'</strong>'
+                        '<p>Brak kompletnych rzeczywistych danych '
+                        'do symulacji tego spotkania.</p></div></div>',
+                        unsafe_allow_html=True)
+    if unavailable:
+        with st.expander("Mecze bez symulacji · brak danych",expanded=False):
+            for item in unavailable:
+                st.caption(item)
+            st.caption("Nie wypełniamy brakujących danych sztucznymi prognozami.")
