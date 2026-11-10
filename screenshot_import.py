@@ -70,7 +70,10 @@ def market_from_header(words, default="PTS"):
         return "REB"
     if "asyst" in header or "assist" in header:
         return "AST"
-    if "trojk" in header or "3-point" in header or "three point" in header:
+    if any(x in header for x in (
+            "trojk","3-point","three point","3pt","3pm",
+            "celnych rzutow za 3","rzutow za trzy",
+            "3-punktowe","3 punkty","three pointers","triple made")):
         return "FG3M"
     return default if default in STAT_NAMES else "PTS"
 
@@ -125,7 +128,14 @@ def parse_ocr_tokens(raw, image_width, default_market="PTS"):
                 [t for t in near if t["x"]>hi-(hi-lo)*.2],
                 key=lambda t:(abs(t["y"]-anchor["y"]),-t["conf"]))
             odds=next((o for x in price_candidates if (o:=parse_price(x["text"])) is not None),None)
-            extracted.append({"name":name,"market":market,"line":line,
+            # Different props on the same screenshot are common. Prefer
+            # market words on this VERY row over the general page header.
+            # An unrecognized market inherits user-selected default and
+            # still requires explicit review in the editing table.
+            row_market=market_from_header(
+                [t["text"] for t in sorted(near,key=lambda t:t["x"])],
+                default=market)
+            extracted.append({"name":name,"market":row_market,"line":line,
                               "side":side_word(anchor["text"]),"price":odds})
     combined={}
     for r in extracted:
