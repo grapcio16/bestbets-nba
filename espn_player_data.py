@@ -136,33 +136,118 @@ def recent_espn_logs(season,max_games=18):
         'coverage':f'{complete}/{len(unique)} niedawnych spotkań; {df["PLAYER_NAME"].nunique()} graczy',
         'warning':'ESPN nie jest NBA Stats; wyniki nie obejmują całego sezonu. Prognozy wymagają ostrożności.'}
 
-def parse_gamelog(payload,player_id,name,team):
-    labels=[str(x).upper() for x in payload.get('labels',[])]
-    stat_labels=[x for x in labels if x not in ('DATE','OPP','RESULT')]
-    events=payload.get('events') or []
-    if isinstance(events,dict):events=list(events.values())
-    rows=[]
-    for event in events:
-        if not isinstance(event,dict):continue
-        vals=event.get('stats') or []
-        if not stat_labels or len(vals)!=len(stat_labels):continue
-        d=event.get('date') or event.get('gameDate')
-        info=dict(zip(stat_labels,vals))
-        mins=minutes(info.get('MIN'))
-        if not d or mins is None or mins<=0:continue
-        raw_opponent=event.get('opponent') or {}
-        opp=raw_opponent.get('abbreviation','') if isinstance(raw_opponent,dict) else ''
-        _,fga=made_attempt(info.get('FG'))
-        three,three_att=made_attempt(info.get('3PT',info.get('3PM')))
-        row={'PLAYER_NAME':name,'PLAYER_ID':str(player_id),
-             'TEAM_ABBREVIATION':team,'GAME_DATE':d,
-             'GAME_ID':str(event.get('id') or event.get('eventId') or ''),
-             'MATCHUP':f'{team} vs. {opp}' if opp else team,
-             'MIN':mins,'PTS':num(info.get('PTS')),'REB':num(info.get('REB')),
-             'AST':num(info.get('AST')),'FG3M':three,'FG3A':three_att,'FGA':fga}
-        if all(row[k] is not None for k in ('PTS','REB','AST','FG3M')):rows.append(row)
-    if not rows:raise ValueError('ESPN nie zwrócił rozpoznawalnych występów zawodnika.')
-    return pd.DataFrame(rows).drop_duplicates(subset=['GAME_ID','PLAYER_ID'])
+def parse_gamelog(payload,player_id,name,team,return_meta=False):
+    """Decode ESPN athlete gamelog nested seasonTypes/category/game stats.
+
+    API top-level events are a metadata map, while numeric stats live under
+    seasonTypes[].categories[].events[]. Legacy event.stats remains supported.
+    No assumed zeroes for DNP or fake games.
+    """
+    if not isinstance(payload,dict):
+        raise ValueError("Nieprawidłowa odpowiedź ESPN o historii zawodnika.")
+    def names(items):
+        if not isinstance(items,list):return []
+        return [str(x).upper().strip() for x in items]
+    base_labels=names(payload.get("labels") or [])
+    event_meta=payload.get("events") or {}
+    if isinstance(event_meta,dict):
+        lookup={str(k):v for k,v in event_meta.items() if isinstance(v,dict)}
+    elif isinstance(event_meta,list):
+        lookup={str(v.get("id") or v.get("eventId") or ""):v
+                for v in event_meta if isinstance(v,dict)}
+    else:
+        lookup={}
+    entries=[]
+    seasons=payload.get("seasonTypes") or []
+    if isinstance(seasons,dict):seasons=list(seasons.values())
+    for season in seasons:
+        if not isinstance(season,dict):continue
+        typ=str(season.get("id") or season.get("type") or "").lower()
+        label=str(season.get("displayName") or season.get("name") or "").lower()
+        if typ in ("1","3","4") or any(
+                x in label for x in ("preseason","postseason","playoff","summer")):
+            continue
+        categories=season.get("categories") or []
+        if isinstance(categories,dict):categories=list(categories.values())
+        for category in categories:
+            if not isinstance(category,dict):continue
+            labels=names(category.get("labels") or base_labels)
+            stat_events=category.get("events") or []
+            if isinstance(stat_events,dict):stat_events=list(stat_events.values())
+            for match in stat_events:
+                if isinstance(match,dict):
+                    entries.append((match,labels))
+    if not entries:
+        entries=[(v,base_labels) for v in lookup.values()
+                 if isinstance(v.get("stats"),(dict,list))]
+    rows=[];seen=set();unknown_teams=0;rejected=0
+    for event,labels in entries:
+        event_id=str(event.get("eventId") or event.get("id") or
+                     event.get("gameId") or "")
+        info=lookup.get(event_id,{})
+        stats=event.get("stats") or event.get("statistics") or []
+        if isinstance(stats,dict):
+            data={str(k).upper():v for k,v in stats.items()}
+        else:
+            if not labels or len(stats)!=len(labels):
+                rejected+=1;continue
+            data=dict(zip(labels,stats))
+        date=info.get("date") or info.get("gameDate") or event.get("date") or event.get("gameDate")
+        mins=minutes(data.get("MIN") or data.get("MINUTES"))
+        if not date or mins is None or mins<=0:
+            rejected+=1;continue
+        three,three_att=made_attempt(
+            data.get("3PT",data.get("3PM",data.get("FG3M"))))
+        _,fga=made_attempt(data.get("FG"))
+        values={"PTS":num(data.get("PTS")),"REB":num(data.get("REB")),
+                "AST":num(data.get("AST")),"FG3M":three}
+        if any(v is None or v<0 for v in values.values()):
+            rejected+=1;continue
+        opponent=info.get("opponent") or event.get("opponent") or {}
+        if isinstance(opponent,dict):
+            opp=str(opponent.get("abbreviation") or "").upper()
+            if not opp and isinstance(opponent.get("team"),dict):
+                opp=str(opponent["team"].get("abbreviation") or "").upper()
+        else:
+            opp=str(opponent or "").upper()
+        actual=info.get("team") or event.get("team") or {}
+        actual_code=(str(actual.get("abbreviation") or "")
+                     if isinstance(actual,dict) else str(actual or "")).upper()
+        if not actual_code:unknown_teams+=1
+        actual_code=ALIASES.get(actual_code,actual_code) or team
+        opp=ALIASES.get(opp,opp)
+        if not event_id:
+            rejected+=1;continue
+        key=(event_id,str(player_id))
+        if key in seen:continue
+        seen.add(key)
+        status=str(info.get("atVs") or event.get("atVs") or "vs.")
+        home="@" not in status
+        rows.append({
+            "PLAYER_NAME":name,"PLAYER_ID":str(player_id),
+            "TEAM_ABBREVIATION":actual_code,
+            "GAME_DATE":date,"GAME_ID":event_id,
+            "MATCHUP":f"{actual_code} {'vs.' if home else '@'} {opp}" if opp else actual_code,
+            "OPPONENT":opp,"MIN":mins,**values,
+            "FG3A":three_att,"FGA":fga,
+        })
+    if not rows:
+        raise ValueError(
+            "ESPN nie udostępnił poprawnych zakończonych występów. "
+            "Nie zastępujemy ich pojedynczą próbką.")
+    df=pd.DataFrame(rows).drop_duplicates(subset=["GAME_ID","PLAYER_ID"])
+    df["GAME_DATE"]=pd.to_datetime(df["GAME_DATE"],utc=True,errors="coerce")
+    df=df.dropna(subset=["GAME_DATE"]).sort_values("GAME_DATE")
+    if df.empty:
+        raise ValueError("ESPN nie dostarczył poprawnych dat występów.")
+    report={
+        "parsed_games":len(df),"stat_rows":len(entries),
+        "unparsed_events":rejected,"assumed_team_rows":unknown_teams,
+        "source_format":"nested-seasonTypes" if seasons else "flat-legacy",
+        "partial":bool(rejected>0 or unknown_teams>0),
+    }
+    return (df,report) if return_meta else df
+
 
 def detailed_espn_gamelog(player_id,name,team,season):
     from sources import memoized_json
@@ -172,8 +257,10 @@ def detailed_espn_gamelog(player_id,name,team,season):
         ESPN_GAMELOG.format(athlete_id=player_id),
         params={'season':season_end,'seasontype':2},
         ttl_seconds=6*3600,request_timeout=7)
-    df=parse_gamelog(payload,player_id,name,team)
-    meta['source']='ESPN — historia wybranego zawodnika'
+    df,report=parse_gamelog(payload,player_id,name,team,return_meta=True)
+    meta=dict(meta) if isinstance(meta,dict) else {}
+    meta.update(report)
+    meta['source']='ESPN — sezonowy gamelog z rzeczywistymi box score'
     return df,meta
 
 
