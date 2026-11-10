@@ -8,7 +8,7 @@ import pandas as pd
 from simulation_premium import (
     game_tile_html, matchup_hero_html, matchup_metrics_html,
     compact_team_context_html, injury_preview_html,
-    player_previews_html,
+    player_previews_html, injury_status_cards_html,
 )
 from mvp_theme import MVP_CSS
 
@@ -78,6 +78,23 @@ class PremiumSimulationTests(unittest.TestCase):
         found=injury_preview_html(report,{"stale":True})
         self.assertIn("2 entries",found)
         self.assertIn("stale",found)
+
+    def test_injury_statuses_are_separated_for_both_teams(self):
+        items=pd.DataFrame([
+            {"Drużyna":"NYK","Zawodnik":"Player A",
+             "Status ESPN":"Questionable","Informacja":"Ankle"},
+            {"Drużyna":"MIL","Zawodnik":"Player B",
+             "Status ESPN":"Out","Informacja":"Knee"},
+        ])
+        html=injury_status_cards_html(items,"MIL","NYK",NAMES)
+        self.assertIn("Player A",html)
+        self.assertIn("Player B",html)
+        self.assertIn("bb81-injury-badge out",html)
+        self.assertIn("bb81-injury-badge question",html)
+        self.assertIn("New York Knicks",html)
+        self.assertIn("Milwaukee Bucks",html)
+        self.assertIn("not confirmed",injury_status_cards_html(
+            pd.DataFrame(),"MIL","NYK",NAMES))
 
     def test_player_projection_cards_are_not_sampled_or_invented(self):
         table=pd.DataFrame([
