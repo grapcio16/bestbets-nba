@@ -738,43 +738,72 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
         else:
             st.warning('Porównanie modeli niedostępne z aktualną próbą; '
                        'nie zakładamy, że warianty są zgodne.')
-    done={str(s['game_id']):s for s in summary}
+    done={str(s["game_id"]):s for s in summary}
     b1,b2,b3=st.columns(3)
-    b1.metric('Mecze w terminarzu',len(games),help='Zaplanowane spotkania w wybranym okresie')
-    b2.metric('Symulacje',f'{len(done)} × 5 000',help='5000 losowań na dostępny mecz')
-    b3.metric('Brak danych',len(missing))
-    st.markdown('#### Game projections')
-    st.caption('Orange: goście · green: gospodarze. Wyniki są prognozami, nie wynikami rzeczywistymi.')
-    for i,(_,g) in enumerate(games.iterrows()):
-        sid=str(g['game_id']);sim=done.get(sid)
-        if sim:
-            game_card(sim,g,hist)
-            cbtn, _ = st.columns([3, 1])
-            with cbtn:
-                if st.button('📊 Szczegóły meczu i statystyki zawodników',
-                             key=f'open_sim_{sid}', use_container_width=True, type='primary'):
-                    players=pd.DataFrame()
-                    player_meta={}
-                    with st.spinner('Pobieram ostatnie mecze wyłącznie tych dwóch drużyn…'):
+    b1.metric("Zaplanowane mecze",len(games))
+    b2.metric("Przeprowadzone symulacje",f"{len(done)} × 5 000")
+    b3.metric("Brak danych",len(missing))
+    st.markdown(
+        '<div class="bb81-section-label"><span>🏀 GAME PROJECTIONS</span>'
+        '<small>orange = away · green = home · simulated, not live</small>'
+        '</div>',unsafe_allow_html=True)
+    games_list=games.to_dict("records")
+    unavailable=[]
+    for index in range(0,len(games_list),2):
+        cols=st.columns(2,gap="medium")
+        for col,game in zip(cols,games_list[index:index+2]):
+            sid=str(game["game_id"])
+            sim=done.get(sid)
+            with col:
+                if sim:
+                    game_card(sim,game,hist)
+                    if st.button(
+                        "📊 MATCHUP INTELLIGENCE · VIEW DETAILS",
+                        key=f"open_sim_{sid}",
+                        use_container_width=True,
+                        type="primary"):
+                        players=pd.DataFrame()
+                        player_meta={}
+                        with st.spinner(
+                            "Pobieram rzeczywiste występy i raport zawodników…"):
+                            try:
+                                players,player_meta=matchup_players_cached(
+                                    season,game,hist,advanced,nonce,
+                                    research_mode)
+                            except Exception as exc:
+                                player_meta={
+                                    "source":"ESPN",
+                                    "warning":"Błąd pobierania: "+str(exc)[:180]}
+                        tables,diagnostics,notices=matchup_roster_tables(
+                            game,players,nonce)
+                        injury_rows=pd.DataFrame()
+                        injury_meta={}
                         try:
-                            players,player_meta=matchup_players_cached(season,g.to_dict(),hist,advanced,nonce,
-                                                                      research_mode)
-                        except Exception as exc:
-                            player_meta={'source':'ESPN','warning':'Błąd pobierania: '+str(exc)[:180]}
-                    tables,diagnostics,notices=matchup_roster_tables(
-                        g.to_dict(),players,nonce)
-                    injury_rows=pd.DataFrame()
-                    injury_meta={}
-                    try:
-                        injury_rows,injury_meta=load_injuries(nonce)
-                    except Exception:
-                        injury_meta={'stale':True}
-                    show_game_details(sim,g.to_dict(),players,advanced,hist,player_meta,
-                                      tables,diagnostics,notices,research_mode,
-                                      injury_rows,injury_meta)
-        else:
-            a=TEAM_NAMES.get(g['away'],g['away']);h=TEAM_NAMES.get(g['home'],g['home'])
-            start=g['start_utc'].tz_convert(local_timezone()).strftime('%d.%m %H:%M')
-            st.warning(f'{a} @ {h} · {start} — brak danych do symulacji; meczu nie pominięto w terminarzu.')
-    if missing:
-        st.caption('Nie wszystkie mecze mogą otrzymać prognozę. Potrzebne są prawdziwe statystyki drużyn, a nie sztuczne domyślne wartości.')
+                            injury_rows,injury_meta=load_injuries(nonce)
+                        except Exception:
+                            injury_meta={"stale":True}
+                        show_game_details(
+                            sim,game,players,advanced,hist,player_meta,
+                            tables,diagnostics,notices,research_mode,
+                            injury_rows,injury_meta)
+                else:
+                    a=TEAM_NAMES.get(game["away"],game["away"])
+                    h=TEAM_NAMES.get(game["home"],game["home"])
+                    date=pd.to_datetime(
+                        game["start_utc"],utc=True).tz_convert(
+                            local_timezone()).strftime("%d.%m · %H:%M")
+                    unavailable.append(f"{a} @ {h} · {date}")
+                    st.markdown(
+                        '<div class="bb81-game-tile">'
+                        '<div class="bb81-game-top">NBA MATCHUP · '+
+                        esc(date)+'</div>'
+                        '<div class="bb81-player-empty" style="margin-top:16px">'
+                        '<strong>'+esc(a)+' @ '+esc(h)+'</strong>'
+                        '<p>Brak kompletnych rzeczywistych danych '
+                        'do symulacji tego spotkania.</p></div></div>',
+                        unsafe_allow_html=True)
+    if unavailable:
+        with st.expander("Mecze bez symulacji · brak danych",expanded=False):
+            for item in unavailable:
+                st.caption(item)
+            st.caption("Nie wypełniamy brakujących danych sztucznymi prognozami.")
