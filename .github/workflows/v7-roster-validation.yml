@@ -37,7 +37,7 @@ jobs:
           main=Path('app.py').read_text(encoding='utf-8')
           assert 'apply_premium_theme()' in main
           assert 'render_natural_prop_search(' in main
-          assert 'NBA / v7.23' in main
+          assert 'NBA INTELLIGENCE · v7.23' in main
           from prop_search import parse_prop_batch
           examples=('Jason Tatum uver 25,5 point\n'
                     'Jayson Tatum under 3,5 asist\n'
