@@ -3,6 +3,7 @@
 These tests never call the network or imply statistical calibration.
 """
 import unittest
+from pathlib import Path
 import pandas as pd
 
 from simulation_premium import (
@@ -121,6 +122,28 @@ class PremiumSimulationTests(unittest.TestCase):
         card=game_tile_html(SIM,GAME,malicious,"","","> bad <")
         self.assertNotIn("<script>",card)
         self.assertIn("&lt;script&gt;",card)
+
+    def test_details_default_view_loads_without_roster_fetch(self):
+        from pathlib import Path
+        source=Path("simulation_view.py").read_text(encoding="utf8")
+        start=source.index("def show_game_details(")
+        section=source[start:source.index("def render_simulations(",start)]
+        self.assertIn('["🏟️ Przegląd","👥 Zawodnicy"',section)
+        overview=section.index('if view=="🏟️ Przegląd":')
+        fetch=section.index('matchup_players_cached(',overview)
+        self.assertLess(overview,fetch)
+        self.assertIn('if view in ("👥 Zawodnicy","🩺 Rotacja i absencje")',section)
+        self.assertIn("season=None, nonce=0",section)
+
+    def test_technical_panels_appear_after_projected_cards(self):
+        source=Path("simulation_view.py").read_text(encoding="utf8")
+        body=source[source.index("def render_simulations("):]
+        first=body.index("done={str(s[\"game_id\"]):s for s in summary}")
+        second=body.index("with st.expander('Źródła danych i kompletność'")
+        self.assertLess(first,second)
+        self.assertIn("season=season,nonce=nonce",body)
+        handler=body[body.index("📊 MATCHUP INTELLIGENCE · VIEW DETAILS"):]
+        self.assertNotIn("players,player_meta=matchup_players_cached(",handler)
 
     def test_compact_responsive_global_visuals(self):
         for selector in (
