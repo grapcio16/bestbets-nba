@@ -106,7 +106,7 @@ def matchup_metrics_html(sim):
         ("80% RANGE",_numeric(sim.get("total_p10"),0)+"–"+
          _numeric(sim.get("total_p90"),0),
          "simulated totals, P10–P90"),
-        ("5,000", "RUNS", "per game"),
+        ("MONTE CARLO", "5,000", "runs per game"),
     ]
     return ('<div class="bb81-matchup-kpis">'
             +''.join(
