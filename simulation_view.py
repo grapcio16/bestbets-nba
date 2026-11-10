@@ -183,7 +183,8 @@ def game_card(sim,g,hist):
 @st.dialog('🏀 Matchup Intelligence', width='large')
 def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
                       roster_tables=None, roster_diagnostics=None, roster_notices=None,
-                      research_mode=False, injury_table=None, injury_meta=None):
+                      research_mode=False, injury_table=None, injury_meta=None,
+                      season=None, nonce=0):
     """Compact hero and paged real-data details; inactive views are not fetched."""
     from simulation_premium_ui import (
         detail_hero_html,render_matchup_overview,
@@ -219,6 +220,19 @@ def show_game_details(sim, g, player_table, advanced, hist, player_meta=None,
     if view=='🔬 Dane modelu':
         render_model_audit(sim,g,hist,advanced)
         return
+    if view in ('👥 Zawodnicy','🩺 Rotacja i absencje') and season:
+        # Player logs and roster are slower than 5000 team-score draws.
+        # Fetch ONLY after opening Players/Rotation, not on Overview click.
+        with st.spinner('Ładuję składy i rozegrane mecze tych dwóch drużyn…'):
+            try:
+                player_table,player_meta=matchup_players_cached(
+                    season,g,hist,advanced,nonce,research_mode)
+            except Exception as exc:
+                player_table=pd.DataFrame()
+                player_meta={'source':'ESPN',
+                             'warning':'Brak historii zawodników: '+str(exc)[:140]}
+            roster_tables,roster_diagnostics,roster_notices=matchup_roster_tables(
+                g,player_table,nonce)
     if view == '🩺 Rotacja i absencje':
         render_injuries(injury_table,injury_meta,away,home)
         st.markdown('#### Rotation & minutes')
@@ -640,25 +654,21 @@ def render_simulations(season,nonce,load_schedule,load_dataset,load_logs,load_in
             with detail_col:
                 if st.button('📊 Matchup details',
                              key=f'open_sim_{sid}', use_container_width=True, type='primary'):
-                    players=pd.DataFrame()
-                    player_meta={}
-                    with st.spinner('Pobieram ostatnie mecze wyłącznie tych dwóch drużyn…'):
-                        try:
-                            players,player_meta=matchup_players_cached(season,g.to_dict(),hist,advanced,nonce,
-                                                                      research_mode)
-                        except Exception as exc:
-                            player_meta={'source':'ESPN','warning':'Błąd pobierania: '+str(exc)[:180]}
-                    tables,diagnostics,notices=matchup_roster_tables(
-                        g.to_dict(),players,nonce)
+                    # Overview opens immediately. Game-level player logs and
+                    # rotation are loaded lazily when a detail tab is selected.
                     injury_rows=pd.DataFrame()
                     injury_meta={}
                     try:
                         injury_rows,injury_meta=load_injuries(nonce)
                     except Exception:
                         injury_meta={'stale':True}
-                    show_game_details(sim,g.to_dict(),players,advanced,hist,player_meta,
-                                      tables,diagnostics,notices,research_mode,
-                                      injury_rows,injury_meta)
+                    show_game_details(
+                        sim,g.to_dict(),pd.DataFrame(),advanced,hist,
+                        player_meta={},roster_tables=None,
+                        roster_diagnostics=None,roster_notices=None,
+                        research_mode=research_mode,
+                        injury_table=injury_rows,injury_meta=injury_meta,
+                        season=season,nonce=nonce)
         else:
             a=TEAM_NAMES.get(g['away'],g['away']);h=TEAM_NAMES.get(g['home'],g['home'])
             start=g['start_utc'].tz_convert(local_timezone()).strftime('%d.%m %H:%M')
