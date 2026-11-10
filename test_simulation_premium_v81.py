@@ -142,7 +142,7 @@ class PremiumSimulationTests(unittest.TestCase):
         second=body.index("with st.expander('Źródła danych i kompletność'")
         self.assertLess(first,second)
         self.assertIn("season=season,nonce=nonce",body)
-        handler=body[body.index("if st.button(\n                         \"📊 MATCHUP INTELLIGENCE"):]
+        handler=body[body.index("📊 MATCHUP INTELLIGENCE · VIEW DETAILS"):]
         self.assertNotIn("players,player_meta=matchup_players_cached(",handler)
 
     def test_compact_responsive_global_visuals(self):
