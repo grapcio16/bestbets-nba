@@ -93,7 +93,7 @@ STYLE = r"""
 }
 .st-key-bb83_search [data-baseweb="input"]>div{background:transparent!important;border:0!important;box-shadow:none!important}
 .st-key-bb83_search button[kind="primary"]{
- width:100%!height:43px!important;min-height:43px!important;border-radius:99px!important;
+ width:100%!important;height:43px!important;min-height:43px!important;border-radius:99px!important;
  background:linear-gradient(95deg,#ffae3e,#ff7613)!important;border:1px solid #ffc268!important;
  color:#fff!important;font-size:18px!important;box-shadow:0 0 18px rgba(255,134,25,.62)!important;
 }
