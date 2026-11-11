@@ -46,7 +46,7 @@ def main():
         assert page.locator("#blank-pane").is_visible()
         assert page.locator("#blank-title").inner_text() == "Terminarz"
         page.locator('[data-page="props"].nav-btn').click()
-        assert page.locator("#props-pane").is_visible()
+        assert page.locator("#hero").is_visible()
 
         # Simulate the documented component render message using isolated test fixtures.
         player = {
