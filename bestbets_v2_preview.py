@@ -22,7 +22,7 @@ def _assets():
     raw=SOURCE.read_text(encoding="utf-8")
     css=raw.split("<style>",1)[1].split("</style>",1)[0]
     body=raw.split("<body>",1)[1].split("<script>",1)[0].strip()
-    script=raw.split("<script>",1)[1].split("</script>",1)[0]
+    script=raw.split("<script>",1)[1].split("</script>",1)[0].lstrip()
     original_header='(function(){\n"use strict";'
     assert script.startswith(original_header),"Unexpected upstream JS structure"
     script=script.replace(
