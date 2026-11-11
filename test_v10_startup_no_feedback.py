@@ -68,19 +68,26 @@ def check_actual_streamlit(browser, url: str, out: Path) -> list[dict]:
         expect(iframe).to_be_visible(timeout=45000)
         stage=page.frame_locator('[data-testid="stMain"] iframe').locator('#stage')
         expect(stage).to_be_visible(timeout=45000)
-        page.wait_for_timeout(2400)
+        # Browser-side rAF can be throttled in Streamlit sandbox frames;
+        # sample the real stage rectangle from the outer Playwright driver
+        # instead of relying on an injected frame script.
+        samples=[]
+        for sample_index in range(50):
+            b=stage.bounding_box()
+            if b:
+                samples.append({"w":b["width"],"h":b["height"],"x":b["x"]})
+            page.wait_for_timeout(60)
         bounds=stage.bounding_box()
         ib=iframe.bounding_box()
         assert bounds and ib, "Blank iframe or stage"
         assert ib["height"] >= height-30, ("Iframe not viewport-sized",height,ib)
         expected=min(width/1231,(ib["height"])/691)*1231
         assert abs(bounds["width"]-expected)<6,(width,height,bounds,ib,expected)
-        samples=stage.evaluate("el => window.__bbFirstPaintSamples")
-        assert len(samples)>=12,samples
+        assert len(samples)>=35,samples
         for axis in ("w","h","x"):
             values=[x[axis] for x in samples]
             assert max(values)-min(values)<1.5, (
-                "Progressive zoom remained on first paint",axis,values[:6],values[-6:]
+                "Progressive zoom remained after first visible stage",axis,values[:6],values[-6:]
             )
         assert not console,console
         assert stage.locator('.topsearch').count()==1
