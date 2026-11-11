@@ -16,6 +16,8 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from mvp_theme import apply_mvp_theme
+from mvp_reference_theme import apply_reference_theme
+from mvp_reference_footer import render_reference_footer
 from mvp_data import confirmed_finals, team_games, team_summary, league_table, safe_value
 from teams import TEAM_FULL
 from team_logos import logo_data_uri, refresh_logos_in_background
@@ -124,6 +126,7 @@ def _logo_img(code,size=52):
 
 
 def _sidebar():
+    """Reference-style six primary links plus discreet workspace/settings."""
     with st.sidebar:
         icon=ROOT/"assets"/"bestbets_brand_icon_64.png"
         brand=(f'<img src="data:image/png;base64,{b64encode(icon.read_bytes()).decode()}" alt="BestBets">'
@@ -131,30 +134,50 @@ def _sidebar():
         st.markdown(
             '<div class="bbm-brand">'+brand+
             '<div><b>BEST<span>BETS</span></b>'
-            '<div class="bbm-eyebrow" style="font-size:9px;letter-spacing:.10em">'
-            'NBA INTELLIGENCE · MVP</div></div></div>',
-            unsafe_allow_html=True)
-        st.markdown('<div class="bbm-nav-label">MAIN MENU</div>',
-                    unsafe_allow_html=True)
+            '<div class="bbm-eyebrow" style="font-size:8px;letter-spacing:.08em">'
+            'NBA INTELLIGENCE</div></div></div>',unsafe_allow_html=True)
         current=st.session_state["bb_mvp_page"]
-        for page,label in MAIN_PAGES:
-            st.button(label,key="bb_nav_"+page,use_container_width=True,
-                      type="primary" if current==page else "secondary",
-                      on_click=set_page,args=(page,))
-        st.markdown('<div class="bbm-nav-label">WORKSPACE</div>',
+        main_labels={
+            "home":"⌂  Centrum",
+            "props":"▥  Player Props (Kalkulator)",
+            "games":"▣  Terminarz",
+            "simulations":"◈  Symulacje",
+            "players":"♙  Zawodnicy",
+            "teams":"⬡  Drużyny",
+        }
+        for page,_ in MAIN_PAGES:
+            st.button(
+                main_labels.get(page,page),key="bb_nav_"+page,
+                use_container_width=True,
+                type="primary" if current==page else "secondary",
+                on_click=set_page,args=(page,))
+        st.markdown('<div style="height:14px;border-bottom:1px solid #2b4569;margin:3px 12px 13px"></div>',
                     unsafe_allow_html=True)
-        for page,label in EXTRA_PAGES:
-            st.button(label,key="bb_nav_"+page,use_container_width=True,
-                      type="primary" if current==page else "secondary",
-                      on_click=set_page,args=(page,))
+        st.button(
+            "⚙  Ustawienia",key="bb_nav_settings",
+            use_container_width=True,
+            type="primary" if current=="settings" else "secondary",
+            on_click=set_page,args=("settings",))
+        with st.expander("Więcej · Favorites / Trends / Tools",
+                         expanded=False):
+            for page,label in EXTRA_PAGES:
+                if page=="settings":continue
+                st.button(
+                    label,key="bb_nav_"+page,use_container_width=True,
+                    type="primary" if current==page else "secondary",
+                    on_click=set_page,args=(page,))
         st.markdown(
             '<div class="bbm-sidebar-footer">'
-            'Sezon '+escape(_season())+'<br>'
-            'NBA data · experimental forecasts</div>',
-            unsafe_allow_html=True)
+            'Sezon '+escape(_season())+' · NBA / ESPN<br>'
+            'Modele eksperymentalne · wyniki niegwarantowane'
+            '</div>',unsafe_allow_html=True)
 
 
 def _topbar(page):
+    # Search bar is the topmost element on the approved Player Props layout.
+    # Do not add a second header or search field above it.
+    if page=="props":
+        return
     title,description=PAGE_HEADINGS[page]
     st.markdown(
         '<div class="bbm-topbar">'
@@ -637,6 +660,7 @@ def main():
     if "bb_mvp_favorite_players" not in st.session_state:
         st.session_state["bb_mvp_favorite_players"]=[]
     apply_mvp_theme()
+    apply_reference_theme()
     _sidebar()
     page=st.session_state["bb_mvp_page"]
     _topbar(page)
@@ -658,9 +682,12 @@ def main():
     elif page=="trends":trends_page()
     elif page=="tools":tools_page()
     elif page=="settings":settings_page()
-    st.markdown(
-        '<div class="bbm-compact" style="margin:38px 0 12px;'
-        'border-top:1px solid #203350;padding-top:12px">'
-        'BESTBETS MVP · NBA DATA INTELLIGENCE · '
-        'Experimental analysis, no guaranteed results.</div>',
-        unsafe_allow_html=True)
+    if page in ("props","home"):
+        render_reference_footer(set_page,_season())
+    else:
+        st.markdown(
+            '<div class="bbm-compact" style="margin:20px 0 8px;'
+            'border-top:1px solid #203350;padding-top:8px">'
+            'BESTBETS · NBA INTELLIGENCE · Real NBA data · '
+            'Experimental forecasts.</div>',
+            unsafe_allow_html=True)
