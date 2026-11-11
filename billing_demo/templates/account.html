@@ -1,0 +1,17 @@
+{% extends 'base.html' %}{% block content %}
+<section><h1>Panel użytkownika</h1><p>Identyfikator konta: <code data-testid="user-id">{{ user_id }}</code></p>
+<h2>Plan: <span data-testid="plan">{{ 'Premium' if grant.premium else 'Free' }}</span></h2>
+<p>Status subskrypcji: <strong data-testid="status">{{ grant.status }}</strong></p>
+<p>Anulowanie na koniec okresu: <strong data-testid="cancellation">{{ 'Tak' if grant.cancel_at_period_end else 'Nie' }}</strong></p>
+<p>Dostęp opłacony do: <span data-testid="paid-until">{{ paid_until_label }}</span></p>
+<p>Darmowe: terminarz, drużyny, zawodnicy, kontuzje. Premium: zaawansowane analizy. Ten demonstrator nie ogranicza publicznej aplikacji.</p>
+<a href="/premium/demo">Sprawdź chronioną funkcję Premium</a>
+<form method="post" action="/account/refresh"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Sprawdź status na serwerze</button></form></section>
+<section><h2>Premium — 10 USD miesięcznie</h2><p>Testowa subskrypcja odnawia się co miesiąc. Możesz anulować w portalu; dostęp trwa do końca opłaconego okresu. Powrót z Checkout nie potwierdza płatności.</p>
+<form method="post" action="/billing/checkout"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="terms_version" value="{{ terms }}">
+<label><input type="checkbox" name="accept_terms" value="yes" required> Akceptuję testowe warunki demonstratora ({{ terms }}).</label><a href="/sandbox-notice">Przeczytaj informacje o demonstratorze</a>
+<label><input type="checkbox" name="acknowledge_recurring" value="yes" required> Rozumiem testową cenę 10 USD/miesiąc, automatyczne odnawianie i zasady anulowania.</label>
+<button>Przejdź do testowego Checkout</button></form>
+<form method="post" action="/billing/portal"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Zarządzaj subskrypcją</button></form></section>
+<form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf }}"><button>Wyloguj się</button></form>
+{% endblock %}

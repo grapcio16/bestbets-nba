@@ -3,6 +3,7 @@ import os
 from alembic import context
 from sqlalchemy import create_engine
 from billing_backend.db import Base
+from billing_demo import models  # register isolated demo metadata for schema checks
 from billing_backend.settings import validate_database_url
 
 url = os.environ['BILLING_DATABASE_URL']

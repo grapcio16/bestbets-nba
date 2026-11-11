@@ -1,0 +1,45 @@
+{
+  "recorded_at": "2026-11-11T23:44:36.681217+00:00",
+  "base_main": "2b8af03",
+  "source_pr": 52,
+  "environment": "controlled-sandbox-only",
+  "python": "3.12.14",
+  "versions": {
+    "stripe": "13.2.1",
+    "Authlib": "1.9.5",
+    "SQLAlchemy": "2.1.8",
+    "playwright": "1.62.0",
+    "fastapi": "0.141.1"
+  },
+  "suites": {
+    "sqlite": {
+      "tests": 115,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 22.798
+    },
+    "postgresql-17.11": {
+      "tests": 115,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "seconds": 25.732
+    }
+  },
+  "demo_security_cases": 25,
+  "playwright_scenarios": 6,
+  "regression_unittest": {
+    "tests": 207,
+    "failures": 0
+  },
+  "real_external_auth0_calls": false,
+  "real_external_stripe_calls": false,
+  "public_ui_changed": false,
+  "public_paywall_enabled": false,
+  "deployed": false,
+  "actual_auth0_stripe_acceptance": "pending owner configuration",
+  "simulated_registration_email_delivery": false,
+  "stripe_merchant_approval": false,
+  "legal_approval": false
+}

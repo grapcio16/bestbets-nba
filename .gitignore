@@ -16,6 +16,7 @@ venv/
 *stripe*secret*
 stripe-events*.json
 billing_customers*.csv
+test-results/
 # Local screenshots, logs and test artifacts
 *.log
 .DS_Store

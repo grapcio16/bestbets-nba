@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BestBets — konto testowe</title><link rel="stylesheet" href="/static/demo.css"></head>
+<body><main><header><strong>BestBets · Account Sandbox</strong><p>Oddzielny demonstrator kont. Publiczna aplikacja NBA działa niezależnie.</p></header>
+{% if simulated %}<aside role="note">SYMULATOR DOSTAWCÓW — bez połączenia z Auth0 i Stripe, bez płatności. Wyłącznie syntetyczne konta i dane.</aside>{% else %}<aside role="note">STRIPE SANDBOX — wyłącznie konta i płatności testowe.</aside>{% endif %}
+{% block content %}{% endblock %}
+<footer>10 USD / miesiąc · wersja testowa. Dokumenty i komunikaty demonstracyjne wymagają zatwierdzenia prawnego przed uruchomieniem usługi.</footer>
+</main></body></html>
