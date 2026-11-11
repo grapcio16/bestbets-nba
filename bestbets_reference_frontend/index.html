@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BestBets Reference Screen</title>
+<style>
+:root{--bg:#020915;--navy:#051326;--border:#264b73;--cyan:#00c3ff;--orange:#ff8529;--green:#05ee75;--red:#ff534e;--white:#f4f8ff;font-family:Inter,Arial,Helvetica,sans-serif}
+*{box-sizing:border-box}
+html,body{padding:0;margin:0;background:#020713;color:var(--white);width:100%;overflow-x:hidden}
+button,input,select{font:inherit}
+button{cursor:pointer;outline-offset:2px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #65d8ff}
+#app-shell{width:1231px;position:relative;margin:0 auto}
+#stage{width:1231px;height:691px;position:absolute;top:0;left:0;transform-origin:top left;overflow:hidden;background:radial-gradient(ellipse 28% 38% at 100% 5%,#09254a 0%,transparent 72%),linear-gradient(145deg,#020812,#06172b 49%,#030812);box-shadow:0 0 50px #000}
+#stage:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(transparent 93%,rgba(0,17,32,.12));z-index:8}
+#stage .top-orange{position:absolute;left:24px;top:2px;width:98px;height:73px;background:linear-gradient(135deg,#ff771b,#ff4b0d 38%,transparent 40%);clip-path:polygon(0 0,100% 0,0 100%);opacity:.99;z-index:4}
+aside{position:absolute;left:0;top:0;width:175px;height:500px;background:linear-gradient(180deg,rgba(4,11,24,.72),#051426 60%,#081425);z-index:5;border-right:1px solid rgba(26,58,88,.55)}
+aside:before{content:"";position:absolute;top:370px;left:49px;width:102px;height:1px;background:#27425b}
+aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height:78px;transform:rotate(-13deg);border-bottom:2px solid #ff8b24;border-radius:0 0 100% 0;box-shadow:0 8px 21px rgba(255,99,12,.28);pointer-events:none}
+.brand{position:absolute;top:11px;left:50px;height:52px;display:flex;align-items:center;white-space:nowrap;z-index:7}
+.brand img{width:58px;height:54px;object-fit:contain;filter:drop-shadow(0 0 6px rgba(255,133,26,.4))}
+.brand .wordmark{font-size:22px;letter-spacing:-1.3px;font-weight:1000;font-style:italic;text-shadow:0 1px 8px #000;margin-left:-2px}
+.brand .wordmark b{color:#ff7419}
+.left-menu{position:absolute;left:33px;top:86px;width:139px}
+.nav-btn{width:137px;height:38px;display:flex;align-items:center;text-align:left;gap:13px;border:1px solid transparent;background:transparent;color:#d9e5f6;border-radius:11px;padding:0 11px;font-size:11px;font-weight:700;margin-bottom:6px;transition:.18s}
+.nav-btn .ic{display:inline-block;flex:0 0 19px;font-size:21px;font-weight:800;color:#e4ecf7;line-height:1;text-align:center}
+.nav-btn.selected{height:44px;background:linear-gradient(100deg,rgba(255,114,29,.39),rgba(114,64,43,.50) 68%,rgba(11,32,54,.8));border-color:#ff862b;box-shadow:inset 2px 0 #ffaa40,0 0 13px rgba(255,115,25,.6);color:white}
+.nav-btn.selected .ic{color:#ff9a20;text-shadow:0 0 8px #ff8b20}
+.nav-btn:hover{background:rgba(33,76,112,.65);transform:translateX(2px)}
+.settings{position:absolute;top:433px;left:37px;width:134px}
+.settings .nav-btn{font-size:11px}
+#work{position:absolute;left:175px;top:0;width:1056px;height:690px}
+.topsearch{position:absolute;top:10px;left:128px;width:708px;height:38px;border:1.5px solid #15bfff;border-radius:28px;background:linear-gradient(105deg,#061224,#092444 72%,#19283e);box-shadow:0 0 0 2px rgba(6,162,255,.14),0 0 15px rgba(0,166,255,.57),inset 0 0 11px rgba(5,143,232,.13);display:flex;align-items:center;animation:search-glow 6s ease-in-out infinite}
+.topsearch .glass{font-size:24px;margin-left:12px;color:#ecf8ff;line-height:1}
+.topsearch input{background:transparent;border:0;color:white;outline:none!important;font-size:16px;font-weight:760;width:574px;height:33px;padding:0 10px}
+.topsearch input::placeholder{color:#dbe7f4;opacity:.88}
+.topsearch button{margin-left:auto;margin-right:4px;width:56px;height:32px;border-radius:24px;color:white;font-size:21px;background:linear-gradient(120deg,#ffad34,#ff7809);border:1px solid #ffbb5b;box-shadow:0 0 14px rgba(255,136,24,.72)}
+.topsearch button:hover{filter:brightness(1.16);transform:scale(1.03)}
+.utility{position:absolute;top:12px;right:13px;display:flex;gap:12px}
+.utility span{width:35px;height:35px;border:1px solid #50799e;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#0b1b31,#071124);font-size:21px;color:#e6f1ff;position:relative}
+.utility .dot{position:absolute;top:4px;right:5px;width:5px;height:5px;border-radius:50%;background:#ff9636}
+.suggestions{position:absolute;top:56px;left:95px;width:925px;display:flex;gap:10px}
+.suggestions button{height:25px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid #385e81;border-radius:25px;background:linear-gradient(150deg,#13283e,#071728);color:#dfe9f6;box-shadow:inset 0 1px 4px rgba(199,231,255,.12);font-size:10.5px;padding:0 9px}
+.suggestions button:hover{border-color:#1ab8ff;box-shadow:0 0 10px rgba(0,163,255,.36)}
+.suggestions .searchsymbol{margin-right:7px;font-size:14px;color:#f4faff}
+#props-pane{display:block}
+#hero{position:absolute;left:16px;top:90px;width:1028px;height:89px;border-radius:14px;border:1px solid #167f92;background:radial-gradient(ellipse 20% 93% at 8% 51%,rgba(3,216,128,.27),transparent),radial-gradient(ellipse 27% 95% at 100% 104%,rgba(0,117,255,.32),transparent),radial-gradient(ellipse 25% 93% at 96% -11%,rgba(252,106,24,.2),transparent),linear-gradient(110deg,#072e28,#071729 38%,#091628 74%,#14233d);box-shadow:inset 0 1px rgba(126,234,213,.16),0 0 11px rgba(0,110,216,.13);display:flex;align-items:center;overflow:hidden}
+#hero .hero-photo{position:relative;width:155px;flex:0 0 155px;height:89px;overflow:hidden}
+.hero-team-halo{position:absolute;left:11px;top:5px;width:99px;height:99px;border-radius:50%;border:2px solid rgba(3,241,148,.53);display:grid;place-items:center;background:radial-gradient(circle,rgba(14,208,121,.28),rgba(0,84,66,.11));color:#9af3c7;font-size:57px;font-weight:900}
+.hero-team-halo img{width:90px;height:90px;object-fit:contain}
+.hero-photo>img{position:absolute;z-index:1;left:14px;bottom:-19px;width:126px;height:123px;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))}
+.hero-photo.empty .hero-team-halo{border-style:dashed;opacity:.40}
+.hero-photo.empty:after{content:"⌕";position:absolute;z-index:2;left:57px;top:31px;font-size:29px;color:#abffe0}
+.hero-name{flex:1;min-width:212px;padding:0 9px 0 6px}
+.hero-name h1{font-size:31px;line-height:1;margin:0 0 10px;letter-spacing:-1.2px;color:#f6f9ff;text-shadow:0 1px 9px rgba(0,0,0,.5);white-space:nowrap}
+.hero-meta{display:flex;align-items:center;gap:10px;color:#d7e5f3;font-size:11px;white-space:nowrap}
+.team-pill{font-weight:950;border-radius:20px;padding:3px 9px;color:#effff6;border:1px solid #05ec7c;background:#074f2d;box-shadow:0 0 8px rgba(0,219,113,.36)}
+.hero-sub{font-size:8.5px;color:#aac0da;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:315px}
+.hero-kpis{margin-left:auto;height:52px;display:flex}
+.hero-kpis>div{width:90px;border-left:1px solid #34536f;text-align:center;padding:0 5px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.hero-kpis small,.grade small{font-size:10px;font-weight:900;color:#b9cde1}
+.hero-kpis strong{font-size:21px;line-height:1.16;color:#fff}
+.hero-kpis em{font-size:9px;font-style:normal;color:#9db4cf}
+.hero-kpis .green{color:#04f07a}
+.grade{width:141px;height:72px;margin:0 9px 0 5px;border:1px solid #5d84a9;border-radius:11px;box-shadow:0 0 12px rgba(0,164,238,.18);background:linear-gradient(110deg,#0a2139,#0a1729);text-align:center;padding:7px 2px;flex-shrink:0}
+.grade strong{display:block;margin:3px auto;font-size:34px;color:#03ef79;line-height:1.1}
+.grade .grade-arc{display:block;width:54px;height:36px;margin:3px auto 0;border-radius:56px 56px 0 0;border:6px solid #0ae56c;border-bottom:0;position:relative;font-size:20px;color:#19fb83;font-weight:1000;line-height:32px;text-shadow:0 0 8px rgba(0,225,95,.4)}
+.controls{position:absolute;left:17px;top:185px;width:1027px;height:42px;display:flex;gap:10px}
+.control-group{height:42px;display:flex;flex-direction:column;justify-content:flex-start;gap:2px}
+.control-group label{font-size:9px;color:#abbad0;line-height:11px;margin-left:5px}
+.control-box{height:29px;display:flex;align-items:center;background:linear-gradient(#0e263e,#08192f);border:1px solid #3d5778;border-radius:9px;padding:2px 4px}
+.control-group select{height:25px;background:transparent;border:0;color:#eaf6ff;font-weight:800;font-size:13px;width:141px;outline:none}
+.control-group select option{background:#071a31}
+#market-group{width:169px}
+#line-group{width:138px}
+.line-control{display:flex;width:138px}
+.line-control button{width:28px;border:0;color:#cce6ff;background:#11263e;font-weight:900;font-size:19px;border-radius:6px}
+.line-control input{width:72px;text-align:center;border:0;border-left:1px solid #234a6e;border-right:1px solid #234a6e;background:transparent;color:white;font-size:15px;font-weight:850;outline:0}
+#side-group{width:158px}
+.side-control{gap:2px;padding:2px}
+.side-control button{flex:1;border:1px solid transparent;border-radius:8px;background:transparent;color:#d7dfeb;font-size:12px;height:24px;font-weight:800}
+.side-control button.on.over{background:linear-gradient(#058d46,#04522b);border-color:#06fa83;box-shadow:0 0 9px #07e66b;color:white}
+.side-control button.on.under{background:#8e232c;border-color:#ff6260;box-shadow:0 0 9px rgba(255,77,84,.6);color:white}
+#tabs-group{width:248px;margin-left:0}
+.tab-control{gap:1px}
+.tab-control button{flex:1;padding:0 3px;background:transparent;color:#c5d6e7;border:1px solid transparent;border-radius:8px;font-weight:800;font-size:12px;height:24px}
+.tab-control button.on{color:#fff;background:linear-gradient(#075d9e,#052a54);border:1px solid #00c0ff;box-shadow:0 0 12px #008de8}
+#period-group{width:257px;margin-left:auto}
+.period-control{gap:1px}
+.period-control button{flex:1;padding:0 2px;background:transparent;color:#c3d1df;border:1px solid transparent;border-radius:7px;font-weight:800;font-size:10px;height:24px}
+.period-control button.on{background:linear-gradient(#085a9c,#092a52);border:1px solid #04b9ff;color:#fff;box-shadow:0 0 10px #057de1}
+#chart-panel{position:absolute;left:17px;top:235px;width:598px;height:208px;border-radius:12px;background:radial-gradient(ellipse at top left,rgba(253,113,27,.12),transparent 38%),linear-gradient(130deg,#071527,#07182b);border:1px solid #225277;box-shadow:inset 0 1px rgba(90,162,208,.10)}
+#chart-panel:before{content:"";position:absolute;top:-2px;left:1px;width:32px;height:2px;background:#ff8a29;box-shadow:0 0 8px #ff6e16}
+.chart-title{position:absolute;left:14px;top:8px;font-size:15px;font-weight:950;display:flex;align-items:center;gap:9px}
+.chart-title .orange-bars{font-size:19px;color:#ff9627}
+#chart-svg{position:absolute;left:9px;top:32px;width:581px;height:170px;overflow:visible}
+.chart-placeholder{position:absolute;top:88px;left:50px;right:30px;text-align:center;color:#8aafcf;font-size:13px}
+#side-stats{position:absolute;top:235px;left:632px;width:412px;height:208px}
+.rates{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;height:69px}
+.rate{height:69px;border:1px solid #305d88;border-radius:10px;background:linear-gradient(125deg,#081a2d,#061426);text-align:center;padding:5px 2px;box-shadow:inset 0 1px #193956}
+.rate .rate-title{font-size:10px;color:#d0deed;line-height:1.05}
+.rate strong{display:block;font-size:23px;color:#06ee76;line-height:1.15}
+.rate small{display:block;font-size:9px;color:#a8bfd5}
+.averages{height:43px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:7px}
+.avg-box{border:1px solid #32577d;border-radius:9px;text-align:center;background:#091c32;padding:3px;box-shadow:inset 0 1px #18395d}
+.avg-box.selected{border-color:#00bfff;box-shadow:0 0 14px rgba(0,175,255,.53),inset 0 0 10px rgba(4,120,226,.24);background:#0c2c4e}
+.avg-box small{display:block;font-size:10px;color:#bdcee1}
+.avg-box strong{font-size:17px;display:block;color:white;line-height:1.15}
+.defense-box{margin-top:7px;height:82px;border:1px solid #ff8d2b;border-radius:12px;background:radial-gradient(ellipse 37% 70% at 100% 0%,rgba(255,105,19,.39),transparent),linear-gradient(120deg,#101a2b,#07182c);box-shadow:0 0 12px rgba(244,108,24,.18);display:flex;align-items:center}
+.defense-badge{width:93px;flex:0 0 93px;text-align:center}
+.defense-badge span{display:block;font-size:27px;color:#e9f6ff;line-height:1}
+.defense-heading{position:absolute;top:126px;left:10px;font-size:14px;font-weight:950}
+.defense-heading .shield{color:#ff902a}
+.defense-details{font-size:10px;line-height:1.5;color:#dbe5ef;margin-top:13px}
+.defense-details div:before{content:"●";font-size:8px;color:#04f47c;margin-right:8px}
+#take{position:absolute;left:17px;top:449px;width:1027px;height:45px;border:1px solid #f58b2c;border-radius:12px;display:flex;align-items:center;overflow:hidden;background:radial-gradient(ellipse 42% 140% at 100% 145%,rgba(0,180,248,.45),transparent 80%),linear-gradient(100deg,#17192b,#061528 52%,#0a2a4b);box-shadow:0 0 13px rgba(255,112,26,.16)}
+#take:before{content:"";position:absolute;pointer-events:none;right:-27px;bottom:-29px;width:240px;height:62px;border-top:2px solid #00d5ff;border-radius:50%;transform:rotate(-9deg);box-shadow:0 -3px 15px rgba(0,191,255,.18)}
+#take .take-title{font-size:17px;font-weight:950;width:206px;flex:0 0 206px;padding:0 18px;border-right:1px solid #6687a2;z-index:1}
+#take .target-icon{color:#ff9025;font-size:25px;vertical-align:middle;margin-right:8px}
+#take .take-text{font-size:11.5px;color:#d7e4f2;line-height:1.3;padding:0 15px;z-index:1}
+#take .take-text .green{color:#08f379;font-weight:900}
+#blank-pane{display:none;position:absolute;left:18px;top:93px;width:1024px;height:400px;border:1px solid #2b6188;border-radius:15px;background:radial-gradient(ellipse at center,rgba(0,120,220,.13),transparent 65%),#071628;text-align:center;padding:130px 15px}
+#blank-pane h2{font-size:28px;margin:0 0 8px}
+#blank-pane p{color:#a4c4dc;font-size:14px}
+#footer{position:absolute;top:519px;left:0;width:1231px;height:169px;z-index:10}
+.footer-tiles{position:absolute;top:0;left:34px;right:8px;height:128px;display:flex;gap:11px}
+.preview{border:1px solid #1674ae;border-radius:11px;height:128px;overflow:hidden;background:radial-gradient(ellipse 70% 35% at 100% 0%,rgba(0,126,239,.18),transparent),linear-gradient(120deg,#071f38,#061424);box-shadow:0 0 9px rgba(0,142,255,.20),inset 0 1px rgba(158,212,255,.12);padding:6px;transition:transform .2s,box-shadow .2s;cursor:pointer}
+.preview:nth-child(even){border-color:#eb8329;box-shadow:0 0 10px rgba(255,120,28,.20)}
+.preview:hover{transform:translateY(-4px);border-color:#2bcaff;box-shadow:0 0 15px rgba(3,166,255,.5)}
+.preview:nth-child(even):hover{border-color:#ffa02a;box-shadow:0 0 15px rgba(255,120,28,.47)}
+#card-home{width:196px}#card-simulations{width:182px}#card-games{width:158px}#card-players{width:158px}#card-teams{width:183px}#card-shortcuts{width:246px}
+.mini-head{font-size:10px;color:#dbeaff;font-weight:850;margin:1px 0 6px;white-space:nowrap}
+.mini-head.orange{color:#ffa342}
+.mini-input{height:18px;border:1px solid #345b7b;border-radius:8px;background:#0b2743;color:#9fc0df;padding:3px 6px;font-size:9px;line-height:11px;margin-bottom:5px;white-space:nowrap}
+.mini-row{display:flex;align-items:center;gap:5px;border-bottom:1px solid #1c3956;min-height:24px;padding:3px;font-size:9px}
+.mini-row .mini-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini-row .mini-code{color:#97bbd8;font-size:8px}
+.mini-row .mini-ball{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;background:#0b345b;color:#58d9fa;font-weight:850}
+.home-top{display:flex;gap:2px;margin:8px 0 9px}
+.home-top>div{flex:1;text-align:center;border:1px solid #185e91;border-radius:6px;background:linear-gradient(#102d4e,#09162b);padding:5px 1px}
+.home-top small{font-size:7px;color:#b0c6d9;display:block}
+.home-top strong{font-size:16px;display:block;color:#18f69e}
+.home-person{height:28px;border:1px solid #1a608c;border-radius:8px;background:#0c2945;padding:5px;display:flex;align-items:center;gap:7px;font-size:9px}
+.home-person small{display:block;color:#88abc9;font-size:7px}
+.sim-match{display:flex;justify-content:space-around;align-items:center;height:59px}
+.sim-team{display:grid;place-items:center;width:48px;height:46px;color:#32f2a0;font-size:34px;text-shadow:0 0 8px rgba(4,240,120,.34)}
+.sim-team.away{color:#ff6c43;text-shadow:0 0 8px rgba(255,110,48,.34)}
+.sim-vs{text-align:center;font-size:11px;color:#aecce7}
+.sim-vs strong{display:block;font-size:17px;color:white}
+.sim-split{display:flex;justify-content:space-between;gap:6px;margin:0 7px;font-size:11px;font-weight:900}
+.sim-split .left{color:#10eb7b}.sim-split .right{color:#fb6552}
+.sim-track{height:7px;border-radius:5px;overflow:hidden;background:#f66044;margin:5px 7px}
+.sim-track i{display:block;background:#03d883;height:100%;width:50%}
+.short-row{height:20px;border-bottom:1px solid #3b3029;display:grid;grid-template-columns:36px 1fr 93px;align-items:center;font-size:9px}
+.short-row b{color:#f8faff}.short-row span{color:#c5d1dc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.short-row small{text-align:right;font-size:8px;color:#acbdd1;white-space:nowrap;overflow:hidden}
+.footer-links{position:absolute;top:132px;left:34px;right:8px;height:32px;display:flex;gap:11px}
+.footer-links button{height:29px;min-width:0;background:transparent;color:#d9e6f4;border:0;display:flex;justify-content:center;align-items:center;gap:5px;font-size:12px;font-weight:800}
+.footer-links button:hover{color:#00bbff;text-shadow:0 0 8px #008dff}
+.footer-links button:nth-child(1){width:196px}
+.footer-links button:nth-child(2){width:182px}
+.footer-links button:nth-child(3){width:158px}
+.footer-links button:nth-child(4){width:158px}
+.footer-links button:nth-child(5){width:183px}
+.footer-links button:nth-child(6){width:246px}
+.footer-links .icon{font-size:19px}
+#notice{display:none;position:absolute;left:270px;top:82px;width:700px;z-index:40;background:#411e24;color:#ffb9ae;border:1px solid #fe7863;border-radius:8px;padding:8px 14px;font-size:12px;box-shadow:0 5px 30px #000b}
+#loader{display:none;position:absolute;left:970px;top:14px;border:2px solid #ffad50;border-top-color:transparent;border-radius:50%;width:14px;height:14px;animation:spin .65s linear infinite}
+#attribution{position:absolute;left:176px;top:685px;font-size:7px;color:#4d7898}
+@keyframes search-glow{0%,100%{box-shadow:0 0 0 2px rgba(4,162,255,.12),0 0 15px rgba(0,158,255,.50),inset 0 0 11px rgba(4,150,255,.1)}50%{box-shadow:0 0 0 2px rgba(4,162,255,.29),0 0 24px rgba(0,173,255,.7),inset 0 0 17px rgba(4,150,255,.19)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app-shell"><div id="stage">
+<div class="top-orange"></div>
+<aside>
+  <div class="brand"><img id="brand-img" alt="" src=""><div class="wordmark">BEST<b>BETS</b></div></div>
+  <nav class="left-menu">
+    <button class="nav-btn" data-page="home"><span class="ic">⌂</span><span>Centrum</span></button>
+    <button class="nav-btn selected" data-page="props"><span class="ic">▥</span><span>Player Props<br>(Kalkulator)</span></button>
+    <button class="nav-btn" data-page="games"><span class="ic">▣</span><span>Terminarz</span></button>
+    <button class="nav-btn" data-page="simulations"><span class="ic">◈</span><span>Symulacje</span></button>
+    <button class="nav-btn" data-page="players"><span class="ic">♧</span><span>Zawodnicy</span></button>
+    <button class="nav-btn" data-page="teams"><span class="ic">⬡</span><span>Drużyny</span></button>
+  </nav>
+  <nav class="settings"><button class="nav-btn" data-page="settings"><span class="ic">⚙</span><span>Ustawienia</span></button></nav>
+</aside>
+<div id="work">
+  <form class="topsearch" id="search-form"><span class="glass">⌕</span><input id="query" autocomplete="off" placeholder="Jayson Tatum over 25.5 points" aria-label="Wyszukaj zawodnika, linię i rynek"><button id="search-btn" type="submit">⌕</button></form>
+  <div class="utility"><span title="Powiadomienia">♧<i class="dot"></i></span><span title="Profil">♙</span></div>
+  <div class="suggestions">
+    <button data-query="Jayson Tatum under 3.5 assists"><span class="searchsymbol">⌕</span>Jayson Tatum under 3.5 assists</button>
+    <button data-query="Jayson Tatum over 2.5 three-pointers"><span class="searchsymbol">⌕</span>Jayson Tatum over 2.5 three-pointers</button>
+    <button data-query="Jayson Tatum over 7.5 rebounds"><span class="searchsymbol">⌕</span>Jayson Tatum over 7.5 rebounds</button>
+    <button data-query="Jayson Tatum over 35.5 PRA"><span class="searchsymbol">⌕</span>Jayson Tatum over 35.5 PRA</button>
+  </div>
+  <div id="notice"></div><div id="loader"></div>
+  <div id="props-pane">
+  <section id="hero">
+    <div class="hero-photo empty" id="portrait"><div class="hero-team-halo" id="team-halo">♧</div><img id="player-img" alt="" hidden></div>
+    <div class="hero-name"><h1 id="player-name">Wyszukaj zawodnika</h1><div class="hero-meta"><span class="team-pill" id="team">NBA</span><span id="position"></span><span id="matchup">Wpisz zdarzenie w wyszukiwarce</span></div><div class="hero-sub" id="hero-sub">Prawdziwe dane NBA / ESPN · bez przykładowych statystyk</div></div>
+    <div class="hero-kpis"><div><small>AVG</small><strong id="hero-avg">—</strong><em>sezon</em></div><div><small>LINE</small><strong id="hero-line">—</strong><em>Twój próg</em></div><div><small>HIT RATE</small><strong class="green" id="hero-rate">—</strong><em id="hero-rate-sample">L10</em></div><div><small>OPP DEF</small><strong id="hero-defense">—</strong><em>pkt tracone</em></div></div>
+    <div class="grade"><small>MATCHUP GRADE</small><div class="grade-arc" id="hero-grade">—</div></div>
+  </section>
+  <section class="controls">
+    <div class="control-group" id="market-group"><label>Rynek</label><div class="control-box"><select id="market" aria-label="Rynek"><option value="PTS">Points</option><option value="REB">Rebounds</option><option value="AST">Assists</option><option value="FG3M">3-Point Made</option><option value="PRA">PTS + REB + AST</option></select></div></div>
+    <div class="control-group" id="line-group"><label>Linia</label><div class="control-box line-control"><button id="line-minus" type="button" aria-label="Zmniejsz linię">−</button><input id="line" aria-label="Linia" inputmode="decimal" type="number" min=".5" max="150" step=".5" value="25.5"><button id="line-plus" type="button" aria-label="Zwiększ linię">+</button></div></div>
+    <div class="control-group" id="side-group"><label>Strona</label><div class="control-box side-control"><button class="on over" data-side="OVER">Over ✓</button><button class="under" data-side="UNDER">Under</button></div></div>
+    <div class="control-group" id="tabs-group"><label>&nbsp;</label><div class="control-box tab-control"><button data-market="PTS" class="on">PTS</button><button data-market="REB">REB</button><button data-market="AST">AST</button><button data-market="FG3M">3PM</button><button data-market="PRA">PRA</button></div></div>
+    <div class="control-group" id="period-group"><label>&nbsp;</label><div class="control-box period-control"><button data-period="L5">L5</button><button data-period="L10" class="on">L10</button><button data-period="L15">L15</button><button data-period="2026">2026</button><button data-period="Season">Season</button></div></div>
+  </section>
+  <section id="chart-panel"><div class="chart-title"><span class="orange-bars">▥</span><span id="chart-heading">Last 10 Games — Points</span></div><svg id="chart-svg" viewBox="0 0 581 170" role="img" aria-label="Wykres statystyk zawodnika"></svg><div id="chart-placeholder" class="chart-placeholder">Wpisz zawodnika, aby zobaczyć historię rzeczywistych meczów.</div></section>
+  <section id="side-stats">
+    <div class="rates"><div class="rate"><div class="rate-title">L5<br>Hit Rate</div><strong id="rate5">—</strong><small id="sample5">—</small></div><div class="rate"><div class="rate-title">L10<br>Hit Rate</div><strong id="rate10">—</strong><small id="sample10">—</small></div><div class="rate"><div class="rate-title">L15<br>Hit Rate</div><strong id="rate15">—</strong><small id="sample15">—</small></div><div class="rate"><div class="rate-title">Season<br>Hit Rate</div><strong id="rate-season">—</strong><small id="sample-season">—</small></div></div>
+    <div class="averages"><div class="avg-box"><small>Season AVG</small><strong id="season-avg">—</strong></div><div class="avg-box selected"><small>⌂ Home</small><strong id="home-avg">—</strong></div><div class="avg-box"><small>➤ Away</small><strong id="away-avg">—</strong></div></div>
+    <div class="defense-box"><div class="defense-heading"><span class="shield">⬡</span> <span id="defense-title">Matchup Defense</span></div><div class="defense-badge"><span id="defense-logo">◈</span></div><div class="defense-details" id="defense-details"><div>Weryfikacja danych obrony rywala</div><div>Bez niepotwierdzonych rankingów</div><div>Statystyki tylko z rzeczywistych meczów</div></div></div>
+  </section>
+  <section id="take"><div class="take-title"><span class="target-icon">◎</span>BestBets Take</div><div class="take-text" id="take-text">Wyszukaj zawodnika i linię, aby zobaczyć analizę.</div></section>
+  </div>
+  <section id="blank-pane"><h2 id="blank-title">Centrum</h2><p>Ta zakładka jest przygotowana do dalszej rozbudowy. Dane statystyczne pozostają zachowane.</p></section>
+</div>
+<footer id="footer">
+ <div class="footer-tiles">
+  <div class="preview" id="card-home" data-page="home"><div class="mini-head orange">🏀 BESTBETS</div><div class="home-top"><div><small>Mecze dziś</small><strong>—</strong></div><div><small>Najlepszy typ</small><strong>—</strong></div><div><small>Value</small><strong>—</strong></div><div><small>Kontuzje</small><strong>—</strong></div></div><div class="mini-head">Top Typy Dnia</div><div class="home-person"><span>🏀</span><span>Centrum NBA<small>Otwórz podsumowanie</small></span><strong style="color:#06ef8c">›</strong></div></div>
+  <div class="preview" id="card-simulations" data-page="simulations"><div class="mini-head">Symulacje</div><div class="mini-head">Symulacje (5 000)</div><div class="sim-match"><span class="sim-team">◉</span><span class="sim-vs"><small>NBA</small><strong>VS</strong><small>5 000</small></span><span class="sim-team away">◉</span></div><div class="sim-split"><span class="left">MONTE CARLO</span><span class="right">NBA</span></div><div class="sim-track"><i></i></div></div>
+  <div class="preview" id="card-games" data-page="games"><div class="mini-head">Terminarz</div><div class="mini-input">‹　 Dziś · terminy NBA　 ›</div><div class="mini-row"><span class="mini-ball">◉</span><span class="mini-name">Mecze NBA</span><span class="mini-code">›</span></div><div class="mini-row"><span class="mini-ball">◉</span><span class="mini-name">Wyniki na żywo</span><span class="mini-code">›</span></div><div class="mini-row"><span class="mini-ball">◉</span><span class="mini-name">Ostatnie wyniki</span><span class="mini-code">›</span></div></div>
+  <div class="preview" id="card-players" data-page="players"><div class="mini-head">Zawodnicy</div><div class="mini-input">⌕ Szukaj zawodnika...</div><div class="mini-row"><span class="mini-ball">♙</span><span class="mini-name">Jayson Tatum</span><span class="mini-code">BOS</span></div><div class="mini-row"><span class="mini-ball">♙</span><span class="mini-name">Luka Dončić</span><span class="mini-code">LAL</span></div><div class="mini-row"><span class="mini-ball">♙</span><span class="mini-name">Nikola Jokić</span><span class="mini-code">DEN</span></div></div>
+  <div class="preview" id="card-teams" data-page="teams"><div class="mini-head">Drużyny</div><div class="mini-input">⌕ Szukaj drużyny...</div><div class="mini-row"><span class="mini-ball">◉</span><span class="mini-name">Boston Celtics</span><span class="mini-code">BOS</span></div><div class="mini-row"><span class="mini-ball">◉</span><span class="mini-name">New York Knicks</span><span class="mini-code">NYK</span></div><div class="mini-row"><span class="mini-ball">◉</span><span class="mini-name">Philadelphia 76ers</span><span class="mini-code">PHI</span></div></div>
+  <div class="preview" id="card-shortcuts" data-page="shortcuts"><div class="mini-head orange">⌨ Skrót wpisywania (Player Props)</div><div class="short-row"><b>PTS</b><span>punkty</span><small>np. Tatum over 25.5 pts</small></div><div class="short-row"><b>REB</b><span>zbiórki</span><small>np. Tatum over 8.5 reb</small></div><div class="short-row"><b>AST</b><span>asysty</span><small>np. Tatum under 5.5 ast</small></div><div class="short-row"><b>3PM</b><span>trójki celne</span><small>np. Tatum over 2.5 3pm</small></div><div class="short-row"><b>PRA</b><span>punkty+zbiórki+asysty</span><small>np. Tatum over 35.5 pra</small></div></div>
+ </div>
+ <nav class="footer-links"><button data-page="home"><span class="icon">⌂</span>Centrum (Home)</button><button data-page="simulations"><span class="icon">◈</span>Symulacje</button><button data-page="games"><span class="icon">▣</span>Terminarz</button><button data-page="players"><span class="icon">♧</span>Zawodnicy</button><button data-page="teams"><span class="icon">⬡</span>Drużyny</button><button data-page="shortcuts"><span class="icon">⌨</span>Skrót wpisywania</button></nav>
+</footer>
+<div id="attribution">BESTBETS · Statystyki historyczne NBA / ESPN · nie są gwarancją przyszłego wyniku.</div>
+</div></div>
+<script>
+(function(){
+"use strict";
+const $=function(id){return document.getElementById(id)};
+const root=$("stage"),shell=$("app-shell");
+const marketNames={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PTS + REB + AST"};
+const pages={home:"Centrum",props:"Player Props",games:"Terminarz",simulations:"Symulacje",players:"Zawodnicy",teams:"Drużyny",settings:"Ustawienia",shortcuts:"Skrót wpisywania"};
+const state={page:"props",payload:{player:null,error:"",brand:""},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",loading:false,lastIdentity:""};
+function notify(type,extra){
+  window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},extra||{}),"*");
+}
+function resize(){
+  const viewportWidth=Math.max(320,document.documentElement.clientWidth||window.innerWidth||1231);
+  const scale=viewportWidth/1231;
+  root.style.transform="scale("+scale+")";
+  shell.style.width=Math.round(1231*scale)+"px";
+  shell.style.height=Math.ceil(691*scale)+"px";
+  notify("streamlit:setFrameHeight",{height:Math.ceil(691*scale)+2});
+}
+function text(id,value){const el=$(id);if(el)el.textContent=String(value==null?"—":value)}
+function fmt(v,digits){
+  if(typeof v!=="number"||!Number.isFinite(v))return "—";
+  return v.toFixed(digits==null?1:digits);
+}
+function pct(w,n){return n?Math.round(100*w/n)+"%":"—"}
+function finite(v){return v!==null && v!==undefined && Number.isFinite(Number(v))}
+function rate(items){const nums=items.filter(function(v){return finite(v)});const wins=nums.filter(function(v){return state.side==="UNDER"?Number(v)<state.line:Number(v)>state.line}).length;return {n:nums.length,wins:wins,label:pct(wins,nums.length)}}
+function measures(p){
+  const valid=p.games.filter(function(g){return finite(g[state.market])});
+  const values=valid.map(function(g){return Number(g[state.market])});
+  const subset=function(n){return rate(values.slice(-n))};
+  const seasons=rate(values);
+  const avg=values.length?values.reduce(function(a,b){return a+b},0)/values.length:null;
+  const onCourt=function(away){
+    const matches=valid.filter(function(g){return away?String(g.matchup||"").includes("@"):String(g.matchup||"").includes("vs")});
+    const xs=matches.map(function(g){return Number(g[state.market])}).filter(Number.isFinite);
+    return xs.length?xs.reduce(function(a,b){return a+b},0)/xs.length:null;
+  };
+  return {valid:valid,values:values,l5:subset(5),l10:subset(10),l15:subset(15),season:seasons,avg:avg,home:onCourt(false),away:onCourt(true)};
+}
+function setImage(id,url,alternate){
+  const img=$(id);
+  const okay=typeof url==="string"&&(url.startsWith("https://")||url.startsWith("data:image/png;base64,"));
+  img.hidden=!okay;
+  if(okay){img.src=url;img.alt=alternate||""}
+  else img.removeAttribute("src");
+}
+function escapeHtml(raw){
+  return String(raw==null?"":raw).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]});
+}
+function chartMarkup(games){
+  if(!games.length)return "";
+  const padLeft=37,padRight=9,top=11,bottom=29;
+  const w=581-padLeft-padRight,h=170-top-bottom;
+  const values=games.map(function(g){return Number(g[state.market])});
+  const maxv=Math.max(state.line||0,1,...values);
+  const max=Math.max(5,Math.ceil(maxv*1.20/5)*5);
+  const Y=function(v){return top+h-h*v/max};
+  const n=games.length;
+  const gap=n>15?4:n>10?6:8;
+  const bar=Math.min(46,(w-gap*(n-1))/n),step=w/n;
+  let svg='<g font-family="Arial,Helvetica,sans-serif">';
+  for(let i=0;i<=4;i++){
+    const v=max*i/4,y=Y(v);
+    svg+='<line x1="'+padLeft+'" x2="'+(padLeft+w)+'" y1="'+y+'" y2="'+y+'" stroke="#23405f" stroke-width=".6"/>';
+    svg+='<text x="'+(padLeft-8)+'" y="'+(y+3)+'" fill="#a8bed6" font-size="9" text-anchor="end">'+Math.round(v)+'</text>';
+  }
+  const lineY=Y(state.line);
+  svg+='<line x1="'+padLeft+'" x2="'+(padLeft+w)+'" y1="'+lineY+'" y2="'+lineY+'" stroke="#dbf6ff" stroke-width="1.1" stroke-dasharray="5,4"/>';
+  svg+='<rect x="1" y="'+(lineY-10)+'" width="34" height="18" rx="9" fill="#182b42" stroke="#dff4ff" stroke-width="1"/><text x="18" y="'+(lineY+2)+'" text-anchor="middle" font-size="10" font-weight="bold" fill="white">'+fmt(state.line,1)+'</text>';
+  games.forEach(function(g,i){
+    const v=values[i], x=padLeft+step*i+(step-bar)/2,y=Y(v),bh=Math.max(0.8,h*v/max);
+    const over=v>state.line,under=v<state.line;
+    const color=over?"#00ec79":under?"#ff514b":"#ffac41";
+    svg+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bar.toFixed(1)+'" height="'+bh.toFixed(1)+'" rx="4" fill="'+color+'"/>';
+    svg+='<text x="'+(x+bar/2).toFixed(1)+'" y="'+(y-4).toFixed(1)+'" fill="white" font-weight="bold" font-size="'+(n>15?9:11)+'" text-anchor="middle">'+fmt(v,Number.isInteger(v)?0:1)+'</text>';
+    const date=String(g.date||"").slice(5).replace("-","/"), opp=String(g.matchup||"").split("@").pop().split("vs.").pop().split("vs").pop().trim().slice(0,5);
+    svg+='<text x="'+(x+bar/2).toFixed(1)+'" y="153" fill="#b5c8e0" font-size="'+(n>15?7:8.7)+'" text-anchor="middle">'+escapeHtml(date)+'</text>';
+    svg+='<text x="'+(x+bar/2).toFixed(1)+'" y="163" fill="#abc6e3" font-size="'+(n>15?7:8.7)+'" text-anchor="middle">'+escapeHtml(opp)+'</text>';
+  });
+  return svg+"</g>";
+}
+function renderChart(p){
+  const svg=$("chart-svg"),placeholder=$("chart-placeholder");
+  if(!p||!Array.isArray(p.games)){svg.innerHTML="";placeholder.style.display="block";return}
+  let rows=p.games.filter(function(g){return finite(g[state.market])});
+  if(state.period==="L5")rows=rows.slice(-5);
+  else if(state.period==="L10")rows=rows.slice(-10);
+  else if(state.period==="L15")rows=rows.slice(-15);
+  else if(state.period==="2026")rows=rows.filter(function(g){return String(g.date||"").startsWith("2026")});
+  if(rows.length>20)rows=rows.slice(-20);
+  placeholder.style.display=rows.length?"none":"block";
+  if(!rows.length){svg.innerHTML="";return}
+  svg.innerHTML=chartMarkup(rows);
+}
+function renderPlayer(){
+  const p=state.payload.player,m=p?measures(p):null;
+  text("player-name",p?p.name:"Wyszukaj zawodnika");
+  text("team",p?p.team:"NBA");
+  text("position",p?p.position:"");
+  text("matchup",p?(p.opponent?(p.position?" | ":"")+"vs "+p.opponent:" | Rywal do potwierdzenia"):"Wpisz zdarzenie w wyszukiwarce");
+  text("hero-sub",p?("NBA "+p.season+" · "+p.games.length+" zweryfikowanych występów"+(p.next_game?" · "+p.next_game:"")):"Prawdziwe dane NBA / ESPN · bez przykładowych statystyk");
+  $("portrait").classList.toggle("empty",!p);
+  setImage("player-img",p?p.photo:"",p?p.name:"");
+  $("team-halo").innerHTML="";
+  if(p&&p.logo){
+    const img=document.createElement("img");
+    img.src=p.logo;img.alt=p.team;
+    $("team-halo").appendChild(img);
+  }else $("team-halo").textContent="♧";
+  text("hero-avg",m?fmt(m.avg):"—");
+  text("hero-line",p?fmt(state.line):"—");
+  text("hero-rate",m?m.l10.label:"—");
+  text("hero-rate-sample",m?("L10 ("+m.l10.wins+"/"+m.l10.n+")"):"L10");
+  text("hero-defense",p&&finite(p.defense)?fmt(p.defense):"—");
+  text("hero-grade","—");
+  const labels={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PRA"};
+  const caption=state.period==="L10"?"Last 10 Games":state.period==="L5"?"Last 5 Games":state.period==="L15"?"Last 15 Games":state.period==="2026"?"2026 Games":"Season Games";
+  text("chart-heading",caption+" — "+labels[state.market]);
+  renderChart(p);
+  const windows=[["rate5","sample5",m&&m.l5],["rate10","sample10",m&&m.l10],["rate15","sample15",m&&m.l15],["rate-season","sample-season",m&&m.season]];
+  windows.forEach(function(pair){const r=pair[2];text(pair[0],r?r.label:"—");text(pair[1],r?"("+r.wins+"/"+r.n+")":"—")});
+  text("season-avg",m?fmt(m.avg):"—");text("home-avg",m?fmt(m.home):"—");text("away-avg",m?fmt(m.away):"—");
+  text("defense-title",p&&p.opponent?"vs "+p.opponent+" Defense":"Matchup Defense");
+  const defense=$("defense-details");
+  if(p && finite(p.defense)){
+    defense.innerHTML="<div>Rywal traci "+fmt(p.defense)+" pkt/mecz</div>"+
+      "<div>Ostatnie 10: "+fmt(p.defense_recent)+" pkt/mecz</div>"+
+      "<div>Obrona całej drużyny · bez rankingu pozycji</div>";
+  }else{
+    defense.innerHTML="<div>Brak potwierdzonych danych rywala</div><div>Nie przypisujemy fikcyjnego rankingu</div><div>Historia i hit rate bazują na meczach</div>";
+  }
+  text("defense-logo",p&&p.opponent?p.opponent:"◈");
+  const take=$("take-text");
+  if(!p) take.textContent="Wyszukaj zawodnika i linię, aby zobaczyć analizę.";
+  else if(m && m.season.n){
+    take.innerHTML="<span class='green'>"+state.side+" "+fmt(state.line)+" "+escapeHtml(labels[state.market])+"</span> — "+escapeHtml(p.name)+
+      " osiągnął wskazaną stronę w "+m.season.wins+" z "+m.season.n+" występów ("+m.season.label+
+      "). To częstotliwość historyczna, nie skalibrowana prognoza.";
+  }else take.textContent="Brak występów dla tego rynku i linii.";
+  text("notice",state.payload.error||"");
+  $("notice").style.display=state.payload.error?"block":"none";
+  $("loader").style.display=state.loading?"block":"none";
+  $("market").value=state.market;$("line").value=String(state.line);
+  document.querySelectorAll("[data-market]").forEach(function(el){el.classList.toggle("on",el.dataset.market===state.market)});
+  document.querySelectorAll("[data-side]").forEach(function(el){el.classList.toggle("on",el.dataset.side===state.side)});
+  document.querySelectorAll("[data-period]").forEach(function(el){el.classList.toggle("on",el.dataset.period===state.period)});
+}
+function render(){
+  const active=state.page==="props";
+  $("props-pane").style.display=active?"block":"none";
+  $("blank-pane").style.display=active?"none":"block";
+  text("blank-title",pages[state.page]||"BestBets");
+  document.querySelectorAll(".nav-btn[data-page]").forEach(function(el){el.classList.toggle("selected",el.dataset.page===state.page)});
+  $("search-form").style.display=active?"flex":"none";
+  document.querySelector(".suggestions").style.display=active?"flex":"none";
+  if(state.payload.brand){setImage("brand-img",state.payload.brand,"BestBets")}
+  renderPlayer();
+  resize();
+}
+function search(query){
+  query=String(query||"").trim();
+  if(!query){state.payload.error="Wpisz imię i nazwisko, linię oraz rynek.";render();return}
+  state.query=query;$("query").value=query;
+  state.payload.error="";state.loading=true;render();
+  notify("streamlit:setComponentValue",{dataType:"json",value:{type:"search",query:query,id:String(Date.now())+"-"+String(Math.random()).slice(2)}});
+}
+$("search-form").addEventListener("submit",function(e){e.preventDefault();search($("query").value)});
+document.querySelectorAll("[data-query]").forEach(function(b){b.addEventListener("click",function(){state.page="props";search(b.dataset.query)})});
+document.querySelectorAll("[data-page]").forEach(function(el){el.addEventListener("click",function(){state.page=el.dataset.page;state.payload.error="";render()})});
+document.querySelectorAll("[data-market]").forEach(function(el){el.addEventListener("click",function(){state.market=el.dataset.market;render()})});
+$("market").addEventListener("change",function(){state.market=this.value;render()});
+document.querySelectorAll("[data-side]").forEach(function(el){el.addEventListener("click",function(){state.side=el.dataset.side;render()})});
+document.querySelectorAll("[data-period]").forEach(function(el){el.addEventListener("click",function(){state.period=el.dataset.period;render()})});
+$("line-minus").addEventListener("click",function(){state.line=Math.max(.5,state.line-.5);render()});
+$("line-plus").addEventListener("click",function(){state.line=Math.min(150,state.line+.5);render()});
+$("line").addEventListener("change",function(){const value=Number(this.value);state.line=Number.isFinite(value)?Math.min(150,Math.max(.5,value)):state.line;render()});
+window.addEventListener("resize",resize);
+window.addEventListener("message",function(event){
+  const packet=event.data||{};
+  if(packet.type!=="streamlit:render"||!packet.args)return;
+  state.payload=packet.args.payload||{player:null,error:"",brand:""};
+  state.loading=false;
+  const p=state.payload.player;
+  if(p){
+    const identity=[p.name,p.market,p.line,p.side].join("|");
+    if(identity!==state.lastIdentity){
+      state.market=p.market||"PTS";state.line=Number(p.line)||25.5;
+      state.side=p.side==="UNDER"?"UNDER":"OVER";state.period="L10";
+      state.lastIdentity=identity;
+    }
+  }
+  render();
+});
+render();
+notify("streamlit:componentReady",{apiVersion:1});
+})();
+</script>
+</body>
+</html>
