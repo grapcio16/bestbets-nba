@@ -86,7 +86,7 @@ def _run_research(offers,season,nonce,day,zone,load_schedule,get_logs):
     return result,histories,events,schedule_notes
 
 
-def render_player_props(season,nonce,timezone,load_schedule,get_logs):
+def render_player_props(season,nonce,timezone,load_schedule,get_logs,show_empty=True):
     st.markdown('<div class="bb83-page-marker"></div>',unsafe_allow_html=True)
     if "bb_mvp_search_text" not in st.session_state:
         st.session_state["bb_mvp_search_text"]=""
@@ -161,7 +161,7 @@ def render_player_props(season,nonce,timezone,load_schedule,get_logs):
 
     parsed=st.session_state.get("bb_mvp_search_parse")
     if not parsed or parsed[1]!=sig:
-        if not submitted:
+        if not submitted and show_empty:
             st.markdown(
                 '<div class="bb83-empty">'
                 '<div class="bb83-kicker">PLAYER PROPS · BESTBETS INTELLIGENCE</div>'
