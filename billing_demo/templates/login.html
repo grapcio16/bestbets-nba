@@ -1,0 +1,6 @@
+{% extends 'base.html' %}{% block content %}
+<section><h1>Konto BestBets</h1><p>Rejestracja, hasło, weryfikacja e-maila i odzyskiwanie dostępu odbywają się u dostawcy logowania.</p>
+{% for action, label in [('register','Załóż konto'),('login','Zaloguj się'),('recover','Odzyskaj dostęp')] %}
+<form method="post" action="/auth/{{ action }}"><input type="hidden" name="csrf" value="{{ csrf }}"><button>{{ label }}</button></form>
+{% endfor %}<p>Odzyskiwanie dostępu: na stronie dostawcy wybierz „Forgot password?”. Po rejestracji potwierdź adres e-mail, a następnie wróć i zaloguj się.</p></section>
+{% endblock %}

@@ -7,7 +7,7 @@ ROOT=Path(__file__).resolve().parent
 class ScreenshotFirstShellTests(unittest.TestCase):
     def test_public_entry_starts_new_workspace(self):
         entry=(ROOT/"app.py").read_text("utf8")
-        self.assertIn("from bestbets_v90 import main",entry)
+        self.assertIn("from bestbets_custom_screen import main",entry)
         self.assertNotIn("from mvp_app import main",entry)
 
     def test_existing_stats_models_and_sources_are_retained(self):

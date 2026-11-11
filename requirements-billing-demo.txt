@@ -1,0 +1,6 @@
+-r requirements-billing-sandbox.txt
+Authlib>=1.6,<2
+httpx>=0.28,<1
+Jinja2>=3.1.6,<4
+python-multipart>=0.0.26,<1
+python-dotenv>=1,<2

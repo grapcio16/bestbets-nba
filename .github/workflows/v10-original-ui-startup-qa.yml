@@ -1,0 +1,48 @@
+name: BestBets v10 original-look startup QA
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pixel-identical-startup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Streamlit and browser test tools
+        run: |
+          python -m pip install "streamlit>=1.59,<2" "pandas>=2.2,<3" "Pillow>=10,<13" "playwright>=1.56,<2"
+          python -m playwright install --with-deps chromium
+      - name: Check Python syntax
+        run: |
+          python -m py_compile app.py bestbets_custom_screen.py test_v10_startup_no_feedback.py
+      - name: Launch unchanged public entrypoint
+        run: |
+          python -m streamlit run app.py --server.headless true --server.port 8501 > /tmp/bbv10.log 2>&1 &
+          echo $! > /tmp/bbv10.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8501/_stcore/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          tail -100 /tmp/bbv10.log
+          exit 1
+      - name: Check first paint, visual pixel parity and menu routing
+        run: python test_v10_startup_no_feedback.py
+      - name: Save screenshots and startup evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bestbets-original-ui-no-zoom-qa
+          path: |
+            work/v10-startup/
+            /tmp/bbv10.log
+          if-no-files-found: ignore

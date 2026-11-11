@@ -1,0 +1,3 @@
+# Optional dependencies for sandbox Stripe integration.
+# Do not install/import in production until approval and auth are ready.
+stripe>=13.2,<14
