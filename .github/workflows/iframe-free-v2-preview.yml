@@ -1,7 +1,7 @@
 name: BestBets iframe-free V2 preview QA
 on:
   pull_request:
-    branches: [main, fix/stable-v2-startup-20261111]
+    branches: [main, fix/stable-v2-startup-20261111, feature/responsive-v2-full-width-20261111]
   workflow_dispatch:
 
 permissions:
