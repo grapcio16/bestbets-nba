@@ -75,7 +75,7 @@ def check_actual_streamlit(browser, url: str, out: Path) -> list[dict]:
         assert ib["height"] >= height-30, ("Iframe not viewport-sized",height,ib)
         expected=min(width/1231,(ib["height"])/691)*1231
         assert abs(bounds["width"]-expected)<6,(width,height,bounds,ib,expected)
-        samples=iframe.content_frame.evaluate("window.__bbFirstPaintSamples")
+        samples=stage.evaluate("el => window.__bbFirstPaintSamples")
         assert len(samples)>=12,samples
         for axis in ("w","h","x"):
             values=[x[axis] for x in samples]
