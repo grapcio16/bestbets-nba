@@ -30,7 +30,22 @@ def main():
         page = browser.new_page(viewport={"width": 1231, "height": 691}, device_scale_factor=1)
         errors = []
         page.on("pageerror", lambda exc: errors.append(str(exc)))
+        # Capture notifications emitted by the isolated component. Dynamic
+        # setFrameHeight caused the production shrinking/zooming feedback loop.
+        page.add_init_script("""(() => {
+            window.__heightUpdates = [];
+            window.addEventListener('message', e => {
+                if(e.data && e.data.type === 'streamlit:setFrameHeight')
+                    window.__heightUpdates.push(e.data.height);
+            });
+        })();""")
         page.goto(DOC, wait_until="load")
+        assert page.locator("#app-shell").evaluate(
+            "(el) => el.classList.contains('ready') && getComputedStyle(el).visibility === 'visible'"
+        ), "The first paint must show the fully scaled canvas"
+        assert page.locator("#app-shell").evaluate(
+            "(el) => getComputedStyle(el).transitionDuration"
+        ) == "0s", "No animated entrance"
         assert_box(page, "#stage", 0, 0, 1231, 691)
         assert_box(page, ".topsearch", 303, 10, 708, 38)
         assert_box(page, "#hero", 191, 90, 1028, 89)
@@ -97,12 +112,28 @@ def main():
         # Simulate a wide desktop window with less vertical space (the
         # screenshot issue that previously clipped the bottom nav tiles).
         page.set_viewport_size({"width":1664, "height":820})
+        # Viewport resize is delivered on the next browser layout frame.
+        page.wait_for_function(
+            "document.querySelector('#stage').getBoundingClientRect().width >= 1450",
+            timeout=7000
+        )
         box = page.locator("#stage").bounding_box()
         shortcut = page.locator("#card-shortcuts").bounding_box()
         bottom_nav = page.locator(".footer-links").bounding_box()
         assert box and box["y"] + box["height"] <= 820.5, box
         assert shortcut and shortcut["y"] + shortcut["height"] <= 820.5, shortcut
         assert bottom_nav and bottom_nav["y"] + bottom_nav["height"] <= 820.5
+        # The app must no longer shrink itself into the centre with giant
+        # margins after multiple renders or viewport changes.
+        assert box["width"] >= 1450, f"Unexpected miniature dashboard: {box}"
+        assert 0 <= box["x"] <= 120, box
+        for _ in range(3):
+            page.locator('[data-page="home"].nav-btn').click()
+            page.locator('[data-page="props"].nav-btn').click()
+            assert page.locator("#stage").bounding_box()["width"] >= 1450
+        assert page.evaluate("window.__heightUpdates") == [], (
+            "The embedded canvas must not resize its own parent iframe"
+        )
         page.set_viewport_size({"width":1231, "height":691})
         page.emulate_media(reduced_motion="reduce")
         assert page.locator(".bb-plot-bar").first.evaluate(
