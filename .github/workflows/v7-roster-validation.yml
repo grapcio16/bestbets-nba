@@ -122,6 +122,45 @@ jobs:
                          for x in at.get('file_uploader'))
           print('Approved neon reference page and six clickable preview tiles render.')
           PY
+      - name: Loaded player card — real interactive controls and graph smoke
+        run: |
+          python - <<'PY'
+          from streamlit.testing.v1 import AppTest
+          code = """
+          import pandas as pd
+          import streamlit as st
+          from mvp_theme import apply_mvp_theme
+          from mvp_reference_theme import apply_reference_theme
+          from mvp_player_card import render_player_card
+          apply_mvp_theme()
+          apply_reference_theme()
+          rows=pd.DataFrame([{
+              'PLAYER_NAME':'Fixture Player','PLAYER_ID':'123',
+              'TEAM_ABBREVIATION':'BOS',
+              'GAME_ID':str(i),'GAME_DATE':pd.Timestamp('2026-10-20T00:00:00Z')+pd.Timedelta(days=i),
+              'MIN':31.0,'PTS':18+i%9,'REB':5+i%4,'AST':2+i%6,'FG3M':1+i%3,
+              'MATCHUP':'BOS @ NYK' if i%2 else 'BOS vs. NYK',
+          } for i in range(15)])
+          row=pd.Series({
+              'Zawodnik':'Fixture Player','Drużyna':'BOS',
+              'Rynek':'PRA','Linia':32.5,'Wybór':'OVER',
+              'Pozycja':'SF','Przeciwnik':'NYK',
+              '_espn_id':'123',
+              'Obrona: stracone pkt/mecz':108.5,
+              'Obrona: L10 stracone':106.7,
+              'Źródło statystyk':'Test fixture — verified shape',
+          })
+          render_player_card(
+              row,rows,'2026-27',pd.Timestamp('2026-11-11T00:00:00Z'),
+              slug='bb83_loaded_fixture')
+          """
+          at=AppTest.from_string(code,default_timeout=75).run()
+          assert not at.exception,[str(x.message) for x in at.exception]
+          assert any(x.key=='bb83_loaded_fixture_market' for x in at.selectbox)
+          assert any(x.key=='bb83_loaded_fixture_line' for x in at.number_input)
+          assert len(at.get('plotly_chart'))==1
+          print('Loaded Player Props widget layout and plotted boxscore values rendered.')
+          PY
       - name: Core Player Props — dynamic real history, no synthetic data
         run: |
           python - <<'PY'
