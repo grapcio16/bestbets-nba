@@ -16,6 +16,7 @@ from mvp_app import get_logs, get_schedule
 from mvp_prop_ui import render_player_props
 from mvp_reference_theme import apply_reference_theme
 from bestbets_v90_theme import apply_v90_theme
+from bestbets_v91_fx import apply_reference_fx
 
 ROOT=Path(__file__).resolve().parent
 SEASON="2026-27"
@@ -231,6 +232,14 @@ def _player_props():
 
 
 def main():
+    if "bb91_bootstrapped" not in st.session_state:
+        # One-time visual redesign reset: no inherited Tatum example
+        # on the new public landing, never reset on normal reruns.
+        for key in tuple(st.session_state):
+            if key.startswith("bb_mvp_search_") or key.startswith("bb_mvp_prop_"):
+                st.session_state.pop(key, None)
+        st.session_state["bb90_page"]="props"
+        st.session_state["bb91_bootstrapped"]=True
     if "bb90_page" not in st.session_state:
         st.session_state["bb90_page"]="props"
     if "bb90_nonce" not in st.session_state:
@@ -244,6 +253,12 @@ def main():
         st.session_state["bb90_bootstrapped"]=True
     apply_reference_theme()
     apply_v90_theme()
+    apply_reference_fx()
+    st.markdown(
+        '<div class="bb91-header-icons" aria-hidden="true">'
+        '<span title="Powiadomienia">♢<i></i></span>'
+        '<span title="Profil">♙</span>'
+        '</div>',unsafe_allow_html=True)
     _sidebar()
     if st.session_state["bb90_page"]=="props":
         _player_props()

@@ -36,7 +36,7 @@ class ReferenceV85Tests(unittest.TestCase):
         card=(ROOT/"mvp_player_card.py").read_text("utf8")
         self.assertIn("observed_hit_rates(games,market,line)",card)
         self.assertIn("actual=[float(x) for x in values]",card)
-        self.assertIn("height=465,bargap=.22",card)
+        self.assertIn("height=415,bargap=.20",card)
         self.assertNotIn("MATCHUP GRADE</small>\n        <b>A+",card)
 
 if __name__=="__main__":
