@@ -11,8 +11,7 @@ html,body{padding:0;margin:0;background:#020713;color:var(--white);width:100%;ov
 button,input,select{font:inherit}
 button{cursor:pointer;outline-offset:2px}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #65d8ff}
-#app-shell{width:1231px;position:relative;margin:0 auto;visibility:hidden}
-#app-shell.ready{visibility:visible}
+#app-shell{width:1231px;position:relative;margin:0 auto}
 #stage{width:1231px;height:691px;position:absolute;top:0;left:0;transform-origin:top left;overflow:hidden;background:radial-gradient(ellipse 28% 38% at 100% 5%,#09254a 0%,transparent 72%),linear-gradient(145deg,#020812,#06172b 49%,#030812);box-shadow:0 0 50px #000}
 #stage:before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(transparent 93%,rgba(0,17,32,.12));z-index:8}
 #stage .top-orange{position:absolute;left:24px;top:2px;width:98px;height:73px;background:linear-gradient(135deg,#ff771b,#ff4b0d 38%,transparent 40%);clip-path:polygon(0 0,100% 0,0 100%);opacity:.99;z-index:4}
@@ -269,18 +268,15 @@ function notify(type,extra){
   window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},extra||{}),"*");
 }
 function resize(){
-  // Keep the parent iframe's full-viewport CSS height authoritative.
-  // Never report the scaled canvas height back to Streamlit: doing so can
-  // shrink the iframe itself, causing a visible repeated "zoom-in/zoom-out"
-  // loop on startup and a miniature dashboard with large black margins.
+  // The Streamlit iframe is capped to the actual visible app viewport via
+  // its parent's 100dvh CSS. Fit BOTH dimensions; don't clip footer previews.
   const viewportWidth=Math.max(320,document.documentElement.clientWidth||window.innerWidth||1231);
   const viewportHeight=Math.max(240,document.documentElement.clientHeight||window.innerHeight||691);
-  const scale=Math.min(viewportWidth/1231,viewportHeight/691);
+  const scale=Math.min(viewportWidth/1231,Math.max(0.25,viewportHeight/691));
   root.style.transform="scale("+scale+")";
   shell.style.width=Math.round(1231*scale)+"px";
   shell.style.height=Math.ceil(691*scale)+"px";
-  // Show the fully sized dashboard in one paint, with no entry transition.
-  shell.classList.add("ready");
+  notify("streamlit:setFrameHeight",{height:Math.ceil(691*scale)+2});
 }
 const animatedMetrics=new Set([
   "hero-avg","hero-line","hero-rate","rate5","rate10","rate15","rate-season",
