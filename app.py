@@ -1,7 +1,8 @@
-"""BestBets v9 — screenshot-first MVP landing.
+"""BestBets v10 — dedicated interactive reference frontend.
 
-Statistical sources and previous application modules remain in the repository.
-Only the public entrypoint has changed; no NBA data or simulations are deleted.
+Only the public presentation entrypoint is replaced. The previous Streamlit
+screens, NBA/ESPN sources, player data and simulation engines remain intact
+in the same repository.
 """
 import streamlit as st
 
@@ -9,9 +10,9 @@ st.set_page_config(
     page_title="BestBets | NBA Intelligence",
     page_icon="🏀",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
-from bestbets_v90 import main
+from bestbets_custom_screen import main
 
 main()
