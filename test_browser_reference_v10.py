@@ -94,15 +94,20 @@ def main():
         assert event["type"] == "search"
         assert event["query"] == "Jayson Tatum over 25.5 points"
 
-        # Simulate a wide desktop window with less vertical space (the
-        # screenshot issue that previously clipped the bottom nav tiles).
+        # A wide, short viewport cannot show the entire 1231:691 artwork
+        # without either side gutters, distortion or vertical scrolling.
+        # This branch intentionally keeps the approved original visual at
+        # full WIDTH, letting the page scroll naturally to footer tiles.
         page.set_viewport_size({"width":1664, "height":820})
         box = page.locator("#stage").bounding_box()
         shortcut = page.locator("#card-shortcuts").bounding_box()
         bottom_nav = page.locator(".footer-links").bounding_box()
-        assert box and box["y"] + box["height"] <= 820.5, box
-        assert shortcut and shortcut["y"] + shortcut["height"] <= 820.5, shortcut
-        assert bottom_nav and bottom_nav["y"] + bottom_nav["height"] <= 820.5
+        assert box and abs(box["width"]-1664)<2,box
+        assert box["height"]>820,box
+        assert shortcut and shortcut["y"] + shortcut["height"]<=box["height"]+1
+        assert bottom_nav and bottom_nav["y"] + bottom_nav["height"]<=box["height"]+1
+        page.locator(".footer-links").scroll_into_view_if_needed()
+        assert page.evaluate("window.scrollY")>5,"The footer must be reachable by scrolling"
         page.set_viewport_size({"width":1231, "height":691})
         page.emulate_media(reduced_motion="reduce")
         assert page.locator(".bb-plot-bar").first.evaluate(
