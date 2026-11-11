@@ -23,6 +23,7 @@
   left:0;top:0;width:128px;height:102px;z-index:6;
   background:linear-gradient(131deg,#f57311 0%,#ffad2c 26%,#c74206 54%,transparent 56%);
   clip-path:polygon(0 0,100% 0,0 100%);
+  z-index:4;
   filter:drop-shadow(0 0 12px rgba(255,119,14,.35));
 }
 aside {
@@ -41,21 +42,21 @@ aside:after {
 }
 aside:before {bottom:148px;left:24px;width:calc(100% - 48px);background:#2e5572}
 .brand {
-  z-index:9;position:relative;justify-content:center;
-  min-height:76px;height:76px;gap:7px;
+  z-index:9;position:relative;justify-content:flex-start;
+  min-height:76px;height:76px;gap:6px;padding-left:2px;
 }
 .brand img {
-  width:76px;height:71px;flex:0 0 76px;
+  width:60px;height:62px;flex:0 0 60px;
   filter:drop-shadow(0 0 12px rgba(2,184,255,.32));
 }
 .brand-lockup {display:flex;flex-direction:column;align-items:flex-start;min-width:0}
 .brand .wordmark {
-  font-size:clamp(21px,1.6vw,29px);
+  font-size:clamp(20px,1.36vw,24px);
   letter-spacing:-1.5px;line-height:1.05;
   margin:0;font-weight:1000;white-space:nowrap;
 }
 .brand .wordmark b {color:#ff8518}
-.brand-kicker {margin-top:5px;color:#d2e5f6;letter-spacing:2.7px;font-size:9px;font-weight:900;white-space:nowrap}
+ .brand-kicker {margin-top:5px;color:#d2e5f6;letter-spacing:1.6px;font-size:9px;font-weight:900;white-space:nowrap}
 .left-menu {display:grid;gap:8px;margin-top:24px}
 .nav-btn,.nav-btn.selected {
   min-height:48px;height:auto;padding:9px 10px;
@@ -311,7 +312,7 @@ aside:before {bottom:148px;left:24px;width:calc(100% - 48px);background:#2e5572}
 /* Responsive behavior: preserve readable layout without tiny scaled canvas. */
 @media (max-width:1499px) {
   #stage {--sidebar-width:194px}
-  .brand img {width:64px;flex-basis:64px}
+  .brand img {width:57px;flex-basis:57px}
   .brand .wordmark {font-size:22px}
   .hero-name h1 {font-size:30px}
   #hero .hero-photo {flex-basis:158px;width:158px}
@@ -333,7 +334,7 @@ aside:before {bottom:148px;left:24px;width:calc(100% - 48px);background:#2e5572}
   #stage {--sidebar-width:160px}
   .brand-kicker {font-size:7px;letter-spacing:1.5px}
   .brand .wordmark {font-size:18px}
-  .nav-btn,.nav-btn.selected {font-size:12px}
+  .nav-btn,.nav-btn.selected {font-size:13px}
   .nav-btn .ic svg {width:22px;height:22px}
   .module-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
   #work {padding-top:11px}
@@ -406,4 +407,17 @@ aside:before {bottom:148px;left:24px;width:calc(100% - 48px);background:#2e5572}
 @media (max-width:640px) {
   .avg-box small svg {width:12px;height:12px;flex-basis:12px}
   .brand-lockup {display:none}
+}
+
+/* Clear X is a subtle inline control, never a second orange CTA. */
+.topsearch button.clear-query {
+  background:transparent!important;border:0!important;
+  box-shadow:none!important;filter:none!important;
+  flex:0 0 30px;width:30px;min-width:30px;
+  height:34px;padding:0;margin:0 1px;
+  color:#bdc9d6;font-size:19px;opacity:.82;
+}
+.topsearch button.clear-query:hover {color:#fff;opacity:1;transform:none}
+@media(max-width:640px){
+  .topsearch button.clear-query {flex-basis:23px;width:23px;min-width:23px}
 }
