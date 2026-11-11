@@ -91,14 +91,15 @@ function chartMarkup(games){''',1)
     script=script.replace(
         'x=padLeft+step*i+(step-bar)/2',
         'x=padLeft+start+step*i+(step-bar)/2',1)
-    # Labels stay at each real bar position and enlarge only when the
-    # grouped step can fit them without overlapping adjacent results.
+    # The value and tick labels now scale to the available group width.
     script=script.replace(
-        'font-size="'+(n>15?9:11)+'"',
-        'font-size="'+Math.min(13,Math.max(9,step*.17))+'"',1)
+        '''font-size="'+(n>15?9:11)+'"''',
+        '''font-size="'+Math.min(13,Math.max(9,step*.17))+'"''',1)
     script=script.replace(
-        'font-size="'+(n>15?7:8.7)+'"',
-        'font-size="'+Math.min(11,Math.max(8,step*.14))+'"')
+        '''font-size="'+(n>15?7:8.7)+'"''',
+        '''font-size="'+Math.min(11,Math.max(8,step*.14))+'"''')
+    assert 'const {step,bar,start}=chartBarGeometry(w,n);' in script
+    assert 'x=padLeft+start+step*i+(step-bar)/2' in script
     script=script.replace('y="153"', 'y="\'+(height-17)+\'"')
     script=script.replace('y="163"', 'y="\'+(height-7)+\'"')
     script=script.replace('const svg=$("chart-svg"),placeholder=$("chart-placeholder");',
