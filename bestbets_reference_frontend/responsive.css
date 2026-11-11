@@ -425,3 +425,181 @@ aside:after { top: auto; bottom: 60px; width: 100%; }
   .preview { min-height: 156px; }
   .footer-links button { font-size: 12px; }
 }
+
+
+/* === V2 legibility pass: native sizes, never browser/canvas zoom ===
+   Existing full-width Grid/Flex geometry and premium color/FX stay intact.
+   On wide displays the smallest secondary labels become readable; on
+   compact layouts they remain responsive and can wrap/ellipsis as needed. */
+:host { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+
+/* Left navigation / identity */
+.brand { min-height:68px; height:68px; }
+.brand img { width:64px; height:60px; }
+.brand .wordmark { font-size:23px; letter-spacing:-1px; }
+.left-menu { gap:8px; }
+.nav-btn, .nav-btn.selected {
+  min-height:52px; height:52px; gap:10px;
+  padding:0 11px; font-size:14px; line-height:1.23;
+}
+.nav-btn .ic { flex:0 0 26px; font-size:26px; line-height:1; }
+.settings .nav-btn { font-size:14px; }
+
+/* Search and fast queries */
+.topsearch { height:56px; }
+.topsearch .glass { font-size:29px; }
+.topsearch input { font-size:19px; min-height:40px; }
+.topsearch button { height:44px; flex:0 0 62px; font-size:27px; }
+.utility span { width:42px; height:42px; font-size:26px; }
+.suggestions button {
+  height:40px; min-height:40px; font-size:13px;
+  padding:0 12px; font-weight:550;
+}
+.suggestions .searchsymbol { font-size:18px; }
+#notice { font-size:14px; line-height:1.4; }
+
+/* Player identity and top metrics */
+#hero { min-height:132px; padding:12px 8px; }
+#hero .hero-photo { height:106px; }
+.hero-name h1 { font-size:32px; line-height:1.12; }
+.hero-meta { font-size:14px; gap:8px; }
+.team-pill { font-size:12px; }
+.hero-sub { font-size:12px; margin-top:7px; line-height:1.3; }
+.hero-kpis { height:70px; }
+.hero-kpis small,.grade small { font-size:12px; }
+.hero-kpis strong { font-size:26px; }
+.hero-kpis em { font-size:11px; }
+.grade { width:155px; height:88px; }
+.grade .grade-arc {
+  width:64px; height:43px; font-size:25px;
+  line-height:39px;
+}
+
+/* Input labels and analysis controls */
+.controls { gap:12px; }
+.control-group label {
+  font-size:12px; line-height:16px; margin-left:5px;
+}
+.control-box { height:43px; }
+.control-group select { height:35px; font-size:16px; }
+.line-control button { font-size:23px; }
+.line-control input { font-size:18px; }
+.side-control button,.tab-control button,.period-control button {
+  min-height:33px; height:33px; font-size:14px;
+}
+.period-control button { font-size:13px; }
+
+/* Main analytics chart, hit rates, defense */
+.chart-title { font-size:20px; }
+.chart-title .orange-bars { font-size:26px; }
+.chart-placeholder { font-size:16px; }
+#side-stats { grid-template-rows:94px 62px minmax(130px, 1fr); }
+.rate { padding:10px 3px; }
+.rate .rate-title { font-size:12px; line-height:1.2; }
+.rate strong { font-size:27px; }
+.rate small { font-size:11px; }
+.avg-box { padding:8px 4px; }
+.avg-box small { font-size:12px; }
+.avg-box strong { font-size:23px; }
+.defense-heading { font-size:18px; }
+.defense-heading .shield { font-size:20px; }
+.defense-badge span { font-size:34px; }
+.defense-details { font-size:13px; line-height:1.6; }
+.defense-details div:before { font-size:11px; }
+#take { min-height:60px; }
+#take .take-title { font-size:21px; }
+#take .target-icon { font-size:29px; }
+#take .take-text { font-size:14px; line-height:1.45; }
+
+/* Six full-width modules: no 7–9 px desktop metadata */
+.preview { padding:12px; min-height:200px; }
+.mini-head {
+  font-size:14px; line-height:1.2;
+  white-space:normal; overflow-wrap:anywhere;
+}
+.mini-input {
+  height:auto; min-height:28px; font-size:12px;
+  line-height:1.25; padding:6px 8px;
+}
+.mini-row {
+  min-height:30px; padding:5px 3px;
+  font-size:12px; gap:7px;
+}
+.mini-row .mini-ball {
+  width:22px; height:22px; min-width:22px;
+  font-size:13px;
+}
+.mini-row .mini-code { font-size:11px; }
+.home-top { gap:5px; }
+.home-top > div { padding:7px 3px; }
+.home-top small { font-size:10px; line-height:1.25; }
+.home-top strong { font-size:19px; }
+.home-person { height:auto; min-height:38px; font-size:12px; padding:6px 8px; }
+.home-person small { font-size:10px; }
+.sim-match { height:78px; }
+.sim-team { font-size:39px; }
+.sim-vs { font-size:12px; }
+.sim-vs strong { font-size:21px; }
+.sim-split { font-size:12px; }
+.short-row {
+  height:auto; min-height:28px; font-size:12px;
+  grid-template-columns:38px minmax(0,.78fr) minmax(0,1.22fr);
+  column-gap:4px;
+}
+.short-row small { font-size:10px; }
+.footer-links button,.footer-links button:nth-child(n) {
+  min-height:40px; font-size:14px; gap:8px;
+  line-height:1.2;
+}
+.footer-links .icon { font-size:23px; }
+#attribution { font-size:11px; }
+
+/* Proportionate refinements for tablet and phone */
+@media (max-width: 1199px) {
+  #side-stats { grid-template-rows:94px 62px minmax(130px, 1fr); }
+  .hero-kpis { flex-basis:350px; }
+}
+@media (max-width: 900px) {
+  .nav-btn,.nav-btn.selected { font-size:13px; }
+  .brand img { width:54px; }
+  .brand .wordmark { font-size:20px; }
+  .hero-meta { font-size:13px; }
+  .suggestions button { font-size:12px; }
+}
+@media (max-width: 640px) {
+  .brand { min-height:50px; height:50px; }
+  .brand img { width:48px; height:48px; }
+  .nav-btn,.nav-btn.selected { padding:0; justify-content:center; }
+  .nav-btn .ic { flex:0 0 auto; font-size:26px; }
+  .topsearch { height:48px; }
+  .topsearch input { font-size:16px; }
+  .topsearch button { height:38px; flex-basis:40px; font-size:24px; }
+  .utility span { width:30px; height:30px; font-size:21px; }
+  .suggestions button { min-height:38px; height:38px; font-size:13px; }
+  #hero { min-height:0; }
+  #hero .hero-photo { height:106px; }
+  .hero-name h1 { font-size:27px; }
+  .hero-meta { font-size:13px; }
+  .hero-sub { font-size:12px; }
+  .hero-kpis { height:66px; }
+  .hero-kpis small { font-size:9px; }
+  .hero-kpis strong { font-size:22px; }
+  .hero-kpis em { font-size:9px; }
+  .grade { width:100%; height:88px; }
+  .control-box { height:44px; }
+  #chart-panel { min-height:300px; }
+  #side-stats { grid-template-rows:94px 62px minmax(136px, 1fr); }
+  .rate .rate-title { font-size:11px; }
+  .rate strong { font-size:23px; }
+  .rate small { font-size:10px; }
+  .avg-box small { font-size:11px; }
+  .avg-box strong { font-size:20px; }
+  .defense-details { font-size:12px; }
+  #take .take-title { font-size:18px; }
+  #take .take-text { font-size:13px; }
+  .preview { min-height:195px; }
+  .mini-head { font-size:14px; }
+  .mini-row { font-size:12px; }
+  .short-row { font-size:12px; }
+  .footer-links button { font-size:13px; }
+}

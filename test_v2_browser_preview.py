@@ -86,6 +86,26 @@ def assert_layout(page, width, height):
     assert page.locator('foreignObject, #bb-v2-viewport').count() == 0
     assert page.locator('[data-testid="stException"]').count() == 0
     assert page.locator('#app-shell').evaluate('el => el.scrollWidth <= el.clientWidth + 1')
+    # Regression guard against the miniature labels/icons seen in the first
+    # full-width V2 preview. Check actual rendered CSS, not just CSS source.
+    readable_sizes = {
+        '.nav-btn .ic': 25,          # navigation pictograms
+        '.nav-btn': 13,              # menu titles
+        '.topsearch input': 16,      # searchable query
+        '.suggestions button': 12,   # quick query chips
+        '.control-group label': 12,
+        '.mini-head': 14,            # 6 bottom module titles
+        '.mini-row': 12,             # module data rows
+        '.mini-row .mini-ball': 13,  # module pictograms
+        '.home-top small': 10,
+        '.rate .rate-title': 11,
+        '.defense-details': 12,
+        '.short-row': 12,
+    }
+    for selector, minimum in readable_sizes.items():
+        size = page.locator(selector).first.evaluate(
+            'el => parseFloat(getComputedStyle(el).fontSize)')
+        assert size >= minimum, (selector, size, minimum, width)
     return {'stage':stage,'main':main,'hero':hero,'chart':chart,'stats':stats,'footer':footer}
 
 
