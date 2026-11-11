@@ -407,6 +407,10 @@ aside:before {bottom:148px;left:24px;width:calc(100% - 48px);background:#2e5572}
 @media (max-width:640px) {
   .avg-box small svg {width:12px;height:12px;flex-basis:12px}
   .brand-lockup {display:none}
+  /* Keep decorative orange corner inside the 64px mobile sidebar,
+     never overlap the query input that begins at x=64. */
+  #stage .top-orange {width:62px;height:62px;left:0;top:0}
+  .grade {height:102px;flex-basis:102px}
 }
 
 /* Clear X is a subtle inline control, never a second orange CTA. */
