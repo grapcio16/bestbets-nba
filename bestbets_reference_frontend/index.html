@@ -268,11 +268,12 @@ function notify(type,extra){
   window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},extra||{}),"*");
 }
 function resize(){
-  // The Streamlit iframe is capped to the actual visible app viewport via
-  // its parent's 100dvh CSS. Fit BOTH dimensions; don't clip footer previews.
+  // The outer iframe derives its HEIGHT from its WIDTH (1231:691).
+  // Keep the original reference canvas pixel-perfect and fill the horizontal
+  // space. On a wider viewport the user scrolls vertically instead of getting
+  // side gutters; never use an iframe-height feedback loop.
   const viewportWidth=Math.max(320,document.documentElement.clientWidth||window.innerWidth||1231);
-  const viewportHeight=Math.max(240,document.documentElement.clientHeight||window.innerHeight||691);
-  const scale=Math.min(viewportWidth/1231,Math.max(0.25,viewportHeight/691));
+  const scale=viewportWidth/1231;
   root.style.transform="scale("+scale+")";
   shell.style.width=Math.round(1231*scale)+"px";
   shell.style.height=Math.ceil(691*scale)+"px";
