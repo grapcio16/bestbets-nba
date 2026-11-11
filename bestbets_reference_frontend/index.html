@@ -276,7 +276,9 @@ function resize(){
   root.style.transform="scale("+scale+")";
   shell.style.width=Math.round(1231*scale)+"px";
   shell.style.height=Math.ceil(691*scale)+"px";
-  notify("streamlit:setFrameHeight",{height:Math.ceil(691*scale)+2});
+  // Do NOT report scaled content height back to Streamlit: its iframe already
+  // has a fixed viewport height from bestbets_custom_screen.py. Reporting
+  // height here creates a self-amplifying resize loop during startup.
 }
 const animatedMetrics=new Set([
   "hero-avg","hero-line","hero-rate","rate5","rate10","rate15","rate-season",
