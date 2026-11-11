@@ -68,7 +68,13 @@ def main():
         assert page.locator("#rate10").inner_text() == "67%"
         assert page.locator("#query").input_value() == "Test Athlete over 25.5 points"
         assert "bb-plot-bar" in page.locator("#chart-svg rect.bb-plot-bar").first.get_attribute("class")
-        assert "stat-pop" in page.locator("#rate10").get_attribute("class")
+        # The first render and populated data must appear immediately, without
+        # introductory movement or perpetual glow pulsing.
+        for selector in (".topsearch", ".hero-photo>img:not([hidden])",
+                         "#chart-svg rect.bb-plot-bar", "#rate10"):
+            assert page.locator(selector).first.evaluate(
+                "(node) => getComputedStyle(node).animationName"
+            ) == "none", selector
         assert page.locator("#chart-svg rect").count() >= 4
         page.locator('[data-market="REB"]').click()
         assert "Rebounds" in page.locator("#chart-heading").inner_text()
