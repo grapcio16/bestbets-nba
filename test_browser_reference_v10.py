@@ -66,13 +66,19 @@ def main():
         assert page.locator("#hero-avg").inner_text() == "25.3"
         assert page.locator("#hero-rate").inner_text() == "67%"
         assert page.locator("#rate10").inner_text() == "67%"
+        assert page.locator("#query").input_value() == "Test Athlete over 25.5 points"
+        assert "bb-plot-bar" in page.locator("#chart-svg rect.bb-plot-bar").first.get_attribute("class")
+        assert "stat-pop" in page.locator("#rate10").get_attribute("class")
         assert page.locator("#chart-svg rect").count() >= 4
         page.locator('[data-market="REB"]').click()
         assert "Rebounds" in page.locator("#chart-heading").inner_text()
+        assert page.locator("#query").input_value() == "Test Athlete over 25.5 rebounds"
         page.locator("#line-plus").click()
         assert page.locator("#line").input_value() == "26"
+        assert page.locator("#query").input_value() == "Test Athlete over 26.0 rebounds"
         page.locator('[data-side="UNDER"]').click()
         assert "UNDER" in page.locator("#take-text").inner_text()
+        assert page.locator("#query").input_value() == "Test Athlete under 26.0 rebounds"
 
         page.evaluate("""() => {
           window.__observedSearch = [];
@@ -88,6 +94,21 @@ def main():
         assert event["type"] == "search"
         assert event["query"] == "Jayson Tatum over 25.5 points"
 
+        # Simulate a wide desktop window with less vertical space (the
+        # screenshot issue that previously clipped the bottom nav tiles).
+        page.set_viewport_size({"width":1664, "height":820})
+        box = page.locator("#stage").bounding_box()
+        shortcut = page.locator("#card-shortcuts").bounding_box()
+        bottom_nav = page.locator(".footer-links").bounding_box()
+        assert box and box["y"] + box["height"] <= 820.5, box
+        assert shortcut and shortcut["y"] + shortcut["height"] <= 820.5, shortcut
+        assert bottom_nav and bottom_nav["y"] + bottom_nav["height"] <= 820.5
+        page.set_viewport_size({"width":1231, "height":691})
+        page.emulate_media(reduced_motion="reduce")
+        assert page.locator(".bb-plot-bar").first.evaluate(
+            "(node) => getComputedStyle(node).animationName"
+        ) == "none"
+        page.emulate_media(reduced_motion="no-preference")
         page.screenshot(path=str(OUT), full_page=True)
         assert not errors, errors
         browser.close()
