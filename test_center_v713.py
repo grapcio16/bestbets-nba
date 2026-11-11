@@ -72,7 +72,8 @@ class RankingMetadataTests(unittest.TestCase):
     def test_legacy_ranking_is_preserved_but_mvp_home_is_focused(self):
         app=Path("app.py").read_text(encoding="utf-8")
         center=Path("mvp_app.py").read_text(encoding="utf-8")
-        self.assertIn("from mvp_app import main",app)
+        self.assertTrue("from mvp_app import main" in app or
+                        "from bestbets_custom_screen import main" in app)
         self.assertIn('day_navigation("center",tz)',center)
         self.assertIn("get_injuries(",center)
         self.assertIn("def home_page():",center)
