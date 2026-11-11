@@ -111,6 +111,23 @@ def main():
         page.emulate_media(reduced_motion="no-preference")
         page.screenshot(path=str(OUT), full_page=True)
         assert not errors, errors
+
+        # First paint regression: keep ONLY the early <head> and fixed
+        # geometry, so the late application JavaScript CANNOT resize it.
+        # The canvas must already fill the desktop before app initialization.
+        source=(ROOT/"bestbets_reference_frontend"/"index.html").read_text(encoding="utf-8")
+        early_head=source.split("<body>",1)[0]
+        firstpaint=browser.new_page(viewport={"width":1664,"height":900})
+        firstpaint.set_content(
+            early_head+"<body><div id='app-shell'><div id='stage'></div></div></body></html>"
+        )
+        pre_box=firstpaint.locator("#stage").bounding_box()
+        assert pre_box and pre_box["width"] > 1500, pre_box
+        assert pre_box["height"] > 890, pre_box
+        assert firstpaint.locator("#stage").evaluate(
+            "(node)=>getComputedStyle(node).transitionDuration"
+        )=="0s"
+        firstpaint.close()
         browser.close()
         print("Chromium reference coordinates and all interactions passed.")
         print("Saved test screenshot:", OUT)
