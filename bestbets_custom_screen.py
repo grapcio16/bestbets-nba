@@ -194,10 +194,11 @@ def main() -> None:
         [data-testid="stMain"] iframe{
             display:block!important;border:0!important;
             width:100%!important;background:#020713!important;
-            /* Hard cap the embedded canvas to the visible app area.
-               Child resize() scales both axes to keep ALL six tiles visible. */
-            height:calc(100vh - 4px)!important;
-            height:calc(100dvh - 4px)!important;
+            /* Match the original 1231:691 composition to the available WIDTH.
+               The frame grows taller on wide/short screens and the page scrolls.
+               Never constrain its height to 100dvh; doing so causes side bars. */
+            aspect-ratio:1231 / 691!important;
+            height:auto!important;
             min-height:0!important;
         }
         .stApp{background:#020713!important}
