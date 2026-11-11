@@ -33,6 +33,7 @@ def _preset(value):
     # Changing a query invalidates the old result; never reuse unrelated lines.
     st.session_state.pop("bb_mvp_search_results",None)
     st.session_state.pop("bb_mvp_search_parse",None)
+    st.session_state["bb_mvp_autosubmit"]=True
 
 
 def _match_proposals(queries,catalog):
@@ -86,55 +87,40 @@ def _run_research(offers,season,nonce,day,zone,load_schedule,get_logs):
 
 
 def render_player_props(season,nonce,timezone,load_schedule,get_logs):
-    st.markdown("""
-    <div class="bbm-hero-search">
-      <div class="bbm-kicker">PLAYER PROPS · BESTBETS INTELLIGENCE</div>
-      <h2>Find the line. Know the numbers.</h2>
-      <p>Wpisz zawodnika, OVER/UNDER, linię i rynek. Zobacz zweryfikowaną
-      historię, a nie procent wyliczony z jednego losowego występu.</p>
-    </div>""",unsafe_allow_html=True)
+    st.markdown('<div class="bb83-page-marker"></div>',unsafe_allow_html=True)
     if "bb_mvp_search_text" not in st.session_state:
         st.session_state["bb_mvp_search_text"]=""
-    with st.form("bb_mvp_search_form",border=False):
-        term=st.text_input(
-            "🔎 Wyszukaj zawodnika i rynek",
-            placeholder="Jayson Tatum over 35.5 PRA",
-            key="bb_mvp_search_text")
-        submitted=st.form_submit_button(
-            "🔎 Analizuj zawodnika",type="primary",
-            use_container_width=True)
-    st.caption("Szybkie przykłady — kliknij, aby wypełnić wyszukiwarkę:")
-    chips=st.columns(len(EXAMPLES),gap="small")
-    for i,(col,(label,example)) in enumerate(zip(chips,EXAMPLES)):
-        with col:
-            st.button(
-                label,key=f"bbm_example_{i}",use_container_width=True,
-                on_click=_preset,args=(example,),help=example)
-    st.markdown(
-        '<div class="bbm-prop-shortcuts">'
-        '<span><b>PTS</b> punkty</span>'
-        '<span><b>REB</b> zbiórki</span>'
-        '<span><b>AST</b> asysty</span>'
-        '<span><b>3PM</b> celne trójki</span>'
-        '<span class="bbm-pra-chip"><b>PRA</b> PTS + REB + AST</span>'
-        '</div>',unsafe_allow_html=True)
-    st.caption(
-        "Jak wpisać PRA: `Jayson Tatum over 35.5 PRA` "
-        "lub `Jayson Tatum powyżej 35,5 punkty+zbiórki+asysty`. "
-        "Możesz też użyć skrótu `p+r+a`. "
-        "Wpisuj pełne imię i nazwisko, kierunek, linię oraz rynek.")
+    with st.container(key="bb83_search"):
+        with st.form("bb_mvp_search_form",border=False):
+            search_field,go=st.columns([8.2,.8],gap="small",
+                                       vertical_alignment="center")
+            with search_field:
+                term=st.text_input(
+                    "Wpisz zawodnika, rynek i linię",
+                    placeholder="⌕  Jayson Tatum over 25.5 points",
+                    label_visibility="collapsed",
+                    key="bb_mvp_search_text")
+            with go:
+                submitted=st.form_submit_button(
+                    "🔎",type="primary",
+                    use_container_width=True,
+                    help="Wyszukaj i analizuj realne występy NBA")
+    with st.container(key="bb83-suggest"):
+        cols=st.columns(4,gap="small")
+        # The first PTS example is in the main search placeholder; four
+        # working chips match the image (AST, 3PM, REB and PRA).
+        for i,(col,(label,example)) in enumerate(
+            zip(cols,EXAMPLES[1:]),1):
+            with col:
+                st.button(
+                    "⌕  "+example,key=f"bbm_example_{i}",
+                    use_container_width=True,
+                    on_click=_preset,args=(example,),help=example)
+    submitted=submitted or bool(st.session_state.pop(
+        "bb_mvp_autosubmit",False))
     zone=timezone or "Europe/Warsaw"
-    with st.expander("📆 Dzień meczu i wiele zdarzeń",expanded=False):
-        day=st.date_input(
-            "Dzień lokalny spotkań",
-            pd.Timestamp.now(tz="UTC").tz_convert(zone).date(),
-            key="bb_mvp_analysis_day")
-        st.caption("Możesz wkleić wiele wierszy oddzielonych enterem lub średnikiem. "
-                   "Dla różnych spotkań wybierz właściwy dzień.")
-    if "bb_mvp_analysis_day" not in st.session_state:
-        day=pd.Timestamp.now(tz="UTC").tz_convert(zone).date()
-    else:
-        day=st.session_state["bb_mvp_analysis_day"]
+    day=st.session_state.get("bb_mvp_analysis_day") or (
+        pd.Timestamp.now(tz="UTC").tz_convert(zone).date())
     sig=sha256((str(term)+"|"+str(day)+"|"+season).encode("utf8")).hexdigest()
 
     if submitted:
@@ -153,6 +139,11 @@ def render_player_props(season,nonce,timezone,load_schedule,get_logs):
                 offers=_match_proposals(parsed,catalog)
             st.session_state["bb_mvp_search_parse"]=(offers,sig)
             st.session_state.pop("bb_mvp_search_results",None)
+            # Inputs are stateful by design; after a new query, reset the
+            # previous player/line/market selection so the headline is correct.
+            for key in list(st.session_state):
+                if key.startswith("bb_mvp_prop_"):
+                    st.session_state.pop(key,None)
             # Exact, unique roster matches need only ONE search click.
             # Suggested/ambiguous matches still require explicit verification.
             if not offers.empty and bool(
@@ -172,10 +163,19 @@ def render_player_props(season,nonce,timezone,load_schedule,get_logs):
     if not parsed or parsed[1]!=sig:
         if not submitted:
             st.markdown(
-                '<div class="bbm-note">Wyszukaj zdarzenie powyżej. '
-                'Wykres zostanie zbudowany wyłącznie na rzeczywistych '
-                'występach wybranego zawodnika.</div>',
-                unsafe_allow_html=True)
+                '<div class="bb83-empty">'
+                '<div class="bb83-kicker">PLAYER PROPS · BESTBETS INTELLIGENCE</div>'
+                '<strong>Find the line. Own the research.</strong>'
+                '<p>Wyszukaj typ, aby zobaczyć kartę zawodnika, zielono-czerwony '
+                'wykres, prawdziwe statystyki L5/L10/L15 i obronę rywala. '
+                'Nie pokazujemy przykładowych procentów jako rzeczywistych wyników.</p>'
+                '<div class="bb83-empty-row">'
+                '<span class="bb83-empty-chip">PTS · punkty</span>'
+                '<span class="bb83-empty-chip">REB · zbiórki</span>'
+                '<span class="bb83-empty-chip">AST · asysty</span>'
+                '<span class="bb83-empty-chip">3PM · trójki</span>'
+                '<span class="bb83-empty-chip">PRA · suma 3 statystyk</span>'
+                '</div></div>',unsafe_allow_html=True)
         return
     offers=parsed[0]
     unknown=offers[offers["Dopasowanie"].isin(
@@ -197,8 +197,7 @@ def render_player_props(season,nonce,timezone,load_schedule,get_logs):
             "Potwierdzam sugerowane nazwiska i linie",
             key="bb_mvp_confirm_names"):
             return
-    else:
-        st.caption("✓ Zawodnik i rynek rozpoznane w aktualnym katalogu NBA.")
+
     if len(offers)>1:
         with st.expander(f"Sprawdź {len(offers)} rozpoznanych zdarzeń",
                          expanded=False):
@@ -206,11 +205,10 @@ def render_player_props(season,nonce,timezone,load_schedule,get_logs):
                          hide_index=True,use_container_width=True)
     has_current=(st.session_state.get("bb_mvp_search_results") or {}).get(
         "signature")==sig
-    if st.button(
-        "↻ Odśwież wyniki" if has_current else "📊 Pokaż analizę i wykresy",
-        type="secondary" if has_current else "primary",
+    if not has_current and st.button(
+        "📊 Pokaż analizę i wykres",type="primary",
         key="bb_mvp_fetch_full",use_container_width=True):
-        with st.spinner("Pobieram realne sezonowe wyniki zawodników…"):
+        with st.spinner("Pobieram realne sezonowe występy…"):
             try:
                 table,histories,events,issues=_run_research(
                     offers,season,nonce,day,zone,load_schedule,get_logs)
@@ -220,7 +218,7 @@ def render_player_props(season,nonce,timezone,load_schedule,get_logs):
                     "issues":issues,
                 }
             except (ValueError,RuntimeError,KeyError,TypeError) as exc:
-                st.error("Nie udało się pobrać występów: "+str(exc)[:180])
+                st.error("Nie udało się pobrać danych: "+str(exc)[:170])
                 st.session_state.pop("bb_mvp_search_results",None)
 
     saved=st.session_state.get("bb_mvp_search_results")
@@ -252,18 +250,6 @@ def render_player_props(season,nonce,timezone,load_schedule,get_logs):
         index=ready.index[0]
     row=result.loc[index]
     name=str(row["Zawodnik"])
-    if st.button(
-        ("★ Usuń z ulubionych" if any(
-            f.get("name")==name for f in
-            st.session_state.get("bb_mvp_favorite_players",[]))
-         else "☆ Dodaj zawodnika do ulubionych"),
-        key="bb_mvp_favorite_person"):
-        favorites=list(st.session_state.get("bb_mvp_favorite_players",[]))
-        favorites=[f for f in favorites if f.get("name")!=name] if any(
-            f.get("name")==name for f in favorites) else favorites+[{
-                "name":name,"team":str(row.get("Drużyna") or "")}]
-        st.session_state["bb_mvp_favorite_players"]=favorites
-        st.rerun()
     group=saved["histories"].get(norm_name(name))
     event=saved["events"].get(str(row.get("Drużyna") or ""))
     asof=(
@@ -272,7 +258,32 @@ def render_player_props(season,nonce,timezone,load_schedule,get_logs):
     render_player_card(
         row,group,season,asof,slug=f"bb_mvp_prop_{index}")
 
-    if saved["issues"]:
-        with st.expander("Źródła i ograniczenia meczu",expanded=False):
-            for item in saved["issues"]:
-                st.caption(str(item))
+    with st.expander("☆ Zapisz zawodnika · ustawienia i źródła",expanded=False):
+        if st.button(
+            ("★ Usuń z ulubionych" if any(
+                f.get("name")==name for f in
+                st.session_state.get("bb_mvp_favorite_players",[]))
+             else "☆ Dodaj zawodnika do ulubionych"),
+            key="bb_mvp_favorite_person"):
+            favorites=list(st.session_state.get("bb_mvp_favorite_players",[]))
+            favorites=[f for f in favorites if f.get("name")!=name] if any(
+                f.get("name")==name for f in favorites) else favorites+[{
+                    "name":name,"team":str(row.get("Drużyna") or "")}]
+            st.session_state["bb_mvp_favorite_players"]=favorites
+            st.rerun()
+
+        if has_current and st.button(
+            "↻ Odśwież analizę",key="bb83_refresh_result"):
+            st.session_state.pop("bb_mvp_search_results",None)
+            st.rerun()
+        st.date_input(
+            "Dzień meczu (lokalny)",value=day,
+            key="bb_mvp_analysis_day")
+        st.markdown(
+            '<span class="bbm-pra-chip">PRA = PTS + REB + AST</span>',
+            unsafe_allow_html=True)
+        st.caption(
+            "Jak wpisać PRA: `Jayson Tatum over 35.5 PRA`, "
+            "albo `Jayson Tatum powyżej 35,5 p+r+a`.")
+        for item in saved.get("issues",[]):
+            st.caption(str(item))
