@@ -1,3 +1,26 @@
+# BestBets v8.3 — zatwierdzony ekran Player Props, ekran referencyjny
+
+Wdrożono projekt zatwierdzony na referencyjnym obrazie w nowej, **funkcjonalnej** wersji aplikacji Streamlit. Nie używamy obrazu jako tła; cały interfejs jest zbudowany z odrębnych działających komponentów, dzięki czemu można zmieniać zawodników, linie, okresy i rynki.
+
+## Układ zgodny ze wzorcem
+
+- **Globalny styl**: granat/czerń, neonowo-niebieskie i pomarańczowe obramowania, soczysta zieleń OVER oraz czerwień UNDER. Wąskie menu z sześcioma głównymi stronami i Settings, reszta narzędzi pod „Więcej”.
+- **Górna wyszukiwarka**: jedyny duży pasek z pomarańczowym przyciskiem oraz cztery działające chipy z zapytaniami AST/3PM/REB/PRA.
+- **Hero zawodnika**: zdjęcie i logo drużyny, nazwisko, pozycja, przeciwnik, AVG, LINE, HIT RATE (z próby L10), defensywa rywala (punkty oddawane przez drużynę). Pole MATCHUP GRADE pozostaje **—**, dopóki nie opracujemy skalibrowanego i sprawdzonego rankingu.
+- **Sterowanie w jednym rzędzie**: wybór rynku, linia, OVER/UNDER, szybkie przyciski PTS/REB/AST/3PM/PRA oraz zakres L5/L10/L15/SEZON. Zmiana każdego parametru odświeża faktyczną analizę w pamięci.
+- **Dwa panele obok siebie**: po lewej duży wykres z prawdziwymi wynikami i linią rynku; po prawej 4 karty hit-rate, średnia sezonu, Home/Away oraz statystyki obrony rywala (jeśli dostępne).
+- **BestBets Take**: szeroki neonowy pasek z krótkim, opartym na prawdziwych danych podsumowaniem.
+- **Dolny pasek**: sześć działających kart: Home, Simulations, Games, Players, Teams i skróty PRA. Zawartość nie używa wymyślonych typów czy procentów.
+- **Funkcje badawcze**: próbki, historia wyników i data meczu pozostają w zwijanych sekcjach, zamiast zasłaniać główny widok. Na mniejszych ekranach układ responsywnie się składa.
+
+## Działanie i ograniczenia
+
+Wizualizacja pokazuje wyłącznie historyczne wyniki NBA/ESPN. **Wartość HIT RATE to odsetek realnych występów przy danej linii**, nie skalibrowane prawdopodobieństwo wygrania zakładu. Matchup grade oraz rating pozycyjny nie są symulowane bez potwierdzonych danych. Automatyczny OCR, porównywarka kursów i płatności pozostają poza obszarem tej aktualizacji. Pozostałe zakładki zachowują ten sam wspólny styl, a szczegóły Player Props są nowym standardem wizualnym.
+
+Testy: `test_reference_layout_v83.py` oraz komplet wcześniejszych regresji w `.github/workflows/v7-roster-validation.yml`.
+
+---
+
 ## Player Props v8.2 — PRA i skróty wyszukiwania
 
 W wyszukiwarce Player Props znajduje się piąty szybki przycisk **PRA** (punkty + zbiórki + asysty). Obok widać zawsze legendę skrótów: **PTS** (punkty), **REB** (zbiórki), **AST** (asysty), **3PM** (celne trójki), **PRA** (punkty + zbiórki + asysty).
