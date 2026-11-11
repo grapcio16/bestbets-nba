@@ -1,8 +1,7 @@
-"""BestBets MVP v8.0 — focused NBA intelligence experience.
+"""BestBets v9 — screenshot-first MVP landing.
 
-Only the six core product areas and small supporting workspace screens
-are exposed. Old research/OCR/odds/tracker code remains in dedicated modules
-and git history, but is not part of the public navigation during rebuild.
+Statistical sources and previous application modules remain in the repository.
+Only the public entrypoint has changed; no NBA data or simulations are deleted.
 """
 import streamlit as st
 
@@ -13,6 +12,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-from mvp_app import main
+from bestbets_v90 import main
 
 main()
