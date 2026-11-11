@@ -7,14 +7,13 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 from pathlib import Path
 import numpy as np
 from playwright.sync_api import expect, sync_playwright
 
-VIEWPORTS = [(1664, 900), (1366, 768), (1920, 1080),
-             (1231, 691), (390, 844), (844, 390)]
+VIEWPORTS = [(1664, 900), (1366, 768), (1920, 1080), (2560, 1080),
+             (3440, 1440), (1024, 768), (768, 1024), (390, 844), (320, 740), (844, 390)]
 
 # A wait_for(visible) followed by measurements can miss the startup defect.
 # Install this in every document BEFORE Streamlit mounts its shadow root.
@@ -33,7 +32,12 @@ RECORDER = """(() => {
       const r = stage.getBoundingClientRect(), css = getComputedStyle(stage);
       if (r.width > 0 && r.height > 0 && css.visibility === 'visible')
         window.__bbFrames.push({t:performance.now(),x:r.x,y:r.y,width:r.width,height:r.height,
-          color:css.color,font:css.fontFamily,lineHeight:css.lineHeight});
+          color:css.color,font:css.fontFamily,lineHeight:css.lineHeight,
+          mainWidth:stage.querySelector('#work').getBoundingClientRect().width,
+          heroWidth:stage.querySelector('#hero').getBoundingClientRect().width,
+          chartWidth:stage.querySelector('#chart-panel').getBoundingClientRect().width,
+          sidebarWidth:stage.querySelector('aside').getBoundingClientRect().width,
+          transform:css.transform,aspectRatio:css.aspectRatio});
     }
     requestAnimationFrame(tick);
   }
@@ -41,25 +45,60 @@ RECORDER = """(() => {
 })();"""
 
 
-def assert_canvas(page, width, height):
+def assert_layout(page, width, height):
     stage = page.locator('#stage').bounding_box()
-    assert stage, 'Dashboard missing (black-screen regression)'
-    scale = min(width / 1231, (height - 4) / 691)
-    assert abs(stage['width'] - 1231 * scale) < 1, stage
-    assert abs(stage['height'] - 691 * scale) < 1, stage
-    assert abs(stage['x'] - (width - stage['width']) / 2) < 1, stage
+    main = page.locator('#work').bounding_box()
+    sidebar = page.locator('aside').bounding_box()
+    assert stage and main and sidebar, 'Dashboard missing (black-screen regression)'
+    # Allow only the native scrollbar, never aspect-ratio side gutters.
+    assert abs(stage['x']) < 1 and width - 16 <= stage['width'] <= width, stage
+    assert abs(main['width'] - (stage['width'] - sidebar['width'])) < 1, main
+    assert abs(main['x'] - sidebar['width']) < 1, main
+    sidebar_width = 64 if width <= 640 else 176 if width <= 900 else 200
+    assert abs(sidebar['width'] - sidebar_width) < 1, sidebar
     for selector in ('#hero', '.topsearch', '#chart-panel', '#side-stats',
-                     '#take', '.footer-links', '.preview'):
+                     '#take', '.footer-links', '.preview', '.suggestions', '.controls'):
         for node in page.locator(selector).all():
             r = node.bounding_box()
             assert r and r['width'] > 0 and r['height'] > 0, selector
-            assert r['x'] >= -1 and r['y'] >= -1, (selector, r)
-            assert r['x'] + r['width'] <= width + 1, (selector, r)
-            assert r['y'] + r['height'] <= height + 1, (selector, r)
-    assert page.locator('.preview').count() == 6
+            assert r['x'] >= sidebar['width'] - 1, (selector, r)
+            assert r['x'] + r['width'] <= stage['width'] + 1, (selector, r)
+    hero = page.locator('#hero').bounding_box()
+    chart = page.locator('#chart-panel').bounding_box()
+    stats = page.locator('#side-stats').bounding_box()
+    footer = page.locator('#footer').bounding_box()
+    grid = page.locator('.module-grid').bounding_box()
+    assert abs(hero['width'] - grid['width']) < 1, (hero, grid)
+    assert abs(footer['width'] - main['width']) < 1, (footer, main)
+    assert abs(hero['x'] + hero['width'] - (stage['width'] - hero['x'] + sidebar['width'])) < 1
+    if width >= 1200:
+        assert abs(stats['width'] - 412) < 1, stats
+        assert abs(chart['width'] + stats['width'] + 16 - hero['width']) < 1
+        assert abs(chart['y'] - stats['y']) < 1
+    else:
+        assert abs(chart['width'] - hero['width']) < 1
+        assert stats['y'] >= chart['y'] + chart['height']
+    tiles = page.locator('.preview').all()
+    assert len(tiles) == 6
+    tile_widths = [tile.bounding_box()['width'] for tile in tiles]
+    assert max(tile_widths) - min(tile_widths) < 1, tile_widths
     assert page.locator('[data-testid="stMain"] iframe').count() == 0
+    assert page.locator('foreignObject, #bb-v2-viewport').count() == 0
     assert page.locator('[data-testid="stException"]').count() == 0
-    return stage
+    assert page.locator('#app-shell').evaluate('el => el.scrollWidth <= el.clientWidth + 1')
+    return {'stage':stage,'main':main,'hero':hero,'chart':chart,'stats':stats,'footer':footer}
+
+
+def check_scroll_access(page, width, height):
+    # Narrow screens use natural vertical scrolling, never shrinking controls
+    # or clipping panels. Every section and module must be reachable in view.
+    for selector in ('#hero', '.controls', '#chart-panel', '#side-stats', '#take', '.preview'):
+        for node in page.locator(selector).all():
+            node.scroll_into_view_if_needed()
+            r = node.bounding_box()
+            assert r and r['x'] >= 0 and r['x'] + r['width'] <= width
+            assert r['y'] + r['height'] > 0 and r['y'] < height, (selector,r)
+    page.locator('#stage').evaluate('el => el.getRootNode().host.scrollTop = 0')
 
 
 def capture_startup(page, out, width, height, label, navigate):
@@ -72,18 +111,19 @@ def capture_startup(page, out, width, height, label, navigate):
         path = out / f'{label}-{second}s.png'
         page.screenshot(path=str(path))
         (out / f'{label}-frames.json').write_text(json.dumps(page.evaluate('window.__bbFrames')))
-        captures.append({'second':second, 'box':assert_canvas(page, width, height), 'file':path.name})
+        captures.append({'second':second, 'box':assert_layout(page, width, height), 'file':path.name})
         # Bounding boxes also pass for an all-black rendered surface.
         from PIL import Image
         pixels = np.asarray(Image.open(path).convert('RGB'))
         bright = float((pixels.max(axis=2) > 120).mean())
         assert bright > .01, (path, bright)
     frames = page.evaluate('window.__bbFrames')
-    for field in ('x', 'y', 'width', 'height'):
+    for field in ('x', 'y', 'width', 'height', 'mainWidth', 'heroWidth', 'chartWidth'):
         values = [frame[field] for frame in frames]
         assert max(values) - min(values) < 1, (label, field, values[:8], values[-8:])
-    scale = min(width / 1231, (height - 4) / 691)
-    assert math.isclose(frames[0]['width'], 1231 * scale, abs_tol=1), frames[0]
+    assert width - 16 <= frames[0]['width'] <= width, frames[0]
+    assert abs(frames[0]['mainWidth'] - frames[0]['width'] + frames[0]['sidebarWidth']) < 1, frames[0]
+    assert frames[0]['transform'] == 'none' and frames[0]['aspectRatio'] == 'auto', frames[0]
     first = frames[0]
     assert first['font'] == 'Inter, Arial, Helvetica, sans-serif', first
     assert first['color'] == 'rgb(244, 248, 255)', first
@@ -147,10 +187,23 @@ def check_live(page, out):
     assert page.locator('.bb-plot-bar').first.evaluate(
         'el => getComputedStyle(el).animationName') == 'none'
     page.emulate_media(reduced_motion='no-preference')
+    plot_sizes = []
+    values = [page.locator(s).inner_text() for s in ('#hero-avg', '#season-avg', '#rate-season')]
+    for width, height in [(1920, 1080), (2560, 1080), (390, 844), (1664, 900)]:
+        page.set_viewport_size({'width':width, 'height':height})
+        page.wait_for_timeout(150)
+        plot = page.locator('#chart-svg').evaluate('''el => ({
+          width:el.clientWidth,height:el.clientHeight,
+          viewWidth:el.viewBox.baseVal.width,viewHeight:el.viewBox.baseVal.height})''')
+        assert plot['width'] == plot['viewWidth'] and plot['height'] == plot['viewHeight'], plot
+        assert values == [page.locator(s).inner_text() for s in ('#hero-avg', '#season-avg', '#rate-season')]
+        plot_sizes.append({'viewport':[width,height], **plot})
+    assert plot_sizes[1]['width'] > plot_sizes[0]['width'] + 600, plot_sizes
     page.wait_for_timeout(850)
     page.screenshot(path=str(out / 'live-player-props.png'))
     return {'player':page.locator('#player-name').inner_text(),
-            'coverage':page.locator('#hero-sub').inner_text(), 'markets':markets, 'periods':periods}
+            'coverage':page.locator('#hero-sub').inner_text(), 'markets':markets, 'periods':periods,
+            'plot_sizes':plot_sizes}
 
 
 def main():
@@ -190,15 +243,26 @@ def main():
                         cdp.send('Network.setCacheDisabled', {'cacheDisabled':True})
                     report['runs'].append(capture_startup(page, args.out, width, height,
                         label + '-reload', lambda: page.reload(wait_until='domcontentloaded')))
+                check_scroll_access(page, width, height)
                 if width == 1664:
                     check_interactions(page)
                     if args.live: report['live'] = check_live(page, args.out)
                     for w, h in VIEWPORTS:
                         page.set_viewport_size({'width':w, 'height':h})
                         page.wait_for_timeout(100)
-                        assert_canvas(page, w, h)
+                        assert_layout(page, w, h)
+                    chart_widths = []
+                    for h in (720, 1080, 1440):
+                        page.set_viewport_size({'width':1920, 'height':h})
+                        page.wait_for_timeout(100)
+                        geometry = assert_layout(page, 1920, h)
+                        chart_widths.append(geometry['chart']['width'])
+                    assert max(chart_widths) - min(chart_widths) < 1, chart_widths
                 context.close()
-                print(f'{args.browser}: {label} startup and geometry passed', flush=True)
+                print(f'{args.browser}: {label} full-width startup, reflow and scroll passed', flush=True)
+            widths = {r['viewport'][0]:r['frames'][0]['chartWidth'] for r in report['runs']}
+            assert widths[2560] > widths[1920] + 600, widths
+            assert widths[3440] > widths[2560] + 800, widths
             assert not report['page_errors'], report['page_errors']
             assert not report['console_errors'], report['console_errors']
             if not args.live:

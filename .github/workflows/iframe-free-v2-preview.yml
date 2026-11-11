@@ -1,7 +1,7 @@
 name: BestBets iframe-free V2 preview QA
 on:
   pull_request:
-    branches: [main]
+    branches: [main, fix/stable-v2-startup-20261111]
   workflow_dispatch:
 
 permissions:
@@ -26,12 +26,19 @@ jobs:
             python -m pip install 'streamlit==${{ matrix.streamlit }}'
           fi
           python -m playwright install --with-deps chromium
+      - name: Run all Python regressions
+        run: python -m unittest discover -v
       - name: Check Python syntax and V2 assets
         run: |
           python -m py_compile preview_v2.py bestbets_v2_preview.py bestbets_custom_screen.py
           python - <<'PY'
           import bestbets_v2_preview as x
-          assert 'viewBox="0 0 1231 691"' in x.HTML
+          assert '<foreignObject' not in x.HTML
+          assert 'bb-v2-viewport' not in x.HTML
+          assert '1231' not in x.CSS
+          assert 'aspect-ratio:' not in x.CSS
+          assert 'style.transform=' not in x.JS
+          assert 'module-grid' in x.HTML
           assert 'setTriggerValue("search"' in x.JS
           assert 'streamlit:setFrameHeight' not in x.JS
           assert len(x.HTML)>9000
@@ -52,7 +59,7 @@ jobs:
           exit 1
       - name: Test full page in Chromium without iframe
         run: python test_v2_browser_preview.py
-      - name: Reproduce old feedback and compare approved appearance
+      - name: Reproduce old feedback and compare premium theme
         run: python test_scaling_evidence.py
       - name: Save screenshot and logs
         if: always()

@@ -1,26 +1,28 @@
-"""Experimental iframe-free BestBets canvas (Streamlit Components V2).
+"""Responsive full-width BestBets preview (Streamlit Components V2).
 
 This is a separate preview entrypoint. It deliberately does NOT change
 app.py or the production Streamlit v1 component.
 
-The approved 1231×691 reference is fitted by an SVG viewBox before the
-first paint. No JavaScript height negotiations, iframe resize feedback,
-entry fade, or zoom animation. The production NBA research is reused.
+The premium appearance is retained in a normal CSS Grid/Flex layout.
+No application viewBox, fixed aspect ratio or dashboard scaling. The
+production NBA research and navigation handlers are reused.
 """
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import streamlit as st
 
 from bestbets_custom_screen import _cached_brand, _research
 
 ROOT=Path(__file__).resolve().parent
-SOURCE=ROOT/"bestbets_reference_frontend"/"index.html"
+FRONTEND=ROOT/"bestbets_reference_frontend"
+SOURCE=FRONTEND/"index.html"
 
 
 def _assets():
     raw=SOURCE.read_text(encoding="utf-8")
-    css=raw.split("<style>",1)[1].split("</style>",1)[0]
+    css=(FRONTEND/"responsive.css").read_text(encoding="utf-8")
     body=raw.split("<body>",1)[1].split("<script>",1)[0].strip()
     script=raw.split("<script>",1)[1].split("</script>",1)[0].lstrip()
     original_header='(function(){\n"use strict";'
@@ -31,7 +33,7 @@ def _assets():
         'const {parentElement,data,setTriggerValue}=component;\n'
         'const mounted=parentElement.__bestbetsV2;\n'
         'if(mounted && mounted.root===parentElement.querySelector("#stage")){\n'
-        '  mounted.update(data,setTriggerValue);return;\n'
+        '  mounted.update(data,setTriggerValue);return mounted.watchChart();\n'
         '}\n'
         'const bridge={setTriggerValue};',
         1
@@ -55,12 +57,32 @@ def _assets():
 }''',1)
     start=script.index("function resize(){")
     finish=script.index("const animatedMetrics=",start)
-    script=script[:start]+'''function resize(){
-  // The SVG viewBox handles scaling natively on first paint.
-  // Keeping this function makes upstream render() reusable.
-}
-'''+script[finish:]
+    script=script[:start]+script[finish:]
+    script=script.replace('  resize();','')
     script=script.replace('window.addEventListener("resize",resize);','')
+    script=script.replace('$("props-pane").style.display=active?"block":"none";',
+                          '$("props-pane").style.display=active?"grid":"none";')
+    script=script.replace('parentElement.querySelector(".suggestions").style.display=active?"flex":"none";',
+                          'parentElement.querySelector(".suggestions").style.display=active?"grid":"none";')
+    # Only the chart uses SVG. Its coordinates follow its real pixel size,
+    # so wider panels contain wider plots without stretching the typography.
+    script=script.replace('function chartMarkup(games){', '''function chartSize(){
+  const svg=$("chart-svg");
+  return {width:Math.max(1,svg.clientWidth),height:Math.max(1,svg.clientHeight)};
+}
+function chartMarkup(games){''',1)
+    script=script.replace('const w=581-padLeft-padRight,h=170-top-bottom;',
+                          'const {width,height}=chartSize();\n  const w=width-padLeft-padRight,h=height-top-bottom;',1)
+    script=script.replace('Math.min(46,(w-gap*(n-1))/n)', 'Math.max(1,Math.min(72,(w-gap*(n-1))/n))',1)
+    script=script.replace('y="153"', 'y="\'+(height-17)+\'"')
+    script=script.replace('y="163"', 'y="\'+(height-7)+\'"')
+    script=script.replace('const svg=$("chart-svg"),placeholder=$("chart-placeholder");',
+        '''const svg=$("chart-svg"),placeholder=$("chart-placeholder");
+  const size=chartSize();
+  svg.setAttribute("viewBox",`0 0 ${size.width} ${size.height}`);''',1)
+    script=script.replace('placeholder.style.display="block"', 'placeholder.style.display="grid"')
+    script=script.replace('placeholder.style.display=rows.length?"none":"block"',
+                          'placeholder.style.display=rows.length?"none":"grid"')
     start=script.index('window.addEventListener("message",function(event){')
     script=script[:start]+'''function update(payload,trigger){
   bridge.setTriggerValue=trigger;
@@ -78,51 +100,44 @@ def _assets():
   }
   render();
 }
+function watchChart(){
+  // A data update may clean up the previous V2 invocation. Reconnect one
+  // observer, with a cleanup bound only to that invocation's observer.
+  const mounted=parentElement.__bestbetsV2;
+  if(mounted.stopWatching)mounted.stopWatching();
+  let lastSize="";
+  const observer=new ResizeObserver(()=>{
+    const size=chartSize(),key=size.width+"x"+size.height;
+    if(key===lastSize)return;
+    lastSize=key;
+    if(state.page==="props")renderChart(state.payload.player);
+  });
+  observer.observe($("chart-svg"));
+  mounted.stopWatching=()=>observer.disconnect();
+  return mounted.stopWatching;
+}
 // V2 reruns JS when data changes but retains its DOM. Bind listeners once.
-parentElement.__bestbetsV2={root,update};
+parentElement.__bestbetsV2={root,update,watchChart};
 update(data,setTriggerValue);
+return watchChart();
 }'''
-    # The v1 document's root rules must target the V2 shadow host. Without
-    # this, Streamlit's font, line height and text color leak into the canvas.
-    css=css.replace(":root{", ":host{")
-    css=css.replace("html,body{", ":host{")
-    css += """
-:host{
-  /* Streamlit's parent padding can settle AFTER the component mounts.
-     This dedicated fullscreen entrypoint must fit the viewport immediately. */
-  position:fixed;inset:0;z-index:1000;
-  display:block;width:100%;height:100dvh;overflow:hidden;
-  /* Full-bleed background extends the approved dashboard atmosphere
-     beyond its 1231:691 aspect-ratio frame without cropping or distortion.
-     It also appears before component JavaScript is initialized. */
-  background:
-    radial-gradient(ellipse 72% 90% at 50% 8%,rgba(0,105,180,.16),transparent 72%),
-    radial-gradient(ellipse 25% 70% at 0% 55%,rgba(0,155,220,.075),transparent 80%),
-    radial-gradient(ellipse 25% 70% at 100% 52%,rgba(0,155,220,.065),transparent 80%),
-    linear-gradient(90deg,#061426 0%,#061426 30%,#020713 69%,#061426 100%);
-  line-height:normal;text-align:left;letter-spacing:normal;
-  font-weight:400;font-style:normal
-}
-#bb-v2-viewport{
-  display:block;width:min(100vw,calc((100dvh - 4px) * 1231 / 691));
-  height:auto;aspect-ratio:1231 / 691;margin:0 auto;
-  overflow:hidden;background:#020713;color:var(--white)
-}
-#app-shell{margin:0;width:1231px;height:691px}
-#stage{transform:none!important}
-"""
-    html=('''<svg xmlns="http://www.w3.org/2000/svg"
-       id="bb-v2-viewport" viewBox="0 0 1231 691"
-       preserveAspectRatio="xMidYMin meet"
-       aria-label="BestBets NBA Intelligence">
-       <foreignObject x="0" y="0" width="1231" height="691">'''
-       +body+'''</foreignObject></svg>''')
-    return html,css,script
+    # Keep each footer card and its navigation label together when the grid
+    # wraps. All original IDs, text and route handlers are preserved.
+    footer=body.split('<footer id="footer">',1)[1].split('</footer>',1)[0]
+    tiles=re.findall(r'  <div class="preview".*?(?=\n  <div class="preview"|\n </div>)',footer,re.S)
+    links=re.findall(r'<button data-page=.*?</button>',footer)
+    assert len(tiles)==len(links)==6, "Unexpected footer structure"
+    modules=''.join('<div class="module-slot">'+tile+
+        '<nav class="footer-links">'+link+'</nav></div>' for tile,link in zip(tiles,links))
+    body=body.replace(footer,'<div class="module-grid">'+modules+'</div>')
+    body=body.replace('<div id="work">','<main id="work">',1)
+    body=body.replace('</div>\n<footer id="footer">','</main>\n<footer id="footer">',1)
+    return body,css,script
 
 
 HTML,CSS,JS=_assets()
-CANVAS=st.components.v2.component(
-    "bestbets_reference_without_iframe_v2",
+DASHBOARD=st.components.v2.component(
+    "bestbets_responsive_full_width_v2",
     html=HTML,css=CSS,js=JS
 )
 
@@ -152,7 +167,7 @@ def main():
         "player":st.session_state["bb_v2_payload"].get("player"),
         "error":st.session_state["bb_v2_payload"].get("error","")
     }
-    result=CANVAS(data=payload,key="bb_v2_canvas",on_search_change=lambda:None)
+    result=DASHBOARD(data=payload,key="bb_v2_dashboard",on_search_change=lambda:None)
     event=result.search
     if not isinstance(event,dict) or event.get("type")!="search":
         return
