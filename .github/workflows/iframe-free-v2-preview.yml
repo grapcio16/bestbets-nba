@@ -11,6 +11,9 @@ jobs:
   preview-browser:
     runs-on: ubuntu-latest
     timeout-minutes: 18
+    strategy:
+      matrix:
+        streamlit: ['1.59.0', latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -18,8 +21,10 @@ jobs:
           python-version: '3.11'
       - name: Install preview dependencies
         run: |
-          python -m pip install -r requirements.txt
-          python -m pip install 'streamlit>=1.59,<2' playwright
+          python -m pip install -r requirements-preview.txt playwright
+          if [ '${{ matrix.streamlit }}' != latest ]; then
+            python -m pip install 'streamlit==${{ matrix.streamlit }}'
+          fi
           python -m playwright install --with-deps chromium
       - name: Check Python syntax and V2 assets
         run: |
@@ -32,26 +37,31 @@ jobs:
           assert len(x.HTML)>9000
           assert 'export default function(component)' in x.JS
           from pathlib import Path
-          Path('/tmp/bbv2.js').write_text(x.JS)
+          Path('/tmp/bbv2.mjs').write_text(x.JS)
           PY
-          node --check /tmp/bbv2.js
+          node --check /tmp/bbv2.mjs
       - name: Launch separate preview (production untouched)
         run: |
           python -m streamlit run preview_v2.py --server.headless true --server.port 8501 --server.address 127.0.0.1 >/tmp/bbv2.log 2>&1 &
+          python -m streamlit run app.py --server.headless true --server.port 8502 --server.address 127.0.0.1 >/tmp/bbv1.log 2>&1 &
           for i in $(seq 1 90); do
-            curl -fsS http://127.0.0.1:8501/_stcore/health >/dev/null 2>&1 && exit 0
+            if curl -fsS http://127.0.0.1:8501/_stcore/health >/dev/null 2>&1 && curl -fsS http://127.0.0.1:8502/_stcore/health >/dev/null 2>&1; then exit 0; fi
             sleep 1
           done
           cat /tmp/bbv2.log
           exit 1
       - name: Test full page in Chromium without iframe
         run: python test_v2_browser_preview.py
+      - name: Reproduce old feedback and compare approved appearance
+        run: python test_scaling_evidence.py
       - name: Save screenshot and logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bestbets-iframe-free-v2-preview
+          name: bestbets-iframe-free-v2-preview-${{ matrix.streamlit }}
           if-no-files-found: ignore
           path: |
-            bestbets_v2_preview_browser.png
+            work/v2-browser/
+            work/scaling-evidence/
             /tmp/bbv2.log
+            /tmp/bbv1.log

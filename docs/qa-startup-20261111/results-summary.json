@@ -1,0 +1,493 @@
+{
+  "production_base": "76e6b46",
+  "experiment_base": "a79de39",
+  "python_unit_tests": {
+    "total": 196,
+    "passed": 196
+  },
+  "preview_runs": {
+    "1.67.0": {
+      "passed": true,
+      "browser": "chromium",
+      "browser_version": "151.0.7922.34",
+      "page_errors": [],
+      "console_errors": [],
+      "failed_requests": [],
+      "http_errors": [],
+      "runs": [
+        {
+          "label": "1664x900",
+          "samples": 392,
+          "first_box": {
+            "x": 33.91261672973633,
+            "y": 0,
+            "width": 1596.1748046875,
+            "height": 895.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "1664x900-reload",
+          "samples": 393,
+          "first_box": {
+            "x": 33.91261672973633,
+            "y": 0,
+            "width": 1596.1748046875,
+            "height": 895.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "1366x768",
+          "samples": 386,
+          "first_box": {
+            "x": 2.482226848602295,
+            "y": 0,
+            "width": 1361.02001953125,
+            "height": 763.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "1366x768-reload",
+          "samples": 383,
+          "first_box": {
+            "x": 2.482226848602295,
+            "y": 0,
+            "width": 1361.02001953125,
+            "height": 763.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "1920x1080",
+          "samples": 392,
+          "first_box": {
+            "x": 1.5719518661499023,
+            "y": 0,
+            "width": 1916.840576171875,
+            "height": 1075.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "1920x1080-reload",
+          "samples": 403,
+          "first_box": {
+            "x": 1.5719518661499023,
+            "y": 0,
+            "width": 1916.840576171875,
+            "height": 1075.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "1231x691",
+          "samples": 386,
+          "first_box": {
+            "x": 3.5690574645996094,
+            "y": 0,
+            "width": 1223.84619140625,
+            "height": 686.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "390x844",
+          "samples": 372,
+          "first_box": {
+            "x": 0.011871381662786007,
+            "y": 0,
+            "width": 389.97625732421875,
+            "height": 218.90625
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "844x390",
+          "samples": 373,
+          "first_box": {
+            "x": 78.18121337890625,
+            "y": 0,
+            "width": 687.6219482421875,
+            "height": 385.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        }
+      ]
+    },
+    "1.59.0": {
+      "passed": true,
+      "browser": "chromium",
+      "browser_version": "151.0.7922.34",
+      "page_errors": [],
+      "console_errors": [],
+      "failed_requests": [],
+      "http_errors": [],
+      "runs": [
+        {
+          "label": "1664x900",
+          "samples": 353,
+          "first_box": {
+            "x": 33.91261672973633,
+            "y": 0,
+            "width": 1596.1748046875,
+            "height": 895.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "1664x900-reload",
+          "samples": 425,
+          "first_box": {
+            "x": 33.91261672973633,
+            "y": 0,
+            "width": 1596.1748046875,
+            "height": 895.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "1366x768",
+          "samples": 285,
+          "first_box": {
+            "x": 2.482226848602295,
+            "y": 0,
+            "width": 1361.02001953125,
+            "height": 763.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "1366x768-reload",
+          "samples": 348,
+          "first_box": {
+            "x": 2.482226848602295,
+            "y": 0,
+            "width": 1361.02001953125,
+            "height": 763.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "1920x1080",
+          "samples": 436,
+          "first_box": {
+            "x": 1.5719518661499023,
+            "y": 0,
+            "width": 1916.840576171875,
+            "height": 1075.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "1920x1080-reload",
+          "samples": 372,
+          "first_box": {
+            "x": 1.5719518661499023,
+            "y": 0,
+            "width": 1916.840576171875,
+            "height": 1075.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "1231x691",
+          "samples": 383,
+          "first_box": {
+            "x": 3.5690574645996094,
+            "y": 0,
+            "width": 1223.84619140625,
+            "height": 686.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "390x844",
+          "samples": 377,
+          "first_box": {
+            "x": 0.011871381662786007,
+            "y": 0,
+            "width": 389.97625732421875,
+            "height": 218.90625
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        },
+        {
+          "label": "844x390",
+          "samples": 370,
+          "first_box": {
+            "x": 78.18121337890625,
+            "y": 0,
+            "width": 687.6219482421875,
+            "height": 385.984375
+          },
+          "max_width_delta": 0.0,
+          "max_height_delta": 0.0
+        }
+      ]
+    }
+  },
+  "scaling_evidence": {
+    "controlled_v1_feedback": {
+      "heights": [
+        242,
+        244,
+        246,
+        248,
+        250,
+        252,
+        254,
+        256,
+        258,
+        260,
+        262,
+        264,
+        266,
+        268,
+        270,
+        272,
+        274,
+        276,
+        278,
+        280,
+        282,
+        284,
+        286,
+        288,
+        290,
+        292,
+        294,
+        296,
+        298,
+        300,
+        302,
+        304,
+        306,
+        308,
+        310,
+        312,
+        314,
+        316,
+        318,
+        320,
+        322,
+        324,
+        326,
+        328,
+        330,
+        332,
+        334,
+        336,
+        338,
+        340,
+        342,
+        344,
+        346,
+        348,
+        350,
+        352,
+        354,
+        357,
+        359,
+        362,
+        364,
+        367,
+        369,
+        372,
+        374,
+        377,
+        379,
+        382,
+        384,
+        387,
+        389,
+        392,
+        394,
+        397,
+        399,
+        401,
+        403,
+        405,
+        407,
+        409,
+        411,
+        413,
+        415,
+        417,
+        419,
+        421,
+        423,
+        425,
+        427,
+        429,
+        431,
+        433,
+        435,
+        437,
+        439,
+        441,
+        443,
+        445,
+        447,
+        449,
+        451,
+        453,
+        455,
+        457,
+        459,
+        461,
+        463,
+        465
+      ],
+      "captures": [
+        {
+          "second": 0,
+          "box": {
+            "x": 616.5,
+            "y": 0,
+            "width": 431.125,
+            "height": 242
+          }
+        },
+        {
+          "second": 1,
+          "box": {
+            "x": 577,
+            "y": 0,
+            "width": 509.5,
+            "height": 286
+          }
+        },
+        {
+          "second": 3,
+          "box": {
+            "x": 514,
+            "y": 0,
+            "width": 635.984375,
+            "height": 357
+          }
+        },
+        {
+          "second": 6,
+          "box": {
+            "x": 426.5,
+            "y": 0,
+            "width": 810.578125,
+            "height": 455
+          }
+        }
+      ]
+    },
+    "visual_comparison": {
+      "identical_styles": [
+        ".wordmark",
+        "#hero",
+        "#chart-panel",
+        "#side-stats",
+        "#take",
+        "#card-home",
+        "#card-shortcuts",
+        "#query",
+        "#line"
+      ],
+      "different_pixels_pct": 0.0,
+      "pixels_difference_above_10_pct": 0.0
+    },
+    "static_shell_without_component_js": true
+  },
+  "live": {
+    "overall_passed": false,
+    "reason": "Strict console check failed on ESPN portrait TLS certificate in managed Chromium",
+    "functional_assertions": {
+      "player": "Nikola Jokic",
+      "coverage": "NBA 2026-27 · 14 zweryfikowanych występów",
+      "markets": {
+        "PTS": 10,
+        "REB": 10,
+        "AST": 10,
+        "FG3M": 10,
+        "PRA": 10
+      },
+      "periods": {
+        "L5": 5,
+        "L10": 10,
+        "L15": 14,
+        "Season": 14
+      }
+    },
+    "page_errors": [],
+    "console_errors": [
+      "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+      "Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID"
+    ],
+    "failed_requests": [
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "error": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "error": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "error": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "error": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "error": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "error": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "error": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "error": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "error": "net::ERR_CERT_AUTHORITY_INVALID"
+      }
+    ],
+    "http_errors": []
+  },
+  "limitations": [
+    "Opera/Windows not tested",
+    "Public Streamlit URL blocked by certificate trust in test browser",
+    "Firefox could not start: /proc/self/uid_map EROFS and SWGL mapping error"
+  ]
+}

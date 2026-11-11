@@ -28,7 +28,12 @@ def _assets():
     script=script.replace(
         original_header,
         'export default function(component) {\n"use strict";\n'
-        'const {parentElement,data,setTriggerValue}=component;',
+        'const {parentElement,data,setTriggerValue}=component;\n'
+        'const mounted=parentElement.__bestbetsV2;\n'
+        'if(mounted && mounted.root===parentElement.querySelector("#stage")){\n'
+        '  mounted.update(data,setTriggerValue);return;\n'
+        '}\n'
+        'const bridge={setTriggerValue};',
         1
     )
     old_lookup='const $=function(id){return document.getElementById(id)};'
@@ -45,7 +50,7 @@ def _assets():
     script=script.replace(old_notify,'''function notify(type,extra){
   // V2 triggers go directly to Python, without iframe/window messages.
   if(type==="streamlit:setComponentValue"){
-    setTriggerValue("search",(extra||{}).value);
+    bridge.setTriggerValue("search",(extra||{}).value);
   }
 }''',1)
     start=script.index("function resize(){")
@@ -57,23 +62,43 @@ def _assets():
 '''+script[finish:]
     script=script.replace('window.addEventListener("resize",resize);','')
     start=script.index('window.addEventListener("message",function(event){')
-    script=script[:start]+'''state.payload=data||{player:null,error:"",brand:""};
-state.loading=false;
-const p=state.payload.player;
-if(p){
-  state.market=p.market||"PTS";
-  state.line=Number(p.line)||25.5;
-  state.side=p.side==="UNDER"?"UNDER":"OVER";
-  state.period="L10";
+    script=script[:start]+'''function update(payload,trigger){
+  bridge.setTriggerValue=trigger;
+  // Keep local draft/error mutations separate from Streamlit's input data.
+  state.payload={...(payload||{player:null,error:"",brand:""})};
+  state.loading=false;
+  const p=state.payload.player;
+  if(p){
+    const identity=[p.name,p.market,p.line,p.side].join("|");
+    if(identity!==state.lastIdentity){
+      state.market=p.market||"PTS";state.line=Number(p.line)||25.5;
+      state.side=p.side==="UNDER"?"UNDER":"OVER";state.period="L10";
+      state.lastIdentity=identity;
+    }
+  }
+  render();
 }
-render();
+// V2 reruns JS when data changes but retains its DOM. Bind listeners once.
+parentElement.__bestbetsV2={root,update};
+update(data,setTriggerValue);
 }'''
-    # The original CSS is scoped inside a V2 shadow root.
+    # The v1 document's root rules must target the V2 shadow host. Without
+    # this, Streamlit's font, line height and text color leak into the canvas.
+    css=css.replace(":root{", ":host{")
+    css=css.replace("html,body{", ":host{")
     css += """
-:host{display:block;width:100%;background:#020713;overflow:hidden}
+:host{
+  /* Streamlit's parent padding can settle AFTER the component mounts.
+     This dedicated fullscreen entrypoint must fit the viewport immediately. */
+  position:fixed;inset:0;z-index:1000;
+  display:block;width:100%;height:100dvh;background:#020713;overflow:hidden;
+  line-height:normal;text-align:left;letter-spacing:normal;
+  font-weight:400;font-style:normal
+}
 #bb-v2-viewport{
-  display:block;width:100%;height:auto;max-height:calc(100dvh - 4px);
-  overflow:hidden;background:#020713
+  display:block;width:min(100vw,calc((100dvh - 4px) * 1231 / 691));
+  height:auto;aspect-ratio:1231 / 691;margin:0 auto;
+  overflow:hidden;background:#020713;color:var(--white)
 }
 #app-shell{margin:0;width:1231px;height:691px}
 #stage{transform:none!important}
@@ -114,6 +139,8 @@ def main():
     st.session_state.setdefault("bb_v2_payload",{"player":None,"error":""})
     payload={
         "brand":_cached_brand(),
+        # Even two identical responses must finish two separate searches.
+        "response_id":st.session_state.get("bb_v2_response_id",""),
         "player":st.session_state["bb_v2_payload"].get("player"),
         "error":st.session_state["bb_v2_payload"].get("error","")
     }
@@ -121,6 +148,10 @@ def main():
     event=result.search
     if not isinstance(event,dict) or event.get("type")!="search":
         return
+    event_id=str(event.get("id") or "")
+    if not event_id or event_id==st.session_state.get("bb_v2_response_id"):
+        return
+    st.session_state["bb_v2_response_id"]=event_id
     query=str(event.get("query") or "").strip()
     if not query:
         st.session_state["bb_v2_payload"]={"player":None,"error":"Wpisz zdarzenie do wyszukania."}
