@@ -91,7 +91,15 @@ update(data,setTriggerValue);
   /* Streamlit's parent padding can settle AFTER the component mounts.
      This dedicated fullscreen entrypoint must fit the viewport immediately. */
   position:fixed;inset:0;z-index:1000;
-  display:block;width:100%;height:100dvh;background:#020713;overflow:hidden;
+  display:block;width:100%;height:100dvh;overflow:hidden;
+  /* Full-bleed background extends the approved dashboard atmosphere
+     beyond its 1231:691 aspect-ratio frame without cropping or distortion.
+     It also appears before component JavaScript is initialized. */
+  background:
+    radial-gradient(ellipse 72% 90% at 50% 8%,rgba(0,105,180,.16),transparent 72%),
+    radial-gradient(ellipse 25% 70% at 0% 55%,rgba(0,155,220,.075),transparent 80%),
+    radial-gradient(ellipse 25% 70% at 100% 52%,rgba(0,155,220,.065),transparent 80%),
+    linear-gradient(90deg,#061426 0%,#061426 30%,#020713 69%,#061426 100%);
   line-height:normal;text-align:left;letter-spacing:normal;
   font-weight:400;font-style:normal
 }
