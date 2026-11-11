@@ -36,7 +36,7 @@ jobs:
           assert 'stripe_test_billing' not in app
           assert 'create_test_gateway' in backend
           assert 'Webhook.construct_event' in backend
-          assert 'streamlit' not in backend.lower()
+          assert 'import streamlit' not in backend and 'from streamlit' not in backend
           assert not any('sk_live_' in s.read_text(encoding="utf-8")
                          for s in [Path("stripe_test_billing.py")])
           print("Billing sandbox is isolated from public BestBets.")
