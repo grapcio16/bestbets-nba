@@ -1,0 +1,32 @@
+{
+  "environment": "sandbox-only",
+  "python": "3.12.14",
+  "stripe_sdk": "13.2.1",
+  "api_version": "2025-02-24.acacia",
+  "databases": {
+    "sqlite": {
+      "tests": 84,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "time": 3.298
+    },
+    "postgresql-17.11": {
+      "tests": 84,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "time": 7.027
+    }
+  },
+  "unittest": {
+    "tests": 207,
+    "failures": 0
+  },
+  "public_ui_changed": false,
+  "real_stripe_api_calls": false,
+  "external_idp_e2e": false,
+  "legal_approval": false,
+  "stripe_merchant_approval": false,
+  "base_commit": "76e6b4629e04da593e34ab2b9145a3e2897e608e"
+}
