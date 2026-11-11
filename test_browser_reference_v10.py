@@ -70,7 +70,7 @@ def main():
         assert "bb-plot-bar" in page.locator("#chart-svg rect.bb-plot-bar").first.get_attribute("class")
         # The first render and populated data must appear immediately, without
         # introductory movement or perpetual glow pulsing.
-        for selector in (".topsearch", ".hero-photo>img:not([hidden])",
+        for selector in (".topsearch", ".hero-photo>img",
                          "#chart-svg rect.bb-plot-bar", "#rate10"):
             assert page.locator(selector).first.evaluate(
                 "(node) => getComputedStyle(node).animationName"
