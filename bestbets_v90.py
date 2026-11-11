@@ -16,6 +16,7 @@ from mvp_app import get_logs, get_schedule
 from mvp_prop_ui import render_player_props
 from mvp_reference_theme import apply_reference_theme
 from bestbets_v90_theme import apply_v90_theme
+from bestbets_v91_fx import apply_reference_fx
 
 ROOT=Path(__file__).resolve().parent
 SEASON="2026-27"
@@ -244,6 +245,7 @@ def main():
         st.session_state["bb90_bootstrapped"]=True
     apply_reference_theme()
     apply_v90_theme()
+    apply_reference_fx()
     _sidebar()
     if st.session_state["bb90_page"]=="props":
         _player_props()
