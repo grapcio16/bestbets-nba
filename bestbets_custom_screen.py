@@ -193,7 +193,12 @@ def main() -> None:
         [data-testid="stMain"] [data-testid="stVerticalBlock"]{gap:0!important}
         [data-testid="stMain"] iframe{
             display:block!important;border:0!important;
-            width:100%!important;background:#020713!important
+            width:100%!important;background:#020713!important;
+            /* Hard cap the embedded canvas to the visible app area.
+               Child resize() scales both axes to keep ALL six tiles visible. */
+            height:calc(100vh - 4px)!important;
+            height:calc(100dvh - 4px)!important;
+            min-height:0!important;
         }
         .stApp{background:#020713!important}
         </style>""", unsafe_allow_html=True
