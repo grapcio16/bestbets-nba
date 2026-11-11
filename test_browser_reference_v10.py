@@ -115,6 +115,9 @@ def main():
         # first load, later given its final height by the parent. The OLD
         # resize routine sent 152,154,156... and zoomed for several seconds.
         outer=browser.new_page(viewport={"width":1664,"height":900},screen={"width":1664,"height":900})
+        # Give the parent the same file:// origin as the embedded local
+        # HTML. An about:blank parent cannot load a local file iframe.
+        outer.goto(DOC,wait_until="domcontentloaded")
         outer.set_content(f"""
         <!doctype html><html><body style="margin:0;background:#020713">
         <script>
