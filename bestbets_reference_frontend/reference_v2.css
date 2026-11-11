@@ -134,7 +134,7 @@ aside:before {bottom:148px;left:24px;width:calc(100% - 48px);background:#2e5572}
 .suggestions .searchsymbol {font-size:17px}
 .suggestions .searchsymbol svg {width:17px;height:17px;vertical-align:-4px;stroke-width:2}
 #props-pane {
-  grid-template-columns:minmax(0,1.49fr) minmax(410px,1fr);
+  grid-template-columns:minmax(0,1fr) clamp(440px,32vw,610px);
   gap:10px 16px;
 }
 #hero {
