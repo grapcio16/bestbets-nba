@@ -353,7 +353,7 @@ aside:before {bottom:148px;left:24px;width:calc(100% - 48px);background:#2e5572}
   #work {gap:8px}
   .topsearch {height:48px}
   .topsearch .glass {display:none}
-  .topsearch input {font-size:15px}
+  .topsearch input {font-size:16px}
   .topsearch button {height:38px;flex:0 0 37px;margin:0 2px}
   .topsearch button svg {width:20px;height:20px}
   .clear-query {min-width:24px}
