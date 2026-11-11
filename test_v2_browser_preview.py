@@ -54,7 +54,9 @@ def assert_layout(page, width, height):
     assert abs(stage['x']) < 1 and width - 16 <= stage['width'] <= width, stage
     assert abs(main['width'] - (stage['width'] - sidebar['width'])) < 1, main
     assert abs(main['x'] - sidebar['width']) < 1, main
-    sidebar_width = 64 if width <= 640 else 176 if width <= 900 else 200
+    sidebar_width = (64 if width <= 640 else 160 if width <= 900
+                     else 176 if width <= 1199 else 194 if width <= 1499
+                     else min(224, max(194, .13 * width)))
     assert abs(sidebar['width'] - sidebar_width) < 1, sidebar
     for selector in ('#hero', '.topsearch', '#chart-panel', '#side-stats',
                      '#take', '.footer-links', '.preview', '.suggestions', '.controls'):
@@ -72,7 +74,7 @@ def assert_layout(page, width, height):
     assert abs(footer['width'] - main['width']) < 1, (footer, main)
     assert abs(hero['x'] + hero['width'] - (stage['width'] - hero['x'] + sidebar['width'])) < 1
     if width >= 1200:
-        assert abs(stats['width'] - 412) < 1, stats
+        assert 365 <= stats['width'] <= 615, stats
         assert abs(chart['width'] + stats['width'] + 16 - hero['width']) < 1
         assert abs(chart['y'] - stats['y']) < 1
     else:
@@ -86,6 +88,16 @@ def assert_layout(page, width, height):
     assert page.locator('foreignObject, #bb-v2-viewport').count() == 0
     assert page.locator('[data-testid="stException"]').count() == 0
     assert page.locator('#app-shell').evaluate('el => el.scrollWidth <= el.clientWidth + 1')
+    # Reference UI has real vector pictograms and no tiny desktop labels.
+    assert page.locator('.brand-kicker').count() == 1
+    assert page.locator('.nav-btn .ic svg').count() >= 6
+    assert page.locator('#search-btn svg').count() == 1
+    assert page.locator('.home-player-copy').count() == 1
+    assert page.locator('.topsearch').evaluate(
+        "el => parseFloat(getComputedStyle(el).height)") >= 48
+    if width >= 1200:
+        assert page.locator('#chart-panel').evaluate(
+            "el => parseFloat(getComputedStyle(el).height)") <= 350
     # Regression guard against the miniature labels/icons seen in the first
     # full-width V2 preview. Check actual rendered CSS, not just CSS source.
     readable_sizes = {

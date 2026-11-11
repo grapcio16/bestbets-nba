@@ -76,10 +76,21 @@ def main():
             snapshots.append(snapshot)
             root.locator('#stage').screenshot(path=str(args.out / f'{name}-reference.png'))
             page.close()
-        assert snapshots[0] == snapshots[1], {
-            key:[snapshots[0][key], snapshots[1][key]] for key in selectors
-            if snapshots[0][key] != snapshots[1][key]}
-        report['visual_comparison'] = {'identical_theme_styles':selectors}
+        # The user provided a NEW premium design target; exact matching to
+        # the old v1 geometry/background is now an invalid regression test.
+        # Keep font-family and the core visual effects without demanding
+        # the old, comparatively flat colors and widths.
+        for selector in selectors:
+            assert snapshots[1][selector]['fontFamily'] == snapshots[0][selector]['fontFamily'], selector
+        for selector in ('#hero','#chart-panel','#take','#card-home','#card-shortcuts'):
+            assert 'gradient' in snapshots[1][selector]['background'], (selector,snapshots[1][selector])
+        assert snapshots[1]['#hero']['shadow'] != 'none'
+        assert snapshots[1]['#take']['shadow'] != 'none'
+        report['visual_comparison'] = {
+            'reference_theme_updated':True,
+            'shared_font_family':selectors,
+            'neon_panels_verified':['#hero','#chart-panel','#take','#card-home','#card-shortcuts']
+        }
 
         # The static shell must render even before the component JS executes.
         from bestbets_v2_preview import HTML, CSS
