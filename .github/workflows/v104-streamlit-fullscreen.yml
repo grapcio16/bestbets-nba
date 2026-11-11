@@ -1,0 +1,44 @@
+name: BestBets full Streamlit canvas browser QA
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install app and browser dependencies
+        run: |
+          python -m pip install -r requirements.txt playwright
+          python -m playwright install --with-deps chromium
+      - name: Launch real Streamlit server
+        run: |
+          python -m streamlit run app.py --server.headless true --server.port 8501 --server.address 127.0.0.1 >/tmp/bestbets-streamlit.log 2>&1 &
+          for n in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:8501/_stcore/health >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/bestbets-streamlit.log
+          exit 1
+      - name: Verify full-screen public entrypoint in Chromium
+        run: python test_streamlit_fullscreen_v104.py
+      - name: Preserve screenshot and Streamlit log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bestbets-v104-live-streamlit
+          path: |
+            reference_streamlit_fullscreen.png
+            /tmp/bestbets-streamlit.log
+          if-no-files-found: ignore
