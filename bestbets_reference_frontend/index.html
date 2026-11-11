@@ -31,7 +31,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 .settings{position:absolute;top:433px;left:37px;width:134px}
 .settings .nav-btn{font-size:11px}
 #work{position:absolute;left:175px;top:0;width:1056px;height:690px}
-.topsearch{position:absolute;top:10px;left:128px;width:708px;height:38px;border:1.5px solid #15bfff;border-radius:28px;background:linear-gradient(105deg,#061224,#092444 72%,#19283e);box-shadow:0 0 0 2px rgba(6,162,255,.14),0 0 15px rgba(0,166,255,.57),inset 0 0 11px rgba(5,143,232,.13);display:flex;align-items:center;animation:search-glow 6s ease-in-out infinite}
+.topsearch{position:absolute;top:10px;left:128px;width:708px;height:38px;border:1.5px solid #15bfff;border-radius:28px;background:linear-gradient(105deg,#061224,#092444 72%,#19283e);box-shadow:0 0 0 2px rgba(6,162,255,.14),0 0 15px rgba(0,166,255,.57),inset 0 0 11px rgba(5,143,232,.13);display:flex;align-items:center}
 .topsearch .glass{font-size:24px;margin-left:12px;color:#ecf8ff;line-height:1}
 .topsearch input{background:transparent;border:0;color:white;outline:none!important;font-size:16px;font-weight:760;width:574px;height:33px;padding:0 10px}
 .topsearch input::placeholder{color:#dbe7f4;opacity:.88}
@@ -167,7 +167,6 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 #notice{display:none;position:absolute;left:270px;top:82px;width:700px;z-index:40;background:#411e24;color:#ffb9ae;border:1px solid #fe7863;border-radius:8px;padding:8px 14px;font-size:12px;box-shadow:0 5px 30px #000b}
 #loader{display:none;position:absolute;left:970px;top:14px;border:2px solid #ffad50;border-top-color:transparent;border-radius:50%;width:14px;height:14px;animation:spin .65s linear infinite}
 #attribution{position:absolute;left:176px;top:685px;font-size:7px;color:#4d7898}
-@keyframes search-glow{0%,100%{box-shadow:0 0 0 2px rgba(4,162,255,.12),0 0 15px rgba(0,158,255,.50),inset 0 0 11px rgba(4,150,255,.1)}50%{box-shadow:0 0 0 2px rgba(4,162,255,.29),0 0 24px rgba(0,173,255,.7),inset 0 0 17px rgba(4,150,255,.19)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* v10.1 — protect the approved visual geometry, only polish the behavior. */
 .hero-photo>img{
@@ -176,15 +175,6 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
   filter:drop-shadow(0 5px 8px rgba(0,0,0,.43));
 }
 .hero-team-halo img{opacity:.61;transform:scale(.92)}
-.hero-photo>img:not([hidden]){animation:bb-portrait-reveal .5s ease both}
-@keyframes bb-portrait-reveal{from{opacity:.55;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-@keyframes bb-bars-rise{from{transform:scaleY(.06);opacity:.48}to{transform:scaleY(1);opacity:1}}
-#chart-svg .bb-plot-bar{
-  transform-box:fill-box;transform-origin:center bottom;
-  animation:bb-bars-rise .45s cubic-bezier(.23,.8,.35,1) both;
-}
-@keyframes bb-stat-pop{from{opacity:.70;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
-.stat-pop{animation:bb-stat-pop .35s ease-out both}
 .control-box button,.tab-control button,.period-control button{
   transition:background-color .15s ease,box-shadow .18s ease,filter .18s ease!important
 }
@@ -278,21 +268,10 @@ function resize(){
   shell.style.height=Math.ceil(691*scale)+"px";
   notify("streamlit:setFrameHeight",{height:Math.ceil(691*scale)+2});
 }
-const animatedMetrics=new Set([
-  "hero-avg","hero-line","hero-rate","rate5","rate10","rate15","rate-season",
-  "season-avg","home-avg","away-avg","hero-defense"
-]);
 function text(id,value){
   const el=$(id);if(!el)return;
   const next=String(value==null?"—":value);
-  if(el.textContent===next)return;
-  el.textContent=next;
-  if(animatedMetrics.has(id)){
-    el.classList.remove("stat-pop");
-    // Force a new keyframe only when a metric ACTUALLY changes.
-    void el.offsetWidth;
-    el.classList.add("stat-pop");
-  }
+  if(el.textContent!==next)el.textContent=next;
 }
 function fmt(v,digits){
   if(typeof v!=="number"||!Number.isFinite(v))return "—";
