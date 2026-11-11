@@ -112,6 +112,11 @@ def main():
         # Simulate a wide desktop window with less vertical space (the
         # screenshot issue that previously clipped the bottom nav tiles).
         page.set_viewport_size({"width":1664, "height":820})
+        # Viewport resize is delivered on the next browser layout frame.
+        page.wait_for_function(
+            "document.querySelector('#stage').getBoundingClientRect().width >= 1450",
+            timeout=7000
+        )
         box = page.locator("#stage").bounding_box()
         shortcut = page.locator("#card-shortcuts").bounding_box()
         bottom_nav = page.locator(".footer-links").bounding_box()
