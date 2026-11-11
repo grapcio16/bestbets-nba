@@ -1,0 +1,897 @@
+{
+  "base_commit": "1efb47712a8dadea6890267d76290ad865df4fb1",
+  "production_unchanged": true,
+  "unit_tests": {
+    "passed": 196,
+    "total": 196
+  },
+  "startup": {
+    "1.67.0": {
+      "passed": true,
+      "browser_version": "151.0.7922.34",
+      "page_errors": [],
+      "console_errors": [],
+      "failed_requests": [],
+      "http_errors": [],
+      "runs": [
+        {
+          "viewport": [
+            1664,
+            900
+          ],
+          "label": "1664x900",
+          "samples": 366,
+          "first_frame": {
+            "t": 2744.5999999996275,
+            "x": 0,
+            "y": 0,
+            "width": 1654,
+            "height": 900,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 1454,
+            "heroWidth": 1422,
+            "chartWidth": 994,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            1664,
+            900
+          ],
+          "label": "1664x900-reload",
+          "samples": 374,
+          "first_frame": {
+            "t": 1563.2000000001863,
+            "x": 0,
+            "y": 0,
+            "width": 1654,
+            "height": 900,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 1454,
+            "heroWidth": 1422,
+            "chartWidth": 994,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            1366,
+            768
+          ],
+          "label": "1366x768",
+          "samples": 395,
+          "first_frame": {
+            "t": 1689.1000000000931,
+            "x": 0,
+            "y": 0,
+            "width": 1356,
+            "height": 1079,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 1156,
+            "heroWidth": 1124,
+            "chartWidth": 696,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            1366,
+            768
+          ],
+          "label": "1366x768-reload",
+          "samples": 473,
+          "first_frame": {
+            "t": 2010.2000000001863,
+            "x": 0,
+            "y": 0,
+            "width": 1356,
+            "height": 1079,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 1156,
+            "heroWidth": 1124,
+            "chartWidth": 696,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            1920,
+            1080
+          ],
+          "label": "1920x1080",
+          "samples": 402,
+          "first_frame": {
+            "t": 4855.899999999907,
+            "x": 0,
+            "y": 0,
+            "width": 1910,
+            "height": 1080,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 1710,
+            "heroWidth": 1678,
+            "chartWidth": 1250,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            1920,
+            1080
+          ],
+          "label": "1920x1080-reload",
+          "samples": 375,
+          "first_frame": {
+            "t": 1598,
+            "x": 0,
+            "y": 0,
+            "width": 1910,
+            "height": 1080,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 1710,
+            "heroWidth": 1678,
+            "chartWidth": 1250,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            2560,
+            1080
+          ],
+          "label": "2560x1080",
+          "samples": 357,
+          "first_frame": {
+            "t": 3021.7999999998137,
+            "x": 0,
+            "y": 0,
+            "width": 2550,
+            "height": 1080,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 2350,
+            "heroWidth": 2318,
+            "chartWidth": 1890,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            3440,
+            1440
+          ],
+          "label": "3440x1440",
+          "samples": 390,
+          "first_frame": {
+            "t": 2653.5,
+            "x": 0,
+            "y": 0,
+            "width": 3430,
+            "height": 1440,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 3230,
+            "heroWidth": 3198,
+            "chartWidth": 2770,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            1024,
+            768
+          ],
+          "label": "1024x768",
+          "samples": 395,
+          "first_frame": {
+            "t": 1494.1000000000931,
+            "x": 0,
+            "y": 0,
+            "width": 1014,
+            "height": 1529,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 814,
+            "heroWidth": 782,
+            "chartWidth": 782,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            768,
+            1024
+          ],
+          "label": "768x1024",
+          "samples": 383,
+          "first_frame": {
+            "t": 1598.8000000002794,
+            "x": 0,
+            "y": 0,
+            "width": 758,
+            "height": 1805.9375,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 582,
+            "heroWidth": 558,
+            "chartWidth": 558,
+            "sidebarWidth": 176,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            390,
+            844
+          ],
+          "label": "390x844",
+          "samples": 465,
+          "first_frame": {
+            "t": 1158.1999999997206,
+            "x": 0,
+            "y": 0,
+            "width": 380,
+            "height": 2817.9375,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 316,
+            "heroWidth": 292,
+            "chartWidth": 292,
+            "sidebarWidth": 64,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            320,
+            740
+          ],
+          "label": "320x740",
+          "samples": 419,
+          "first_frame": {
+            "t": 2387.5,
+            "x": 0,
+            "y": 0,
+            "width": 310,
+            "height": 2886.875,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 246,
+            "heroWidth": 222,
+            "chartWidth": 222,
+            "sidebarWidth": 64,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            844,
+            390
+          ],
+          "label": "844x390",
+          "samples": 359,
+          "first_frame": {
+            "t": 2539.100000000093,
+            "x": 0,
+            "y": 0,
+            "width": 834,
+            "height": 1844.9375,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 658,
+            "heroWidth": 634,
+            "chartWidth": 634,
+            "sidebarWidth": 176,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        }
+      ]
+    },
+    "1.59.0": {
+      "passed": true,
+      "browser_version": "151.0.7922.34",
+      "page_errors": [],
+      "console_errors": [],
+      "failed_requests": [],
+      "http_errors": [],
+      "runs": [
+        {
+          "viewport": [
+            1664,
+            900
+          ],
+          "label": "1664x900",
+          "samples": 392,
+          "first_frame": {
+            "t": 3120.5,
+            "x": 0,
+            "y": 0,
+            "width": 1654,
+            "height": 900,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 1454,
+            "heroWidth": 1422,
+            "chartWidth": 994,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            1664,
+            900
+          ],
+          "label": "1664x900-reload",
+          "samples": 387,
+          "first_frame": {
+            "t": 1197.3999999999069,
+            "x": 0,
+            "y": 0,
+            "width": 1654,
+            "height": 900,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 1454,
+            "heroWidth": 1422,
+            "chartWidth": 994,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            1366,
+            768
+          ],
+          "label": "1366x768",
+          "samples": 402,
+          "first_frame": {
+            "t": 1551.2000000001863,
+            "x": 0,
+            "y": 0,
+            "width": 1356,
+            "height": 1079,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 1156,
+            "heroWidth": 1124,
+            "chartWidth": 696,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            1366,
+            768
+          ],
+          "label": "1366x768-reload",
+          "samples": 426,
+          "first_frame": {
+            "t": 1779.7999999998137,
+            "x": 0,
+            "y": 0,
+            "width": 1356,
+            "height": 1079,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 1156,
+            "heroWidth": 1124,
+            "chartWidth": 696,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            1920,
+            1080
+          ],
+          "label": "1920x1080",
+          "samples": 423,
+          "first_frame": {
+            "t": 2151,
+            "x": 0,
+            "y": 0,
+            "width": 1910,
+            "height": 1080,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 1710,
+            "heroWidth": 1678,
+            "chartWidth": 1250,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            1920,
+            1080
+          ],
+          "label": "1920x1080-reload",
+          "samples": 342,
+          "first_frame": {
+            "t": 1755.3999999999069,
+            "x": 0,
+            "y": 0,
+            "width": 1910,
+            "height": 1080,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 1710,
+            "heroWidth": 1678,
+            "chartWidth": 1250,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            2560,
+            1080
+          ],
+          "label": "2560x1080",
+          "samples": 332,
+          "first_frame": {
+            "t": 2136.7000000001863,
+            "x": 0,
+            "y": 0,
+            "width": 2550,
+            "height": 1080,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 2350,
+            "heroWidth": 2318,
+            "chartWidth": 1890,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            3440,
+            1440
+          ],
+          "label": "3440x1440",
+          "samples": 482,
+          "first_frame": {
+            "t": 2264.2000000001863,
+            "x": 0,
+            "y": 0,
+            "width": 3430,
+            "height": 1440,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 3230,
+            "heroWidth": 3198,
+            "chartWidth": 2770,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            1024,
+            768
+          ],
+          "label": "1024x768",
+          "samples": 421,
+          "first_frame": {
+            "t": 1962.3999999999069,
+            "x": 0,
+            "y": 0,
+            "width": 1014,
+            "height": 1529,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 814,
+            "heroWidth": 782,
+            "chartWidth": 782,
+            "sidebarWidth": 200,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            768,
+            1024
+          ],
+          "label": "768x1024",
+          "samples": 371,
+          "first_frame": {
+            "t": 1446.4000000003725,
+            "x": 0,
+            "y": 0,
+            "width": 758,
+            "height": 1805.9375,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 582,
+            "heroWidth": 558,
+            "chartWidth": 558,
+            "sidebarWidth": 176,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            390,
+            844
+          ],
+          "label": "390x844",
+          "samples": 383,
+          "first_frame": {
+            "t": 1208,
+            "x": 0,
+            "y": 0,
+            "width": 380,
+            "height": 2817.9375,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 316,
+            "heroWidth": 292,
+            "chartWidth": 292,
+            "sidebarWidth": 64,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            320,
+            740
+          ],
+          "label": "320x740",
+          "samples": 343,
+          "first_frame": {
+            "t": 1657.7999999998137,
+            "x": 0,
+            "y": 0,
+            "width": 310,
+            "height": 2886.875,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 246,
+            "heroWidth": 222,
+            "chartWidth": 222,
+            "sidebarWidth": 64,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        },
+        {
+          "viewport": [
+            844,
+            390
+          ],
+          "label": "844x390",
+          "samples": 403,
+          "first_frame": {
+            "t": 1924.6000000000931,
+            "x": 0,
+            "y": 0,
+            "width": 834,
+            "height": 1844.9375,
+            "color": "rgb(244, 248, 255)",
+            "font": "Inter, Arial, Helvetica, sans-serif",
+            "lineHeight": "normal",
+            "mainWidth": 658,
+            "heroWidth": 634,
+            "chartWidth": 634,
+            "sidebarWidth": 176,
+            "transform": "none",
+            "aspectRatio": "auto"
+          },
+          "max_width_delta": 0,
+          "max_main_width_delta": 0
+        }
+      ]
+    }
+  },
+  "premium_styles": {
+    "identical_theme_styles": [
+      ".wordmark",
+      "#hero",
+      "#chart-panel",
+      "#side-stats",
+      "#take",
+      "#card-home",
+      "#card-shortcuts",
+      "#query",
+      "#line"
+    ]
+  },
+  "live": {
+    "functional_assertions_passed": true,
+    "data": {
+      "player": "Nikola Jokic",
+      "coverage": "NBA 2026-27 · 14 zweryfikowanych występów",
+      "markets": {
+        "PTS": 10,
+        "REB": 10,
+        "AST": 10,
+        "FG3M": 10,
+        "PRA": 10
+      },
+      "periods": {
+        "L5": 5,
+        "L10": 10,
+        "L15": 14,
+        "Season": 14
+      },
+      "plot_sizes": [
+        {
+          "viewport": [
+            1920,
+            1080
+          ],
+          "width": 1224,
+          "height": 373,
+          "viewWidth": 1224,
+          "viewHeight": 373
+        },
+        {
+          "viewport": [
+            2560,
+            1080
+          ],
+          "width": 1864,
+          "height": 373,
+          "viewWidth": 1864,
+          "viewHeight": 373
+        },
+        {
+          "viewport": [
+            390,
+            844
+          ],
+          "width": 274,
+          "height": 231,
+          "viewWidth": 274,
+          "viewHeight": 231
+        },
+        {
+          "viewport": [
+            1664,
+            900
+          ],
+          "width": 968,
+          "height": 199,
+          "viewWidth": 968,
+          "viewHeight": 199
+        }
+      ]
+    },
+    "page_errors": [],
+    "failed_requests": [
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+      },
+      {
+        "url": "https://a.espncdn.com/i/headshots/nba/players/full/3112335.png",
+        "failure": "net::ERR_CERT_AUTHORITY_INVALID"
+      }
+    ]
+  },
+  "live_streamlit_1_59": {
+    "functional_assertions_passed": true,
+    "data": {
+      "player": "Nikola Jokic",
+      "coverage": "NBA 2026-27 · 14 zweryfikowanych występów",
+      "markets": {
+        "PTS": 10,
+        "REB": 10,
+        "AST": 10,
+        "FG3M": 10,
+        "PRA": 10
+      },
+      "periods": {
+        "L5": 5,
+        "L10": 10,
+        "L15": 14,
+        "Season": 14
+      },
+      "plot_sizes": [
+        {
+          "viewport": [
+            1920,
+            1080
+          ],
+          "width": 1224,
+          "height": 373,
+          "viewWidth": 1224,
+          "viewHeight": 373
+        },
+        {
+          "viewport": [
+            2560,
+            1080
+          ],
+          "width": 1864,
+          "height": 373,
+          "viewWidth": 1864,
+          "viewHeight": 373
+        },
+        {
+          "viewport": [
+            390,
+            844
+          ],
+          "width": 274,
+          "height": 231,
+          "viewWidth": 274,
+          "viewHeight": 231
+        },
+        {
+          "viewport": [
+            1664,
+            900
+          ],
+          "width": 968,
+          "height": 199,
+          "viewWidth": 968,
+          "viewHeight": 199
+        }
+      ]
+    },
+    "page_errors": [],
+    "chart_width_at_heights_720_1080_1440": [
+      1250,
+      1250,
+      1250
+    ]
+  },
+  "limitations": [
+    "Opera/Windows not tested",
+    "ESPN portrait rejected by managed Chromium TLS trust; not bypassed",
+    "Mobile and short windows use vertical scrolling; no horizontal clipping"
+  ]
+}
