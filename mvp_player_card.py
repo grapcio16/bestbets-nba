@@ -91,7 +91,7 @@ def _plot(games,market,line):
             games["MATCHUP"].tolist() if "MATCHUP" in games else [""]*count)
     ]
     chart.update_layout(
-        height=465,bargap=.22,
+        height=415,bargap=.20,
         margin=dict(l=23,r=12,t=34,b=20),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
