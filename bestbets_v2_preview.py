@@ -75,10 +75,10 @@ def _assets():
 // grid and baseline: only the actual bars / labels are positioned in the
 // grouping. All positions follow real CSS pixels and remain responsive.
 function chartBarGeometry(available,count){
-  const plotSpan=Math.min(available,count*96,960);
+  const plotSpan=Math.min(available,count*82,960);
   const step=plotSpan/count;
-  const gap=Math.min(count>15?12:count>10?16:26,step*.35);
-  const bar=Math.max(1,Math.min(62,step-gap));
+  const gap=Math.min(14,step*.22);
+  const bar=Math.max(1,Math.min(68,step-gap));
   const start=(available-plotSpan)/2;
   return {plotSpan,step,bar,start};
 }
