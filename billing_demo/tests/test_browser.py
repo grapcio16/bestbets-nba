@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from playwright.sync_api import expect
-from .conftest import register
+from billing_demo.tests.conftest import register
 
 
 def screenshot(page, name):

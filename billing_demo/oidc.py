@@ -16,14 +16,15 @@ class Auth0OIDC:
         self.key = self.api.key_resolver
         self.base = settings.oidc_issuer.rstrip('/')
 
-    def authorize(self, state, nonce, verifier, signup=False):
+    def authorize(self, state, nonce, verifier, signup=False, recover=False):
         # Static configured issuer, never a URL/redirect supplied by a browser.
         with OAuth2Client(self.config.client_id, self.config.client_secret,
                 code_challenge_method='S256', redirect_uri=self.config.origin+'/auth/callback',
                 scope='openid email bestbets:api') as client:
+            prompt = {'prompt':'login'} if signup or recover else {}
             url, _ = client.create_authorization_url(self.base+'/authorize', state=state,
                 nonce=nonce, code_verifier=verifier, audience=self.settings.oidc_audience,
-                screen_hint='signup' if signup else 'login')
+                screen_hint='signup' if signup else 'login', **prompt)
             return url
 
     def exchange(self, code, verifier):

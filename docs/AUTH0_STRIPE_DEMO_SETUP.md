@@ -99,6 +99,8 @@ być oddzielone od produkcji.
 Po rejestracji Action może zakończyć pierwsze logowanie `access_denied`, dopóki
 użytkownik nie potwierdzi e-maila. Otwórz wiadomość Auth0 i zaloguj się ponownie.
 Przycisk „Odzyskaj dostęp” otwiera Universal Login; tam wybierz „Forgot password?”.
+Rejestracja i odzyskiwanie dodają `prompt=login`, aby istniejące SSO nie pominęło
+odpowiedniego ekranu. Zwykłe logowanie może korzystać z SSO.
 Weryfikacja e-maila i rzeczywista dostarczalność resetu wymagają manualnego testu.
 
 ## 3. Czynności osobiste w Stripe Dashboard — tylko Sandbox

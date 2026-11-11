@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from stripe_test_billing import TestBillingConfig as BillingConfig
 from billing_backend.settings import Settings
 from billing_backend.db import Database, Base
+from billing_demo import models  # include migrated session FKs in isolated DB resets
 from billing_backend.auth import OIDCVerifier, Identity
 from billing_backend.api import create_app
 from billing_backend.stripe_provider import StripeProvider

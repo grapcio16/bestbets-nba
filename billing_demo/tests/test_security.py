@@ -71,6 +71,9 @@ def test_pkce_authorize_and_logout_have_only_configured_destinations(env, signin
     q = parse_qs(urlparse(url).query)
     assert q['code_challenge_method'] == ['S256']
     assert q['screen_hint'] == ['signup']
+    assert q['prompt'] == ['login']
+    recovery = parse_qs(urlparse(adapter.authorize('state', 'nonce', 'verifier', recover=True)).query)
+    assert recovery['prompt'] == ['login'] and recovery['screen_hint'] == ['login']
     assert q['redirect_uri'] == [env.settings.billing.app_url+'/auth/callback']
     assert q['response_type'] == ['code']
     assert set(q['scope'][0].split()) == {'openid','email','bestbets:api'}

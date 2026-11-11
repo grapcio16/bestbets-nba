@@ -111,7 +111,8 @@ def create_app(settings=None, config=None, provider=None, oidc=None, db=None):
         service.rate_limit('demo-login:'+(request.client.host if request.client else 'unknown'), 30, 600)
         row = request.state.session
         state, nonce, verifier = sessions.begin(row)
-        return RedirectResponse(oidc.authorize(state, nonce, verifier, action == 'register'), status_code=303)
+        return RedirectResponse(oidc.authorize(state, nonce, verifier,
+            signup=action == 'register', recover=action == 'recover'), status_code=303)
 
     @app.get('/auth/callback')
     def callback(request: Request):
