@@ -1,4 +1,4 @@
-"""QA for the ONLY intended v10 change: remove iframe height feedback.
+"""QA: preserve original v10 visuals, remove zoom and fill the width.
 
 Run using: python test_v10_startup_no_feedback.py --url http://127.0.0.1:8501
 The browser is Chromium (Opera still needs a human check on Windows).
@@ -19,6 +19,17 @@ ORIGINAL_LINE = '  notify("streamlit:setFrameHeight",{height:Math.ceil(691*scale
 NEW_COMMENT = """  // Do NOT report scaled content height back to Streamlit: its iframe already
   // has a fixed viewport height from bestbets_custom_screen.py. Reporting
   // height here creates a self-amplifying resize loop during startup."""
+OLD_RESIZE = """  // The Streamlit iframe is capped to the actual visible app viewport via
+  // its parent's 100dvh CSS. Fit BOTH dimensions; don't clip footer previews.
+  const viewportWidth=Math.max(320,document.documentElement.clientWidth||window.innerWidth||1231);
+  const viewportHeight=Math.max(240,document.documentElement.clientHeight||window.innerHeight||691);
+  const scale=Math.min(viewportWidth/1231,Math.max(0.25,viewportHeight/691));"""
+NEW_RESIZE = """  // The outer iframe derives its HEIGHT from its WIDTH (1231:691).
+  // Keep the original reference canvas pixel-perfect and fill the horizontal
+  // space. On a wider viewport the user scrolls vertically instead of getting
+  // side gutters; never use an iframe-height feedback loop.
+  const viewportWidth=Math.max(320,document.documentElement.clientWidth||window.innerWidth||1231);
+  const scale=viewportWidth/1231;"""
 
 
 def baseline_source() -> str:
@@ -31,8 +42,10 @@ def baseline_source() -> str:
 def check_no_visual_code_edits(original: str, fixed: str) -> None:
     assert fixed.count(NEW_COMMENT) == 1, "Missing expected minimal fix"
     assert ORIGINAL_LINE not in fixed, "The feedback bug still exists"
-    assert fixed.replace(NEW_COMMENT, ORIGINAL_LINE) == original, (
-        "Unexpected HTML, CSS, colors, layout, animation, or business-logic changes"
+    expected=original.replace(ORIGINAL_LINE, NEW_COMMENT)
+    expected=expected.replace(OLD_RESIZE, NEW_RESIZE)
+    assert fixed == expected, (
+        "Unexpected HTML, CSS, colors, component positions, animations, or business-logic changes"
     )
 
 
@@ -80,9 +93,16 @@ def check_actual_streamlit(browser, url: str, out: Path) -> list[dict]:
         bounds=stage.bounding_box()
         ib=iframe.bounding_box()
         assert bounds and ib, "Blank iframe or stage"
-        assert ib["height"] >= height-30, ("Iframe not viewport-sized",height,ib)
-        expected=min(width/1231,(ib["height"])/691)*1231
-        assert abs(bounds["width"]-expected)<6,(width,height,bounds,ib,expected)
+        # Full width is mandatory. The iframe is naturally as tall as the
+        # original composition requires, and normal page scroll is allowed.
+        assert ib["width"] >= width-6, ("Iframe not full-width",width,ib)
+        assert abs(ib["height"] - ib["width"]*691/1231)<7, (
+            "Iframe is not preserving the approved aspect ratio",ib
+        )
+        assert abs(bounds["width"]-ib["width"])<6,(
+            "Black side gutter remained around original dashboard",bounds,ib
+        )
+        assert abs(bounds["height"]-ib["height"])<7,(bounds,ib)
         assert len(samples)>=35,samples
         for axis in ("w","h","x"):
             values=[x[axis] for x in samples]
@@ -95,6 +115,10 @@ def check_actual_streamlit(browser, url: str, out: Path) -> list[dict]:
         assert stage.locator('.nav-btn').count()>=6
         shot=out / f"public-original-look-{width}x{height}.png"
         page.screenshot(path=str(shot))
+        # Preserve access to the footer (it may be below the first viewport).
+        # scroll_into_view_if_needed traverses Streamlit's actual scrolling parent.
+        stage.locator('#footer').scroll_into_view_if_needed(timeout=10000)
+        assert stage.locator('#footer').is_visible()
         stage.locator('.nav-btn[data-page="games"]').click()
         expect(stage.locator('#blank-title')).to_have_text("Terminarz")
         stage.locator('.nav-btn[data-page="props"]').click()
@@ -114,7 +138,7 @@ def check_reference_pixels(browser, original: str, fixed: str, out: Path) -> Non
     page=context.new_page()
     page.set_content("""<style>
        html,body{margin:0;background:#020713}
-       iframe{width:100%;height:calc(100dvh - 4px)!important;
+       iframe{width:100%;height:935px!important;
               display:block;border:0;background:#020713}
        </style><iframe title="BestBets pixel reference"></iframe>""")
     screenshots=[]
