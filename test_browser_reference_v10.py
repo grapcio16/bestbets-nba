@@ -111,6 +111,40 @@ def main():
         page.emulate_media(reduced_motion="no-preference")
         page.screenshot(path=str(OUT), full_page=True)
         assert not errors, errors
+        # Reproduce Streamlit's notorious bootstrap iframe: 150px tall at
+        # first load, later given its final height by the parent. The OLD
+        # resize routine sent 152,154,156... and zoomed for several seconds.
+        outer=browser.new_page(viewport={"width":1664,"height":900},screen={"width":1664,"height":900})
+        # Give the parent the same file:// origin as the embedded local
+        # HTML. An about:blank parent cannot load a local file iframe.
+        outer.goto(DOC,wait_until="domcontentloaded")
+        outer.set_content(f"""
+        <!doctype html><html><body style="margin:0;background:#020713">
+        <script>
+        window.__bbHeights=[];
+        window.addEventListener('message',function(evt){{
+          if(evt.data && evt.data.type==='streamlit:setFrameHeight'){{
+            window.__bbHeights.push(evt.data.height);
+            document.getElementById('bbframe').style.height=Math.min(896,evt.data.height)+'px';
+          }}
+        }});
+        </script>
+        <iframe id="bbframe" src="{DOC}"
+          style="display:block;border:0;width:1664px;height:150px"></iframe>
+        </body></html>
+        """)
+        embedded=outer.frame_locator("#bbframe")
+        embedded.locator("#stage").wait_for(state="attached",timeout=15000)
+        outer.wait_for_timeout(600)
+        reported=outer.evaluate("window.__bbHeights")
+        assert reported, "Component did not negotiate iframe height"
+        assert reported[0]>=900, f"Incremental iframe startup detected: {reported[:12]}"
+        assert len(reported)<5, f"Resize loop detected: {reported[:12]}"
+        dimensions=embedded.locator("#stage").bounding_box()
+        assert dimensions and dimensions["width"]>1500, dimensions
+        assert outer.locator("#bbframe").evaluate("(e)=>e.getBoundingClientRect().height")>=890
+        print("Bootstrap iframe simulated: height reports",reported)
+        outer.close()
         browser.close()
         print("Chromium reference coordinates and all interactions passed.")
         print("Saved test screenshot:", OUT)
