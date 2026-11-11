@@ -504,6 +504,47 @@ REFERENCE_FX_CSS = r"""
     transition-duration:.01ms!important;
   }
 }
+
+/* Two subtle reference-header indicators, informational until account work exists. */
+.bb91-header-icons{
+  position:fixed;z-index:200;
+  top:9px;right:16px;
+  display:flex;align-items:center;gap:10px;
+  pointer-events:none;
+}
+.bb91-header-icons>span{
+  display:grid;place-items:center;
+  width:35px;height:35px;position:relative;
+  border-radius:50%;border:1px solid #537da0;
+  color:#e2f5ff;font-size:19px;
+  background:linear-gradient(130deg,#0b1d35,#071427);
+  box-shadow:0 0 9px rgba(0,152,243,.1);
+}
+.bb91-header-icons i{
+  position:absolute;width:6px;height:6px;top:4px;right:4px;border-radius:50%;
+  background:#ff8737;box-shadow:0 0 8px rgba(255,131,42,.72);
+}
+@media(min-width:1650px){
+  [data-testid="stMain"] .bb83-portrait{
+    flex-basis:12.7vw!important;
+  }
+  [data-testid="stMain"] .bb83-portrait img{
+    width:12.7vw!important;
+  }
+  [data-testid="stMain"] .bb83-identity h2{
+    font-size:2.28vw!important;
+  }
+  .bb91-header-icons{
+    top:.65vw;right:1.15vw;gap:.75vw;
+  }
+  .bb91-header-icons>span{
+    width:2.5vw;height:2.5vw;font-size:1.4vw;
+  }
+}
+@media(max-width:700px){
+  .bb91-header-icons{display:none!important}
+}
+
 </style>
 """
 def apply_reference_fx():
