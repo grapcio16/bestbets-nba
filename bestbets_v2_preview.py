@@ -14,6 +14,7 @@ import re
 import streamlit as st
 
 from bestbets_custom_screen import _cached_brand, _research
+from bestbets_v2_reference_ui import enhance_reference_body, enhance_reference_script
 
 ROOT=Path(__file__).resolve().parent
 FRONTEND=ROOT/"bestbets_reference_frontend"
@@ -23,7 +24,9 @@ SOURCE=FRONTEND/"index.html"
 def _assets():
     raw=SOURCE.read_text(encoding="utf-8")
     css=(FRONTEND/"responsive.css").read_text(encoding="utf-8")
+    css+="\n"+(FRONTEND/"reference_v2.css").read_text(encoding="utf-8")
     body=raw.split("<body>",1)[1].split("<script>",1)[0].strip()
+    body=enhance_reference_body(body)
     script=raw.split("<script>",1)[1].split("</script>",1)[0].lstrip()
     original_header='(function(){\n"use strict";'
     assert script.startswith(original_header),"Unexpected upstream JS structure"
@@ -147,6 +150,7 @@ parentElement.__bestbetsV2={root,update,watchChart};
 update(data,setTriggerValue);
 return watchChart();
 }'''
+    script=enhance_reference_script(script)
     # Keep each footer card and its navigation label together when the grid
     # wraps. All original IDs, text and route handlers are preserved.
     footer=body.split('<footer id="footer">',1)[1].split('</footer>',1)[0]
