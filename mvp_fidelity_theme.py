@@ -357,6 +357,136 @@ FIDELITY_CSS = r"""
   .bb85-shortcut-row span{font-size:9px}
   .bb85-team-row small{display:none}
 }
+
+/* Specificity lock: these desktop dimensions override v8.4's
+   earlier app-scoped !important rules, which beat plain class selectors. */
+@media(min-width:1650px){
+  :is(#bb85-force-sidebar,[data-testid="stSidebar"]){
+    width:14vw!important;min-width:14vw!important;
+  }
+  :is(#bb85-force-sidebar,[data-testid="stSidebar"]) .bbm-brand{
+    min-height:6.4vw!important;padding:.3vw 0 1vw!important;margin-bottom:1.7vw!important;
+  }
+  :is(#bb85-force-sidebar,[data-testid="stSidebar"]) .bbm-brand img{
+    width:4.1vw!important;height:4.1vw!important;
+  }
+  :is(#bb85-force-sidebar,[data-testid="stSidebar"]) .bbm-brand b{
+    font-size:1.7vw!important;
+  }
+  :is(#bb85-force-sidebar,[data-testid="stSidebar"]) .bbm-brand .bbm-eyebrow{
+    font-size:.55vw!important;
+  }
+  :is(#bb85-force-sidebar,[data-testid="stSidebar"]) .stButton>button{
+    min-height:3.4vw!important;font-size:1vw!important;
+    padding:.7vw .9vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .st-key-bb83_search{
+    width:75%!important;max-width:none!important;
+    min-height:4vw!important;padding:.35vw .5vw .35vw 1.25vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .st-key-bb83-suggest .stButton>button{
+    min-height:2.5vw!important;font-size:.79vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-hero{
+    min-height:9.4vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-portrait{
+    min-height:9.4vw!important;flex-basis:12vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-portrait img{
+    height:10vw!important;width:12vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-team-back img{
+    height:7.2vw!important;width:7.2vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-identity h2{
+    font-size:2.4vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-identity-line{
+    font-size:.95vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-identity small{
+    font-size:.7vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-team-badge{
+    font-size:.8vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-hero-metric{
+    min-width:6.3vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-hero-metric label{
+    font-size:.85vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-hero-metric b{
+    font-size:1.8vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-hero-metric em{
+    font-size:.69vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-grade{
+    min-width:0!important;flex-basis:9.1vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-grade b{
+    font-size:2.5vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .st-key-bb83-controls [data-baseweb="select"]>div,
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .st-key-bb83-controls [data-baseweb="input"]>div,
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .st-key-bb83-controls [data-testid="stNumberInput"] input{
+    min-height:3vw!important;height:3vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .st-key-bb83-controls [data-testid="stSegmentedControl"] button{
+    font-size:.86vw!important;min-height:2.6vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-chart-head strong{
+    font-size:1.25vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-rate-grid{
+    gap:.58vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-rate-card{
+    min-height:5.6vw!important;padding:.65vw .3vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-rate-card small{
+    font-size:.83vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-rate-card b{
+    font-size:1.9vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-rate-card em{
+    font-size:.75vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-split-card{
+    min-height:4.7vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-split-card small{
+    font-size:.8vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-split-card b{
+    font-size:1.6vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-defense{
+    min-height:7vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-defense h4{
+    font-size:1vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-defense-points{
+    font-size:.78vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-take{
+    min-height:3.9vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-take strong{
+    font-size:1.25vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .bb83-take>span{
+    font-size:.88vw!important;
+  }
+  :is(#bb85-force,[data-testid="stMain"]:has(.bb83-page-marker)) .st-key-bb83-footer [data-testid="stVerticalBlockBorderWrapper"]{
+    min-height:11vw!important;max-height:none!important;
+  }
+}
+
 </style>
 """
 
