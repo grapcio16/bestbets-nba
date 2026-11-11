@@ -70,10 +70,36 @@ def _assets():
   const svg=$("chart-svg");
   return {width:Math.max(1,svg.clientWidth),height:Math.max(1,svg.clientHeight)};
 }
+// Use a compact, centered bar group instead of stretching sparse L5/L10
+// results across the full-width analytics panel. Preserve the full-width
+// grid and baseline: only the actual bars / labels are positioned in the
+// grouping. All positions follow real CSS pixels and remain responsive.
+function chartBarGeometry(available,count){
+  const plotSpan=Math.min(available,count*82,960);
+  const step=plotSpan/count;
+  const gap=Math.min(14,step*.22);
+  const bar=Math.max(1,Math.min(68,step-gap));
+  const start=(available-plotSpan)/2;
+  return {plotSpan,step,bar,start};
+}
 function chartMarkup(games){''',1)
     script=script.replace('const w=581-padLeft-padRight,h=170-top-bottom;',
                           'const {width,height}=chartSize();\n  const w=width-padLeft-padRight,h=height-top-bottom;',1)
-    script=script.replace('Math.min(46,(w-gap*(n-1))/n)', 'Math.max(1,Math.min(72,(w-gap*(n-1))/n))',1)
+    script=script.replace(
+        'const gap=n>15?4:n>10?6:8;\n  const bar=Math.min(46,(w-gap*(n-1))/n),step=w/n;',
+        'const {step,bar,start}=chartBarGeometry(w,n);',1)
+    script=script.replace(
+        'x=padLeft+step*i+(step-bar)/2',
+        'x=padLeft+start+step*i+(step-bar)/2',1)
+    # The value and tick labels now scale to the available group width.
+    script=script.replace(
+        '''font-size="'+(n>15?9:11)+'"''',
+        '''font-size="'+Math.min(13,Math.max(9,step*.17))+'"''',1)
+    script=script.replace(
+        '''font-size="'+(n>15?7:8.7)+'"''',
+        '''font-size="'+Math.min(11,Math.max(8,step*.14))+'"''')
+    assert 'const {step,bar,start}=chartBarGeometry(w,n);' in script
+    assert 'x=padLeft+start+step*i+(step-bar)/2' in script
     script=script.replace('y="153"', 'y="\'+(height-17)+\'"')
     script=script.replace('y="163"', 'y="\'+(height-7)+\'"')
     script=script.replace('const svg=$("chart-svg"),placeholder=$("chart-placeholder");',
