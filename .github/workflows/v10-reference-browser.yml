@@ -1,0 +1,32 @@
+name: BestBets custom reference browser QA
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  reference-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install isolated Chromium test dependencies
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Verify screenshot coordinates, navigation and chart controls
+        run: python test_browser_reference_v10.py
+      - name: Preserve test screenshot for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bestbets-v10-reference-screenshot
+          path: reference_v10_smoke.png
+          if-no-files-found: ignore
