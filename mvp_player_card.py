@@ -71,7 +71,7 @@ def _plot(games,market,line):
         ),
         text=[f"{v:g}" for v in actual],
         textposition="outside",
-        textfont=dict(color="#f7fcff",size=13,family="Arial Black"),
+        textfont=dict(color="#f7fcff",size=16,family="Arial Black"),
         customdata=[[t.strftime("%d/%m"),opp] for t,opp in
                     zip(dates,opponents)],
         hovertemplate="<b>%{customdata[0]} %{customdata[1]}</b><br>"
@@ -81,7 +81,7 @@ def _plot(games,market,line):
         y=float(line),line=dict(color="#e5f4ff",width=1.6,dash="dash"),
         annotation_text=f"  {line:g}  ",
         annotation_position="top left",
-        annotation_font=dict(color="#fff",size=12),
+        annotation_font=dict(color="#fff",size=14),
     )
     top=max([float(line),*actual])*1.17+1.3
     labels=[
@@ -91,21 +91,21 @@ def _plot(games,market,line):
             games["MATCHUP"].tolist() if "MATCHUP" in games else [""]*count)
     ]
     chart.update_layout(
-        height=284,bargap=.25,
-        margin=dict(l=18,r=10,t=28,b=14),
+        height=465,bargap=.22,
+        margin=dict(l=23,r=12,t=34,b=20),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Arial",color="#eef6ff"),
         showlegend=False,dragmode=False,
         xaxis=dict(
             tickmode="array",tickvals=x,ticktext=labels,
-            tickfont=dict(size=10,color="#c4d5e9"),
+            tickfont=dict(size=13,color="#c4d5e9"),
             showgrid=False,zeroline=False,showline=True,
             linecolor="#3d6386",
         ),
         yaxis=dict(
             range=[0,top],gridcolor="rgba(140,180,220,.13)",
-            tickfont=dict(color="#afc8e4",size=10),
+            tickfont=dict(color="#afc8e4",size=13),
             showline=False,zeroline=False,title=None,
             nticks=6,
         ),

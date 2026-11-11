@@ -18,6 +18,7 @@ import streamlit as st
 from mvp_theme import apply_mvp_theme
 from mvp_reference_theme import apply_reference_theme
 from mvp_pixel_theme import apply_pixel_theme
+from mvp_fidelity_theme import apply_fidelity_theme
 from mvp_reference_footer import render_reference_footer
 from mvp_data import confirmed_finals, team_games, team_summary, league_table, safe_value
 from teams import TEAM_FULL
@@ -663,6 +664,7 @@ def main():
     apply_mvp_theme()
     apply_reference_theme()
     apply_pixel_theme()
+    apply_fidelity_theme()
     _sidebar()
     page=st.session_state["bb_mvp_page"]
     _topbar(page)
