@@ -1,0 +1,57 @@
+name: BestBets iframe-free V2 preview QA
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install preview dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install 'streamlit>=1.59,<2' playwright
+          python -m playwright install --with-deps chromium
+      - name: Check Python syntax and V2 assets
+        run: |
+          python -m py_compile preview_v2.py bestbets_v2_preview.py bestbets_custom_screen.py
+          python - <<'PY'
+          import bestbets_v2_preview as x
+          assert 'viewBox="0 0 1231 691"' in x.HTML
+          assert 'setTriggerValue("search"' in x.JS
+          assert 'streamlit:setFrameHeight' not in x.JS
+          assert len(x.HTML)>9000
+          assert 'export default function(component)' in x.JS
+          from pathlib import Path
+          Path('/tmp/bbv2.js').write_text(x.JS)
+          PY
+          node --check /tmp/bbv2.js
+      - name: Launch separate preview (production untouched)
+        run: |
+          python -m streamlit run preview_v2.py --server.headless true --server.port 8501 --server.address 127.0.0.1 >/tmp/bbv2.log 2>&1 &
+          for i in $(seq 1 90); do
+            curl -fsS http://127.0.0.1:8501/_stcore/health >/dev/null 2>&1 && exit 0
+            sleep 1
+          done
+          cat /tmp/bbv2.log
+          exit 1
+      - name: Test full page in Chromium without iframe
+        run: python test_v2_browser_preview.py
+      - name: Save screenshot and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bestbets-iframe-free-v2-preview
+          if-no-files-found: ignore
+          path: |
+            bestbets_v2_preview_browser.png
+            /tmp/bbv2.log
