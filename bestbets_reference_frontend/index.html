@@ -272,7 +272,7 @@ function resize(){
   // its parent's 100dvh CSS. Fit BOTH dimensions; don't clip footer previews.
   const viewportWidth=Math.max(320,document.documentElement.clientWidth||window.innerWidth||1231);
   const viewportHeight=Math.max(240,document.documentElement.clientHeight||window.innerHeight||691);
-  const scale=Math.min(viewportWidth/1231,Math.max(0.25,(viewportHeight-4)/691));
+  const scale=Math.min(viewportWidth/1231,Math.max(0.25,viewportHeight/691));
   root.style.transform="scale("+scale+")";
   shell.style.width=Math.round(1231*scale)+"px";
   shell.style.height=Math.ceil(691*scale)+"px";
