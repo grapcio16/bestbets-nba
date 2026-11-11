@@ -96,10 +96,15 @@ def enhance_reference_body(body: str) -> str:
     )
     assert existing in body
     body=body.replace(existing,replacement,1)
-    # Team names are factual examples, not a live schedule.
+    # Use existing locally bundled/cached team badges from BestBets, not
+    # hotlinked ESPN images (browser certificate failures) or fake emblems.
+    from team_logos import logo_data_uri
     for code,label in [('BOS','Boston Celtics'),('NYK','New York Knicks'),('PHI','Philadelphia 76ers')]:
         old=f'<span class="mini-ball">◉</span><span class="mini-name">{label}</span>'
-        updated=(f'<span class="mini-ball team-mark team-{code}"><span>{code[:1]}</span></span>'
+        src=logo_data_uri(code)
+        badge=(f'<img src="{src}" alt="" loading="lazy">' if src
+               else f'<span>{code[:1]}</span>')
+        updated=(f'<span class="mini-ball team-mark team-{code}">{badge}</span>'
                  f'<span class="mini-name">{label}</span>')
         assert old in body
         body=body.replace(old,updated,1)
