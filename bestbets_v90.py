@@ -223,7 +223,7 @@ def _player_props():
 
     render_player_props(
         SEASON,st.session_state["bb90_nonce"],"Europe/Warsaw",
-        get_schedule,load_logs,
+        get_schedule,load_logs,show_empty=False,
     )
     saved=st.session_state.get("bb_mvp_search_results")
     if not isinstance(saved,dict) or saved.get("table") is None:
