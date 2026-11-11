@@ -92,8 +92,11 @@ class ApprovedReferenceTests(unittest.TestCase):
             "2026-27",rates["season"],25.5,rates["last10"],None)
         self.assertIn("MATCHUP GRADE",rendered)
         self.assertIn("niekalibrowana",rendered)
-        self.assertNotIn("A+",rendered)
-        self.assertNotIn("24th",rendered)
+        # The hero embeds an image data-URI with arbitrary base64 bytes.
+        # Check only the actual grade markup, not encoded image contents.
+        grade=rendered.split('<div class="bb83-grade">',1)[1]
+        self.assertNotIn("<b>A+</b>",grade)
+        self.assertNotIn("24th",grade)
         self.assertIn("60%",rendered) if False else None
         self.assertIn("30%",rendered)
 
