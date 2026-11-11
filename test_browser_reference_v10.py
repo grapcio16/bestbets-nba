@@ -99,6 +99,11 @@ def main():
         # This branch intentionally keeps the approved original visual at
         # full WIDTH, letting the page scroll naturally to footer tiles.
         page.set_viewport_size({"width":1664, "height":820})
+        # Resize events dispatch asynchronously after viewport changes.
+        page.wait_for_function(
+            "Math.abs(document.querySelector('#stage').getBoundingClientRect().width - innerWidth) < 3",
+            timeout=6000
+        )
         box = page.locator("#stage").bounding_box()
         shortcut = page.locator("#card-shortcuts").bounding_box()
         bottom_nav = page.locator(".footer-links").bounding_box()
