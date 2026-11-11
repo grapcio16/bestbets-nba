@@ -384,3 +384,26 @@ aside:before {bottom:148px;left:24px;width:calc(100% - 48px);background:#2e5572}
   .module-grid {grid-template-columns:minmax(0,1fr);gap:10px}
   .preview {min-height:172px}
 }
+
+
+/* Inline SVG proportions and reference details. */
+.avg-box small {display:flex;align-items:center;justify-content:center;gap:5px}
+.avg-box small svg {width:16px;height:16px;flex:0 0 16px;vertical-align:-3px;stroke:#e8f8ff}
+.avg-box.selected small svg {stroke:#00d2ff;filter:drop-shadow(0 0 4px rgba(0,174,255,.45))}
+.mini-row .mini-ball svg {width:15px;height:15px;stroke:#c8f4ff}
+.mini-head svg {width:15px;height:15px;vertical-align:-3px}
+.home-player-mark {display:grid;place-items:center;color:#23e5ff;flex:0 0 32px}
+.home-player-mark svg {width:24px;height:24px}
+.home-player-copy {min-width:0;display:block}
+#home-selected-name {display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:900}
+#home-selected-meta {display:block;color:#9bc3dd;font-size:9.5px}
+.home-person .mini-avatar[hidden] {display:none}
+.home-person .mini-avatar:not([hidden]) {display:block;flex:0 0 33px}
+.team-mark {font-weight:900;font-size:11px!important;color:white}
+.team-BOS {background:linear-gradient(145deg,#006936,#00452b)!important;border-color:#35ca8e!important}
+.team-NYK {background:linear-gradient(145deg,#ed701a,#065eac)!important;border-color:#ffac4b!important}
+.team-PHI {background:linear-gradient(145deg,#0866d3,#061e67)!important;border-color:#65aaff!important}
+@media (max-width:640px) {
+  .avg-box small svg {width:12px;height:12px;flex-basis:12px}
+  .brand-lockup {display:none}
+}
