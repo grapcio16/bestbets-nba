@@ -77,7 +77,7 @@ def parse_season_standings(payload: dict, expected_year: int = SEASON_YEAR) -> d
             if code in records and records[code] != record:
                 raise ValueError("Sprzeczne bilanse drużyny NBA")
             records[code] = record
-    if len(records) < 25:
+    if len(records) != len(TEAM_FULL):
         raise ValueError("Tabela sezonu NBA jest niekompletna")
     return records
 
