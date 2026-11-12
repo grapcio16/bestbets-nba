@@ -198,5 +198,16 @@ function init(context){
  $("bc-dialog").addEventListener("click",ev=>{if(ev.target===$("bc-dialog"))close()});
  document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&!$("bc-dialog").hidden)close()});
 }
-window.BestBetsCentre={init:init,render:renderHome};
+function failLoading(message){
+ const safe=String(message||"Źródło danych NBA jest niedostępne.");
+ const msg='<div class="bc-muted">'+escapeHtml(safe)+'</div>';
+ const ticker=$("bc-ticker-games"),games=$("bc-games-list"),finals=$("bc-finals"),forms=$("bc-forms");
+ if(ticker)ticker.innerHTML='<div class="bc-ticker-loading">'+escapeHtml(safe)+'</div>';
+ if(games)games.innerHTML=msg;
+ if(finals)finals.innerHTML=msg;
+ if(forms)forms.innerHTML=msg;
+ renderPlayers({players:[]});
+ setText("bc-data-meta","Status źródeł NBA: "+safe);
+}
+window.BestBetsCentre={init:init,render:renderHome,error:failLoading};
 })();
