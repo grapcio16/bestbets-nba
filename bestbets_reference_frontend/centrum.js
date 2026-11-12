@@ -38,7 +38,10 @@ function renderTicker(data){
  if(!host)return;
  const games=(data&&Array.isArray(data.ticker))?data.ticker.slice(0,5):[];
  if(!games.length){
-  host.innerHTML='<div class="bc-ticker-loading">Brak potwierdzonych spotkań w najbliższym terminarzu.</div>';return;
+  host.innerHTML='<div class="bc-ticker-loading">'+(data&&data.error
+    ? 'Dane terminarza niedostępne. Użyj ⟳, aby ponowić próbę.'
+    : 'Brak potwierdzonych spotkań w najbliższym terminarzu.')+'</div>';
+  return;
  }
  host.innerHTML=games.map((g,i)=>
   '<button type="button" class="bc-ticker-card'+(g.state==="live"?' live':'')+'" data-centre-game="'+i+'" aria-label="Szczegóły meczu '+escapeHtml(g.away)+' – '+escapeHtml(g.home)+'">'+
@@ -51,7 +54,9 @@ function renderGames(data){
  const games=data&&Array.isArray(data.games)?data.games.slice(0,5):[];
  const title=host.closest(".bc-panel").querySelector(".bc-panel-title");
  if(title)title.childNodes.forEach(n=>{if(n.nodeType===3)n.textContent=games.length&&data.day_label!=="Dziś"?" Mecze najbliższe ":" Mecze dnia "});
- if(!games.length){host.innerHTML='<div class="bc-muted">Brak potwierdzonych spotkań na dziś. Sprawdź terminarz później.</div>';return}
+ if(!games.length){host.innerHTML='<div class="bc-muted">'+(data&&data.error
+   ?'Nie udało się pobrać terminarza. Odśwież dane przyciskiem ⟳.'
+   :'Brak potwierdzonych spotkań na dziś. Sprawdź terminarz później.')+'</div>';return}
  host.innerHTML=games.map((g,i)=>
   '<button class="bc-game" type="button" data-centre-row="'+i+'">'+
   '<span class="bc-gteam">'+shortTeam(g.away,g.away_logo)+'</span>'+
@@ -62,7 +67,9 @@ function renderGames(data){
 function renderFinals(data){
  const host=$("bc-finals");if(!host)return;
  const games=data&&Array.isArray(data.finals)?data.finals.slice(0,2):[];
- if(!games.length){host.innerHTML='<div class="bc-muted">Brak wyników potwierdzonych w bieżącym źródle.</div>';return}
+ if(!games.length){host.innerHTML='<div class="bc-muted">'+(data&&data.error
+   ?'Wyniki niedostępne — źródło danych nie odpowiedziało.'
+   :'Brak wyników potwierdzonych w bieżącym źródle.')+'</div>';return}
  host.innerHTML=games.map(g=>
    '<div class="bc-result">'+
    '<span>'+logo(g.away,g.away_logo)+' '+escapeHtml(g.away)+'</span>'+
@@ -135,7 +142,10 @@ function setText(id,v){const e=$(id);if(e)e.textContent=v}
 function renderHome(data){
  homeData=data;
  const button=$("bc-refresh");
- if(button)button.disabled=false;
+ if(button){
+   button.disabled=false;
+   button.title=data&&data.error?data.error:"Odśwież terminarz, wyniki i statystyki";
+ }
  const signal=$("bc-source-state");
  if(signal){
    const color=data?(data.error?"#ff9b40":data.stale?"#ffb24a":"#04ee8a"):"#8aa9c5";
