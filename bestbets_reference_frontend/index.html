@@ -565,7 +565,7 @@ if(window.BestBetsCentre){
       }});
     },
     selectDay:function(day){
-      if(state.page!=="home" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(day))return;
+      if(state.page!=="home" || !/^\d{4}-\d{2}-\d{2}$/.test(day))return;
       notify("streamlit:setComponentValue",{dataType:"json",value:{
         type:"home_date",date:day,
         id:String(Date.now())+"-day-"+day+"-"+Math.random().toString(36).slice(2)
