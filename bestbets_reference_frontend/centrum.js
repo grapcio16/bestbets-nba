@@ -408,7 +408,7 @@ function init(context){
    return;
   }
   const team=button.getAttribute("data-centre-favorite");
-  if(team!==null){toggleTeamFavorite(team);return;}
+  if(team!==null){event.stopPropagation();toggleTeamFavorite(team);return;}
   const nav=button.getAttribute("data-centre-nav");
   const query=button.getAttribute("data-centre-query");
   if(nav&&api.go){api.go(nav);return}
