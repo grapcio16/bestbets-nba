@@ -72,7 +72,8 @@ def extract_recent_leaders(payload, now=None, limit=3):
 
 def get_centre_live_data(now=None):
     """Fetch a bounded real scoreboard window with disk-cache and one fallback."""
-    from sources import ESPN_SCOREBOARD, memoized_json, parse_espn_schedule, schedule
+    from sources import (ESPN_SCOREBOARD, NBA_CDN_SCHEDULE, memoized_json,
+                         parse_espn_schedule, parse_nba_schedule)
     from team_logos import logo_data_uri
     from bestbets_centre_data import build_centre_snapshot
 
@@ -102,10 +103,18 @@ def get_centre_live_data(now=None):
         return snap
     except Exception as exc:
         errors.append(type(exc).__name__)
-    # Use the existing NBA CDN/ESPN backup already shipped in BestBets.
-    # Preserve the source and stale disclosure, never synthesize game IDs.
+    # Direct official NBA CDN fallback with a strict 7-second timeout. The
+    # generic full-season schedule() path may trigger 2x monthly ESPN calls
+    # and block the dashboard too long; here we prioritise responsive UI.
     try:
-        table,meta=schedule(refresh=False)
+        raw,meta=memoized_json(
+            "bb-centre-nba-cdn-r1",NBA_CDN_SCHEDULE,
+            ttl_seconds=600,request_timeout=7
+        )
+        table=parse_nba_schedule(raw)
+        if table is None or table.empty:
+            raise ValueError("Pusty zapasowy terminarz NBA CDN")
+        meta={**meta,"source":"NBA CDN — oficjalny terminarz zapasowy"}
         snap=build_centre_snapshot(table,meta,now=now,logo_provider=logo_data_uri)
         snap["players"]=[]
         snap["coverage"]="Źródło zapasowe — bez weryfikacji liderów zawodników"
