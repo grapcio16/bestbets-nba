@@ -377,3 +377,54 @@
 #bestbets-centre .bc-watch button{height:32px;font-size:11px}
 #bestbets-centre .bc-lock-teams{margin-top:16px}
 #bestbets-centre .bc-lock-link{margin-top:15px}
+
+/* Optional lazy NBA-wide roster browser inside the existing watched-players card. */
+#bestbets-centre .bc-player-panel{overflow:visible;z-index:4}
+#bestbets-centre .bc-player-panel .bc-small-head{gap:3px;font-size:10.7px}
+#bestbets-centre .bc-player-panel .bc-small-head .bc-orange-icon{font-size:14px}
+#bestbets-centre .bc-player-panel .bc-small-head .bc-free-tag{font-size:7.5px;padding:0 4px}
+#bestbets-centre .bc-players-toggle{
+  width:22px;min-width:22px;height:22px;padding:0;
+  border:1px solid #2ecaff;border-radius:50%;
+  color:#c8f2ff;background:#092943;font-size:18px;font-weight:900;line-height:19px
+}
+#bestbets-centre .bc-players-toggle:hover,#bestbets-centre .bc-players-toggle[aria-expanded="true"]{
+  background:#135179;box-shadow:0 0 8px #00bfff
+}
+#bestbets-centre .bc-watch button small{font-size:8px;color:#72dfff;white-space:nowrap}
+#bestbets-centre .bc-players-picker[hidden]{display:none!important}
+#bestbets-centre .bc-players-picker{
+  position:absolute;right:0;bottom:calc(100% + 8px);z-index:51;
+  display:flex;flex-direction:column;width:330px;max-height:335px;padding:11px;
+  border:1.5px solid #20c8fc;border-radius:13px;overflow:hidden;
+  background:linear-gradient(145deg,#0b2c48,#071b30 67%,#061425);
+  box-shadow:0 14px 28px rgba(0,0,0,.80),0 0 16px rgba(0,173,255,.31)
+}
+#bestbets-centre .bc-catalog-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#bestbets-centre .bc-catalog-head b{font-size:12px;color:#f6fbff}
+#bestbets-centre .bc-catalog-head span{font-size:11px;color:#ffcd42;font-weight:900}
+#bestbets-centre .bc-catalog-meta{font-size:9.5px;color:#a9d5e9;margin:5px 0 7px}
+#bestbets-centre .bc-catalog-note{margin:0 0 7px;color:#ffbf67;font-size:9px;line-height:1.35}
+#bestbets-centre #bc-players-search{
+  background:#06182a;color:#effaff;border:1px solid #178cce;
+  border-radius:8px;font:inherit;font-size:11px;padding:9px 10px;width:100%;
+  min-height:33px;outline:0
+}
+#bestbets-centre #bc-players-search:focus{border-color:#46d6ff;box-shadow:0 0 8px #0466a0}
+#bestbets-centre .bc-catalog-help{font-size:9px;color:#a8cde4;margin:6px 0}
+#bestbets-centre .bc-catalog-help.bc-form-limit{color:#ffcd61}
+#bestbets-centre .bc-catalog-list{
+  overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+  scrollbar-color:#239ed5 #071629;min-height:50px
+}
+#bestbets-centre .bc-catalog-athlete{
+  display:flex;align-items:center;gap:6px;padding:6px 4px;
+  border-bottom:1px solid rgba(77,144,182,.28);min-height:41px
+}
+#bestbets-centre .bc-catalog-athlete.active{background:rgba(255,174,29,.10)}
+#bestbets-centre .bc-catalog-athlete span{display:flex;flex:1;flex-direction:column;gap:3px;min-width:0}
+#bestbets-centre .bc-catalog-athlete strong{
+  font-size:10.5px;color:#e9faff;overflow:hidden;white-space:nowrap;text-overflow:ellipsis
+}
+#bestbets-centre .bc-catalog-athlete small{font-size:9px;color:#77b7db}
+#bestbets-centre .bc-catalog-athlete button{flex:0 0 22px}
