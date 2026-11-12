@@ -292,7 +292,6 @@ def main() -> None:
     if event.get("type") == "player_catalog":
         # Do not delay first-paint Centrum: fetch full 30-team player index
         # only after explicit interaction with the picker.
-        import time
         last = st.session_state.get("bb10_player_catalog_at", 0.0)
         if "bb10_player_catalog" not in st.session_state or time.monotonic()-last >= 3600:
             try:
