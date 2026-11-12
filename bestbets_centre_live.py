@@ -82,6 +82,7 @@ def get_centre_live_data(now=None):
                          parse_espn_schedule, parse_nba_schedule)
     from team_logos import logo_data_uri
     from bestbets_centre_data import build_centre_snapshot
+    from bestbets_centre_standings import fetch_season_standings, apply_season_form
 
     now=pd.Timestamp(now) if now is not None else pd.Timestamp.now(tz="Europe/Warsaw")
     now=now.tz_localize("Europe/Warsaw") if now.tzinfo is None else now.tz_convert("Europe/Warsaw")
@@ -90,6 +91,8 @@ def get_centre_live_data(now=None):
     offsets=list(range(-6,5))
     dates=[(now+timedelta(days=i)).strftime("%Y%m%d") for i in offsets]
     failures=[]
+    season_records=None
+    season_meta=None
 
     def fetch_day(offset, day):
         ttl=120 if offset in (-1,0,1) else 7200 if offset < -1 else 1800
@@ -109,7 +112,10 @@ def get_centre_live_data(now=None):
         any_stale=False
         # Bounded parallel requests; no session state or Streamlit APIs in
         # worker threads. Each date has its own disk-cache key.
-        with ThreadPoolExecutor(max_workers=4) as pool:
+        with ThreadPoolExecutor(max_workers=5) as pool:
+            # Season W-L is fetched independently from the short scoreboard.
+            # A standings timeout must not block games, results or player cards.
+            season_future=pool.submit(fetch_season_standings)
             futures={pool.submit(fetch_day,offset,day):day for offset,day in zip(offsets,dates)}
             for future in as_completed(futures):
                 try:
@@ -124,6 +130,12 @@ def get_centre_live_data(now=None):
                             events_by_id[event_id]=event
                 except Exception as exc:
                     failures.append(type(exc).__name__)
+            try:
+                season_records,season_meta=season_future.result()
+            except Exception:
+                # Do not misrepresent the 6-day scoreboard as season-long data.
+                season_records=None
+                season_meta=None
         if successes:
             raw={"events":list(events_by_id.values())}
             table=parse_espn_schedule(raw)
@@ -139,6 +151,7 @@ def get_centre_live_data(now=None):
             snap["stale"]=bool(any_stale or failures)
             snap["fetched_at"]=now.strftime("%Y-%m-%d %H:%M %Z")
             snap["coverage_days"]=successes
+            apply_season_form(snap,season_records,season_meta)
             # A Warsaw day can include games belonging to the previous
             # US/ESPN scoreboard day. Mark it as covered only after BOTH
             # source dates returned successfully.
@@ -170,6 +183,7 @@ def get_centre_live_data(now=None):
             raise ValueError("Pusty zapasowy terminarz NBA CDN")
         meta={**meta,"source":"NBA CDN — oficjalny terminarz zapasowy"}
         snap=build_centre_snapshot(table,meta,now=now,logo_provider=logo_data_uri)
+        apply_season_form(snap,season_records,season_meta)
         snap["players"]=[]
         snap["calendar_loaded_days"]=[
             (now+timedelta(days=i)).date().isoformat() for i in range(-7,8)
@@ -181,6 +195,7 @@ def get_centre_live_data(now=None):
     except Exception as exc:
         failures.append(type(exc).__name__)
         empty=build_centre_snapshot(pd.DataFrame(),{"source":"NBA / ESPN"},now=now)
+        apply_season_form(empty,season_records,season_meta)
         empty["players"]=[]
         empty["stale"]=True
         empty["coverage"]="Brak dostępnych danych"
