@@ -71,7 +71,13 @@ def extract_recent_leaders(payload, now=None, limit=3):
 
 
 def get_centre_live_data(now=None):
-    """Fetch a bounded real scoreboard window with disk-cache and one fallback."""
+    """Fetch actual NBA dates individually: the multi-day ESPN range can fail.
+
+    The upstream's YYYYMMDD single-day scoreboard is confirmed accessible
+    from GitHub runners. Limit concurrency, cache each date separately,
+    preserve source failures, and never synthesize missing matches.
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     from sources import (ESPN_SCOREBOARD, NBA_CDN_SCHEDULE, memoized_json,
                          parse_espn_schedule, parse_nba_schedule)
     from team_logos import logo_data_uri
@@ -79,33 +85,70 @@ def get_centre_live_data(now=None):
 
     now=pd.Timestamp(now) if now is not None else pd.Timestamp.now(tz="Europe/Warsaw")
     now=now.tz_localize("Europe/Warsaw") if now.tzinfo is None else now.tz_convert("Europe/Warsaw")
-    start=(now-timedelta(days=9)).strftime("%Y%m%d")
-    end=(now+timedelta(days=8)).strftime("%Y%m%d")
-    key="bb-centre-espn-r1-"+start+"-"+end
-    errors=[]
+    # 6 days of results plus 4 future days cover the free dashboard's
+    # results, today's games and the next fixtures without huge range calls.
+    offsets=list(range(-6,5))
+    dates=[(now+timedelta(days=i)).strftime("%Y%m%d") for i in offsets]
+    failures=[]
+
+    def fetch_day(offset, day):
+        ttl=120 if offset in (-1,0,1) else 7200 if offset < -1 else 1800
+        raw,meta=memoized_json(
+            "bb-centre-espn-daily-r2-"+day,ESPN_SCOREBOARD,
+            params={"dates":day,"limit":100},
+            ttl_seconds=ttl,request_timeout=6,
+        )
+        if not isinstance(raw,dict) or not isinstance(raw.get("events"),list):
+            raise ValueError("ESPN nie zwróciło rozpoznawalnej listy spotkań")
+        return day,raw["events"],meta
+
     try:
-        raw,metadata=memoized_json(
-            key,ESPN_SCOREBOARD,
-            params={"dates":start+"-"+end,"limit":350},
-            ttl_seconds=150,request_timeout=8
-        )
-        table=parse_espn_schedule(raw)
-        if table is None or table.empty:
-            raise ValueError("ESPN: brak spotkań w wybranym zakresie dat")
-        snap=build_centre_snapshot(
-            table,{"source":"ESPN — rzeczywiste mecze NBA","stale":metadata.get("stale",False)},
-            now=now,logo_provider=logo_data_uri
-        )
-        snap["players"]=extract_recent_leaders(raw,now=now,limit=3)
-        snap["coverage"]="Mecze z okresu "+start+"–"+end
-        snap["stale"]=bool(metadata.get("stale"))
-        snap["fetched_at"]=metadata.get("timestamp") or snap["as_of"]
-        return snap
+        events_by_id={}
+        successes=0
+        any_stale=False
+        # Bounded parallel requests; no session state or Streamlit APIs in
+        # worker threads. Each date has its own disk-cache key.
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            futures={pool.submit(fetch_day,offset,day):day for offset,day in zip(offsets,dates)}
+            for future in as_completed(futures):
+                try:
+                    day,events,meta=future.result()
+                    successes+=1
+                    any_stale|=bool(meta.get("stale"))
+                    for event in events:
+                        if not isinstance(event,dict):continue
+                        event_id=str(event.get("id") or event.get("uid") or "")
+                        if event_id:
+                            events_by_id[event_id]=event
+                except Exception as exc:
+                    failures.append(type(exc).__name__)
+        if successes:
+            raw={"events":list(events_by_id.values())}
+            table=parse_espn_schedule(raw)
+            snap=build_centre_snapshot(
+                table,{"source":"ESPN — rzeczywiste mecze NBA"},now=now,
+                logo_provider=logo_data_uri,
+            )
+            if not events_by_id:
+                # Successful empty days can be a legitimate NBA off-day.
+                snap["error"]=""
+            snap["players"]=extract_recent_leaders(raw,now=now,limit=3)
+            snap["coverage"]="Zweryfikowane dni "+dates[0]+"–"+dates[-1]
+            snap["stale"]=bool(any_stale or failures)
+            snap["fetched_at"]=now.strftime("%Y-%m-%d %H:%M %Z")
+            snap["coverage_days"]=successes
+            if failures:
+                snap["warning"]=(
+                    "Niepełne dane: pobrano "+str(successes)+"/"+str(len(dates))+
+                    " dni ESPN. Brakujące dni pominięto."
+                )
+            return snap
+        raise RuntimeError("Żaden dzienny raport ESPN nie odpowiedział")
     except Exception as exc:
-        errors.append(type(exc).__name__)
-    # Direct official NBA CDN fallback with a strict 7-second timeout. The
-    # generic full-season schedule() path may trigger 2x monthly ESPN calls
-    # and block the dashboard too long; here we prioritise responsive UI.
+        failures.append(type(exc).__name__)
+
+    # Official CDN is a last resort: it returned HTTP 403 in GitHub CI,
+    # but can still work from other networks or return a cached season.
     try:
         raw,meta=memoized_json(
             "bb-centre-nba-cdn-r1",NBA_CDN_SCHEDULE,
@@ -117,19 +160,17 @@ def get_centre_live_data(now=None):
         meta={**meta,"source":"NBA CDN — oficjalny terminarz zapasowy"}
         snap=build_centre_snapshot(table,meta,now=now,logo_provider=logo_data_uri)
         snap["players"]=[]
-        snap["coverage"]="Źródło zapasowe — bez weryfikacji liderów zawodników"
+        snap["coverage"]="Źródło zapasowe — bez liderów zawodników"
         snap["stale"]=bool(meta.get("stale"))
         snap["fetched_at"]=meta.get("timestamp") or snap["as_of"]
         return snap
     except Exception as exc:
-        # Public diagnosis only includes the exception class. Never expose
-        # third-party response bodies, raw URLs, credentials or cache paths.
-        errors.append(type(exc).__name__)
+        failures.append(type(exc).__name__)
         empty=build_centre_snapshot(pd.DataFrame(),{"source":"NBA / ESPN"},now=now)
         empty["players"]=[]
         empty["stale"]=True
         empty["coverage"]="Brak dostępnych danych"
-        labels=("ESPN: "+errors[0], "NBA CDN: "+errors[-1])
+        labels=("ESPN: "+failures[0], "NBA CDN: "+failures[-1])
         empty["error"]=(
             "Nie udało się pobrać danych NBA ("+", ".join(labels)+"). "
             "Spróbuj odświeżyć Centrum."
