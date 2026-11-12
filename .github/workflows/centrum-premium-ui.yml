@@ -1,0 +1,55 @@
+name: BestBets Centrum Premium UI
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  centrum-visual-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CENTRUM_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install app and isolated browser test dependencies
+        run: |
+          python -m pip install -r requirements.txt 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - name: Existing frontend and data contracts
+        run: python -m unittest -q test_centre_data test_custom_reference_v10 test_reference_shell_v90
+      - name: Start local preview
+        run: |
+          python -m streamlit run app.py --server.port 8520 --server.address 127.0.0.1 --server.headless true --browser.gatherUsageStats false > /tmp/bestbets-centre.log 2>&1 &
+          python - <<'PY'
+          import time, urllib.request
+          for attempt in range(80):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8520/_stcore/health', timeout=2) as response:
+                      if response.status == 200:
+                          break
+              except OSError:
+                  time.sleep(.25)
+          else:
+              raise RuntimeError('Local Streamlit preview did not become ready')
+          PY
+      - name: Reference geometry, pixel-identical Props and real iframe startup
+        run: python test_centrum_premium_ui.py --url http://127.0.0.1:8520 --out test-results/centrum-premium --baseline-ref "${CENTRUM_BASE_SHA:-origin/main}"
+      - name: Existing Player Props chart and routing QA
+        run: python test_browser_reference_v10.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: centrum-premium-ui-evidence
+          path: |
+            test-results/centrum-premium/
+            reference_v10_smoke.png
+            /tmp/bestbets-centre.log
