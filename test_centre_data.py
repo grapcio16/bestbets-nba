@@ -61,6 +61,29 @@ class CentreSnapshotTests(unittest.TestCase):
         d=build_centre_snapshot(self.table,{"stale":True},self.now)
         self.assertIn("nieaktualny",d["error"])
 
+    def test_all_30_teams_selectable_without_fabricated_form(self):
+        from teams import TEAM_FULL
+        d=build_centre_snapshot(self.table,{"source":"ESPN"},self.now,
+                                logo_provider=lambda code: "logo-"+code)
+        options={team["team"]:team for team in d["form_options"]}
+        self.assertEqual(len(options),30)
+        self.assertEqual(set(options),set(TEAM_FULL))
+        self.assertEqual(options["DEN"]["name"],"Denver Nuggets")
+        self.assertEqual(options["DEN"]["wins"],1)
+        self.assertEqual(options["DEN"]["sample"],1)
+        self.assertEqual(options["DEN"]["logo"],"logo-DEN")
+        # Atlanta had no game in this fixture: only an empty sample,
+        # not a false statement about its recent form.
+        self.assertEqual(options["ATL"]["sample"],0)
+        self.assertEqual(options["ATL"]["wins"],0)
+        self.assertEqual(options["ATL"]["losses"],0)
+        self.assertLessEqual(len(d["form"]),2)
+
+    def test_team_picker_catalog_available_when_feed_fails(self):
+        d=build_centre_snapshot(pd.DataFrame(),{},self.now)
+        self.assertEqual(len(d["form_options"]),30)
+        self.assertTrue(all(row["sample"]==0 for row in d["form_options"]))
+
 
 if __name__=="__main__":
     unittest.main()

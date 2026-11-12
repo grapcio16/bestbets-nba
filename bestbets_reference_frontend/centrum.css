@@ -263,3 +263,82 @@
   color:#10ff92;border-color:rgba(0,239,117,.66);
   background:rgba(0,85,51,.24);text-shadow:0 0 7px rgba(0,235,109,.3)
 }
+
+
+/* Centrum only — team favorites picker. Never alter stage width/zoom or Props. */
+#bestbets-centre .bc-four-grid{position:relative;z-index:20}
+#bestbets-centre .bc-team-panel{overflow:visible;z-index:3}
+#bestbets-centre .bc-form-toggle{
+  flex:0 0 auto;padding:3px 6px;margin-left:2px;height:21px;
+  background:linear-gradient(130deg,#0a3d63,#071d32);
+  border:1px solid rgba(47,191,255,.75);border-radius:12px;
+  color:#d8f6ff;font-size:9px;font-weight:850;
+  box-shadow:0 0 6px rgba(1,164,255,.22);
+}
+#bestbets-centre .bc-form-toggle:hover,
+#bestbets-centre .bc-form-toggle[aria-expanded="true"]{
+  border-color:#7de6ff;background:#104977;box-shadow:0 0 9px rgba(0,196,255,.42)
+}
+#bestbets-centre .bc-team-form{
+  display:grid;grid-template-columns:20px 25px minmax(0,1fr) 35px 20px;
+  align-items:center;gap:3px;height:27px;padding:2px 0;white-space:nowrap;
+}
+#bestbets-centre .bc-team-form strong{font-size:10px}
+#bestbets-centre .bc-team-form .bc-form-record{
+  text-align:right;font-size:9px;color:#d9e9f7;overflow:hidden;text-overflow:ellipsis
+}
+#bestbets-centre .bc-team-form i{font-size:9px;text-align:right;white-space:nowrap}
+#bestbets-centre .bc-form-star{
+  width:20px;height:20px;min-width:20px;padding:0;border:0;
+  border-radius:5px;background:transparent;color:#8daabd;font-size:22px;
+  line-height:19px;text-align:center;transition:color .12s,text-shadow .12s
+}
+#bestbets-centre .bc-form-star:hover{color:#ffe078;text-shadow:0 0 7px rgba(255,204,37,.5)}
+#bestbets-centre .bc-form-star.is-favorite{
+  color:#ffd23c;text-shadow:0 0 8px rgba(255,185,21,.54)
+}
+#bestbets-centre .bc-form-picker[hidden]{display:none!important}
+#bestbets-centre .bc-form-picker{
+  position:absolute;right:0;bottom:calc(100% + 7px);z-index:40;
+  width:302px;max-height:295px;padding:9px;display:flex;flex-direction:column;
+  overflow:hidden;border:1.5px solid #12bdff;border-radius:12px;
+  background:linear-gradient(155deg,#0b2845,#051426 65%,#061426);
+  box-shadow:0 12px 28px rgba(0,3,16,.82),0 0 16px rgba(0,188,255,.34),
+             inset 0 1px rgba(168,232,255,.16)
+}
+#bestbets-centre .bc-form-picker-head{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:8px;color:#f8fcff;font-size:12px;font-weight:900
+}
+#bestbets-centre .bc-form-picker-head span{
+  color:#ffce46;font-size:9px;white-space:nowrap
+}
+#bestbets-centre .bc-form-picker-hint{
+  padding:5px 0 7px;color:#99c5e1;font-size:9px
+}
+#bestbets-centre .bc-form-picker-hint.bc-form-limit{color:#ffc65d;font-weight:800}
+#bestbets-centre .bc-form-picker-list{
+  overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+  scrollbar-color:#328bb6 #071b30;min-height:0
+}
+#bestbets-centre .bc-form-option{
+  display:grid;grid-template-columns:24px minmax(0,1fr) 24px;
+  gap:7px;align-items:center;min-height:40px;padding:4px 5px;
+  border-bottom:1px solid rgba(83,148,189,.24);border-radius:6px
+}
+#bestbets-centre .bc-form-option:hover{background:rgba(14,105,160,.25)}
+#bestbets-centre .bc-form-option.is-favorite{background:rgba(255,171,20,.1)}
+#bestbets-centre .bc-form-option img{
+  width:23px;height:23px;object-fit:contain
+}
+#bestbets-centre .bc-form-option-label{
+  display:flex;flex-direction:column;min-width:0;gap:3px;overflow:hidden
+}
+#bestbets-centre .bc-form-option-label strong{
+  font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+#bestbets-centre .bc-form-option-label small{
+  font-size:8.5px;color:#a9cce2;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis
+}
+#bestbets-centre .bc-form-option .bc-form-star{justify-self:end;font-size:24px}
