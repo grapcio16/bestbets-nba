@@ -44,9 +44,9 @@ class CentreLiveTest(TestCase):
         self.assertEqual(len(snapshot["players"]),3)
         self.assertEqual(snapshot["finals"][0]["away_score"],110)
         self.assertEqual(snapshot["finals"][0]["home_score"],112)
-        self.assertIsNone(snapshot["games"][0]["away_score"])
+        self.assertIsNone(snapshot["games"][-1]["away_score"])
         self.assertEqual(snapshot["ticker"][0]["away"],"BOS")
-        self.assertEqual(snapshot["games"][0]["state"],"scheduled")
+        self.assertEqual(snapshot["games"][-1]["state"],"scheduled")
         self.assertFalse(snapshot["stale"])
 
     def test_failure_honestly_reports_no_data(self):
