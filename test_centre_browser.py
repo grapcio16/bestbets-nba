@@ -21,7 +21,8 @@ def check_static(page,out):
     expect(page.locator('.nav-btn[data-page="home"]')).to_have_class("nav-btn selected")
     expect(page.locator(".bc-hero-title h1")).to_contain_text("Centrum")
     assert page.locator(".bc-panel").count()==6
-    assert page.locator(".bc-pick").count()==3
+    assert page.locator(".bc-pick").count()==0
+    assert "Brak potwierdzonych liderów" in page.locator(".bc-pick-list").inner_text()
     assert page.locator(".bc-bottom-item").count()==6
     assert page.locator("#footer").is_hidden()
     assert page.locator("#props-pane").is_hidden()
@@ -43,13 +44,21 @@ def check_static(page,out):
        "finals":[{"away":"NYK","home":"MIL","away_logo":"","home_logo":"",
                   "start":"2026-11-11T19:00:00+00:00","state":"final",
                   "away_score":106,"home_score":104,"status":"Final"}],
-       "form":[{"team":"NYK","logo":"","wins":3,"losses":1,"sample":4}]}
+       "form":[{"team":"NYK","logo":"","wins":3,"losses":1,"sample":4}],
+       "players":[
+         {"name":"Jayson Tatum","team":"BOS","market":"PTS","value":26,"date":"2026-11-11"},
+         {"name":"Luka Doncic","team":"LAL","market":"AST","value":8,"date":"2026-11-11"},
+         {"name":"Nikola Jokic","team":"DEN","market":"REB","value":15,"date":"2026-11-11"}
+       ]}
     page.evaluate("(home) => window.postMessage({type:'streamlit:render',args:{payload:{player:null,error:'',brand:'',home:home}}},'*')",fixture)
     expect(page.locator(".bc-game")).to_have_count(1)
     assert page.locator(".bc-game").first.inner_text().find("NA ŻYWO")>=0
     assert page.locator(".bc-ticker-card.live").count()==1
     assert page.locator(".bc-result").count()==1
     assert page.locator(".bc-team-form").count()==1
+    assert page.locator(".bc-pick").count()==3
+    assert page.locator(".bc-watch button").count()==3
+    assert page.locator(".bc-hot button").count()==3
     page.screenshot(path=str(out/"centrum-with-verified-schema-test-fixture.png"),animations="disabled")
     page.locator(".bc-game").first.click()
     expect(page.locator("#bc-dialog-title")).to_have_text("Mecz NBA")
@@ -93,7 +102,9 @@ def check_streamlit(browser,url,out):
         expect(frame.locator('.nav-btn[data-page="home"]')).to_have_class("nav-btn selected")
         assert frame.locator("#props-pane").is_hidden()
         assert frame.locator(".bc-bottom-item").count()==6
-        assert frame.locator(".bc-pick").count()==3
+        # During load there are no invented player picks. Once the
+        # verified game feed arrives the section can contain up to 3.
+        assert frame.locator(".bc-pick").count()<=3
         stage=frame.locator("#stage")
         stage_box=stage.bounding_box()
         frame_box=iframe.bounding_box()
