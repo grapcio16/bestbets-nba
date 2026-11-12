@@ -134,7 +134,11 @@ function renderSimulationPreview(data){
 function setText(id,v){const e=$(id);if(e)e.textContent=v}
 function renderHome(data){
  homeData=data;
- if(!data){setText("bc-data-meta","Ładowanie rzeczywistych danych NBA / ESPN…");return;}
+ if(!data){
+  renderPlayers({players:[]});
+  setText("bc-data-meta","Ładowanie potwierdzonych danych NBA / ESPN…");
+  return;
+ }
  renderTicker(data);renderGames(data);renderFinals(data);renderForm(data);renderPlayers(data);renderSimulationPreview(data);
  const now=new Date();
  setText("bc-local-time","Czas lokalny: "+new Intl.DateTimeFormat("pl-PL",{hour:"2-digit",minute:"2-digit",timeZoneName:"short"}).format(now));
