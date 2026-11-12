@@ -94,15 +94,19 @@ def main():
         assert event["type"] == "search"
         assert event["query"] == "Jayson Tatum over 25.5 points"
 
-        # Simulate a wide desktop window with less vertical space (the
-        # screenshot issue that previously clipped the bottom nav tiles).
+        # Original reference artwork uses 1231x691 coordinates.
+        # When wider than its original aspect ratio, use full browser width
+        # and allow vertical scrolling. A 'fit height' assertion would
+        # reproduce the original black-gutter regression.
         page.set_viewport_size({"width":1664, "height":820})
-        box = page.locator("#stage").bounding_box()
-        shortcut = page.locator("#card-shortcuts").bounding_box()
-        bottom_nav = page.locator(".footer-links").bounding_box()
-        assert box and box["y"] + box["height"] <= 820.5, box
-        assert shortcut and shortcut["y"] + shortcut["height"] <= 820.5, shortcut
-        assert bottom_nav and bottom_nav["y"] + bottom_nav["height"] <= 820.5
+        page.wait_for_function(
+            "Math.abs(document.querySelector('#stage').getBoundingClientRect().width - innerWidth) < 3"
+        )
+        box=page.locator("#stage").bounding_box()
+        assert box and box["width"]>=1662 and box["height"]>820,box
+        footer=page.locator(".footer-links")
+        footer.scroll_into_view_if_needed()
+        assert page.evaluate("window.scrollY")>10,"Full-width original artwork must scroll on short windows"
         page.set_viewport_size({"width":1231, "height":691})
         page.emulate_media(reduced_motion="reduce")
         assert page.locator(".bb-plot-bar").first.evaluate(
