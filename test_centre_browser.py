@@ -30,6 +30,31 @@ def check_static(page,out):
     assert page.locator(".bc-hero").evaluate(
         "el => getComputedStyle(el).borderTopColor")!="rgb(0, 0, 0)"
     page.screenshot(path=str(out/"centrum-design-1231x691.png"),animations="disabled")
+    # All sample scores below are LOCAL TO TESTS ONLY; the production app
+    # receives schedule rows from confirmed NBA/ESPN sources, never these.
+    fixture={"as_of":"2026-11-12 20:00 CET","source":"Fixture test (nie publikować)",
+       "error":"","day_label":"Dziś",
+       "games":[{"away":"BOS","home":"PHI","away_logo":"","home_logo":"",
+                 "start":"2026-11-12T19:00:00+00:00","state":"live",
+                 "away_score":78,"home_score":76,"status":"Q3 06:24"}],
+       "ticker":[{"away":"BOS","home":"PHI","away_logo":"","home_logo":"",
+                  "start":"2026-11-12T19:00:00+00:00","state":"live",
+                  "away_score":78,"home_score":76,"status":"Q3 06:24"}],
+       "finals":[{"away":"NYK","home":"MIL","away_logo":"","home_logo":"",
+                  "start":"2026-11-11T19:00:00+00:00","state":"final",
+                  "away_score":106,"home_score":104,"status":"Final"}],
+       "form":[{"team":"NYK","logo":"","wins":3,"losses":1,"sample":4}]}
+    page.evaluate("(home) => window.postMessage({type:'streamlit:render',args:{payload:{player:null,error:'',brand:'',home:home}}},'*')",fixture)
+    expect(page.locator(".bc-game")).to_have_count(1)
+    assert page.locator(".bc-game").first.inner_text().find("NA ŻYWO")>=0
+    assert page.locator(".bc-ticker-card.live").count()==1
+    assert page.locator(".bc-result").count()==1
+    assert page.locator(".bc-team-form").count()==1
+    page.screenshot(path=str(out/"centrum-with-verified-schema-test-fixture.png"),animations="disabled")
+    page.locator(".bc-game").first.click()
+    expect(page.locator("#bc-dialog-title")).to_have_text("Mecz NBA")
+    assert "78" in page.locator("#bc-dialog-body").inner_text()
+    page.locator("[data-centre-close]").first.click()
     page.locator(".bc-premium-top").click()
     expect(page.locator("#bc-dialog")).to_be_visible()
     expect(page.locator("#bc-dialog-title")).to_have_text("BestBets Premium — wkrótce")
