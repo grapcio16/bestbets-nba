@@ -34,6 +34,16 @@ class SeasonStandingTests(unittest.TestCase):
         self.assertEqual(parsed["ATL"]["sample"], 0)
         self.assertTrue(parsed["ATL"]["record_verified"])
 
+    def test_espn_utah_nonstandard_abbreviation(self):
+        response = fixture()
+        for conference in response["children"]:
+            for entry in conference["standings"]["entries"]:
+                if entry["team"]["displayName"] == "Utah Jazz":
+                    entry["team"]["abbreviation"] = "UTAH"
+        records = parse_season_standings(response)
+        self.assertIn("UTA", records)
+        self.assertEqual(len(records), 30)
+
     def test_wrong_season_or_incomplete_table_rejected(self):
         old = fixture()
         old["season"]["year"] = 2026
