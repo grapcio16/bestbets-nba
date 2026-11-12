@@ -1,0 +1,41 @@
+name: BestBets V10 original design width-only startup (Cloud safety)
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-streamlit-iframe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Dependencies and Chromium
+        run: |
+          python -m pip install -r requirements.txt "playwright>=1.56,<2"
+          python -m playwright install --with-deps chromium
+      - name: Start the EXACT production entrypoint in isolation
+        run: |
+          python -m streamlit run app.py --server.headless true --server.port 8501 > /tmp/bestbets-widthonly.log 2>&1 &
+          for i in $(seq 1 75); do
+            if curl -fsS http://127.0.0.1:8501/_stcore/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          tail -100 /tmp/bestbets-widthonly.log
+          exit 1
+      - name: Genuine iframe first paint, no black gutters and accessible footer
+        run: python test_v10_width_only_runtime.py
+      - name: Artifacts for manual visual comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bestbets-original-look-widthonly-browser-proof
+          path: |
+            work/v10-width-only/
+          if-no-files-found: ignore
