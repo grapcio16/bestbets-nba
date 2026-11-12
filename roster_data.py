@@ -59,13 +59,13 @@ def parse_team_roster(payload: dict, team: str) -> pd.DataFrame:
 
 
 def team_roster(team: str, refresh: bool = False):
-    """Fetch ONE selected team's roster, memoized on disk for 12 hours."""
+    """Fetch ONE selected team's roster, memoized on disk for 4 hours."""
     if team not in ESPN_TEAM_IDS:
         raise ValueError("Nieznana drużyna NBA")
     payload, meta = memoized_json(
         "espn-roster-v7-"+team,
         ROSTER_API.format(team_id=ESPN_TEAM_IDS[team]),
-        ttl_seconds=12*3600, refresh=refresh, request_timeout=7,
+        ttl_seconds=4*3600, refresh=refresh, request_timeout=7,
     )
     df = parse_team_roster(payload,team)
     if df.empty:
