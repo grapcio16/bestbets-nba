@@ -15,8 +15,24 @@ ROOT=Path(__file__).resolve().parent
 
 
 def check_static(page,out):
+    # Collect component messages as if we were Streamlit. The initial
+    # standalone paint MUST NOT dispatch home_data before the first
+    # streamlit:render acknowledgement: Streamlit can silently drop it.
+    page.add_init_script("""window.__homeEvents=[];
+      window.addEventListener('message',e=>{
+        if(e.data && e.data.type==='streamlit:setComponentValue' &&
+           e.data.value && e.data.value.type==='home_data'){
+          window.__homeEvents.push(e.data.value);
+        }
+      });""")
     doc=(ROOT/"bestbets_reference_frontend"/"index.html").as_uri()
     page.goto(doc,wait_until="load")
+    page.wait_for_timeout(200)
+    assert page.evaluate("window.__homeEvents.length")==0, "Premature component message before Streamlit handshake"
+    page.evaluate("""()=>window.postMessage({
+       type:'streamlit:render',args:{payload:{player:null,error:'',brand:'',home:null}}
+    },'*')""")
+    page.wait_for_function("window.__homeEvents.length===1",timeout=5000)
     home=page.locator("#bestbets-centre")
     expect(home).to_be_visible(timeout=15000)
     expect(page.locator('.nav-btn[data-page="home"]')).to_have_class("nav-btn selected")
@@ -53,6 +69,7 @@ def check_static(page,out):
        ]}
     page.evaluate("(home) => window.postMessage({type:'streamlit:render',args:{payload:{player:null,error:'',brand:'',home:home}}},'*')",fixture)
     expect(page.locator(".bc-game")).to_have_count(1)
+    assert page.evaluate("window.__homeEvents.length")==1, "Must stop re-requesting after receiving the snapshot"
     assert page.locator(".bc-game").first.inner_text().find("NA ŻYWO")>=0
     assert page.locator(".bc-ticker-card.live").count()==1
     assert page.locator(".bc-result").count()==1
