@@ -121,10 +121,17 @@ def get_centre_live_data(now=None):
         snap["stale"]=bool(meta.get("stale"))
         snap["fetched_at"]=meta.get("timestamp") or snap["as_of"]
         return snap
-    except Exception:
+    except Exception as exc:
+        # Public diagnosis only includes the exception class. Never expose
+        # third-party response bodies, raw URLs, credentials or cache paths.
+        errors.append(type(exc).__name__)
         empty=build_centre_snapshot(pd.DataFrame(),{"source":"NBA / ESPN"},now=now)
         empty["players"]=[]
         empty["stale"]=True
         empty["coverage"]="Brak dostępnych danych"
-        empty["error"]="Nie udało się pobrać potwierdzonych danych NBA. Ponowimy próbę automatycznie."
+        labels=("ESPN: "+errors[0], "NBA CDN: "+errors[-1])
+        empty["error"]=(
+            "Serwery danych NBA nie odpowiedziały ("+", ".join(labels)+"). "
+            "Spróbuj odświeżyć Centrum."
+        )
         return empty
