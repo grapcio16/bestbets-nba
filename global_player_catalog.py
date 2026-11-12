@@ -35,7 +35,7 @@ def build_global_catalog(roster_fetch=team_roster, max_workers=5):
                 return None,None
             valid=roster[
                 (roster["TEAM_ABBREVIATION"]==team)
-                & roster["PLAYER_ID"].astype(str).str.fullmatch(r"\\d+")
+                & roster["PLAYER_ID"].astype(str).str.fullmatch(r"\d+")
                 & roster["PLAYER_NAME"].fillna("").astype(str).str.strip().ne("")
             ].copy()
             if valid.empty:
