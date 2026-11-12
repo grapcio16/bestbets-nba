@@ -558,7 +558,14 @@ function search(query){
 if(window.BestBetsCentre){
   window.BestBetsCentre.init({
     go:function(page){state.page=page;render()},
-    search:function(query){state.page="props";search(query)}
+    search:function(query){state.page="props";search(query)},
+    refresh:function(){
+      if(state.page!=="home")return;
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"home_data",force:true,
+        id:String(Date.now())+"-manual-refresh-"+Math.random().toString(36).slice(2)
+      }});
+    }
   });
 }
 $("search-form").addEventListener("submit",function(e){e.preventDefault();search($("query").value)});
