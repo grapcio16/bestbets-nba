@@ -24,6 +24,11 @@ def check_static(page,out):
     expect(page.locator(".bc-hero-title h1")).to_contain_text("Centrum")
     assert page.locator(".bc-panel").count()==6
     assert page.locator(".bc-pick").count()==0
+    assert page.locator(".bc-hot").count()==0
+    assert page.locator(".topsearch").is_hidden()
+    assert page.locator(".suggestions").is_hidden()
+    assert page.locator(".utility").is_hidden()
+    assert page.locator(".bc-hero").bounding_box()["y"] < 35
     assert "Brak potwierdzonych liderów" in page.locator(".bc-pick-list").inner_text()
     assert page.locator(".bc-bottom-item").count()==6
     assert page.locator("#footer").is_hidden()
@@ -92,7 +97,7 @@ def check_static(page,out):
     assert page.locator("#bc-source-state").inner_text().startswith("●")
     assert page.locator(".bc-pick").count()==3
     assert page.locator(".bc-watch button").count()==3
-    assert page.locator(".bc-hot button").count()==3
+    assert page.locator(".bc-hot").count()==0
     page.screenshot(path=str(out/"centrum-with-verified-schema-test-fixture.png"),animations="disabled")
     page.locator(".bc-game").first.click()
     expect(page.locator("#bc-dialog-title")).to_have_text("Mecz NBA")
@@ -123,6 +128,9 @@ def check_static(page,out):
     # test the actual visible hero instead of wrapper geometry.
     expect(page.locator("#hero")).to_be_visible()
     assert page.locator("#props-pane").evaluate("el => getComputedStyle(el).display")=="block"
+    expect(page.locator(".topsearch")).to_be_visible()
+    expect(page.locator(".suggestions")).to_be_visible()
+    expect(page.locator(".utility")).to_be_visible()
     expect(page.locator("#bestbets-centre")).to_be_hidden()
     expect(page.locator("#footer")).to_be_visible()
     expect(page.locator(".topsearch")).to_be_visible()
@@ -149,6 +157,9 @@ def check_streamlit(browser,url,out):
         expect(frame.locator(".bc-hero-title")).to_contain_text("Centrum NBA")
         expect(frame.locator('.nav-btn[data-page="home"]')).to_have_class("nav-btn selected")
         assert frame.locator("#props-pane").is_hidden()
+        assert frame.locator(".topsearch").is_hidden()
+        assert frame.locator(".suggestions").is_hidden()
+        assert frame.locator(".bc-hot").count()==0
         assert frame.locator(".bc-bottom-item").count()==6
         # During load there are no invented player picks. Once the
         # verified game feed arrives the section can contain up to 3.
