@@ -22,14 +22,14 @@ ROOT = Path(__file__).resolve().parent
 FRONTEND = ROOT / 'bestbets_reference_frontend'
 SIZES = [(1920, 1080), (1600, 900), (1366, 768), (390, 844)]
 REFERENCE_SIZE = (1672, 941)
-# Manually measured regions in the user-supplied image (not an invented baseline).
+# New clean-home geometry derived from the 1231 px stage and user-requested
+# removal of two Props sections; the Player Props baseline stays unchanged.
 REFERENCE_REGIONS = {
-    '.bc-hero': (238, 138, 1409, 129),
-    '.bc-ticker': (238, 283, 1409, 65),
-    '.bc-main-row': (238, 364, 1409, 199),
-    '.bc-four-grid': (238, 586, 1409, 145),
-    '.bc-hot': (238, 755, 1409, 59),
-    '.bc-bottom': (238, 842, 1409, 64),
+    '.bc-hero': (238, 34, 1409, 149),
+    '.bc-ticker': (238, 202, 1409, 76),
+    '.bc-main-row': (238, 297, 1409, 302),
+    '.bc-four-grid': (238, 621, 1409, 183),
+    '.bc-bottom': (238, 829, 1409, 69),
 }
 # A date selector is an explicitly approved change to Centrum-only HTML
 # and CSS. Keep all Props code, scaling and other public assets untouched.
@@ -95,6 +95,7 @@ def geometry(page, size):
     non_overlapping(major)
     stage = page.locator('#stage').bounding_box()
     assert stage and stage['width'] >= size[0]-1, ('Blank screen / side gutters', stage)
+    assert page.locator('.bc-hot').count() == 0
     for selector, count in [('.bc-main-row>.bc-panel',2), ('.bc-four-grid>.bc-panel',4),
             ('.bc-bottom-item',6)]:
         boxes = rects(page, selector)
@@ -105,7 +106,7 @@ def geometry(page, size):
             assert box['x'] >= -1 and box['x']+box['width'] <= size[0]+1
             assert box['y'] >= -1 and box['y']+box['height'] <= size[1]+1
     # Full names and controls must fit, including BestBets Premium (no ellipsis).
-    for selector in ('.bc-bottom-item strong', '.bc-small-head', '.bc-hot-title'):
+    for selector in ('.bc-bottom-item strong', '.bc-small-head'):
         overflowing = page.locator(selector).evaluate_all(
             'els => els.filter(e => e.scrollWidth > e.clientWidth+1).map(e=>e.textContent)')
         assert not overflowing, ('Clipped text', selector, overflowing)
