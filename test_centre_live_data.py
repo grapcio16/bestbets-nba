@@ -43,7 +43,7 @@ class CentreLiveTest(TestCase):
         # Critical regression: ESPN's range query returned an error in CI
         # while date=YYYYMMDD succeeded. Every request must use ONE day.
         import re
-        days=[c.kwargs["params"]["dates"] for c in fetch.call_args_list if c.kwargs.get("params")]
+        days=[c.kwargs["params"]["dates"] for c in fetch.call_args_list if "dates" in c.kwargs.get("params", {})]
         self.assertGreaterEqual(len(days),8)
         self.assertTrue(all(re.fullmatch(r"\d{8}",d) for d in days),days)
         self.assertEqual(snapshot["source"],"ESPN — rzeczywiste mecze NBA")
