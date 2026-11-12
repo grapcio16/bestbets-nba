@@ -8,7 +8,7 @@ from __future__ import annotations
 import math
 import re
 
-from teams import TEAM_FULL
+from teams import TEAM_FULL, TEAM_MAP
 
 STANDINGS_URL = "https://site.api.espn.com/apis/v2/sports/basketball/nba/standings"
 SEASON_YEAR = 2027
@@ -57,6 +57,10 @@ def parse_season_standings(payload: dict, expected_year: int = SEASON_YEAR) -> d
                 continue
             team = entry.get("team") or {}
             code = str(team.get("abbreviation") or "").strip().upper() if isinstance(team, dict) else ""
+            if code not in TEAM_FULL:
+                # ESPN sometimes emits nonstandard abbreviations (e.g. UTAH).
+                # Resolve the official full team name, never an approximate match.
+                code = TEAM_MAP.get(str(team.get("displayName") or "").strip(), "")
             if code not in TEAM_FULL:
                 continue
             stats = {}
