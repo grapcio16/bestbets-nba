@@ -17,7 +17,7 @@ def test_unresponsive_host(page):
     page.wait_for_timeout(100)
     assert page.evaluate("window.__missing__ === undefined")
     # Host intentionally sends no streamlit:render acknowledgement.
-    page.clock.fast_forward(36000)
+    page.clock.run_for(41000)
     expect(page.locator("#bc-data-meta")).to_contain_text("Ponawiam pobieranie.",timeout=6000)
     assert "Wczytywanie" not in page.locator("#bc-ticker-games").inner_text()
     assert "Pobieranie" not in page.locator("#bc-games-list").inner_text()
@@ -32,7 +32,7 @@ def test_unresponsive_host(page):
 def test_delayed_success_response(page):
     page.goto((ROOT/"bestbets_reference_frontend"/"index.html").as_uri())
     page.wait_for_timeout(100)
-    page.clock.fast_forward(36000)
+    page.clock.run_for(41000)
     expect(page.locator("#bc-data-meta")).to_contain_text("Ponawiam pobieranie.",timeout=6000)
     sample={"source":"test-only ESPN fixture","games":[],"ticker":[],"finals":[],
             "form":[],"players":[],"as_of":"test","coverage":"synthetic test only"}

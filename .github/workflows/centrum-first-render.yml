@@ -1,0 +1,84 @@
+name: BestBets Centrum first-render data bootstrap regression
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  initial-payload-and-realtime-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install production and browser dependencies
+        run: |
+          python -m pip install -r requirements.txt "playwright>=1.56,<2"
+          python -m playwright install --with-deps chromium
+      - name: Compile files and assert initial payload without messages
+        run: |
+          python -m py_compile bestbets_custom_screen.py bestbets_centre_live.py test_centre_bootstrap.py
+          python -m unittest -v test_centre_bootstrap test_centre_live_data test_centre_data
+      - name: Inspect live NBA provider reachability (non-gating, no private data)
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from bestbets_centre_live import get_centre_live_data
+          result=get_centre_live_data()
+          print("Provider:",result.get("source","unknown"))
+          print("Verified schedule:",len(result.get("games",[])))
+          print("Verified ticker:",len(result.get("ticker",[])))
+          print("Verified finals:",len(result.get("finals",[])))
+          print("Verified player leaders:",len(result.get("players",[])))
+          print("Availability error:",result.get("error") or "none")
+          PY
+      - name: Diagnose HTTP status of public sports providers (non-gating)
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import requests
+          from datetime import datetime,timezone
+          from sources import ESPN_SCOREBOARD,NBA_CDN_SCHEDULE
+          today=datetime.now(timezone.utc).strftime("%Y%m%d")
+          endpoints=(
+            ("ESPN single-day",ESPN_SCOREBOARD,{"dates":today,"limit":30}),
+            ("ESPN mirror",ESPN_SCOREBOARD.replace("site.api.espn.com","site.web.api.espn.com"),{"dates":today,"limit":30}),
+            ("NBA CDN",NBA_CDN_SCHEDULE,None),
+          )
+          for name,url,params in endpoints:
+            try:
+              r=requests.get(url,params=params,timeout=5,
+                headers={"User-Agent":"Mozilla/5.0","Accept":"application/json"})
+              print(name,"HTTP",r.status_code,"bytes",len(r.content))
+              if r.ok and "espn" in name.lower():
+                print(name,"events",len(r.json().get("events",[])))
+            except Exception as exc:
+              print(name,"network error type",type(exc).__name__)
+          PY
+      - name: Preserve the original Player Props design
+        run: python test_browser_reference_v10.py
+      - name: Start the REAL app.py in isolation
+        run: |
+          python -m streamlit run app.py --server.port 8501 --server.headless true > /tmp/centrum-bootstrap.log 2>&1 &
+          for n in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:8501/_stcore/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/centrum-bootstrap.log
+          exit 1
+      - name: Verify the real first paint, refresh control, and Props routing
+        run: python test_centre_browser.py
+      - name: Archive screenshots and Streamlit logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bestbets-centrum-first-render-proof
+          path: |
+            work/centrum-qa/
+            /tmp/centrum-bootstrap.log
+          if-no-files-found: ignore

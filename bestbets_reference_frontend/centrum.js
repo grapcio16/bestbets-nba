@@ -38,7 +38,10 @@ function renderTicker(data){
  if(!host)return;
  const games=(data&&Array.isArray(data.ticker))?data.ticker.slice(0,5):[];
  if(!games.length){
-  host.innerHTML='<div class="bc-ticker-loading">Brak potwierdzonych spotkań w najbliższym terminarzu.</div>';return;
+  host.innerHTML='<div class="bc-ticker-loading">'+(data&&data.error
+    ? 'Dane terminarza niedostępne. Użyj ⟳, aby ponowić próbę.'
+    : 'Brak potwierdzonych spotkań w najbliższym terminarzu.')+'</div>';
+  return;
  }
  host.innerHTML=games.map((g,i)=>
   '<button type="button" class="bc-ticker-card'+(g.state==="live"?' live':'')+'" data-centre-game="'+i+'" aria-label="Szczegóły meczu '+escapeHtml(g.away)+' – '+escapeHtml(g.home)+'">'+
@@ -51,7 +54,9 @@ function renderGames(data){
  const games=data&&Array.isArray(data.games)?data.games.slice(0,5):[];
  const title=host.closest(".bc-panel").querySelector(".bc-panel-title");
  if(title)title.childNodes.forEach(n=>{if(n.nodeType===3)n.textContent=games.length&&data.day_label!=="Dziś"?" Mecze najbliższe ":" Mecze dnia "});
- if(!games.length){host.innerHTML='<div class="bc-muted">Brak potwierdzonych spotkań na dziś. Sprawdź terminarz później.</div>';return}
+ if(!games.length){host.innerHTML='<div class="bc-muted">'+(data&&data.error
+   ?'Nie udało się pobrać terminarza. Odśwież dane przyciskiem ⟳.'
+   :'Brak potwierdzonych spotkań na dziś. Sprawdź terminarz później.')+'</div>';return}
  host.innerHTML=games.map((g,i)=>
   '<button class="bc-game" type="button" data-centre-row="'+i+'">'+
   '<span class="bc-gteam">'+shortTeam(g.away,g.away_logo)+'</span>'+
@@ -62,7 +67,9 @@ function renderGames(data){
 function renderFinals(data){
  const host=$("bc-finals");if(!host)return;
  const games=data&&Array.isArray(data.finals)?data.finals.slice(0,2):[];
- if(!games.length){host.innerHTML='<div class="bc-muted">Brak wyników potwierdzonych w bieżącym źródle.</div>';return}
+ if(!games.length){host.innerHTML='<div class="bc-muted">'+(data&&data.error
+   ?'Wyniki niedostępne — źródło danych nie odpowiedziało.'
+   :'Brak wyników potwierdzonych w bieżącym źródle.')+'</div>';return}
  host.innerHTML=games.map(g=>
    '<div class="bc-result">'+
    '<span>'+logo(g.away,g.away_logo)+' '+escapeHtml(g.away)+'</span>'+
@@ -134,6 +141,17 @@ function renderSimulationPreview(data){
 function setText(id,v){const e=$(id);if(e)e.textContent=v}
 function renderHome(data){
  homeData=data;
+ const button=$("bc-refresh");
+ if(button){
+   button.disabled=false;
+   button.title=data&&data.error?data.error:"Odśwież terminarz, wyniki i statystyki";
+ }
+ const signal=$("bc-source-state");
+ if(signal){
+   const color=data?(data.error?"#ff9b40":data.stale?"#ffb24a":"#04ee8a"):"#8aa9c5";
+   signal.style.color=color;
+   signal.textContent=data?(data.error?"● Problem":"● Dane NBA"):"● Ładowanie";
+ }
  if(!data){
   renderPlayers({players:[]});
   setText("bc-data-meta","Ładowanie potwierdzonych danych NBA / ESPN…");
@@ -180,6 +198,25 @@ function init(context){
  const centre=$("bestbets-centre");
  if(!centre || centre.dataset.ready==="1")return;
  centre.dataset.ready="1";
+ // Small noninvasive refresh icon and data-source indicator in the ticker.
+ // Adds no layout width and doesn't change the approved neon design.
+ const tickerHead=centre.querySelector(".bc-ticker-head");
+ if(tickerHead){
+   tickerHead.style.position="relative";
+   const badge=document.createElement("span");
+   badge.id="bc-source-state";badge.textContent="● Ładowanie";
+   badge.style.cssText="position:absolute;right:4px;bottom:2px;font-size:7px;font-weight:800;white-space:nowrap;background:#071b2e;padding:1px 2px;border-radius:4px";
+   badge.setAttribute("aria-live","polite");
+   tickerHead.appendChild(badge);
+   const refresh=document.createElement("button");
+   refresh.type="button";refresh.id="bc-refresh";
+   refresh.textContent="⟳";
+   refresh.style.cssText="position:absolute;right:3px;top:3px;display:grid;place-items:center;width:18px;height:18px;padding:0;border:1px solid #4989b0;border-radius:50%;background:#082841;color:#a6e8ff;font-size:17px;line-height:16px";
+   refresh.setAttribute("data-centre-refresh","");
+   refresh.setAttribute("aria-label","Odśwież dane NBA");
+   refresh.title="Odśwież terminarz, wyniki i statystyki";
+   tickerHead.appendChild(refresh);
+ }
  centre.addEventListener("click",function(event){
   const button=event.target.closest("button");
   if(!button)return;
@@ -187,6 +224,11 @@ function init(context){
   const query=button.getAttribute("data-centre-query");
   if(nav&&api.go){api.go(nav);return}
   if(query&&api.search){api.search(query);return}
+  if(button.matches("[data-centre-refresh]")){
+    setText("bc-data-meta","Sprawdzanie dostępnych aktualizacji danych NBA…");
+    if(api.refresh)api.refresh();
+    return;
+  }
   if(button.matches("[data-centre-premium]")){premium();return}
   if(button.matches("[data-centre-all-games]")){showSchedule();return}
   if(button.matches("[data-centre-close]")){close();return}

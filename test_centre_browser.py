@@ -57,6 +57,8 @@ def check_static(page,out):
     assert page.locator(".bc-ticker-card.live").count()==1
     assert page.locator(".bc-result").count()==1
     assert page.locator(".bc-team-form").count()==1
+    expect(page.locator("#bc-refresh")).to_be_visible()
+    assert page.locator("#bc-source-state").inner_text().startswith("●")
     assert page.locator(".bc-pick").count()==3
     assert page.locator(".bc-watch button").count()==3
     assert page.locator(".bc-hot button").count()==3
@@ -113,6 +115,15 @@ def check_streamlit(browser,url,out):
             re.compile(r"^(Dane:|Aktualne dane chwilowo niedostępne:)"),
             timeout=45000,
         )
+        expect(frame.locator("#bc-refresh")).to_be_visible()
+        # Previously CI accepted a backend success while the visible NBA
+        # ticker and results remained stuck at their initial placeholders.
+        # Requiring all 3 sections to leave loading covers that exact bug.
+        for selector in ("#bc-ticker-games","#bc-games-list","#bc-finals"):
+            content=frame.locator(selector).inner_text()
+            assert "Wczytywanie" not in content and "Pobieranie" not in content, (
+                "Dashboard is still loading after first real Streamlit paint",selector,content
+            )
         stage=frame.locator("#stage")
         stage_box=stage.bounding_box()
         frame_box=iframe.bounding_box()
