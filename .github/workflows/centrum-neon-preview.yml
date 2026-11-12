@@ -1,0 +1,49 @@
+name: BestBets Centrum neon homepage (safe preview only)
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  centrum-browser-and-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install app and Chromium
+        run: |
+          python -m pip install -r requirements.txt "playwright>=1.56,<2"
+          python -m playwright install --with-deps chromium
+      - name: Compile and test real-data serialization without network
+        run: |
+          python -m py_compile app.py bestbets_custom_screen.py bestbets_centre_data.py
+          python -m unittest -v test_centre_data.py
+      - name: Preserve original Player Props positioning and routes
+        run: python test_browser_reference_v10.py
+      - name: Launch REAL Streamlit app.py (no production deployment)
+        run: |
+          python -m streamlit run app.py --server.port 8501 --server.headless true > /tmp/bb-centre.log 2>&1 &
+          for n in $(seq 1 70); do
+            if curl -fsS http://127.0.0.1:8501/_stcore/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          tail -100 /tmp/bb-centre.log
+          exit 1
+      - name: New homepage screenshot, interaction and full-width QA
+        run: python test_centre_browser.py
+      - name: Preserve screenshot artifacts for visual review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bestbets-neon-centrum-preview
+          path: |
+            work/centrum-qa/
+            /tmp/bb-centre.log
+            reference_v10_smoke.png
+          if-no-files-found: ignore
