@@ -536,12 +536,10 @@ function render(){
   if(state.payload.brand){setImage("brand-img",state.payload.brand,"BestBets")}
   if(home && window.BestBetsCentre){
     window.BestBetsCentre.render(state.payload.home||null);
-    if(!state.homeRequested && !state.payload.home){
-      // Initial request after componentReady. If the host drops it, the
-      // watchdog below retries until the backend actually returns data.
-      // Keep the existing iframe, stage scaling, and Props canvas untouched.
-      setTimeout(requestHomeData,0);
-    }
+    // The backend now embeds the Centrum snapshot in the FIRST render.
+    // Do not send an unnecessary extra home_data request on initial load:
+    // it can cause a needless Streamlit rerun while the iframe is sizing.
+    // The existing watchdog retries after 6.5s if the host never responds.
   }
   if(active)renderPlayer();
   resize();
