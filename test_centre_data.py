@@ -32,9 +32,9 @@ class CentreSnapshotTests(unittest.TestCase):
         self.assertNotIn("71.3%",str(d))
     def test_next_real_date_not_falsely_today(self):
         d=build_centre_snapshot(self.table,{"source":"ESPN"},
-            pd.Timestamp("2026-11-12 23:00:00",tz="Europe/Warsaw"))
+            pd.Timestamp("2026-11-11 23:00:00",tz="Europe/Warsaw"))
         self.assertTrue(d["day_label"].startswith("Najbliższe:"))
-        self.assertEqual(d["games"][0]["id"],"2")
+        self.assertEqual(d["games"][0]["id"],"1")
     def test_failure_no_fake_games(self):
         d=build_centre_snapshot(pd.DataFrame(),{"source":"ESPN"},self.now)
         self.assertEqual(d["games"],[])
