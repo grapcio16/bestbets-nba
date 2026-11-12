@@ -209,6 +209,7 @@ def main() -> None:
         "brand": _cached_brand(),
         "player": st.session_state["bb10_payload"].get("player"),
         "error": st.session_state["bb10_payload"].get("error", ""),
+        "home": st.session_state.get("bb10_centre_data"),
     }
     event = COMPONENT(payload=payload, default=None, key="bb10_reference_canvas")
     if not isinstance(event, dict):
@@ -217,6 +218,14 @@ def main() -> None:
     if not event_id or event_id == st.session_state.get("bb10_last_event"):
         return
     st.session_state["bb10_last_event"] = event_id
+    if event.get("type") == "home_data":
+        # Fetch after the first iframe paint, never before it. Keep the live
+        # dashboard fast and never fabricate missing NBA fixtures or scores.
+        if "bb10_centre_data" not in st.session_state:
+            from bestbets_centre_data import load_centre_snapshot
+            st.session_state["bb10_centre_data"] = load_centre_snapshot()
+        st.rerun()
+        return
     if event.get("type") != "search":
         return
     query = _plain(event.get("query"))

@@ -54,6 +54,11 @@ def smoke(browser, url, width, height, out):
         values=[v[axis] for v in size]
         assert max(values)-min(values)<1.5,("Unstable startup scale",axis,values[:5],values[-5:])
     assert frame.locator(".preview").count()==6
+    # Homepage is the new landing page; navigate back to the unchanged
+    # Player Props screen to test the original footer and card reachability.
+    expect(frame.locator("#bestbets-centre")).to_be_visible()
+    frame.locator('.nav-btn[data-page="props"]').click()
+    expect(frame.locator("#footer")).to_be_visible()
     assert not errors,errors
     shot=out / f"v10-full-width-{width}x{height}.png"
     page.screenshot(path=str(shot))

@@ -31,6 +31,10 @@ def main():
         errors = []
         page.on("pageerror", lambda exc: errors.append(str(exc)))
         page.goto(DOC, wait_until="load")
+        # Centrum is now the free landing screen. Navigate to the untouched
+        # Player Props route before checking its approved pixel positions.
+        assert page.locator("#bestbets-centre").is_visible()
+        page.locator('.nav-btn[data-page="props"]').click()
         assert_box(page, "#stage", 0, 0, 1231, 691)
         assert_box(page, ".topsearch", 303, 10, 708, 38)
         assert_box(page, "#hero", 191, 90, 1028, 89)
