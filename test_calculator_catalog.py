@@ -20,7 +20,7 @@ class GlobalCatalogTests(unittest.TestCase):
                     "TEAM_ABBREVIATION":"DEN","POSITION":"PF","ROSTER_STATUS":"?"
                 }]),{"stale":False}
             return pd.DataFrame([{
-                "PLAYER_ID":"dummy_"+team,"PLAYER_NAME":"Test "+team,
+                "PLAYER_ID":str(10000 + sum(ord(ch) for ch in team)),"PLAYER_NAME":"Test "+team,
                 "TEAM_ABBREVIATION":team,"POSITION":"?", "ROSTER_STATUS":"?"
             }]),{"stale":False}
         catalog,coverage=build_global_catalog(fake_team)
@@ -36,13 +36,44 @@ class GlobalCatalogTests(unittest.TestCase):
             if team=="DEN":
                 raise RuntimeError("ESPN error")
             return pd.DataFrame([{
-                "PLAYER_ID":team,"PLAYER_NAME":team,"TEAM_ABBREVIATION":team,
+                "PLAYER_ID":str(10000 + sum(ord(ch) for ch in team)),"PLAYER_NAME":team,"TEAM_ABBREVIATION":team,
                 "POSITION":"?","ROSTER_STATUS":"?"
             }]),{"stale":False}
         catalog,coverage=build_global_catalog(fake_team)
         self.assertEqual(coverage["teams_loaded"],29)
         self.assertEqual(coverage["missing_teams"],["DEN"])
         self.assertEqual(len(catalog),29)
+
+    def test_missing_team_is_retried_and_restored(self):
+        attempts={}
+        def flaky(team):
+            attempts[team]=attempts.get(team,0)+1
+            if team=="DEN" and attempts[team]==1:
+                raise TimeoutError("Temporary ESPN failure")
+            return pd.DataFrame([{
+                "PLAYER_ID":str(20000+sum(ord(c) for c in team)),
+                "PLAYER_NAME":"Player "+team,
+                "TEAM_ABBREVIATION":team,
+                "POSITION":"G","ROSTER_STATUS":"Active"
+            }]),{"stale":False}
+        catalog,coverage=build_global_catalog(flaky,max_workers=3)
+        self.assertEqual(coverage["teams_loaded"],30)
+        self.assertEqual(coverage["missing_teams"],[])
+        self.assertIn("DEN",coverage["retried_teams"])
+        self.assertEqual(attempts["DEN"],2)
+        self.assertTrue((catalog["TEAM_ABBREVIATION"]=="DEN").any())
+
+    def test_invalid_athlete_id_is_excluded(self):
+        def mock_roster(team):
+            return pd.DataFrame([
+                {"PLAYER_ID":"ABC","PLAYER_NAME":"Unverified",
+                 "TEAM_ABBREVIATION":team},
+                {"PLAYER_ID":"1234","PLAYER_NAME":"Verified "+team,
+                 "TEAM_ABBREVIATION":team}
+            ]),{}
+        catalog,coverage=build_global_catalog(mock_roster)
+        self.assertNotIn("Unverified",catalog["PLAYER_NAME"].tolist())
+        self.assertEqual(len(catalog),30)
 
     def test_history_chart_has_game_values_and_both_reference_lines(self):
         sample=pd.DataFrame([
