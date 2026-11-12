@@ -336,7 +336,7 @@ const $=function(id){return document.getElementById(id)};
 const root=$("stage"),shell=$("app-shell");
 const marketNames={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PTS + REB + AST"};
 const pages={home:"Centrum",props:"Player Props",games:"Terminarz",simulations:"Symulacje",players:"Zawodnicy",teams:"Drużyny",settings:"Ustawienia",shortcuts:"Skrót wpisywania"};
-const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",loading:false,lastIdentity:"",homeRequested:false};
+const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",loading:false,lastIdentity:"",homeRequested:false,bridgeReady:false,homeTries:0,homeLastAt:0};
 function notify(type,extra){
   window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},extra||{}),"*");
 }
@@ -508,6 +508,33 @@ function renderPlayer(){
   document.querySelectorAll("[data-side]").forEach(function(el){el.classList.toggle("on",el.dataset.side===state.side)});
   document.querySelectorAll("[data-period]").forEach(function(el){el.classList.toggle("on",el.dataset.period===state.period)});
 }
+// Streamlit may discard messages emitted before the component is mounted.
+// The first streamlit:render packet proves the bridge is ready. Retry only
+// when the backend has NOT replied; never retry while browsing Player Props.
+function requestHomeData(force){
+  if(state.page!=="home" || !state.bridgeReady)return;
+  if(!force && state.payload.home)return;
+  const now=Date.now();
+  if(!force && now-state.homeLastAt<17000)return;
+  state.homeLastAt=now;
+  state.homeTries++;
+  state.homeRequested=true;
+  notify("streamlit:setComponentValue",{dataType:"json",value:{
+    type:"home_data",id:String(now)+"-centre-"+String(Math.random()).slice(2)
+  }});
+  if(!force && state.homeTries<=3){
+    setTimeout(function(){
+      if(state.page!=="home" || state.payload.home)return;
+      if(state.homeTries>=3){
+        window.BestBetsCentre && window.BestBetsCentre.error(
+          "Źródło NBA nie odpowiedziało. Odśwież stronę, aby ponowić pobieranie."
+        );
+        return;
+      }
+      requestHomeData(false);
+    },18000);
+  }
+}
 function render(){
   const active=state.page==="props",home=state.page==="home";
   root.classList.toggle("bb-home-active",home);
@@ -524,16 +551,9 @@ function render(){
   if(state.payload.brand){setImage("brand-img",state.payload.brand,"BestBets")}
   if(home && window.BestBetsCentre){
     window.BestBetsCentre.render(state.payload.home||null);
-    if(!state.homeRequested && !state.payload.home){
-      state.homeRequested=true;
-      // The componentReady handshake at the bottom of this file completes
-      // before this zero-delay message is sent to the Python backend.
-      setTimeout(function(){
-        notify("streamlit:setComponentValue",{dataType:"json",value:{
-          type:"home_data",id:String(Date.now())+"-home-"+String(Math.random()).slice(2)
-        }});
-      },0);
-    }
+    // Never send the initial event before Streamlit has acknowledged
+    // componentReady with its first streamlit:render message.
+    if(!state.payload.home && state.bridgeReady)requestHomeData(false);
   }
   if(active)renderPlayer();
   resize();
@@ -567,15 +587,14 @@ window.addEventListener("resize",resize);
 // Refresh public game facts while the free dashboard is visible. Never
 // interfere with the existing search, props state or iframe sizing.
 setInterval(function(){
-  if(state.page!=="home")return;
-  notify("streamlit:setComponentValue",{dataType:"json",value:{
-    type:"home_data",id:String(Date.now())+"-home-refresh-"+Math.random().toString(36).slice(2)
-  }});
+  if(state.page==="home" && state.bridgeReady)requestHomeData(true);
 },120000);
 window.addEventListener("message",function(event){
   const packet=event.data||{};
   if(packet.type!=="streamlit:render"||!packet.args)return;
+  state.bridgeReady=true;
   state.payload=packet.args.payload||{player:null,error:"",brand:""};
+  if(state.payload.home){state.homeTries=0;state.homeRequested=false;}
   state.loading=false;
   const p=state.payload.player;
   if(p){
