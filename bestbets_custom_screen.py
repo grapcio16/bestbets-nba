@@ -11,6 +11,7 @@ from pathlib import Path
 from math import isfinite
 from typing import Any
 import uuid
+import time
 
 import pandas as pd
 import streamlit as st
@@ -20,6 +21,13 @@ ROOT = Path(__file__).resolve().parent
 FRONTEND = ROOT / "bestbets_reference_frontend"
 COMPONENT = declare_component("bestbets_reference_canvas_v10", path=str(FRONTEND))
 SEASON = "2026-27"
+
+
+@st.cache_data(ttl=135, show_spinner=False)
+def _cached_centre_live() -> dict:
+    """Share fresh public scoreboard data between sessions, no secrets."""
+    from bestbets_centre_live import get_centre_live_data
+    return get_centre_live_data()
 
 
 def _plain(value: Any) -> str:
@@ -219,11 +227,13 @@ def main() -> None:
         return
     st.session_state["bb10_last_event"] = event_id
     if event.get("type") == "home_data":
-        # Fetch after the first iframe paint, never before it. Keep the live
-        # dashboard fast and never fabricate missing NBA fixtures or scores.
-        if "bb10_centre_data" not in st.session_state:
-            from bestbets_centre_data import load_centre_snapshot
-            st.session_state["bb10_centre_data"] = load_centre_snapshot()
+        # Lazy after first paint. Refresh every 2 minutes while home is
+        # visible. The shared cache avoids repeated requests per visitor.
+        now=time.monotonic()
+        last=st.session_state.get("bb10_centre_last_at",0.0)
+        if "bb10_centre_data" not in st.session_state or now-last>=120.0:
+            st.session_state["bb10_centre_data"] = _cached_centre_live()
+            st.session_state["bb10_centre_last_at"] = now
         st.rerun()
         return
     if event.get("type") != "search":
