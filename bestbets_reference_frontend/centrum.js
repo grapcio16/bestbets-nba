@@ -192,13 +192,16 @@ function init(context){
  // Adds no layout width and doesn't change the approved neon design.
  const tickerHead=centre.querySelector(".bc-ticker-head");
  if(tickerHead){
+   tickerHead.style.position="relative";
    const badge=document.createElement("span");
    badge.id="bc-source-state";badge.textContent="● Ładowanie";
+   badge.style.cssText="position:absolute;right:4px;bottom:2px;font-size:7px;font-weight:800;white-space:nowrap;background:#071b2e;padding:1px 2px;border-radius:4px";
    badge.setAttribute("aria-live","polite");
    tickerHead.appendChild(badge);
    const refresh=document.createElement("button");
    refresh.type="button";refresh.id="bc-refresh";
    refresh.textContent="⟳";
+   refresh.style.cssText="position:absolute;right:3px;top:3px;display:grid;place-items:center;width:18px;height:18px;padding:0;border:1px solid #4989b0;border-radius:50%;background:#082841;color:#a6e8ff;font-size:17px;line-height:16px";
    refresh.setAttribute("data-centre-refresh","");
    refresh.setAttribute("aria-label","Odśwież dane NBA");
    refresh.title="Odśwież terminarz, wyniki i statystyki";
