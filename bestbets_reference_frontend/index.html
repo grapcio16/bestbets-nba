@@ -324,6 +324,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <div id="attribution">BESTBETS · Statystyki historyczne NBA / ESPN · nie są gwarancją przyszłego wyniku.</div>
 </div></div>
 <script src="centrum.js"></script>
+<script src="player_picker.js"></script>
 <script>
 (function(){
 "use strict";
@@ -533,7 +534,7 @@ function render(){
   $("query").placeholder=home?"Szukaj zawodnika, linii i rynku NBA...":"Jayson Tatum over 25.5 points";
   if(state.payload.brand){setImage("brand-img",state.payload.brand,"BestBets")}
   if(home && window.BestBetsCentre){
-    window.BestBetsCentre.render(state.payload.home||null);
+    window.BestBetsCentre.render(state.payload.home||null,state.payload.player_catalog||null);
     // The backend now embeds the Centrum snapshot in the FIRST render.
     // Do not send an unnecessary extra home_data request on initial load:
     // it can cause a needless Streamlit rerun while the iframe is sizing.
@@ -554,6 +555,11 @@ function search(query){
 if(window.BestBetsCentre){
   window.BestBetsCentre.init({
     go:function(page){state.page=page;render()},
+    loadPlayers:function(){
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"player_catalog",id:String(Date.now())+"-players-"+Math.random().toString(36).slice(2)
+      }});
+    },
     search:function(query){state.page="props";search(query)},
     refresh:function(){
       if(state.page!=="home")return;
