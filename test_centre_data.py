@@ -30,6 +30,16 @@ class CentreSnapshotTests(unittest.TestCase):
         self.assertEqual(d["form"][0]["sample"],1)
         self.assertNotIn("prediction",str(d).lower())
         self.assertNotIn("71.3%",str(d))
+    def test_calendar_includes_past_and_future_with_correct_scores(self):
+        d=build_centre_snapshot(self.table,{"source":"ESPN"},self.now,logo_provider=lambda _: "")
+        dates={g["day"]:g for g in d["calendar_games"]}
+        self.assertIn("2026-11-11",dates)
+        self.assertIn("2026-11-12",dates)
+        self.assertEqual(dates["2026-11-11"]["away_score"],92)
+        self.assertEqual(dates["2026-11-11"]["home_score"],105)
+        self.assertEqual(dates["2026-11-11"]["state"],"final")
+        self.assertEqual(d["calendar_today"],"2026-11-12")
+
     def test_next_real_date_not_falsely_today(self):
         d=build_centre_snapshot(self.table,{"source":"ESPN"},
             pd.Timestamp("2026-11-10 23:00:00",tz="Europe/Warsaw"))
