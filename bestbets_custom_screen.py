@@ -23,11 +23,32 @@ COMPONENT = declare_component("bestbets_reference_canvas_v10", path=str(FRONTEND
 SEASON = "2026-27"
 
 
-@st.cache_data(ttl=135, show_spinner=False)
+@st.cache_data(ttl=100, show_spinner=False)
 def _cached_centre_live() -> dict:
     """Share fresh public scoreboard data between sessions, no secrets."""
     from bestbets_centre_live import get_centre_live_data
     return get_centre_live_data()
+
+
+def _safe_centre_live() -> dict:
+    """Always give the frontend a complete status, even on backend failures."""
+    try:
+        snapshot = _cached_centre_live()
+        if isinstance(snapshot, dict) and "games" in snapshot and "ticker" in snapshot:
+            return snapshot
+    except Exception as exc:
+        # Log a controlled exception TYPE only; never leak API URLs, tokens
+        # or raw exception messages into the public dashboard.
+        import logging
+        logging.getLogger(__name__).warning(
+            "Centrum source failed: %s", type(exc).__name__
+        )
+    return {
+        "games": [], "all_games": [], "ticker": [], "finals": [],
+        "form": [], "players": [], "source": "NBA / ESPN",
+        "as_of": "", "fetched_at": "", "coverage": "",
+        "error": "Nie udało się pobrać danych. Spróbuj odświeżyć Centrum."
+    }
 
 
 def _plain(value: Any) -> str:
@@ -213,6 +234,13 @@ def main() -> None:
     )
     if "bb10_payload" not in st.session_state:
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
+    # CRITICAL: preload data BEFORE mounting the v1 iframe. Production
+    # sometimes discards the initial setComponentValue/home_data message,
+    # leaving the dashboard spinning indefinitely. The home snapshot is
+    # now supplied in the very first streamlit:render packet.
+    if "bb10_centre_data" not in st.session_state:
+        st.session_state["bb10_centre_data"] = _safe_centre_live()
+        st.session_state["bb10_centre_last_at"] = time.monotonic()
     payload = {
         "brand": _cached_brand(),
         "player": st.session_state["bb10_payload"].get("player"),
@@ -231,8 +259,11 @@ def main() -> None:
         # visible. The shared cache avoids repeated requests per visitor.
         now=time.monotonic()
         last=st.session_state.get("bb10_centre_last_at",0.0)
-        if "bb10_centre_data" not in st.session_state or now-last>=120.0:
-            st.session_state["bb10_centre_data"] = _cached_centre_live()
+        force=event.get("force") is True
+        # Honor manual refresh with per-session rate limiting. The shared
+        # TTL remains the authority to avoid abusing public NBA endpoints.
+        if "bb10_centre_data" not in st.session_state or now-last>=120.0 or (force and now-last>=25.0):
+            st.session_state["bb10_centre_data"] = _safe_centre_live()
             st.session_state["bb10_centre_last_at"] = now
         st.rerun()
         return
