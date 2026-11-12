@@ -2,7 +2,54 @@
    This module is isolated from the approved Player Props rendering and sizing. */
 (function(){
 "use strict";
-let api=null,homeData=null;
+let api=null,homeData=null,selectedDay="",pendingDay="";
+function dayFromTimestamp(iso){
+ const date=new Date(iso);if(!Number.isFinite(date.getTime()))return "";
+ const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Warsaw",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(date);
+ const get=type=>parts.find(p=>p.type===type)?.value||"";
+ return get("year")+"-"+get("month")+"-"+get("day");
+}
+function dayOfGame(game){return game.day||dayFromTimestamp(game.start)}
+function offsetDay(day,delta){
+ const d=new Date(day+"T12:00:00Z");
+ if(!Number.isFinite(d.getTime()))return day;
+ d.setUTCDate(d.getUTCDate()+delta);
+ return d.toISOString().slice(0,10);
+}
+function displayDay(day){
+ const d=new Date(day+"T12:00:00Z");
+ if(!Number.isFinite(d.getTime()))return day;
+ return new Intl.DateTimeFormat("pl-PL",{weekday:"short",day:"numeric",month:"short",timeZone:"UTC"}).format(d);
+}
+function loadedGames(data,day){
+ const extras=data?.calendar_extras||{};
+ if(Object.prototype.hasOwnProperty.call(extras,day)){
+   const extra=extras[day]||{};
+   return {games:Array.isArray(extra.games)?extra.games:[],known:true,error:extra.error||""};
+ }
+ const loaded=Array.isArray(data?.calendar_loaded_days)?data.calendar_loaded_days:[];
+ const all=Array.isArray(data?.calendar_games)?data.calendar_games:
+           Array.isArray(data?.games)?data.games:[];
+ const matches=all.filter(g=>dayOfGame(g)===day);
+ // Old fixtures without calendar metadata still render, for regression QA.
+ const known=loaded.includes(day)||matches.length>0||
+  (!Array.isArray(data?.calendar_games) && Array.isArray(data?.games));
+ return {games:matches,known:known,error:""};
+}
+function changeDay(direction){
+ if(!homeData)return;
+ const next=offsetDay(selectedDay,direction);
+ if(!next || next===selectedDay)return;
+ const today=homeData.calendar_today||selectedDay;
+ const diff=Math.round((Date.parse(next+"T12:00:00Z")-Date.parse(today+"T12:00:00Z"))/86400000);
+ if(Math.abs(diff)>366)return;
+ selectedDay=next;
+ const state=loadedGames(homeData,next);
+ pendingDay=state.known?"":next;
+ renderGames(homeData);
+ if(pendingDay && api?.selectDay)api.selectDay(next);
+}
+
 const $=id=>document.getElementById(id);
 const escapeHtml=raw=>String(raw==null?"":raw).replace(/[&<>"']/g,ch=>({
  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -51,18 +98,53 @@ function renderTicker(data){
 }
 function renderGames(data){
  const host=$("bc-games-list");if(!host)return;
- const games=data&&Array.isArray(data.games)?data.games.slice(0,5):[];
+ const today=data?.calendar_today||
+    (data?.games?.[0]&&dayOfGame(data.games[0]))||dayFromTimestamp(new Date().toISOString());
+ if(!selectedDay)selectedDay=data?.calendar_requested_day||today;
+ const dateLabel=$("bc-selected-day");
+ if(dateLabel){
+  dateLabel.textContent=displayDay(selectedDay);
+  dateLabel.title=selectedDay+(selectedDay===today?" — dzisiaj":"");
+ }
+ const day=loadedGames(data,selectedDay);
+ if(day.known && pendingDay===selectedDay)pendingDay="";
  const title=host.closest(".bc-panel").querySelector(".bc-panel-title");
- if(title)title.childNodes.forEach(n=>{if(n.nodeType===3)n.textContent=games.length&&data.day_label!=="Dziś"?" Mecze najbliższe ":" Mecze dnia "});
- if(!games.length){host.innerHTML='<div class="bc-muted">'+(data&&data.error
-   ?'Nie udało się pobrać terminarza. Odśwież dane przyciskiem ⟳.'
-   :'Brak potwierdzonych spotkań na dziś. Sprawdź terminarz później.')+'</div>';return}
- host.innerHTML=games.map((g,i)=>
-  '<button class="bc-game" type="button" data-centre-row="'+i+'">'+
-  '<span class="bc-gteam">'+shortTeam(g.away,g.away_logo)+'</span>'+
-  '<span class="bc-gteam">'+shortTeam(g.home,g.home_logo)+'</span>'+
-  status(g)+
-  '<span class="bc-mini-btn">Podgląd ›</span></button>').join("");
+ if(title)title.setAttribute("aria-label","Mecze NBA: "+selectedDay);
+ const prev=host.closest(".bc-panel").querySelector('[data-centre-day-dir="-1"]');
+ const next=host.closest(".bc-panel").querySelector('[data-centre-day-dir="1"]');
+ for(const control of [prev,next]){
+  if(!control)continue;
+  const diff=Number(control.getAttribute("data-centre-day-dir"));
+  const boundary=Math.abs(Math.round((Date.parse(offsetDay(selectedDay,diff)+"T12:00:00Z")-
+                  Date.parse(today+"T12:00:00Z"))/86400000))>366;
+  control.disabled=boundary;
+ }
+ if(!day.known){
+  host.innerHTML='<div class="bc-muted">'+(pendingDay===selectedDay
+     ?'Pobieranie potwierdzonych spotkań z '+escapeHtml(selectedDay)+'…'
+     :'Wybierz datę, aby pobrać spotkania.')+'</div>';
+  return;
+ }
+ const games=day.games;
+ if(!games.length){
+  host.innerHTML='<div class="bc-muted">'+(day.error
+    ?escapeHtml(day.error)
+    :data?.error?'Terminarz niedostępny. Spróbuj odświeżyć dane NBA.'
+    :'Brak spotkań NBA '+escapeHtml(selectedDay)+'.')+'</div>';
+  return;
+ }
+ host.innerHTML=games.slice(0,20).map((g,i)=>{
+   const scored=(g.state==="final"||g.state==="live");
+   const valid=(g.away_score!=null && g.home_score!=null);
+   const result=scored
+     ?'<span class="bc-row-score'+(g.state==="live"?' live':'')+'" title="Wynik: '+escapeHtml(g.away)+' – '+escapeHtml(g.home)+'">'+
+        (valid?escapeHtml(String(g.away_score)+" : "+String(g.home_score)):"—")+'</span>'
+     :'<span class="bc-mini-btn">Podgląd ›</span>';
+   return '<button class="bc-game" type="button" data-centre-row="'+i+'">'+
+    '<span class="bc-gteam">'+shortTeam(g.away,g.away_logo)+'</span>'+
+    '<span class="bc-gteam">'+shortTeam(g.home,g.home_logo)+'</span>'+
+    status(g)+result+'</button>';
+ }).join("");
 }
 function renderFinals(data){
  const host=$("bc-finals");if(!host)return;
@@ -141,6 +223,11 @@ function renderSimulationPreview(data){
 function setText(id,v){const e=$(id);if(e)e.textContent=v}
 function renderHome(data){
  homeData=data;
+ if(data && !selectedDay){
+   selectedDay=data.calendar_requested_day||data.calendar_today||
+     (data.games?.[0]&&dayOfGame(data.games[0]))||
+     dayFromTimestamp(new Date().toISOString());
+ }
  const button=$("bc-refresh");
  if(button){
    button.disabled=false;
@@ -224,6 +311,8 @@ function init(context){
   const query=button.getAttribute("data-centre-query");
   if(nav&&api.go){api.go(nav);return}
   if(query&&api.search){api.search(query);return}
+  const dayDirection=button.getAttribute("data-centre-day-dir");
+  if(dayDirection==="1"||dayDirection==="-1"){changeDay(Number(dayDirection));return}
   if(button.matches("[data-centre-refresh]")){
     setText("bc-data-meta","Sprawdzanie dostępnych aktualizacji danych NBA…");
     if(api.refresh)api.refresh();
@@ -233,7 +322,10 @@ function init(context){
   if(button.matches("[data-centre-all-games]")){showSchedule();return}
   if(button.matches("[data-centre-close]")){close();return}
   const row=button.getAttribute("data-centre-row");
-  if(row!=null){gameDetails(homeData&&homeData.games&&homeData.games[Number(row)]);return}
+  if(row!=null){
+    const day=loadedGames(homeData,selectedDay);
+    gameDetails(day.games&&day.games[Number(row)]);return
+  }
   const idx=button.getAttribute("data-centre-game");
   if(idx!=null){gameDetails(homeData&&homeData.ticker&&homeData.ticker[Number(idx)]);return}
  });

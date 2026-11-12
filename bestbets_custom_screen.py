@@ -30,6 +30,12 @@ def _cached_centre_live() -> dict:
     return get_centre_live_data()
 
 
+@st.cache_data(ttl=900, show_spinner=False)
+def _cached_centre_day(day: str) -> dict:
+    from bestbets_centre_live import get_centre_day_data
+    return get_centre_day_data(day)
+
+
 def _safe_centre_live() -> dict:
     """Always give the frontend a complete status, even on backend failures."""
     try:
@@ -241,11 +247,18 @@ def main() -> None:
     if "bb10_centre_data" not in st.session_state:
         st.session_state["bb10_centre_data"] = _safe_centre_live()
         st.session_state["bb10_centre_last_at"] = time.monotonic()
+    home_data = st.session_state.get("bb10_centre_data")
+    if isinstance(home_data, dict):
+        home_data = {
+            **home_data,
+            "calendar_extras": st.session_state.get("bb10_centre_extra_days", {}),
+            "calendar_requested_day": st.session_state.get("bb10_centre_requested_day"),
+        }
     payload = {
         "brand": _cached_brand(),
         "player": st.session_state["bb10_payload"].get("player"),
         "error": st.session_state["bb10_payload"].get("error", ""),
-        "home": st.session_state.get("bb10_centre_data"),
+        "home": home_data,
     }
     event = COMPONENT(payload=payload, default=None, key="bb10_reference_canvas")
     if not isinstance(event, dict):
@@ -254,6 +267,31 @@ def main() -> None:
     if not event_id or event_id == st.session_state.get("bb10_last_event"):
         return
     st.session_state["bb10_last_event"] = event_id
+    if event.get("type") == "home_date":
+        # Only a valid calendar date can trigger the server-side NBA query.
+        # Keep the request isolated from Props, initial page and resizing.
+        import re
+        raw_date=_plain(event.get("date"))
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw_date):
+            return
+        try:
+            chosen=pd.Timestamp(raw_date)
+            today=pd.Timestamp.now(tz="Europe/Warsaw").tz_localize(None).normalize()
+            if abs((chosen-today).days)>366:
+                return
+        except (ValueError,TypeError,OverflowError):
+            return
+        try:
+            response=_cached_centre_day(raw_date)
+        except Exception:
+            response={"date":raw_date,"games":[],"error":"Nie udało się pobrać terminarza z ESPN.","complete":False}
+        extras=st.session_state.setdefault("bb10_centre_extra_days",{})
+        extras[raw_date]=response
+        if len(extras)>24:
+            del extras[next(iter(extras))]
+        st.session_state["bb10_centre_requested_day"]=raw_date
+        st.rerun()
+        return
     if event.get("type") == "home_data":
         # Lazy after first paint. Refresh every 2 minutes while home is
         # visible. The shared cache avoids repeated requests per visitor.

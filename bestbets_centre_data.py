@@ -37,7 +37,9 @@ def build_centre_snapshot(schedule_df, meta=None, now=None, logo_provider=None):
         now=now.tz_convert("Europe/Warsaw")
     meta=meta or {}
     empty={"as_of":now.strftime("%Y-%m-%d %H:%M %Z"),"source":str(meta.get("source") or "NBA / ESPN")[:90],
-           "day_label":"Dziś","games":[],"all_games":[],"ticker":[],"finals":[],"form":[],"error":""}
+           "day_label":"Dziś","games":[],"all_games":[],"calendar_games":[],
+           "calendar_today":now.date().isoformat(),"calendar_loaded_days":[],
+           "ticker":[],"finals":[],"form":[],"error":""}
     if schedule_df is None or schedule_df.empty:
         empty["error"]="Brak dostępnego terminarza."
         return empty
@@ -96,10 +98,16 @@ def build_centre_snapshot(schedule_df, meta=None, now=None, logo_provider=None):
             if g[side+"_score"]>g[other+"_score"]:entry["wins"]+=1
             else:entry["losses"]+=1
     form=sorted(forms.values(),key=lambda x:(-x["sample"],x["team"]))[:2]
-    # Expose verified schedule for the detail modal. Keep response bounded.
+    # Include past and future matches for the date navigator. Cap at 150
+    # games across a two-week window: never send the full-season CDN payload.
+    calendar_start=(now-pd.Timedelta(days=8)).date().isoformat()
+    calendar_end=(now+pd.Timedelta(days=8)).date().isoformat()
+    calendar_games=[g for g in games if calendar_start<=g["day"]<=calendar_end][:150]
+    # Keep the existing upcoming-games modal behavior.
     future=[g for g in games if g["start"]>=now.tz_convert("UTC").isoformat()]
     accessible=sorted(live,key=lambda g:g["start"])+future
     empty.update({"day_label":day_label,"games":current[:10],"all_games":accessible[:55],
+                  "calendar_games":calendar_games,
                   "ticker":ticker[:5],"finals":final_recent[:2],"form":form})
     if bool(meta.get("stale")):
         empty["error"]="Źródło oznaczyło terminarz jako nieaktualny."
