@@ -160,14 +160,108 @@ function renderFinals(data){
    '<span class="bc-result-time">KONIEC</span></div>'
  ).join("");
 }
+
+const TEAM_FAVORITES_KEY="bestbets.centrum.favoriteTeams.v1";
+let favoriteTeams=[],teamPickerOpen=false;
+function restoreTeamFavorites(){
+ try{
+  const stored=JSON.parse(window.localStorage.getItem(TEAM_FAVORITES_KEY)||"[]");
+  if(Array.isArray(stored)){
+   favoriteTeams=[...new Set(stored.filter(code=>typeof code==="string" && /^[A-Z]{3}$/.test(code)))].slice(0,2);
+  }
+ }catch(_){favoriteTeams=[];}
+}
+function storeTeamFavorites(){
+ try{window.localStorage.setItem(TEAM_FAVORITES_KEY,JSON.stringify(favoriteTeams));}catch(_){}
+}
+function formCatalog(data){
+ const options=Array.isArray(data?.form_options)?data.form_options:[];
+ return options.filter(t=>t && /^[A-Z]{3}$/.test(t.team||""));
+}
+function favoriteStar(team){
+ const selected=favoriteTeams.includes(team);
+ return '<button type="button" class="bc-form-star'+(selected?' is-favorite':'')+
+   '" data-centre-favorite="'+escapeHtml(team)+'" aria-pressed="'+String(selected)+
+   '" aria-label="'+(selected?'Usuń '+escapeHtml(team)+' z ulubionych':'Dodaj '+escapeHtml(team)+' do ulubionych')+
+   '" title="'+(selected?'Usuń z ulubionych':'Dodaj do ulubionych')+'">'+(selected?'★':'☆')+'</button>';
+}
+function renderFormPicker(data){
+ const picker=$("bc-form-picker"),toggle=$("bc-form-toggle");
+ if(!picker||!toggle)return;
+ toggle.setAttribute("aria-expanded",String(teamPickerOpen));
+ if(!teamPickerOpen){picker.hidden=true;return;}
+ const oldScroll=picker.querySelector(".bc-form-picker-list")?.scrollTop||0;
+ const catalog=formCatalog(data).sort((a,b)=>{
+  const af=favoriteTeams.indexOf(a.team),bf=favoriteTeams.indexOf(b.team);
+  if(af!==-1||bf!==-1)return af===-1?1:bf===-1?-1:af-bf;
+  return String(a.name||a.team).localeCompare(String(b.name||b.team),"en");
+ });
+ picker.hidden=false;
+ picker.innerHTML=
+   '<div class="bc-form-picker-head"><strong>Wybierz drużyny</strong>'+
+   '<span>'+favoriteTeams.length+'/2 ulubione</span></div>'+
+   '<div class="bc-form-picker-hint" id="bc-form-picker-hint">Kliknij ☆, aby przypiąć drużynę u góry.</div>'+
+   '<div class="bc-form-picker-list" role="group" aria-label="Wszystkie drużyny NBA">'+
+   (catalog.length?catalog.map(t=>{
+    const sample=Number(t.sample)||0;
+    const recent=sample>0?'Bilans '+escapeHtml(t.wins)+'–'+escapeHtml(t.losses):
+      'Brak wyników w dostępnym okresie';
+    return '<div class="bc-form-option'+(favoriteTeams.includes(t.team)?' is-favorite':'')+'">'+
+      logo(t.team,t.logo)+
+      '<span class="bc-form-option-label"><strong>'+escapeHtml(t.name||t.team)+'</strong>'+
+      '<small>'+escapeHtml(t.team)+' · '+recent+'</small></span>'+
+      favoriteStar(t.team)+'</div>';
+   }).join(""):'<div class="bc-muted">Lista drużyn jest tymczasowo niedostępna.</div>')+
+   '</div>';
+ const scroll=picker.querySelector(".bc-form-picker-list");
+ if(scroll)scroll.scrollTop=oldScroll;
+}
 function renderForm(data){
  const host=$("bc-forms");if(!host)return;
- const teams=data&&Array.isArray(data.form)?data.form.slice(0,2):[];
- if(!teams.length){host.innerHTML='<div class="bc-muted">Brak wystarczających wyników do oceny formy.</div>';return;}
- host.innerHTML=teams.map(t=>
-   '<div class="bc-team-form">'+logo(t.team,t.logo)+'<strong>'+escapeHtml(t.team)+'</strong>'+
-   '<span>Bilans '+escapeHtml(t.wins)+"–"+escapeHtml(t.losses)+'</span>'+
-   '<i>'+escapeHtml(t.sample)+' mecz.</i></div>').join("");
+ const defaults=Array.isArray(data?.form)?data.form:[];
+ const catalog=formCatalog(data);
+ const byCode=new Map([...catalog,...defaults].filter(t=>t && t.team).map(t=>[t.team,t]));
+ const visible=[],seen=new Set();
+ for(const entry of [...favoriteTeams.map(code=>byCode.get(code)),...defaults]){
+  if(!entry||seen.has(entry.team))continue;
+  seen.add(entry.team);visible.push(entry);
+  if(visible.length===2)break;
+ }
+ if(!visible.length){
+  host.innerHTML='<div class="bc-muted">Brak wyników. Wybierz ulubione drużyny ☆.</div>';
+ }else{
+  host.innerHTML=visible.map(t=>{
+   const sample=Number(t.sample)||0;
+   return '<div class="bc-team-form">'+logo(t.team,t.logo)+
+    '<strong>'+escapeHtml(t.team)+'</strong>'+
+    '<span class="bc-form-record">'+(sample>0?'Bilans '+escapeHtml(t.wins)+'–'+escapeHtml(t.losses):'Brak danych')+'</span>'+
+    '<i>'+(sample>0?escapeHtml(sample)+' mecz.':'—')+'</i>'+
+    favoriteStar(t.team)+'</div>';
+  }).join("");
+ }
+ renderFormPicker(data);
+}
+function toggleTeamFavorite(code){
+ if(!formCatalog(homeData).some(team=>team.team===code))return;
+ if(favoriteTeams.includes(code)){
+  favoriteTeams=favoriteTeams.filter(item=>item!==code);
+ }else if(favoriteTeams.length>=2){
+  const hint=$("bc-form-picker-hint");
+  if(hint){
+   hint.textContent="Możesz wybrać maksymalnie 2 drużyny. Najpierw usuń jedną gwiazdkę.";
+   hint.classList.add("bc-form-limit");
+  }else{
+   const toggle=$("bc-form-toggle");
+   if(toggle){teamPickerOpen=true;renderFormPicker(homeData);}
+   const message=$("bc-form-picker-hint");
+   if(message){message.textContent="Limit 2 ulubionych. Odznacz jedną drużynę.";message.classList.add("bc-form-limit");}
+  }
+  return;
+ }else{
+  favoriteTeams.push(code);
+ }
+ storeTeamFavorites();
+ renderForm(homeData);
 }
 function renderPlayers(data){
  const rows=Array.isArray(data&&data.players)?data.players.slice(0,3):[];
@@ -285,6 +379,7 @@ function init(context){
  const centre=$("bestbets-centre");
  if(!centre || centre.dataset.ready==="1")return;
  centre.dataset.ready="1";
+ restoreTeamFavorites();
  // Small noninvasive refresh icon and data-source indicator in the ticker.
  // Adds no layout width and doesn't change the approved neon design.
  const tickerHead=centre.querySelector(".bc-ticker-head");
@@ -307,6 +402,13 @@ function init(context){
  centre.addEventListener("click",function(event){
   const button=event.target.closest("button");
   if(!button)return;
+  if(button.matches("[data-centre-form-toggle]")){
+   teamPickerOpen=!teamPickerOpen;
+   renderFormPicker(homeData);
+   return;
+  }
+  const team=button.getAttribute("data-centre-favorite");
+  if(team!==null){toggleTeamFavorite(team);return;}
   const nav=button.getAttribute("data-centre-nav");
   const query=button.getAttribute("data-centre-query");
   if(nav&&api.go){api.go(nav);return}
@@ -330,7 +432,18 @@ function init(context){
   if(idx!=null){gameDetails(homeData&&homeData.ticker&&homeData.ticker[Number(idx)]);return}
  });
  $("bc-dialog").addEventListener("click",ev=>{if(ev.target===$("bc-dialog"))close()});
- document.addEventListener("keydown",ev=>{if(ev.key==="Escape"&&!$("bc-dialog").hidden)close()});
+ document.addEventListener("click",ev=>{
+  if(teamPickerOpen && !ev.target.closest("#bestbets-centre .bc-team-panel")){
+   teamPickerOpen=false;renderFormPicker(homeData);
+  }
+ });
+ document.addEventListener("keydown",ev=>{
+  if(ev.key!=="Escape")return;
+  if(teamPickerOpen){
+   teamPickerOpen=false;renderFormPicker(homeData);
+   $("bc-form-toggle")?.focus();
+  }else if(!$("bc-dialog").hidden)close();
+ });
 }
 window.BestBetsCentre={init:init,render:renderHome};
 })();
