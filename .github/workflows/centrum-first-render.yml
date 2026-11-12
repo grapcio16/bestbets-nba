@@ -37,6 +37,29 @@ jobs:
           print("Verified player leaders:",len(result.get("players",[])))
           print("Availability error:",result.get("error") or "none")
           PY
+      - name: Diagnose HTTP status of public sports providers (non-gating)
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import requests
+          from datetime import datetime,timezone
+          from sources import ESPN_SCOREBOARD,NBA_CDN_SCHEDULE
+          today=datetime.now(timezone.utc).strftime("%Y%m%d")
+          endpoints=(
+            ("ESPN single-day",ESPN_SCOREBOARD,{"dates":today,"limit":30}),
+            ("ESPN mirror",ESPN_SCOREBOARD.replace("site.api.espn.com","site.web.api.espn.com"),{"dates":today,"limit":30}),
+            ("NBA CDN",NBA_CDN_SCHEDULE,None),
+          )
+          for name,url,params in endpoints:
+            try:
+              r=requests.get(url,params=params,timeout=5,
+                headers={"User-Agent":"Mozilla/5.0","Accept":"application/json"})
+              print(name,"HTTP",r.status_code,"bytes",len(r.content))
+              if r.ok and "espn" in name.lower():
+                print(name,"events",len(r.json().get("events",[])))
+            except Exception as exc:
+              print(name,"network error type",type(exc).__name__)
+          PY
       - name: Preserve the original Player Props design
         run: python test_browser_reference_v10.py
       - name: Start the REAL app.py in isolation
