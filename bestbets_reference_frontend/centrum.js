@@ -204,8 +204,10 @@ function renderFormPicker(data){
    '<div class="bc-form-picker-list" role="group" aria-label="Wszystkie drużyny NBA">'+
    (catalog.length?catalog.map(t=>{
     const sample=Number(t.sample)||0;
-    const recent=sample>0?'Bilans '+escapeHtml(t.wins)+'–'+escapeHtml(t.losses):
-      'Brak wyników w dostępnym okresie';
+    const known=t.record_verified===true || (!data?.form_period && sample>0);
+    const recent=known?'Sezon '+escapeHtml(data?.form_period||'NBA')+
+      ': '+escapeHtml(t.wins)+'–'+escapeHtml(t.losses):
+      'Bilans sezonu niedostępny';
     return '<div class="bc-form-option'+(favoriteTeams.includes(t.team)?' is-favorite':'')+'">'+
       logo(t.team,t.logo)+
       '<span class="bc-form-option-label"><strong>'+escapeHtml(t.name||t.team)+'</strong>'+
@@ -232,12 +234,19 @@ function renderForm(data){
  }else{
   host.innerHTML=visible.map(t=>{
    const sample=Number(t.sample)||0;
+   const known=t.record_verified===true || (!data?.form_period && sample>0);
    return '<div class="bc-team-form">'+logo(t.team,t.logo)+
     '<strong>'+escapeHtml(t.team)+'</strong>'+
-    '<span class="bc-form-record">'+(sample>0?'Bilans '+escapeHtml(t.wins)+'–'+escapeHtml(t.losses):'Brak danych')+'</span>'+
-    '<i>'+(sample>0?escapeHtml(sample)+' mecz.':'—')+'</i>'+
+    '<span class="bc-form-record">'+(known?'Bilans '+escapeHtml(t.wins)+'–'+escapeHtml(t.losses):'Brak danych')+'</span>'+
+    '<i>'+(known?escapeHtml(sample)+' mecz.':'—')+'</i>'+
     favoriteStar(t.team)+'</div>';
   }).join("");
+ }
+ const note=document.querySelector("#bestbets-centre .bc-team-panel .bc-panel-note");
+ if(note && data?.form_period){
+  note.textContent=data.form_available
+    ?'☆ Sezon zasadniczy '+data.form_period+(data.form_stale?' · dane opóźnione':' · maks. 2 ulubione')
+    :'☆ Sezon '+data.form_period+' · tabela niedostępna';
  }
  renderFormPicker(data);
 }
