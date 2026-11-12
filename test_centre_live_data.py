@@ -37,9 +37,15 @@ class CentreLiveTest(TestCase):
         self.assertEqual(rows[2]["market"],"AST")
 
     def test_schedule_and_final_score_are_actual_and_consistent(self):
-        with mock.patch("sources.memoized_json",return_value=(RAW,{"timestamp":"2026-11-12T19:00:00Z","stale":False})),\
+        with mock.patch("sources.memoized_json",return_value=(RAW,{"timestamp":"2026-11-12T19:00:00Z","stale":False})) as fetch,\
              mock.patch("team_logos.logo_data_uri",return_value=""):
             snapshot=get_centre_live_data(NOW)
+        # Critical regression: ESPN's range query returned an error in CI
+        # while date=YYYYMMDD succeeded. Every request must use ONE day.
+        import re
+        days=[c.kwargs["params"]["dates"] for c in fetch.call_args_list if c.kwargs.get("params")]
+        self.assertGreaterEqual(len(days),8)
+        self.assertTrue(all(re.fullmatch(r"\d{8}",d) for d in days),days)
         self.assertEqual(snapshot["source"],"ESPN — rzeczywiste mecze NBA")
         self.assertEqual(len(snapshot["players"]),3)
         self.assertEqual(snapshot["finals"][0]["away_score"],110)
