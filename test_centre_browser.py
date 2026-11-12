@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright,expect
+from teams import TEAM_FULL
 
 ROOT=Path(__file__).resolve().parent
 
@@ -55,6 +56,10 @@ def check_static(page,out):
                   "start":"2026-11-11T19:00:00+00:00","state":"final",
                   "away_score":106,"home_score":104,"status":"Final"}],
        "form":[{"team":"NYK","logo":"","wins":3,"losses":1,"sample":4}],
+       "form_options":[
+          {"team":code,"name":name,"logo":"","wins":0,"losses":0,"sample":0}
+          for code,name in TEAM_FULL.items()
+       ],
        "players":[
          {"name":"Jayson Tatum","team":"BOS","market":"PTS","value":26,"date":"2026-11-11"},
          {"name":"Luka Doncic","team":"LAL","market":"AST","value":8,"date":"2026-11-11"},
@@ -66,6 +71,23 @@ def check_static(page,out):
     assert page.locator(".bc-ticker-card.live").count()==1
     assert page.locator(".bc-result").count()==1
     assert page.locator(".bc-team-form").count()==1
+    # A single dropdown lists all 30 NBA teams; stars are toggleable.
+    page.locator("#bc-form-toggle").click()
+    expect(page.locator(".bc-form-option")).to_have_count(30)
+    expect(page.locator('#bc-form-picker')).to_be_visible()
+    page.locator('.bc-form-option [data-centre-favorite="BOS"]').click()
+    expect(page.locator(".bc-team-form").first).to_contain_text("BOS")
+    expect(page.locator('.bc-team-form [data-centre-favorite="BOS"]')).to_have_text("★")
+    page.locator('.bc-form-option [data-centre-favorite="LAL"]').click()
+    expect(page.locator(".bc-team-form")).to_have_count(2)
+    assert [x.inner_text() for x in page.locator(".bc-team-form strong").all()]==["BOS","LAL"]
+    page.locator('.bc-form-option [data-centre-favorite="NYK"]').click()
+    expect(page.locator("#bc-form-picker-hint")).to_contain_text("maksymalnie 2")
+    assert [x.inner_text() for x in page.locator(".bc-team-form strong").all()]==["BOS","LAL"]
+    page.locator('.bc-form-option [data-centre-favorite="BOS"]').click()
+    expect(page.locator('.bc-form-option [data-centre-favorite="BOS"]')).to_have_text("☆")
+    page.locator("#bc-form-toggle").click()
+    expect(page.locator("#bc-form-picker")).to_be_hidden()
     expect(page.locator("#bc-refresh")).to_be_visible()
     assert page.locator("#bc-source-state").inner_text().startswith("●")
     assert page.locator(".bc-pick").count()==3
