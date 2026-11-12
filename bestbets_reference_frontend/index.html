@@ -290,13 +290,6 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       <button type="button" class="bc-lock-link" data-centre-premium>Odkryj przyszłe funkcje ›</button>
     </section>
   </div>
-  <div class="bc-hot">
-    <div class="bc-hot-title"><span class="bc-orange-icon">◎</span> Player Props hot today <span class="bc-free-tag">FREE</span></div>
-    <div class="bc-hot-search">⌕ &nbsp; Sprawdź historię zawodnika</div>
-    <button data-centre-query="Jayson Tatum over 25.5 points" type="button">JT &nbsp; Tatum PTS 25.5 <span>›</span></button>
-    <button data-centre-query="Luka Doncic over 7.5 assists" type="button">LD &nbsp; Dončić AST 7.5 <span>›</span></button>
-    <button data-centre-query="Nikola Jokic over 35.5 PRA" type="button">NJ &nbsp; Jokić PRA 35.5 <span>›</span></button>
-  </div>
   <div class="bc-bottom">
     <button type="button" class="bc-bottom-item bc-current" data-centre-nav="home"><strong>🏀 &nbsp; BEST<span>BETS</span></strong><small>Najważniejsze dziś<br>Mecze • Statystyki • Analizy</small></button>
     <button type="button" class="bc-bottom-item" data-centre-nav="simulations"><strong>▥ &nbsp; Symulacje</strong><small>Podgląd (FREE)<br><em>◈ &nbsp; Modele w Premium</em></small></button>
@@ -531,8 +524,11 @@ function render(){
   $("attribution").style.display=home?"none":"block";
   text("blank-title",pages[state.page]||"BestBets");
   document.querySelectorAll(".nav-btn[data-page]").forEach(function(el){el.classList.toggle("selected",el.dataset.page===state.page)});
-  $("search-form").style.display=active||home?"flex":"none";
-  document.querySelector(".suggestions").style.display=active||home?"flex":"none";
+  // The free Centrum has its own dashboard; the entire Props search/header
+  // stays available ONLY on the dedicated Player Props route.
+  $("search-form").style.display=active?"flex":"none";
+  document.querySelector(".suggestions").style.display=active?"flex":"none";
+  document.querySelector(".utility").style.display=active?"flex":"none";
   $("query").placeholder=home?"Szukaj zawodnika, linii i rynku NBA...":"Jayson Tatum over 25.5 points";
   if(state.payload.brand){setImage("brand-img",state.payload.brand,"BestBets")}
   if(home && window.BestBetsCentre){
