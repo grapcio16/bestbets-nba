@@ -97,6 +97,30 @@ def check_static(page,out):
     assert page.locator("#bc-source-state").inner_text().startswith("●")
     assert page.locator(".bc-pick").count()==3
     assert page.locator(".bc-watch button").count()==3
+    # Full player catalog opens only on demand. The browser fixture below is
+    # synthetic, never a claim about real ESPN rosters.
+    page.locator("#bc-players-toggle").click()
+    expect(page.locator("#bc-players-picker")).to_be_visible()
+    test_catalog={"players":[
+      {"id":"101","name":"Jayson Tatum","team":"BOS"},
+      {"id":"102","name":"Stephen Curry","team":"GSW"},
+      {"id":"103","name":"Nikola Jokic","team":"DEN"},
+      {"id":"104","name":"Victor Wembanyama","team":"SAS"},
+    ],"coverage":{"teams_loaded":30,"missing_teams":[],"sparse_teams":[]}}
+    page.evaluate("(data) => window.postMessage({type:'streamlit:render',args:{payload:data}},'*')",
+        {"player":None,"error":"","brand":"","home":fixture,"player_catalog":test_catalog})
+    expect(page.locator(".bc-catalog-athlete")).to_have_count(4)
+    page.locator("#bc-players-search").fill("Curry")
+    expect(page.locator(".bc-catalog-athlete")).to_have_count(1)
+    page.locator("#bc-players-search").fill("")
+    for pid in ("102","103","104"):
+        page.locator(f'[data-bb-watch-id="{pid}"]').click()
+    expect(page.locator(".bc-watch button")).to_have_count(3)
+    page.locator('[data-bb-watch-id="101"]').click()
+    expect(page.locator("#bc-catalog-help")).to_contain_text("Maksymalnie 3")
+    expect(page.locator(".bc-catalog-head")).to_contain_text("3/3")
+    page.locator("#bc-players-toggle").click()
+    expect(page.locator("#bc-players-picker")).to_be_hidden()
     assert page.locator(".bc-hot").count()==0
     page.screenshot(path=str(out/"centrum-with-verified-schema-test-fixture.png"),animations="disabled")
     page.locator(".bc-game").first.click()
