@@ -1,0 +1,34 @@
+name: BestBets Centrum full-season team records
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-2026-27-standings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install application dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Compile and test verified full-season form
+        run: |
+          python -m py_compile bestbets_centre_live.py bestbets_centre_standings.py bestbets_centre_data.py
+          python -m unittest -v test_centre_season_standings test_centre_data test_centre_live_data
+      - name: Check ESPN 2026-27 actual standings provider
+        run: |
+          python - <<'PY'
+          from bestbets_centre_standings import fetch_season_standings
+          records, meta = fetch_season_standings()
+          assert len(records) == 30, "Not all 30 NBA teams returned"
+          assert not meta.get("stale"), "Standings provider returned stale records"
+          print("ESPN season 2026-27:", len(records), "teams verified")
+          print("BOS:", records["BOS"]["wins"], "-", records["BOS"]["losses"])
+          PY
