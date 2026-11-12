@@ -80,16 +80,67 @@ function renderForm(data){
    '<span>Bilans '+escapeHtml(t.wins)+"–"+escapeHtml(t.losses)+'</span>'+
    '<i>'+escapeHtml(t.sample)+' mecz.</i></div>').join("");
 }
+function renderPlayers(data){
+ const rows=Array.isArray(data&&data.players)?data.players.slice(0,3):[];
+ const picks=document.querySelector(".bc-pick-list"),watch=document.querySelector(".bc-watch");
+ const hot=document.querySelector(".bc-hot");
+ if(!picks||!watch||!hot)return;
+ const mappers={PTS:"points",REB:"rebounds",AST:"assists","3PM":"three-pointers"};
+ const real=rows.filter(p=>p && typeof p.name==="string" &&
+   Number.isFinite(Number(p.value)) && Number(p.value)>0 && mappers[p.market]);
+ if(!real.length){
+   picks.innerHTML='<div class="bc-muted">Brak potwierdzonych liderów ostatnich meczów w dostępnym feedzie NBA.</div>';
+   watch.innerHTML='<div class="bc-muted">Dane zawodników są tymczasowo niedostępne.</div>';
+   hot.querySelectorAll("button").forEach(b=>b.remove());
+   const title=hot.querySelector(".bc-hot-title");
+   if(title)title.innerHTML='<span class="bc-orange-icon">◎</span> Ostatnie występy <span class="bc-free-tag">FREE</span>';
+   return;
+ }
+ const initial=p=>String(p.name).trim().split(/\s+/).map(n=>n[0]||"").slice(0,2).join("").toUpperCase();
+ const sampleLine=p=>Math.max(.5,Math.floor(Number(p.value))-.5).toFixed(1);
+ const query=p=>p.name+" over "+sampleLine(p)+" "+mappers[p.market];
+ const safeQuery=p=>escapeHtml(query(p));
+ picks.innerHTML=real.map(p=>
+  '<button class="bc-pick" type="button" data-centre-query="'+safeQuery(p)+'" title="Linia poglądowa; wyłącznie do sprawdzenia historii, nie rekomendacja zakładu">'+
+  '<span class="bc-player-circle">'+escapeHtml(initial(p))+'</span>'+
+  '<span class="bc-pick-info"><strong>'+escapeHtml(p.name)+'</strong><small>Ostatni mecz: '+escapeHtml(p.value)+' '+escapeHtml(p.market)+'</small></span>'+
+  '<span class="bc-pick-tag">'+escapeHtml(p.market)+'</span>'+
+  '<span class="bc-pick-explain">Potwierdzony występ<br><i>'+escapeHtml(p.date||"")+" · "+escapeHtml(p.team||"NBA")+'</i></span>'+
+  '<span class="bc-mini-btn">Historia ›</span></button>').join("");
+ watch.innerHTML=real.map(p=>
+  '<button type="button" data-centre-query="'+safeQuery(p)+'" title="Przykładowy próg do analizy historii, nie typ bukmacherski">'+
+  '<b>'+escapeHtml(initial(p))+'</b> '+escapeHtml(p.name)+' <span>›</span></button>').join("");
+ const title=hot.querySelector(".bc-hot-title");
+ if(title)title.innerHTML='<span class="bc-orange-icon">◎</span> Ostatnie występy <span class="bc-free-tag">FREE</span>';
+ hot.querySelectorAll("button").forEach(b=>b.remove());
+ for(const p of real) {
+  const button=document.createElement("button");
+  button.type="button";button.setAttribute("data-centre-query",query(p));
+  button.title="Dane z ostatniego meczu, linia wyłącznie demonstracyjna";
+  button.textContent=initial(p)+"  "+p.name.split(/\s+/).slice(-1)[0]+" "+p.market+" "+p.value+"  ›";
+  hot.appendChild(button);
+ }
+}
+function renderSimulationPreview(data){
+ const box=document.querySelector(".bc-lock-teams");
+ if(!box)return;
+ const teams=box.querySelectorAll(":scope > span");
+ if(teams.length<2)return;
+ const games=Array.isArray(data&&data.games)?data.games:[];
+ const g=games.find(x=>x.state==="scheduled") || games[0];
+ teams[0].textContent=g?g.away:"—";
+ teams[1].textContent=g?g.home:"—";
+}
 function setText(id,v){const e=$(id);if(e)e.textContent=v}
 function renderHome(data){
  homeData=data;
  if(!data){setText("bc-data-meta","Ładowanie rzeczywistych danych NBA / ESPN…");return;}
- renderTicker(data);renderGames(data);renderFinals(data);renderForm(data);
+ renderTicker(data);renderGames(data);renderFinals(data);renderForm(data);renderPlayers(data);renderSimulationPreview(data);
  const now=new Date();
  setText("bc-local-time","Czas lokalny: "+new Intl.DateTimeFormat("pl-PL",{hour:"2-digit",minute:"2-digit",timeZoneName:"short"}).format(now));
  const message=data.error
   ? "Aktualne dane chwilowo niedostępne: "+data.error
-  : "Terminarz: "+(data.source||"NBA / ESPN")+" · sprawdzono "+escapeHtml(data.as_of||"")+". Status na żywo może być opóźniony.";
+  : "Dane: "+(data.source||"NBA / ESPN")+" · "+(data.coverage||"wybrany okres")+" · aktualizacja "+(data.fetched_at||data.as_of||"")+". Status LIVE może być opóźniony.";
  setText("bc-data-meta",message);
 }
 function modal(title,body){
@@ -110,9 +161,9 @@ function gameDetails(g){
  modal("Mecz NBA",description);
 }
 function showSchedule(){
- const list=homeData&&homeData.games||[];
- modal("Mecze dnia — pełny podgląd",list.length
-  ?list.map(g=>g.away+" vs "+g.home+" • "+(g.state==="live"?"NA ŻYWO":g.state==="final"?"Koniec":localTime(g.start))).join("\n")
+ const list=homeData&&(homeData.all_games||homeData.games)||[];
+ modal("Terminarz NBA — pobrane spotkania",list.length
+  ?list.map(g=>g.day+" · "+g.away+" vs "+g.home+" • "+(g.state==="live"?"NA ŻYWO":g.state==="final"?"Koniec":localTime(g.start))).join("\n")
   :"Nie ma obecnie dostępnego, potwierdzonego terminarza dla tej daty.");
 }
 function premium(){
