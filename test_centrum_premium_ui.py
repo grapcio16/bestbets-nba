@@ -31,10 +31,9 @@ REFERENCE_REGIONS = {
     '.bc-hot': (238, 755, 1409, 59),
     '.bc-bottom': (238, 842, 1409, 64),
 }
-# Data-refresh branch is allowed to update the home feed and its small event
-# bridge, but never the approved artboard CSS, props backend or scaling source.
-PROTECTED = ['app.py', 'bestbets_reference_frontend/centrum.css',
-    'bestbets_reference_frontend/centrum.html', 'assets/bestbets_brand_icon_64.png',
+# A date selector is an explicitly approved change to Centrum-only HTML
+# and CSS. Keep all Props code, scaling and other public assets untouched.
+PROTECTED = ['app.py', 'assets/bestbets_brand_icon_64.png',
     'core.py', 'mvp_app.py', 'mvp_prop_ui.py', 'season_props.py', 'prop_search.py',
     'simulation_engine.py', 'simulation_sources.py', 'sources.py', 'espn_player_data.py']
 BRAND = 'data:image/png;base64,' + base64.b64encode(
@@ -55,9 +54,13 @@ def safety(ref):
     for name in PROTECTED:
         assert (ROOT/name).read_bytes() == git_file(ref, name), f'Protected source changed: {name}'
     css = (FRONTEND/'centrum.css').read_text()
+    before_css = git_file(ref, 'bestbets_reference_frontend/centrum.css').decode()
+    assert css.startswith(before_css), 'Original approved Centrum CSS was altered'
     assert 'zoom:' not in css.replace(' ', '')
     assert 'scale(' not in css.replace(' ', '')
-    return {'protected_files':PROTECTED, 'unchanged':True, 'new_dashboard_scale':False}
+    assert '.bc-calendar-nav' in css
+    return {'protected_files':PROTECTED, 'unchanged':True, 'new_dashboard_scale':False,
+            'original_centre_css_preserved':True}
 
 
 def render(page, player=None, home=None):
