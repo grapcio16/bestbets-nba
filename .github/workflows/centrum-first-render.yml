@@ -1,0 +1,48 @@
+name: BestBets Centrum first-render data bootstrap regression
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  initial-payload-and-realtime-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install production and browser dependencies
+        run: |
+          python -m pip install -r requirements.txt "playwright>=1.56,<2"
+          python -m playwright install --with-deps chromium
+      - name: Compile files and assert initial payload without messages
+        run: |
+          python -m py_compile bestbets_custom_screen.py bestbets_centre_live.py test_centre_bootstrap.py
+          python -m unittest -v test_centre_bootstrap test_centre_live_data test_centre_data
+      - name: Preserve the original Player Props design
+        run: python test_browser_reference_v10.py
+      - name: Start the REAL app.py in isolation
+        run: |
+          python -m streamlit run app.py --server.port 8501 --server.headless true > /tmp/centrum-bootstrap.log 2>&1 &
+          for n in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:8501/_stcore/health >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/centrum-bootstrap.log
+          exit 1
+      - name: Verify the real first paint, refresh control, and Props routing
+        run: python test_centre_browser.py
+      - name: Archive screenshots and Streamlit logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bestbets-centrum-first-render-proof
+          path: |
+            work/centrum-qa/
+            /tmp/centrum-bootstrap.log
+          if-no-files-found: ignore
