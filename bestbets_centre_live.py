@@ -131,7 +131,7 @@ def get_centre_live_data(now=None):
         empty["coverage"]="Brak dostępnych danych"
         labels=("ESPN: "+errors[0], "NBA CDN: "+errors[-1])
         empty["error"]=(
-            "Serwery danych NBA nie odpowiedziały ("+", ".join(labels)+"). "
+            "Nie udało się pobrać danych NBA ("+", ".join(labels)+"). "
             "Spróbuj odświeżyć Centrum."
         )
         return empty
