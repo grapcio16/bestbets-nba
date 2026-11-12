@@ -336,7 +336,7 @@ const $=function(id){return document.getElementById(id)};
 const root=$("stage"),shell=$("app-shell");
 const marketNames={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PTS + REB + AST"};
 const pages={home:"Centrum",props:"Player Props",games:"Terminarz",simulations:"Symulacje",players:"Zawodnicy",teams:"Drużyny",settings:"Ustawienia",shortcuts:"Skrót wpisywania"};
-const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",loading:false,lastIdentity:"",homeRequested:false};
+const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",loading:false,lastIdentity:"",homeRequested:false,homeRequestAt:0,homeLastAttempt:0,homeRetryCount:0,homeTimedOut:false};
 function notify(type,extra){
   window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},extra||{}),"*");
 }
@@ -508,6 +508,18 @@ function renderPlayer(){
   document.querySelectorAll("[data-side]").forEach(function(el){el.classList.toggle("on",el.dataset.side===state.side)});
   document.querySelectorAll("[data-period]").forEach(function(el){el.classList.toggle("on",el.dataset.period===state.period)});
 }
+function requestHomeData(){
+  if(state.page!=="home" || state.payload.home)return;
+  const now=Date.now();
+  if(now-state.homeLastAttempt < 4500)return;
+  if(!state.homeRequestAt)state.homeRequestAt=now;
+  state.homeRequested=true;
+  state.homeLastAttempt=now;
+  state.homeRetryCount++;
+  notify("streamlit:setComponentValue",{dataType:"json",value:{
+    type:"home_data",id:String(now)+"-home-"+String(state.homeRetryCount)
+  }});
+}
 function render(){
   const active=state.page==="props",home=state.page==="home";
   root.classList.toggle("bb-home-active",home);
@@ -525,14 +537,10 @@ function render(){
   if(home && window.BestBetsCentre){
     window.BestBetsCentre.render(state.payload.home||null);
     if(!state.homeRequested && !state.payload.home){
-      state.homeRequested=true;
-      // The componentReady handshake at the bottom of this file completes
-      // before this zero-delay message is sent to the Python backend.
-      setTimeout(function(){
-        notify("streamlit:setComponentValue",{dataType:"json",value:{
-          type:"home_data",id:String(Date.now())+"-home-"+String(Math.random()).slice(2)
-        }});
-      },0);
+      // Initial request after componentReady. If the host drops it, the
+      // watchdog below retries until the backend actually returns data.
+      // Keep the existing iframe, stage scaling, and Props canvas untouched.
+      setTimeout(requestHomeData,0);
     }
   }
   if(active)renderPlayer();
@@ -564,6 +572,24 @@ $("line-minus").addEventListener("click",function(){state.line=Math.max(.5,state
 $("line-plus").addEventListener("click",function(){state.line=Math.min(150,state.line+.5);render()});
 $("line").addEventListener("change",function(){const value=Number(this.value);state.line=Number.isFinite(value)?Math.min(150,Math.max(.5,value)):state.line;render()});
 window.addEventListener("resize",resize);
+// In production a delayed Streamlit handshake can drop the first
+// setComponentValue. Recover on the current iframe rather than leaving
+// every panel stuck on "Wczytywanie..." forever. No page reload / resize.
+setInterval(function(){
+  if(state.page!=="home" || state.payload.home)return;
+  const now=Date.now();
+  if(state.homeRequestAt && now-state.homeRequestAt>=30000 && !state.homeTimedOut){
+    state.homeTimedOut=true;
+    if(window.BestBetsCentre){
+      window.BestBetsCentre.render({
+        error:"Źródło lub połączenie ze Streamlit nie odpowiedziało. Ponawiam pobieranie.",
+        source:"NBA / ESPN",games:[],ticker:[],finals:[],form:[],players:[],
+        as_of:"",coverage:"",fetched_at:""
+      });
+    }
+  }
+  requestHomeData();
+},6500);
 // Refresh public game facts while the free dashboard is visible. Never
 // interfere with the existing search, props state or iframe sizing.
 setInterval(function(){
@@ -576,6 +602,11 @@ window.addEventListener("message",function(event){
   const packet=event.data||{};
   if(packet.type!=="streamlit:render"||!packet.args)return;
   state.payload=packet.args.payload||{player:null,error:"",brand:""};
+  if(state.payload.home){
+    state.homeTimedOut=false;
+    state.homeRequestAt=0;
+    state.homeRetryCount=0;
+  }
   state.loading=false;
   const p=state.payload.player;
   if(p){
