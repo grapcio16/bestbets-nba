@@ -25,7 +25,7 @@ def cached_team_logs(team: str, season: str, nonce: int = 0):
     return team_recent_logs(team,season,games_per_team=10)
 
 
-@st.cache_data(ttl=12*3600,max_entries=3,show_spinner=False)
+@st.cache_data(ttl=3*3600,max_entries=3,show_spinner=False)
 def cached_global_player_catalog(nonce: int = 0):
     from global_player_catalog import build_global_catalog
     return build_global_catalog()
@@ -48,6 +48,9 @@ def global_player_selector(nonce: int = 0):
                    "Nie traktuj brakujących nazwisk jako braku zawodnika w NBA.")
     if coverage["stale_teams"]:
         st.caption("Składy z nieaktualnej kopii: "+", ".join(coverage["stale_teams"]))
+    if coverage.get("sparse_teams"):
+        st.warning("Częściowe składy ESPN (wymagają dalszej weryfikacji): "+
+                   ", ".join(coverage["sparse_teams"]))
     # ESPN IDs distinguish players with identical names; team is determined for user.
     record_by_label={}
     for row in catalog.to_dict("records"):

@@ -36,22 +36,16 @@
       <div class="bc-panel-note">☆ Maksymalnie 2 ulubione drużyny</div>
       <div id="bc-form-picker" class="bc-form-picker" hidden></div>
     </section>
-    <section class="bc-panel bc-small">
-      <div class="bc-small-head"><span class="bc-orange-icon">♙</span> Obserwuj zawodników <span class="bc-free-tag">FREE</span></div>
-      <div class="bc-watch"><button type="button" data-centre-query="Jayson Tatum over 25.5 points"><b>JT</b> Jayson Tatum <span>›</span></button><button type="button" data-centre-query="Luka Doncic over 7.5 assists"><b>LD</b> Luka Dončić <span>›</span></button><button type="button" data-centre-query="Nikola Jokic over 35.5 PRA"><b>NJ</b> Nikola Jokić <span>›</span></button></div>
+    <section class="bc-panel bc-small bc-player-panel">
+      <div class="bc-small-head"><span class="bc-orange-icon">♙</span> Obserwuj zawodników <span class="bc-free-tag">FREE</span><button type="button" id="bc-players-toggle" class="bc-players-toggle" data-centre-players-toggle aria-label="Przeglądaj wszystkich zawodników NBA" aria-expanded="false" aria-controls="bc-players-picker" title="Wyszukaj gracza w składach NBA">⌕</button></div>
+      <div class="bc-watch"><button type="button" data-centre-query="Jayson Tatum over 25.5 points"><b>JT</b> Jayson Tatum <span>›</span></button><button type="button" data-centre-query="Luka Doncic over 7.5 assists"><b>LD</b> Luka Dončić <span>›</span></button><button type="button" data-centre-query="Nikola Jokic over 35.5 PRA"><b>NJ</b> Nikola Jokić <span>›</span></button></div>      <div id="bc-players-picker" class="bc-players-picker" hidden></div>
+
     </section>
     <section class="bc-panel bc-small bc-lock-preview">
       <div class="bc-small-head"><span class="bc-orange-icon">♙</span> Symulacje — podgląd <span class="bc-soon-tag">WKRÓTCE</span></div>
       <div class="bc-lock-teams"><span>NBA</span><strong>VS</strong><span>NBA</span><div class="bc-lock-box">♜ &nbsp; Projekcje w Premium<br><small>Bez fikcyjnych wyników</small></div></div>
       <button type="button" class="bc-lock-link" data-centre-premium>Odkryj przyszłe funkcje ›</button>
     </section>
-  </div>
-  <div class="bc-hot">
-    <div class="bc-hot-title"><span class="bc-orange-icon">◎</span> Player Props hot today <span class="bc-free-tag">FREE</span></div>
-    <div class="bc-hot-search">⌕ &nbsp; Sprawdź historię zawodnika</div>
-    <button data-centre-query="Jayson Tatum over 25.5 points" type="button">JT &nbsp; Tatum PTS 25.5 <span>›</span></button>
-    <button data-centre-query="Luka Doncic over 7.5 assists" type="button">LD &nbsp; Dončić AST 7.5 <span>›</span></button>
-    <button data-centre-query="Nikola Jokic over 35.5 PRA" type="button">NJ &nbsp; Jokić PRA 35.5 <span>›</span></button>
   </div>
   <div class="bc-bottom">
     <button type="button" class="bc-bottom-item bc-current" data-centre-nav="home"><strong>🏀 &nbsp; BEST<span>BETS</span></strong><small>Najważniejsze dziś<br>Mecze • Statystyki • Analizy</small></button>
