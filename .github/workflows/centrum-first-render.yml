@@ -24,6 +24,19 @@ jobs:
         run: |
           python -m py_compile bestbets_custom_screen.py bestbets_centre_live.py test_centre_bootstrap.py
           python -m unittest -v test_centre_bootstrap test_centre_live_data test_centre_data
+      - name: Inspect live NBA provider reachability (non-gating, no private data)
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          from bestbets_centre_live import get_centre_live_data
+          result=get_centre_live_data()
+          print("Provider:",result.get("source","unknown"))
+          print("Verified schedule:",len(result.get("games",[])))
+          print("Verified ticker:",len(result.get("ticker",[])))
+          print("Verified finals:",len(result.get("finals",[])))
+          print("Verified player leaders:",len(result.get("players",[])))
+          print("Availability error:",result.get("error") or "none")
+          PY
       - name: Preserve the original Player Props design
         run: python test_browser_reference_v10.py
       - name: Start the REAL app.py in isolation
