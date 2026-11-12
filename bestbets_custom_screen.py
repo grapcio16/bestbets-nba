@@ -93,6 +93,22 @@ def _brand_image() -> str:
 def _cached_brand() -> str:
     return _brand_image()
 
+@st.cache_data(ttl=3600, max_entries=2, show_spinner=False)
+def _cached_centre_player_catalog():
+    """Load all ESPN team rosters only on explicit player-picker request."""
+    from global_player_catalog import build_global_catalog
+
+    table, coverage = build_global_catalog()
+    players = []
+    for row in table.to_dict("records"):
+        pid = str(row.get("PLAYER_ID") or "")
+        name = str(row.get("PLAYER_NAME") or "").strip()
+        team = str(row.get("TEAM_ABBREVIATION") or "")
+        if pid.isdigit() and name and team in TEAM_FULL:
+            players.append({"id": pid, "name": name[:90], "team": team})
+    return {"players": players, "coverage": coverage}
+
+
 
 def _research(query: str) -> dict:
     """Run the existing strict athlete resolver and verified season analysis."""
@@ -264,6 +280,7 @@ def main() -> None:
         "player": st.session_state["bb10_payload"].get("player"),
         "error": st.session_state["bb10_payload"].get("error", ""),
         "home": home_data,
+        "player_catalog": st.session_state.get("bb10_player_catalog"),
     }
     event = COMPONENT(payload=payload, default=None, key="bb10_reference_canvas")
     if not isinstance(event, dict):
@@ -272,6 +289,23 @@ def main() -> None:
     if not event_id or event_id == st.session_state.get("bb10_last_event"):
         return
     st.session_state["bb10_last_event"] = event_id
+    if event.get("type") == "player_catalog":
+        # Do not delay first-paint Centrum: fetch full 30-team player index
+        # only after explicit interaction with the picker.
+        import time
+        last = st.session_state.get("bb10_player_catalog_at", 0.0)
+        if "bb10_player_catalog" not in st.session_state or time.monotonic()-last >= 3600:
+            try:
+                st.session_state["bb10_player_catalog"] = _cached_centre_player_catalog()
+            except Exception:
+                st.session_state["bb10_player_catalog"] = {
+                    "players": [],
+                    "coverage": {"missing_teams": list(TEAM_FULL)},
+                    "error": "Nie udało się pobrać pełnej listy ESPN. Spróbuj ponownie.",
+                }
+            st.session_state["bb10_player_catalog_at"] = time.monotonic()
+        st.rerun()
+        return
     if event.get("type") == "home_date":
         # Only a valid calendar date can trigger the server-side NBA query.
         # Keep the request isolated from Props, initial page and resizing.
