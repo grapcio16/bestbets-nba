@@ -51,7 +51,10 @@ def _safe_centre_live() -> dict:
         )
     return {
         "games": [], "all_games": [], "ticker": [], "finals": [],
-        "form": [], "players": [], "source": "NBA / ESPN",
+        "form": [], "form_options": [
+            {"team": code, "name": name, "logo": "", "wins": 0, "losses": 0, "sample": 0}
+            for code, name in sorted(__import__("teams").TEAM_FULL.items(), key=lambda pair: pair[1])
+        ], "players": [], "source": "NBA / ESPN",
         "as_of": "", "fetched_at": "", "coverage": "",
         "error": "Nie udało się pobrać danych. Spróbuj odświeżyć Centrum."
     }
