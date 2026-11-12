@@ -29,7 +29,10 @@ class InitialHomePayloadTest(unittest.TestCase):
              patch.object(module,"COMPONENT",side_effect=component):
             module.main()
         self.assertEqual(len(sent),1)
-        self.assertEqual(sent[0]["payload"]["home"],SAMPLE)
+        home=sent[0]["payload"]["home"]
+        self.assertEqual({k:home[k] for k in SAMPLE},SAMPLE)
+        self.assertEqual(home.get("calendar_extras"),{})
+        self.assertIsNone(home.get("calendar_requested_day"))
         self.assertEqual(session["bb10_centre_data"],SAMPLE)
         self.assertIn("bb10_centre_last_at",session)
 
