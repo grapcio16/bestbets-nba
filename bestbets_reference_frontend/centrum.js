@@ -134,6 +134,14 @@ function renderSimulationPreview(data){
 function setText(id,v){const e=$(id);if(e)e.textContent=v}
 function renderHome(data){
  homeData=data;
+ const button=$("bc-refresh");
+ if(button)button.disabled=false;
+ const signal=$("bc-source-state");
+ if(signal){
+   const color=data?(data.error?"#ff9b40":data.stale?"#ffb24a":"#04ee8a"):"#8aa9c5";
+   signal.style.color=color;
+   signal.textContent=data?(data.error?"● Problem":"● Dane NBA"):"● Ładowanie";
+ }
  if(!data){
   renderPlayers({players:[]});
   setText("bc-data-meta","Ładowanie potwierdzonych danych NBA / ESPN…");
@@ -180,6 +188,22 @@ function init(context){
  const centre=$("bestbets-centre");
  if(!centre || centre.dataset.ready==="1")return;
  centre.dataset.ready="1";
+ // Small noninvasive refresh icon and data-source indicator in the ticker.
+ // Adds no layout width and doesn't change the approved neon design.
+ const tickerHead=centre.querySelector(".bc-ticker-head");
+ if(tickerHead){
+   const badge=document.createElement("span");
+   badge.id="bc-source-state";badge.textContent="● Ładowanie";
+   badge.setAttribute("aria-live","polite");
+   tickerHead.appendChild(badge);
+   const refresh=document.createElement("button");
+   refresh.type="button";refresh.id="bc-refresh";
+   refresh.textContent="⟳";
+   refresh.setAttribute("data-centre-refresh","");
+   refresh.setAttribute("aria-label","Odśwież dane NBA");
+   refresh.title="Odśwież terminarz, wyniki i statystyki";
+   tickerHead.appendChild(refresh);
+ }
  centre.addEventListener("click",function(event){
   const button=event.target.closest("button");
   if(!button)return;
@@ -187,6 +211,11 @@ function init(context){
   const query=button.getAttribute("data-centre-query");
   if(nav&&api.go){api.go(nav);return}
   if(query&&api.search){api.search(query);return}
+  if(button.matches("[data-centre-refresh]")){
+    setText("bc-data-meta","Sprawdzanie dostępnych aktualizacji danych NBA…");
+    if(api.refresh)api.refresh();
+    return;
+  }
   if(button.matches("[data-centre-premium]")){premium();return}
   if(button.matches("[data-centre-all-games]")){showSchedule();return}
   if(button.matches("[data-centre-close]")){close();return}
