@@ -1,0 +1,44 @@
+name: BestBets Centrum first-data handshake resilience
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  original-frontend-handshake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Browser and dependencies
+        run: |
+          python -m pip install -r requirements.txt "playwright>=1.56,<2"
+          python -m playwright install --with-deps chromium
+      - name: Simulate dropped and delayed Streamlit responses
+        run: python test_centrum_handshake_timeout.py
+      - name: Preserve working Props and browser design
+        run: python test_browser_reference_v10.py
+      - name: Launch production app isolated from deployment
+        run: |
+          python -m streamlit run app.py --server.port 8501 --server.headless true > /tmp/centrum-handshake.log 2>&1 &
+          for n in $(seq 1 70); do
+            curl -fsS http://127.0.0.1:8501/_stcore/health >/dev/null && exit 0
+            sleep 1
+          done
+          tail -100 /tmp/centrum-handshake.log
+          exit 1
+      - name: Real Streamlit first paint and home-data fetch
+        run: python test_centre_browser.py
+      - name: Screenshots and evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: centrum-handshake-recovery-evidence
+          path: work/centrum-qa/
+          if-no-files-found: ignore
