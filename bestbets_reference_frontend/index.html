@@ -510,6 +510,7 @@ function renderPlayer(){
 }
 function render(){
   const active=state.page==="props",home=state.page==="home";
+  root.classList.toggle("bb-home-active",home);
   $("props-pane").style.display=active?"block":"none";
   $("blank-pane").style.display=!active&&!home?"block":"none";
   $("bestbets-centre").hidden=!home;
