@@ -275,20 +275,16 @@ function toggleTeamFavorite(code){
 function renderPlayers(data){
  const rows=Array.isArray(data&&data.players)?data.players.slice(0,3):[];
  const picks=document.querySelector(".bc-pick-list"),watch=document.querySelector(".bc-watch");
- const hot=document.querySelector(".bc-hot");
- if(!picks||!watch||!hot)return;
+ if(!picks||!watch)return;
  const mappers={PTS:"points",REB:"rebounds",AST:"assists","3PM":"three-pointers"};
  const real=rows.filter(p=>p && typeof p.name==="string" &&
    Number.isFinite(Number(p.value)) && Number(p.value)>0 && mappers[p.market]);
  if(!real.length){
    picks.innerHTML='<div class="bc-muted">Brak potwierdzonych liderów ostatnich meczów w dostępnym feedzie NBA.</div>';
    watch.innerHTML='<div class="bc-muted">Dane zawodników są tymczasowo niedostępne.</div>';
-   hot.querySelectorAll("button").forEach(b=>b.remove());
-   const title=hot.querySelector(".bc-hot-title");
-   if(title)title.innerHTML='<span class="bc-orange-icon">◎</span> Ostatnie występy <span class="bc-free-tag">FREE</span>';
    return;
  }
- const initial=p=>String(p.name).trim().split(/\s+/).map(n=>n[0]||"").slice(0,2).join("").toUpperCase();
+ const initial=p=>String(p.name).trim().split(/\\s+/).map(n=>n[0]||"").slice(0,2).join("").toUpperCase();
  const sampleLine=p=>Math.max(.5,Math.floor(Number(p.value))-.5).toFixed(1);
  const query=p=>p.name+" over "+sampleLine(p)+" "+mappers[p.market];
  const safeQuery=p=>escapeHtml(query(p));
@@ -302,16 +298,6 @@ function renderPlayers(data){
  watch.innerHTML=real.map(p=>
   '<button type="button" data-centre-query="'+safeQuery(p)+'" title="Przykładowy próg do analizy historii, nie typ bukmacherski">'+
   '<b>'+escapeHtml(initial(p))+'</b> '+escapeHtml(p.name)+' <span>›</span></button>').join("");
- const title=hot.querySelector(".bc-hot-title");
- if(title)title.innerHTML='<span class="bc-orange-icon">◎</span> Ostatnie występy <span class="bc-free-tag">FREE</span>';
- hot.querySelectorAll("button").forEach(b=>b.remove());
- for(const p of real) {
-  const button=document.createElement("button");
-  button.type="button";button.setAttribute("data-centre-query",query(p));
-  button.title="Dane z ostatniego meczu, linia wyłącznie demonstracyjna";
-  button.textContent=initial(p)+"  "+p.name.split(/\s+/).slice(-1)[0]+" "+p.market+" "+p.value+"  ›";
-  hot.appendChild(button);
- }
 }
 function renderSimulationPreview(data){
  const box=document.querySelector(".bc-lock-teams");
