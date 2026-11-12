@@ -6,6 +6,7 @@ Requires running: streamlit run app.py --server.port 8501
 from __future__ import annotations
 import argparse
 import json
+import re
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright,expect
@@ -105,6 +106,13 @@ def check_streamlit(browser,url,out):
         # During load there are no invented player picks. Once the
         # verified game feed arrives the section can contain up to 3.
         assert frame.locator(".bc-pick").count()<=3
+        # A previous production build remained stuck on "Wczytywanie...".
+        # Require the real Streamlit component event to return either verified
+        # data OR an explicit provider error; never an endless spinner.
+        expect(frame.locator("#bc-data-meta")).to_contain_text(
+            re.compile(r"^(Dane:|Aktualne dane chwilowo niedostępne:)"),
+            timeout=45000,
+        )
         stage=frame.locator("#stage")
         stage_box=stage.bounding_box()
         frame_box=iframe.bounding_box()
