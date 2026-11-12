@@ -540,6 +540,8 @@ function render(){
 function search(query){
   query=String(query||"").trim();
   if(!query){state.payload.error="Wpisz imię i nazwisko, linię oraz rynek.";render();return}
+  // Top search from the free homepage opens the existing Props analysis.
+  if(state.page==="home")state.page="props";
   state.query=query;$("query").value=query;
   state.payload.error="";state.loading=true;render();
   notify("streamlit:setComponentValue",{dataType:"json",value:{type:"search",query:query,id:String(Date.now())+"-"+String(Math.random()).slice(2)}});
