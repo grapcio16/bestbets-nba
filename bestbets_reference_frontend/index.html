@@ -268,11 +268,12 @@ function notify(type,extra){
   window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},extra||{}),"*");
 }
 function resize(){
-  // The Streamlit iframe is capped to the actual visible app viewport via
-  // its parent's 100dvh CSS. Fit BOTH dimensions; don't clip footer previews.
+  // Keep the PROVEN Streamlit v1 iframe lifecycle and its fixed-height CSS
+  // unchanged. Only scale the original 1231x691 composition to the iframe WIDTH.
+  // Its extra height can scroll inside the frame on wide/short screens.
+  // Do not switch iframe to height:auto/aspect-ratio: that broke production.
   const viewportWidth=Math.max(320,document.documentElement.clientWidth||window.innerWidth||1231);
-  const viewportHeight=Math.max(240,document.documentElement.clientHeight||window.innerHeight||691);
-  const scale=Math.min(viewportWidth/1231,Math.max(0.25,viewportHeight/691));
+  const scale=viewportWidth/1231;
   root.style.transform="scale("+scale+")";
   shell.style.width=Math.round(1231*scale)+"px";
   shell.style.height=Math.ceil(691*scale)+"px";
