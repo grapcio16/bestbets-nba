@@ -135,3 +135,26 @@
 #bestbets-centre .bc-dialog-ok{padding:10px 23px;border-radius:11px;margin-top:18px;border:1px solid #ffb83d;color:#fff;font-weight:900;background:linear-gradient(#ff9d25,#c9580e);box-shadow:0 0 12px rgba(255,138,21,.5)}
 #bestbets-centre button:focus-visible{outline:2px solid #00e4ff;outline-offset:2px}
 @media(prefers-reduced-motion:reduce){#bestbets-centre *,#bestbets-centre *:before{transition:none!important;animation:none!important}}
+
+/* Pixel-accurate alignment for the supplied 1648×928 concept.
+   Applies exclusively to the FREE home route. The approved Player Props
+   screen returns to its exact original geometry on navigation. */
+#stage.bb-home-active aside{width:158px}
+#stage.bb-home-active aside:before{left:31px;width:102px}
+#stage.bb-home-active aside:after{width:166px}
+#stage.bb-home-active .top-orange{left:0;top:0}
+#stage.bb-home-active .brand{left:19px;top:5px}
+#stage.bb-home-active .brand:after{
+  content:"NBA ANALYTICS";position:absolute;top:48px;left:57px;
+  font-size:7.5px;letter-spacing:1.4px;font-weight:850;
+  color:#d2e5f4;white-space:nowrap;text-shadow:0 0 5px rgba(0,159,245,.25)
+}
+#stage.bb-home-active .left-menu{left:19px;width:130px}
+#stage.bb-home-active .nav-btn{width:129px}
+#stage.bb-home-active .settings{left:18px;width:130px}
+#stage.bb-home-active #work{left:158px;width:1073px}
+#stage.bb-home-active .topsearch{left:92px;width:775px}
+#stage.bb-home-active .topsearch input{width:650px}
+#stage.bb-home-active .suggestions{left:72px;width:981px}
+#stage.bb-home-active .utility{right:24px}
+#stage.bb-home-active #bestbets-centre{left:-1px;width:1065px}
