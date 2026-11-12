@@ -216,20 +216,3 @@
   content:"";width:19px;height:20px;
   background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e6f1ff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4'/%3E%3C/svg%3E");
 }
-
-/* The two small controls fit INSIDE the existing ticker heading; never
-   alter its dimensions, the approved Centrum artwork or global scaling. */
-#bestbets-centre .bc-ticker-head{position:relative}
-#bestbets-centre #bc-refresh{
-  position:absolute;right:3px;top:3px;display:grid;place-items:center;
-  width:18px;height:18px;padding:0;border:1px solid #4989b0;
-  border-radius:50%;background:#082841;color:#a6e8ff;
-  font-size:17px;line-height:16px;box-shadow:0 0 5px rgba(0,176,255,.28)
-}
-#bestbets-centre #bc-refresh:hover{color:white;border-color:#09d8ff}
-#bestbets-centre #bc-refresh:focus-visible{outline:2px solid #ffaf40;outline-offset:1px}
-#bestbets-centre #bc-source-state{
-  position:absolute;right:4px;bottom:2px;font-size:7px;
-  font-weight:800;letter-spacing:0;white-space:nowrap;
-  background:#071b2e;padding:1px 2px;border-radius:4px
-}
