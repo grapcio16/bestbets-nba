@@ -11,6 +11,8 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 
+from teams import TEAM_FULL
+
 
 def _as_score(value):
     try:
@@ -39,7 +41,12 @@ def build_centre_snapshot(schedule_df, meta=None, now=None, logo_provider=None):
     empty={"as_of":now.strftime("%Y-%m-%d %H:%M %Z"),"source":str(meta.get("source") or "NBA / ESPN")[:90],
            "day_label":"Dziś","games":[],"all_games":[],"calendar_games":[],
            "calendar_today":now.date().isoformat(),"calendar_loaded_days":[],
-           "ticker":[],"finals":[],"form":[],"error":""}
+           "ticker":[],"finals":[],"form":[],"error":"",
+           # Every NBA team remains selectable even without recent verified games.
+           "form_options":[{"team":code,"name":name,"logo":"",
+                            "wins":0,"losses":0,"sample":0}
+                           for code,name in sorted(TEAM_FULL.items(),
+                                                   key=lambda pair:pair[1])]}
     if schedule_df is None or schedule_df.empty:
         empty["error"]="Brak dostępnego terminarza."
         return empty
@@ -98,6 +105,13 @@ def build_centre_snapshot(schedule_df, meta=None, now=None, logo_provider=None):
             if g[side+"_score"]>g[other+"_score"]:entry["wins"]+=1
             else:entry["losses"]+=1
     form=sorted(forms.values(),key=lambda x:(-x["sample"],x["team"]))[:2]
+    # The small widget still shows two rows, but the picker needs all 30 teams.
+    # Teams without results remain selectable with sample=0 (not a fake 0-0 form).
+    form_options=[
+        {**option, **forms.get(option["team"], {}),
+         "logo":get_logo(option["team"])}
+        for option in empty["form_options"]
+    ]
     # Include past and future matches for the date navigator. Cap at 150
     # games across a two-week window: never send the full-season CDN payload.
     calendar_start=(now-pd.Timedelta(days=8)).date().isoformat()
@@ -108,7 +122,8 @@ def build_centre_snapshot(schedule_df, meta=None, now=None, logo_provider=None):
     accessible=sorted(live,key=lambda g:g["start"])+future
     empty.update({"day_label":day_label,"games":current[:10],"all_games":accessible[:55],
                   "calendar_games":calendar_games,
-                  "ticker":ticker[:5],"finals":final_recent[:2],"form":form})
+                  "ticker":ticker[:5],"finals":final_recent[:2],
+                  "form":form,"form_options":form_options})
     if bool(meta.get("stale")):
         empty["error"]="Źródło oznaczyło terminarz jako nieaktualny."
     return empty
