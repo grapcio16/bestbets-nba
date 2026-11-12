@@ -37,7 +37,10 @@ def check_static(page,out):
     page.locator("[data-centre-close]").last.click()
     expect(page.locator("#bc-dialog")).to_be_hidden()
     page.locator(".bc-pick").first.click()
-    expect(page.locator("#props-pane")).to_be_visible()
+    # Props wrapper has zero intrinsic height (children are absolute);
+    # test the actual visible hero instead of wrapper geometry.
+    expect(page.locator("#hero")).to_be_visible()
+    assert page.locator("#props-pane").evaluate("el => getComputedStyle(el).display")=="block"
     expect(page.locator("#bestbets-centre")).to_be_hidden()
     expect(page.locator("#footer")).to_be_visible()
     expect(page.locator(".topsearch")).to_be_visible()
@@ -75,7 +78,8 @@ def check_streamlit(browser,url,out):
         page.screenshot(path=str(out/f"centrum-streamlit-{width}x{height}.png"))
         # Homepage is accessible before the ESPN schedule returns.
         frame.locator('.nav-btn[data-page="props"]').click()
-        expect(frame.locator("#props-pane")).to_be_visible()
+        expect(frame.locator("#hero")).to_be_visible()
+        assert frame.locator("#props-pane").evaluate("el => getComputedStyle(el).display")=="block"
         expect(frame.locator("#bestbets-centre")).to_be_hidden()
         assert frame.locator("#hero").is_visible()
         assert frame.locator("#chart-panel").is_visible()
