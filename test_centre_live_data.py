@@ -1,7 +1,7 @@
 """Offline regression suite for confirmed NBA scores and recent player leaders."""
 from unittest import TestCase, mock
 import pandas as pd
-from bestbets_centre_live import extract_recent_leaders, get_centre_live_data
+from bestbets_centre_live import extract_recent_leaders, get_centre_live_data, get_centre_day_data
 
 NOW=pd.Timestamp("2026-11-12 21:00:00",tz="Europe/Warsaw")
 RAW={"events":[
@@ -54,6 +54,23 @@ class CentreLiveTest(TestCase):
         self.assertEqual(snapshot["ticker"][0]["away"],"BOS")
         self.assertEqual(snapshot["games"][-1]["state"],"scheduled")
         self.assertFalse(snapshot["stale"])
+
+    def test_daily_navigation_requests_two_single_espn_dates(self):
+        # Warsaw night-time games can belong to the prior ESPN date.
+        with mock.patch("sources.memoized_json",return_value=(RAW,{"stale":False})) as fetch,\
+             mock.patch("team_logos.logo_data_uri",return_value=""):
+            out=get_centre_day_data("2026-11-12")
+        self.assertEqual(out["date"],"2026-11-12")
+        self.assertTrue(any(g["state"]=="final" and g["away_score"]==110
+                            for g in out["games"]))
+        self.assertTrue(any(g["state"]=="scheduled" for g in out["games"]))
+        self.assertEqual(len(fetch.call_args_list),2)
+        self.assertEqual({c.kwargs["params"]["dates"] for c in fetch.call_args_list},
+                         {"20261111","20261112"})
+
+    def test_day_navigation_rejects_unbounded_dates(self):
+        with self.assertRaises(ValueError):
+            get_centre_day_data("2099-01-01")
 
     def test_failure_honestly_reports_no_data(self):
         with mock.patch("sources.memoized_json",side_effect=TimeoutError("mock blocked ESPN")),\
