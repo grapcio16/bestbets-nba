@@ -105,6 +105,7 @@ def get_centre_live_data(now=None):
     try:
         events_by_id={}
         successes=0
+        succeeded_days=set()
         any_stale=False
         # Bounded parallel requests; no session state or Streamlit APIs in
         # worker threads. Each date has its own disk-cache key.
@@ -114,6 +115,7 @@ def get_centre_live_data(now=None):
                 try:
                     day,events,meta=future.result()
                     successes+=1
+                    succeeded_days.add(day)
                     any_stale|=bool(meta.get("stale"))
                     for event in events:
                         if not isinstance(event,dict):continue
@@ -137,6 +139,15 @@ def get_centre_live_data(now=None):
             snap["stale"]=bool(any_stale or failures)
             snap["fetched_at"]=now.strftime("%Y-%m-%d %H:%M %Z")
             snap["coverage_days"]=successes
+            # A Warsaw day can include games belonging to the previous
+            # US/ESPN scoreboard day. Mark it as covered only after BOTH
+            # source dates returned successfully.
+            snap["calendar_loaded_days"]=[
+                (now+timedelta(days=i)).date().isoformat()
+                for i in offsets
+                if i > offsets[0] and dates[i-offsets[0]] in succeeded_days
+                and dates[i-offsets[0]-1] in succeeded_days
+            ]
             if failures:
                 snap["warning"]=(
                     "Niepełne dane: pobrano "+str(successes)+"/"+str(len(dates))+
@@ -160,6 +171,9 @@ def get_centre_live_data(now=None):
         meta={**meta,"source":"NBA CDN — oficjalny terminarz zapasowy"}
         snap=build_centre_snapshot(table,meta,now=now,logo_provider=logo_data_uri)
         snap["players"]=[]
+        snap["calendar_loaded_days"]=[
+            (now+timedelta(days=i)).date().isoformat() for i in range(-7,8)
+        ]
         snap["coverage"]="Źródło zapasowe — bez liderów zawodników"
         snap["stale"]=bool(meta.get("stale"))
         snap["fetched_at"]=meta.get("timestamp") or snap["as_of"]
@@ -176,3 +190,59 @@ def get_centre_live_data(now=None):
             "Spróbuj odświeżyć Centrum."
         )
         return empty
+
+
+
+def get_centre_day_data(day):
+    """Load one requested Warsaw-local calendar day via two ESPN scoreboard dates.
+
+    Each local date can span two ESPN US match days; only confirmed games
+    whose start is within that Warsaw date are displayed. Cache individual
+    sources using existing memoized_json. Supports browsing beyond the
+    initial 11-day snapshot without querying the entire season.
+    """
+    from datetime import date
+    from concurrent.futures import ThreadPoolExecutor
+    from sources import ESPN_SCOREBOARD, memoized_json, parse_espn_schedule
+    from bestbets_centre_data import build_centre_snapshot
+    from team_logos import logo_data_uri
+    chosen=date.fromisoformat(str(day))
+    today=pd.Timestamp.now(tz="Europe/Warsaw").date()
+    if abs((chosen-today).days)>366:
+        raise ValueError("Data poza obsługiwanym przedziałem")
+    source_days=[(chosen-timedelta(days=1)).strftime("%Y%m%d"),
+                 chosen.strftime("%Y%m%d")]
+    def get_day(source_day):
+        raw,meta=memoized_json(
+            "bb-centre-espn-daily-r2-"+source_day,ESPN_SCOREBOARD,
+            params={"dates":source_day,"limit":100},
+            ttl_seconds=180 if abs((chosen-today).days)<2 else 3600,
+            request_timeout=6,
+        )
+        if not isinstance(raw,dict) or not isinstance(raw.get("events"),list):
+            raise ValueError("Niepoprawna odpowiedź ESPN")
+        return raw["events"],meta
+    errors=[]
+    events={}
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures=[pool.submit(get_day,d) for d in source_days]
+        for task in futures:
+            try:
+                rows,_=task.result()
+                for game in rows:
+                    if isinstance(game,dict) and game.get("id"):
+                        events[str(game["id"])]=game
+            except Exception as exc:
+                errors.append(type(exc).__name__)
+    if len(errors)==len(source_days):
+        return {"date":chosen.isoformat(),"games":[],"error":"Źródło ESPN nie odpowiedziało.","complete":False}
+    noon=pd.Timestamp(chosen.isoformat()+"T12:00:00",tz="Europe/Warsaw")
+    table=parse_espn_schedule({"events":list(events.values())})
+    snapshot=build_centre_snapshot(table,{"source":"ESPN"},now=noon,logo_provider=logo_data_uri)
+    day_games=[g for g in snapshot["calendar_games"] if g["day"]==chosen.isoformat()]
+    return {
+        "date":chosen.isoformat(),
+        "games":day_games[:20],
+        "error":"Niepełne dane z ESPN. Spróbuj odświeżyć." if errors else "",
+        "complete":not errors,
+    }
