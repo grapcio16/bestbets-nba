@@ -66,9 +66,9 @@ def check_static(page,out):
           for code,name in TEAM_FULL.items()
        ],
        "players":[
-         {"name":"Jayson Tatum","team":"BOS","market":"PTS","value":26,"date":"2026-11-11"},
-         {"name":"Luka Doncic","team":"LAL","market":"AST","value":8,"date":"2026-11-11"},
-         {"name":"Nikola Jokic","team":"DEN","market":"REB","value":15,"date":"2026-11-11"}
+         {"name":"Jayson Tatum","team":"BOS","opponent":"NYK","home_away":"home","market":"PTS","value":26,"date":"2026-11-11","game_id":"401234567","athlete_id":"10"},
+         {"name":"Luka Doncic","team":"LAL","opponent":"GSW","market":"AST","value":8,"date":"2026-11-11","game_id":"401234568","athlete_id":"11"},
+         {"name":"Nikola Jokic","team":"DEN","opponent":"UTA","market":"REB","value":15,"date":"2026-11-11","game_id":"401234569","athlete_id":"12"}
        ]}
     page.evaluate("(home) => window.postMessage({type:'streamlit:render',args:{payload:{player:null,error:'',brand:'',home:home}}},'*')",fixture)
     expect(page.locator(".bc-game")).to_have_count(1)
@@ -147,7 +147,23 @@ def check_static(page,out):
     assert "NIE" in page.locator("#bc-dialog-body").inner_text()
     page.locator("[data-centre-close]").last.click()
     expect(page.locator("#bc-dialog")).to_be_hidden()
+    # Free analysis MUST remain inside Centrum and must not run Player Props.
+    assert [v.strip() for v in page.locator(".bc-pick-tag").all_inner_texts()] == [
+        "PTS","AST","REB"]
     page.locator(".bc-pick").first.click()
+    expect(page.locator("#bc-dialog")).to_be_visible()
+    expect(page.locator("#bc-dialog-title")).to_contain_text("Jayson Tatum")
+    expect(page.locator("#bestbets-centre")).to_be_visible()
+    assert page.locator("#props-pane").is_hidden()
+    page.evaluate("(home) => window.postMessage({type:'streamlit:render',args:{payload:{player:null,error:'',brand:'',home:home,free_details:{key:'401234567|10|PTS',error:'',data:{verified:true,name:'Jayson Tatum',team:'BOS',opponent:'NYK',date:'2026-11-11',PTS:26,REB:7,AST:5,'3PM':3}}}}},'*')",fixture)
+    expect(page.locator(".bc-free-stat")).to_have_count(4)
+    assert [v.strip() for v in page.locator(".bc-free-stat strong").all_inner_texts()] == [
+       "26","7","5","3"]
+    assert page.locator("#props-pane").is_hidden()
+    page.locator(".bc-free-premium [data-centre-premium]").click()
+    expect(page.locator("#bc-dialog-title")).to_contain_text("Premium")
+    page.locator("[data-centre-close]").first.click()
+    page.locator('.nav-btn[data-page="props"]').click()
     # Props wrapper has zero intrinsic height (children are absolute);
     # test the actual visible hero instead of wrapper geometry.
     expect(page.locator("#hero")).to_be_visible()
