@@ -53,6 +53,15 @@ class CentreLiveTest(TestCase):
         self.assertEqual(choices[0]["opponent"],"BOS")
         self.assertEqual(choices[0]["date"],"2026-11-12")
 
+    def test_espn_nonstandard_team_code_is_normalized_for_boxscore(self):
+        import copy
+        raw=copy.deepcopy(RAW)
+        home=raw["events"][0]["competitions"][0]["competitors"][0]
+        home["team"]["abbreviation"]="PHO"
+        players=extract_recent_leaders(raw,NOW)
+        self.assertEqual(players[0]["team"],"PHX")
+        self.assertEqual(players[2]["opponent"],"PHX")
+
     def test_unreported_category_never_gets_an_invented_leader(self):
         import copy
         raw=copy.deepcopy(RAW)
