@@ -25,11 +25,11 @@ REFERENCE_SIZE = (1672, 941)
 # New clean-home geometry derived from the 1231 px stage and user-requested
 # removal of two Props sections; the Player Props baseline stays unchanged.
 REFERENCE_REGIONS = {
-    '.bc-hero': (238, 34, 1409, 149),
-    '.bc-ticker': (238, 202, 1409, 76),
-    '.bc-main-row': (238, 297, 1409, 302),
-    '.bc-four-grid': (238, 621, 1409, 183),
-    '.bc-bottom': (238, 829, 1409, 69),
+    '.bc-hero': (238, 34, 1409, 147),
+    '.bc-ticker': (238, 197, 1409, 71),
+    '.bc-main-row': (238, 282, 1409, 255),
+    '.bc-four-grid': (238, 554, 1409, 163),
+    '.bc-bottom': (238, 735, 1409, 69),
 }
 # A date selector is an explicitly approved change to Centrum-only HTML
 # and CSS. Keep all Props code, scaling and other public assets untouched.
@@ -96,6 +96,20 @@ def geometry(page, size):
     stage = page.locator('#stage').bounding_box()
     assert stage and stage['width'] >= size[0]-1, ('Blank screen / side gutters', stage)
     assert page.locator('.bc-hot').count() == 0
+    # On all desktop reference viewports, the full navigation row must fit
+    # above the fold. Keep an actual bottom safety margin; hiding overflow
+    # is NOT an acceptable substitute for shrinking the middle cards.
+    if size[0] >= 1200:
+        nav = page.locator('.bc-bottom').bounding_box()
+        assert nav and nav['y']+nav['height'] <= size[1]-12, (
+            'Bottom navigation clipped by viewport', size, nav
+        )
+        main = page.locator('.bc-main-row').bounding_box()
+        summary = page.locator('.bc-four-grid').bounding_box()
+        assert main and summary
+        assert main['height'] <= 260 and summary['height'] <= 167, (
+            'Middle cards grew beyond compact design',main,summary
+        )
     for selector, count in [('.bc-main-row>.bc-panel',2), ('.bc-four-grid>.bc-panel',4),
             ('.bc-bottom-item',6)]:
         boxes = rects(page, selector)
