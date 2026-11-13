@@ -33,10 +33,11 @@ REFERENCE_REGIONS = {
 }
 # A date selector is an explicitly approved change to Centrum-only HTML
 # and CSS. Keep all Props code, scaling and other public assets untouched.
+# The free leader feature intentionally modifies only Centrum frontend files and
+# adds a new Streamlit Centrum event. Props model code and shared NBA engines
+# remain byte-for-byte protected; Props pixels are compared below.
 PROTECTED = ['app.py', 'assets/bestbets_brand_icon_64.png',
-    'bestbets_custom_screen.py', 'bestbets_centre_data.py',
-    'bestbets_reference_frontend/index.html', 'bestbets_reference_frontend/centrum.html',
-    'bestbets_reference_frontend/centrum.js',
+    'bestbets_centre_data.py',
     'core.py', 'mvp_app.py', 'mvp_prop_ui.py', 'season_props.py', 'prop_search.py',
     'simulation_engine.py', 'simulation_sources.py', 'sources.py', 'espn_player_data.py']
 BRAND = 'data:image/png;base64,' + base64.b64encode(
@@ -56,6 +57,11 @@ def git_file(ref, name):
 def safety(ref):
     for name in PROTECTED:
         assert (ROOT/name).read_bytes() == git_file(ref, name), f'Protected source changed: {name}'
+    base_shell=git_file(ref,'bestbets_custom_screen.py').decode()
+    new_shell=(ROOT/'bestbets_custom_screen.py').read_text()
+    def props_model(src):
+        return src.split('def _research(',1)[1].split('\\ndef main()',1)[0]
+    assert props_model(base_shell)==props_model(new_shell), 'Player Props research engine changed'
     css = (FRONTEND/'centrum.css').read_text()
     before_css = git_file(ref, 'bestbets_reference_frontend/centrum.css').decode()
     assert css.startswith(before_css), 'Original approved Centrum CSS was altered'
