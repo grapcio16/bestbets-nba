@@ -534,7 +534,7 @@ function render(){
   $("query").placeholder=home?"Szukaj zawodnika, linii i rynku NBA...":"Jayson Tatum over 25.5 points";
   if(state.payload.brand){setImage("brand-img",state.payload.brand,"BestBets")}
   if(home && window.BestBetsCentre){
-    window.BestBetsCentre.render(state.payload.home||null,state.payload.player_catalog||null);
+    window.BestBetsCentre.render(state.payload.home||null,state.payload.player_catalog||null,state.payload.free_details||null);
     // The backend now embeds the Centrum snapshot in the FIRST render.
     // Do not send an unnecessary extra home_data request on initial load:
     // it can cause a needless Streamlit rerun while the iframe is sizing.
@@ -555,6 +555,13 @@ function search(query){
 if(window.BestBetsCentre){
   window.BestBetsCentre.init({
     go:function(page){state.page=page;render()},
+    leaderDetails:function(index){
+      if(state.page!=="home"||!Number.isInteger(index)||index<0||index>2)return;
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"free_leader_details",index:index,
+        id:String(Date.now())+"-free-detail-"+index+"-"+Math.random().toString(36).slice(2)
+      }});
+    },
     loadPlayers:function(){
       notify("streamlit:setComponentValue",{dataType:"json",value:{
         type:"player_catalog",id:String(Date.now())+"-players-"+Math.random().toString(36).slice(2)
