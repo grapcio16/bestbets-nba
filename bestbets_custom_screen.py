@@ -281,6 +281,7 @@ def main() -> None:
         "error": st.session_state["bb10_payload"].get("error", ""),
         "home": home_data,
         "player_catalog": st.session_state.get("bb10_player_catalog"),
+        "free_details": st.session_state.get("bb10_free_leader_details"),
     }
     event = COMPONENT(payload=payload, default=None, key="bb10_reference_canvas")
     if not isinstance(event, dict):
@@ -289,6 +290,32 @@ def main() -> None:
     if not event_id or event_id == st.session_state.get("bb10_last_event"):
         return
     st.session_state["bb10_last_event"] = event_id
+    if event.get("type") == "free_leader_details":
+        # Only one verified leaderboard row from the trusted server snapshot
+        # can trigger a boxscore read. Client-supplied athlete IDs are ignored.
+        from bestbets_centre_live import get_free_leader_boxscore
+        requested = event.get("index")
+        if type(requested) is not int or not (0 <= requested < 3):
+            return
+        snapshot = st.session_state.get("bb10_centre_data") or {}
+        leaders = snapshot.get("players") or []
+        if requested >= len(leaders):
+            return
+        leader = leaders[requested]
+        key = "|".join(str(leader.get(k) or "")
+                       for k in ("game_id", "athlete_id", "market"))
+        try:
+            details = get_free_leader_boxscore(leader)
+            st.session_state["bb10_free_leader_details"] = {
+                "key": key, "data": details, "error": "",
+            }
+        except (ValueError, KeyError, TypeError, RuntimeError, OSError):
+            st.session_state["bb10_free_leader_details"] = {
+                "key": key, "data": None,
+                "error": "Pełne statystyki tego meczu są chwilowo niedostępne w ESPN.",
+            }
+        st.rerun()
+        return
     if event.get("type") == "player_catalog":
         # Do not delay first-paint Centrum: fetch full 30-team player index
         # only after explicit interaction with the picker.
