@@ -36,6 +36,52 @@ class CentreLiveTest(TestCase):
         self.assertEqual(rows[1]["name"],"Al Horford")
         self.assertEqual(rows[2]["market"],"AST")
 
+    def test_three_distinct_stat_categories_from_last_final_day(self):
+        # Another player can score more PTS; rebounding and assists winners
+        # must be chosen independently rather than simply the three names.
+        import copy
+        raw=copy.deepcopy(RAW)
+        raw["events"][0]["competitions"][0]["competitors"][1]["leaders"].append(
+            {"name":"points","leaders":[{"value":35,"athlete":{
+                "id":"99","displayName":"Second Scorer"}}]})
+        choices=extract_recent_leaders(raw,NOW)
+        self.assertEqual([p["market"] for p in choices],["PTS","REB","AST"])
+        self.assertEqual(choices[0]["name"],"Second Scorer")
+        self.assertEqual(choices[0]["value"],35)
+        self.assertEqual(choices[1]["name"],"Al Horford")
+        self.assertEqual(choices[2]["name"],"Jalen Brunson")
+        self.assertEqual(choices[0]["opponent"],"BOS")
+        self.assertEqual(choices[0]["date"],"2026-11-12")
+
+    def test_unreported_category_never_gets_an_invented_leader(self):
+        import copy
+        raw=copy.deepcopy(RAW)
+        raw["events"][0]["competitions"][0]["competitors"][0]["leaders"] = (
+            raw["events"][0]["competitions"][0]["competitors"][0]["leaders"][:1])
+        raw["events"][0]["competitions"][0]["competitors"][1]["leaders"]=[]
+        self.assertEqual([x["market"] for x in extract_recent_leaders(raw,NOW)],["PTS"])
+
+    def test_free_single_game_boxscore_checks_real_athlete_and_leader_stat(self):
+        from bestbets_centre_live import get_free_leader_boxscore
+        leader={"name":"Jayson Tatum","team":"BOS","opponent":"NYK",
+            "home_away":"home","market":"PTS","value":26,
+            "date":"2026-11-12","event_date":"2026-11-11T23:00:00Z",
+            "game_id":"401234567","athlete_id":"10"}
+        sample=[{"PLAYER_ID":"10","TEAM_ABBREVIATION":"BOS",
+                 "PTS":26,"REB":7,"AST":5,"FG3M":3}]
+        with mock.patch("espn_player_data.fetch_boxscore",return_value=sample) as fetch:
+            details=get_free_leader_boxscore(leader)
+        self.assertEqual([details[k] for k in ("PTS","REB","AST","3PM")],
+                         [26,7,5,3])
+        self.assertTrue(details["verified"])
+        self.assertEqual(fetch.call_args.args[0]["game_id"],"401234567")
+        with mock.patch("espn_player_data.fetch_boxscore",return_value=[
+            {**sample[0],"PTS":25}]):
+            with self.assertRaisesRegex(ValueError,"zgodne"):
+                get_free_leader_boxscore(leader)
+        with self.assertRaisesRegex(ValueError,"identyfikatora"):
+            get_free_leader_boxscore({**leader,"game_id":"../../etc"})
+
     def test_schedule_and_final_score_are_actual_and_consistent(self):
         with mock.patch("sources.memoized_json",return_value=(RAW,{"timestamp":"2026-11-12T19:00:00Z","stale":False})) as fetch,\
              mock.patch("team_logos.logo_data_uri",return_value=""):
