@@ -348,7 +348,7 @@ function renderSimulationPreview(data){
  teams[1].textContent=g?g.home:"—";
 }
 function setText(id,v){const e=$(id);if(e)e.textContent=v}
-function renderHome(data){
+function renderHome(data,details){
  homeData=data;
  if(data && !selectedDay){
    selectedDay=data.calendar_requested_day||data.calendar_today||
@@ -372,6 +372,7 @@ function renderHome(data){
   return;
  }
  renderTicker(data);renderGames(data);renderFinals(data);renderForm(data);renderPlayers(data);renderSimulationPreview(data);
+ renderFreeLeaderDetails(details);
  const now=new Date();
  setText("bc-local-time","Czas lokalny: "+new Intl.DateTimeFormat("pl-PL",{hour:"2-digit",minute:"2-digit",timeZoneName:"short"}).format(now));
  const message=data.error
@@ -382,6 +383,7 @@ function renderHome(data){
 function modal(title,body){
  setText("bc-dialog-title",title);
  const e=$("bc-dialog-body");if(e)e.textContent=body;
+ $("bc-dialog").classList.remove("bc-free-detail-dialog");
  $("bc-dialog").hidden=false;
  $("bc-dialog").querySelector(".bc-dialog-close").focus();
 }
@@ -442,6 +444,8 @@ function init(context){
   }
   const team=button.getAttribute("data-centre-favorite");
   if(team!==null){event.stopPropagation();toggleTeamFavorite(team);return;}
+  const leader=button.getAttribute("data-centre-free-detail");
+  if(leader!==null){openFreeLeader(Number(leader));return;}
   const nav=button.getAttribute("data-centre-nav");
   const query=button.getAttribute("data-centre-query");
   if(nav&&api.go){api.go(nav);return}
