@@ -272,32 +272,70 @@ function toggleTeamFavorite(code){
  storeTeamFavorites();
  renderForm(homeData);
 }
+let pendingFreeLeaderKey=null;
+const freeLeaderKey=p=>[p.game_id||"",p.athlete_id||"",p.market||""].join("|");
 function renderPlayers(data){
- const rows=Array.isArray(data&&data.players)?data.players.slice(0,3):[];
  const picks=document.querySelector(".bc-pick-list"),watch=document.querySelector(".bc-watch");
  if(!picks||!watch)return;
- const mappers={PTS:"points",REB:"rebounds",AST:"assists","3PM":"three-pointers"};
- const real=rows.filter(p=>p && typeof p.name==="string" &&
-   Number.isFinite(Number(p.value)) && Number(p.value)>0 && mappers[p.market]);
+ const labels={PTS:"Lider punktów",REB:"Lider zbiórek",AST:"Lider asyst"};
+ const markets={PTS:"points",REB:"rebounds",AST:"assists"};
+ const real=(Array.isArray(data?.players)?data.players:[]).slice(0,3)
+   .filter(p=>p&&typeof p.name==="string"&&labels[p.market]&&
+    Number.isInteger(Number(p.value))&&Number(p.value)>=0);
  if(!real.length){
-   picks.innerHTML='<div class="bc-muted">Brak potwierdzonych liderów ostatnich meczów w dostępnym feedzie NBA.</div>';
-   watch.innerHTML='<div class="bc-muted">Dane zawodników są tymczasowo niedostępne.</div>';
-   return;
+  picks.innerHTML='<div class="bc-muted">Brak potwierdzonych liderów zakończonych spotkań NBA. Sprawdź ponownie po meczach.</div>';
+  watch.innerHTML='<div class="bc-muted">Dane zawodników są tymczasowo niedostępne.</div>';
+  return;
  }
- const initial=p=>String(p.name).trim().split(/\\s+/).map(n=>n[0]||"").slice(0,2).join("").toUpperCase();
- const sampleLine=p=>Math.max(.5,Math.floor(Number(p.value))-.5).toFixed(1);
- const query=p=>p.name+" over "+sampleLine(p)+" "+mappers[p.market];
- const safeQuery=p=>escapeHtml(query(p));
- picks.innerHTML=real.map(p=>
-  '<button class="bc-pick" type="button" data-centre-query="'+safeQuery(p)+'" title="Linia poglądowa; wyłącznie do sprawdzenia historii, nie rekomendacja zakładu">'+
-  '<span class="bc-player-circle">'+escapeHtml(initial(p))+'</span>'+
-  '<span class="bc-pick-info"><strong>'+escapeHtml(p.name)+'</strong><small>Ostatni mecz: '+escapeHtml(p.value)+' '+escapeHtml(p.market)+'</small></span>'+
+ const initials=p=>String(p.name).split(/\s+/).slice(0,2).map(v=>v[0]||"").join("").toUpperCase();
+ picks.innerHTML=real.map((p,i)=>
+  '<button class="bc-pick" type="button" data-centre-free-detail="'+i+
+  '" title="Bezpłatny podgląd potwierdzonego występu NBA">'+
+  '<span class="bc-player-circle">'+escapeHtml(initials(p))+'</span>'+
+  '<span class="bc-pick-info"><strong>'+escapeHtml(p.name)+'</strong>'+
+  '<small>'+escapeHtml(labels[p.market])+' · '+escapeHtml(p.value)+' '+escapeHtml(p.market)+'</small></span>'+
   '<span class="bc-pick-tag">'+escapeHtml(p.market)+'</span>'+
-  '<span class="bc-pick-explain">Potwierdzony występ<br><i>'+escapeHtml(p.date||"")+" · "+escapeHtml(p.team||"NBA")+'</i></span>'+
-  '<span class="bc-mini-btn">Historia ›</span></button>').join("");
- watch.innerHTML=real.map(p=>
-  '<button type="button" data-centre-query="'+safeQuery(p)+'" title="Przykładowy próg do analizy historii, nie typ bukmacherski">'+
-  '<b>'+escapeHtml(initial(p))+'</b> '+escapeHtml(p.name)+' <span>›</span></button>').join("");
+  '<span class="bc-pick-explain">'+escapeHtml(p.team||"NBA")+' vs '+escapeHtml(p.opponent||"NBA")+
+  '<br><i>'+escapeHtml(p.date||"")+'</i></span>'+
+  '<span class="bc-mini-btn">Szczegóły ›</span></button>').join("");
+ watch.innerHTML=real.map(p=>{
+  const line=Math.max(.5,Math.floor(Number(p.value))-.5).toFixed(1);
+  const query=p.name+" over "+line+" "+markets[p.market];
+  return '<button type="button" data-centre-query="'+escapeHtml(query)+'" title="Otwórz Player Props">'+
+    '<b>'+escapeHtml(initials(p))+'</b> '+escapeHtml(p.name)+' <span>›</span></button>';
+ }).join("");
+}
+function openFreeLeader(index){
+ const leader=Array.isArray(homeData?.players)?homeData.players[index]:null;
+ if(!leader)return;
+ pendingFreeLeaderKey=freeLeaderKey(leader);
+ modal(leader.name+" — występ NBA",
+  "Potwierdzony wynik: "+leader.value+" "+leader.market+
+  "\n"+(leader.team||"NBA")+" vs "+(leader.opponent||"NBA")+" · "+(leader.date||"")+
+  "\n\nPobieram statystyki tego spotkania z ESPN…");
+ if(api.leaderDetails)api.leaderDetails(index);
+}
+function renderFreeLeaderDetails(reply){
+ if(!reply||!pendingFreeLeaderKey||reply.key!==pendingFreeLeaderKey)return;
+ pendingFreeLeaderKey=null;
+ const p=reply.data;
+ if(reply.error||!p||p.verified!==true){
+  modal("Statystyki meczu",String(reply.error||"Dane niedostępne.")+
+     "\n\nPokazujemy wyłącznie potwierdzone wyniki NBA.");
+  return;
+ }
+ setText("bc-dialog-title",p.name+" — występ NBA");
+ const stats=["PTS","REB","AST","3PM"].map(key=>
+  '<div class="bc-free-stat"><strong>'+escapeHtml(p[key])+'</strong><span>'+key+'</span></div>').join("");
+ $("bc-dialog-body").innerHTML=
+  '<div class="bc-free-match">'+escapeHtml(p.team)+' vs '+escapeHtml(p.opponent)+
+  ' · '+escapeHtml(p.date)+'</div>'+
+  '<div class="bc-free-stats">'+stats+'</div>'+
+  '<p class="bc-free-note">Potwierdzony wynik jednego meczu — nie jest prognozą przyszłego występu.</p>'+
+  '<div class="bc-free-premium"><span>♛ Wykresy sezonowe, hit rate, analiza rywala i prognozy: Premium</span>'+
+  '<button type="button" data-centre-premium>Premium — wkrótce ›</button></div>';
+ $("bc-dialog").classList.add("bc-free-detail-dialog");
+ $("bc-dialog").hidden=false;
 }
 function renderSimulationPreview(data){
  const box=document.querySelector(".bc-lock-teams");
