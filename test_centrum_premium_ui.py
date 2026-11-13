@@ -255,7 +255,11 @@ def interactions(page, out):
     expect(page.locator('#query')).to_have_value('Jayson Tatum over 25.5 points')
     page.locator('.nav-btn[data-page="home"]').click()
     page.locator('.bc-pick').nth(2).click()
-    expect(page.locator('#query')).to_have_value('Nikola Jokic over 14.5 rebounds')
+    expect(page.locator('#bc-dialog-title')).to_have_text('Nikola Jokic — występ NBA')
+    expect(page.locator('#bestbets-centre')).to_be_visible()
+    assert page.locator('#props-pane').is_hidden()
+    expect(page.locator('#bc-dialog-body')).to_contain_text('15 REB')
+    page.keyboard.press('Escape')
 
 
 STARTUP_PROBE = """(() => {
