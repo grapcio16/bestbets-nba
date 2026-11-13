@@ -60,7 +60,7 @@ def safety(ref):
     base_shell=git_file(ref,'bestbets_custom_screen.py').decode()
     new_shell=(ROOT/'bestbets_custom_screen.py').read_text()
     def props_model(src):
-        return src.split('def _research(',1)[1].split('\\ndef main()',1)[0]
+        return src.split('def _research(',1)[1].split('\ndef main()',1)[0]
     assert props_model(base_shell)==props_model(new_shell), 'Player Props research engine changed'
     css = (FRONTEND/'centrum.css').read_text()
     before_css = git_file(ref, 'bestbets_reference_frontend/centrum.css').decode()
