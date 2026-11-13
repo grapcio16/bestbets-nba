@@ -272,70 +272,95 @@ function toggleTeamFavorite(code){
  storeTeamFavorites();
  renderForm(homeData);
 }
-let pendingFreeLeaderKey=null;
-const freeLeaderKey=p=>[p.game_id||"",p.athlete_id||"",p.market||""].join("|");
 function renderPlayers(data){
- const picks=document.querySelector(".bc-pick-list"),watch=document.querySelector(".bc-watch");
- if(!picks||!watch)return;
- const labels={PTS:"Lider punktów",REB:"Lider zbiórek",AST:"Lider asyst"};
- const markets={PTS:"points",REB:"rebounds",AST:"assists"};
- const real=(Array.isArray(data?.players)?data.players:[]).slice(0,3)
-   .filter(p=>p&&typeof p.name==="string"&&labels[p.market]&&
-    Number.isInteger(Number(p.value))&&Number(p.value)>=0);
+ const rows=Array.isArray(data&&data.players)?data.players.slice(0,3):[];
+ const watch=document.querySelector(".bc-watch");
+ if(!watch)return;
+ const mappers={PTS:"points",REB:"rebounds",AST:"assists","3PM":"three-pointers"};
+ const real=rows.filter(p=>p && typeof p.name==="string" &&
+   Number.isFinite(Number(p.value)) && Number(p.value)>0 && mappers[p.market]);
  if(!real.length){
-  picks.innerHTML='<div class="bc-muted">Brak potwierdzonych liderów zakończonych spotkań NBA. Sprawdź ponownie po meczach.</div>';
-  watch.innerHTML='<div class="bc-muted">Dane zawodników są tymczasowo niedostępne.</div>';
-  return;
+   watch.innerHTML='<div class="bc-muted">Dane zawodników są tymczasowo niedostępne.</div>';
+   return;
  }
- const initials=p=>String(p.name).split(/\s+/).slice(0,2).map(v=>v[0]||"").join("").toUpperCase();
- picks.innerHTML=real.map((p,i)=>
-  '<button class="bc-pick" type="button" data-centre-free-detail="'+i+
-  '" title="Bezpłatny podgląd potwierdzonego występu NBA">'+
-  '<span class="bc-player-circle">'+escapeHtml(initials(p))+'</span>'+
-  '<span class="bc-pick-info"><strong>'+escapeHtml(p.name)+'</strong>'+
-  '<small>'+escapeHtml(labels[p.market])+' · '+escapeHtml(p.value)+' '+escapeHtml(p.market)+'</small></span>'+
-  '<span class="bc-pick-tag">'+escapeHtml(p.market)+'</span>'+
-  '<span class="bc-pick-explain">'+escapeHtml(p.team||"NBA")+' vs '+escapeHtml(p.opponent||"NBA")+
-  '<br><i>'+escapeHtml(p.date||"")+'</i></span>'+
-  '<span class="bc-mini-btn">Szczegóły ›</span></button>').join("");
- watch.innerHTML=real.map(p=>{
-  const line=Math.max(.5,Math.floor(Number(p.value))-.5).toFixed(1);
-  const query=p.name+" over "+line+" "+markets[p.market];
-  return '<button type="button" data-centre-query="'+escapeHtml(query)+'" title="Otwórz Player Props">'+
-    '<b>'+escapeHtml(initials(p))+'</b> '+escapeHtml(p.name)+' <span>›</span></button>';
+ const initial=p=>String(p.name).trim().split(/\\s+/).map(n=>n[0]||"").slice(0,2).join("").toUpperCase();
+ const sampleLine=p=>Math.max(.5,Math.floor(Number(p.value))-.5).toFixed(1);
+ const query=p=>p.name+" over "+sampleLine(p)+" "+mappers[p.market];
+ const safeQuery=p=>escapeHtml(query(p));
+ watch.innerHTML=real.map(p=>
+  '<button type="button" data-centre-query="'+safeQuery(p)+'" title="Przykładowy próg do analizy historii, nie typ bukmacherski">'+
+  '<b>'+escapeHtml(initial(p))+'</b> '+escapeHtml(p.name)+' <span>›</span></button>').join("");
+}
+let pendingFreeLeaderKey=null, freeRenderSignature="";
+const freeLabels={PTS:"Lider punktów",REB:"Lider zbiórek",AST:"Lider asyst"};
+const initials=p=>String(p.name||"").trim().split(/\s+/).slice(0,2).map(v=>v[0]||"").join("").toUpperCase();
+function freeAvatar(p){
+ const allowed=homeData?.free_photos_enabled===true && /^[0-9]{1,20}$/.test(p.athlete_id||"");
+ const photo=allowed?'<img hidden loading="eager" decoding="async" alt="'+escapeHtml(p.name)+
+   '" src="https://a.espncdn.com/i/headshots/nba/players/full/'+p.athlete_id+'.png">':"";
+ return '<span class="bc-player-circle bc-free-avatar"><span>'+escapeHtml(initials(p))+'</span>'+photo+'</span>';
+}
+function renderFreeLeaders(data){
+ const host=document.querySelector(".bc-pick-list");if(!host)return;
+ const rows=Array.isArray(data?.free_leaders)?data.free_leaders:[];
+ const signature=JSON.stringify([rows,data?.free_leader_day,data?.free_warning,data?.free_photos_enabled]);
+ if(signature===freeRenderSignature)return;
+ freeRenderSignature=signature;
+ if(!data?.free_leader_day || data?.free_warning){
+  host.innerHTML='<div class="bc-muted">'+escapeHtml(data?.free_warning||
+    "Brak potwierdzonych liderów zakończonych spotkań NBA. Sprawdź ponownie po meczach.")+'</div>';return;
+ }
+ host.innerHTML=Object.keys(freeLabels).map(market=>{
+  const p=rows.find(r=>r.market===market && /^[0-9a-f]{64}$/.test(r.detail_key||""));
+  if(!p)return '<div class="bc-pick bc-free-missing"><span class="bc-pick-tag">'+market+
+    '</span><span>Brak pełnych danych '+market+' · '+escapeHtml(data.free_leader_day)+' NBA/ET</span></div>';
+  return '<button class="bc-pick" type="button" data-centre-free-key="'+p.detail_key+
+    '" title="'+escapeHtml(p.name)+' · '+escapeHtml(freeLabels[market])+
+    (p.tie_count>1?' (ex aequo)':'')+' — zakończone mecze NBA/ET">'+freeAvatar(p)+
+    '<span class="bc-pick-info"><strong>'+escapeHtml(p.name)+'</strong><small>'+escapeHtml(freeLabels[market])+
+    ' · '+escapeHtml(p.value)+' '+market+(p.tie_count>1?' · ex aequo':'')+'</small></span>'+
+    '<span class="bc-pick-tag">'+market+'</span><span class="bc-pick-explain">'+escapeHtml(p.team)+' vs '+
+    escapeHtml(p.opponent)+'<br><i>'+escapeHtml(p.date)+' NBA/ET</i></span>'+
+    '<span class="bc-mini-btn">Szczegóły ›</span></button>';
  }).join("");
 }
-function openFreeLeader(index){
- const leader=Array.isArray(homeData?.players)?homeData.players[index]:null;
+function freeDetailsBody(p,stats,note){
+ return '<div class="bc-free-heading">'+freeAvatar(p)+'<div><strong>'+escapeHtml(p.name)+
+  '</strong><div class="bc-free-match">'+escapeHtml(p.team)+' vs '+escapeHtml(p.opponent)+
+  ' · '+escapeHtml(p.date)+' NBA/ET</div></div></div><div class="bc-free-stats">'+
+  ["PTS","REB","AST","3PM"].map(key=>'<div class="bc-free-stat"><strong>'+escapeHtml(stats?.[key]??"—")+
+  '</strong><span>'+key+'</span></div>').join("")+'</div><p class="bc-free-note" role="status">'+escapeHtml(note)+
+  '</p><div class="bc-free-premium"><strong>Odkryj więcej z BestBets Premium</strong>'+
+  '<span>Zaawansowane wykresy, analizy zawodników i symulacje.</span>'+
+  '<button type="button" data-centre-premium>Premium — wkrótce ›</button></div>';
+}
+function showFreeDetails(p,stats,note){
+ setText("bc-dialog-title",p.name+" — występ NBA");
+ $("bc-dialog-body").innerHTML=freeDetailsBody(p,stats,note);
+ $("bc-dialog").classList.add("bc-free-detail-dialog");
+ $("bc-dialog").hidden=false;
+}
+function openFreeLeader(key){
+ const leader=(homeData?.free_leaders||[]).find(p=>p.detail_key===key);
  if(!leader)return;
- pendingFreeLeaderKey=freeLeaderKey(leader);
- modal(leader.name+" — występ NBA",
-  "Potwierdzony wynik: "+leader.value+" "+leader.market+
-  "\n"+(leader.team||"NBA")+" vs "+(leader.opponent||"NBA")+" · "+(leader.date||"")+
-  "\n\nPobieram statystyki tego spotkania z ESPN…");
- if(api.leaderDetails)api.leaderDetails(index);
+ pendingFreeLeaderKey=key;
+ showFreeDetails(leader,null,"Pobieram statystyki tego spotkania z ESPN…");
+ $("bc-dialog").querySelector(".bc-dialog-close").focus();
+ if(api.leaderDetails)api.leaderDetails(key);
 }
 function renderFreeLeaderDetails(reply){
  if(!reply||!pendingFreeLeaderKey||reply.key!==pendingFreeLeaderKey)return;
+ const leader=(homeData?.free_leaders||[]).find(p=>p.detail_key===pendingFreeLeaderKey);
  pendingFreeLeaderKey=null;
+ if(!leader){modal("Statystyki meczu","Lista liderów została zaktualizowana. Otwórz szczegóły ponownie.");return;}
  const p=reply.data;
- if(reply.error||!p||p.verified!==true){
-  modal("Statystyki meczu",String(reply.error||"Dane niedostępne.")+
-     "\n\nPokazujemy wyłącznie potwierdzone wyniki NBA.");
-  return;
+ const valid=p?.verified===true && p.athlete_id===leader.athlete_id && p.date===leader.date &&
+   ["PTS","REB","AST","3PM"].every(k=>Number.isInteger(p[k])&&p[k]>=0);
+ if(reply.error||!valid){
+  showFreeDetails(leader,null,String(reply.error||"Pełne statystyki tego meczu są chwilowo niedostępne w ESPN."));return;
  }
- setText("bc-dialog-title",p.name+" — występ NBA");
- const stats=["PTS","REB","AST","3PM"].map(key=>
-  '<div class="bc-free-stat"><strong>'+escapeHtml(p[key])+'</strong><span>'+key+'</span></div>').join("");
- $("bc-dialog-body").innerHTML=
-  '<div class="bc-free-match">'+escapeHtml(p.team)+' vs '+escapeHtml(p.opponent)+
-  ' · '+escapeHtml(p.date)+'</div>'+
-  '<div class="bc-free-stats">'+stats+'</div>'+
-  '<p class="bc-free-note">Potwierdzony wynik jednego meczu — nie jest prognozą przyszłego występu.</p>'+
-  '<div class="bc-free-premium"><span>♛ Wykresy sezonowe, hit rate, analiza rywala i prognozy: Premium</span>'+
-  '<button type="button" data-centre-premium>Premium — wkrótce ›</button></div>';
- $("bc-dialog").classList.add("bc-free-detail-dialog");
- $("bc-dialog").hidden=false;
+ showFreeDetails(leader,p,(p.stale?"Dane z pamięci podręcznej — ESPN chwilowo niedostępne. ":"")+
+  "Potwierdzony wynik jednego zakończonego meczu ESPN. Nie jest prognozą przyszłego występu.");
 }
 function renderSimulationPreview(data){
  const box=document.querySelector(".bc-lock-teams");
@@ -367,11 +392,11 @@ function renderHome(data,details){
    signal.textContent=data?(data.error?"● Problem":"● Dane NBA"):"● Ładowanie";
  }
  if(!data){
-  renderPlayers({players:[]});
+  renderPlayers({players:[]});renderFreeLeaders(null);
   setText("bc-data-meta","Ładowanie potwierdzonych danych NBA / ESPN…");
   return;
  }
- renderTicker(data);renderGames(data);renderFinals(data);renderForm(data);renderPlayers(data);renderSimulationPreview(data);
+ renderTicker(data);renderGames(data);renderFinals(data);renderForm(data);renderPlayers(data);renderFreeLeaders(data);renderSimulationPreview(data);
  renderFreeLeaderDetails(details);
  const now=new Date();
  setText("bc-local-time","Czas lokalny: "+new Intl.DateTimeFormat("pl-PL",{hour:"2-digit",minute:"2-digit",timeZoneName:"short"}).format(now));
@@ -434,6 +459,14 @@ function init(context){
    refresh.title="Odśwież terminarz, wyniki i statystyki";
    tickerHead.appendChild(refresh);
  }
+ centre.addEventListener("load",event=>{
+  const img=event.target;if(!img.matches?.(".bc-free-avatar img"))return;
+  img.hidden=false;img.previousElementSibling.hidden=true;
+ },true);
+ centre.addEventListener("error",event=>{
+  const img=event.target;if(!img.matches?.(".bc-free-avatar img"))return;
+  img.hidden=true;img.previousElementSibling.hidden=false;img.removeAttribute("src");
+ },true);
  centre.addEventListener("click",function(event){
   const button=event.target.closest("button");
   if(!button)return;
@@ -444,8 +477,8 @@ function init(context){
   }
   const team=button.getAttribute("data-centre-favorite");
   if(team!==null){event.stopPropagation();toggleTeamFavorite(team);return;}
-  const leader=button.getAttribute("data-centre-free-detail");
-  if(leader!==null){openFreeLeader(Number(leader));return;}
+  const leader=button.getAttribute("data-centre-free-key");
+  if(leader!==null){openFreeLeader(leader);return;}
   const nav=button.getAttribute("data-centre-nav");
   const query=button.getAttribute("data-centre-query");
   if(nav&&api.go){api.go(nav);return}

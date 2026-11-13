@@ -16,6 +16,7 @@ import subprocess
 import tempfile
 
 from PIL import Image, ImageChops
+from test_free_analyses import free_fixture
 from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parent
@@ -214,6 +215,7 @@ def interactions(page, out):
           {'name':'Jayson Tatum','team':'BOS','market':'PTS','value':26,'date':'2026-11-11'},
           {'name':'Luka Doncic','team':'LAL','market':'AST','value':8,'date':'2026-11-11'},
           {'name':'Nikola Jokic','team':'DEN','market':'REB','value':15,'date':'2026-11-11'}]}
+    home.update(free_fixture(home["players"]))
     render(page, home=home)
     expect(page.locator('.bc-game')).to_have_count(5)
     expect(page.locator('.bc-ticker-card')).to_have_count(5)
@@ -254,11 +256,11 @@ def interactions(page, out):
     expect(page.locator('#hero')).to_be_visible()
     expect(page.locator('#query')).to_have_value('Jayson Tatum over 25.5 points')
     page.locator('.nav-btn[data-page="home"]').click()
-    page.locator('.bc-pick').nth(2).click()
+    page.locator('.bc-pick').filter(has=page.locator('.bc-pick-tag',has_text='REB')).click()
     expect(page.locator('#bc-dialog-title')).to_have_text('Nikola Jokic — występ NBA')
     expect(page.locator('#bestbets-centre')).to_be_visible()
     assert page.locator('#props-pane').is_hidden()
-    expect(page.locator('#bc-dialog-body')).to_contain_text('15 REB')
+    expect(page.locator('#bc-dialog-body')).to_contain_text('Pobieram statystyki')
     page.keyboard.press('Escape')
 
 

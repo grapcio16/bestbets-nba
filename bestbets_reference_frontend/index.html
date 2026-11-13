@@ -551,11 +551,11 @@ function search(query){
 if(window.BestBetsCentre){
   window.BestBetsCentre.init({
     go:function(page){state.page=page;render()},
-    leaderDetails:function(index){
-      if(state.page!=="home"||!Number.isInteger(index)||index<0||index>2)return;
+    leaderDetails:function(key){
+      if(state.page!=="home"||!(/^[0-9a-f]{64}$/).test(key))return;
       notify("streamlit:setComponentValue",{dataType:"json",value:{
-        type:"free_leader_details",index:index,
-        id:String(Date.now())+"-free-detail-"+index+"-"+Math.random().toString(36).slice(2)
+        type:"free_leader_details",key:key,
+        id:String(Date.now())+"-free-detail-"+key+"-"+Math.random().toString(36).slice(2)
       }});
     },
     loadPlayers:function(){

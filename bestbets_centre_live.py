@@ -20,132 +20,54 @@ def _value(x):
 
 
 def extract_recent_leaders(payload, now=None, limit=3):
-    """One verified leader per PTS, REB and AST from the latest final NBA date.
-
-    This free section is NOT a sample prop line, multi-game model or betting
-    recommendation. Only ESPN scoreboard-reported individual game values count.
-    """
+    """Read explicitly reported NBA match leaders, never manufacture stats."""
     now=pd.Timestamp(now) if now is not None else pd.Timestamp.now(tz="Europe/Warsaw")
-    if now.tzinfo is None:
-        now=now.tz_localize("Europe/Warsaw")
-    else:
-        now=now.tz_convert("Europe/Warsaw")
-
-    allowed={"points":"PTS","rebounds":"REB","assists":"AST"}
-    aliases={"GS":"GSW","NY":"NYK","SA":"SAS","NO":"NOP",
-             "PHO":"PHX","WSH":"WAS","BRK":"BKN","UTAH":"UTA"}
-    max_value={"PTS":100,"REB":55,"AST":35}
+    if now.tzinfo is None:now=now.tz_localize("Europe/Warsaw")
+    else:now=now.tz_convert("Europe/Warsaw")
     candidates=[]
+    allowed={"points":"PTS","rebounds":"REB","assists":"AST",
+             "threepointfieldgoalsmade":"3PM","threes":"3PM"}
     for event in (payload.get("events",[]) if isinstance(payload,dict) else []):
-        if not isinstance(event,dict):
-            continue
-        status=(event.get("status") or {}).get("type") or {}
+        if not isinstance(event,dict):continue
+        game_status=(event.get("status") or {}).get("type") or {}
         comp=(event.get("competitions") or [{}])[0]
-        if not isinstance(comp,dict):
-            continue
-        completed=bool(status.get("completed") or
-                       ((comp.get("status") or {}).get("type") or {}).get("completed"))
-        if not completed:
-            continue
+        if not isinstance(comp,dict):continue
+        c_status=(comp.get("status") or {}).get("type") or {}
+        completed=bool(game_status.get("completed") or c_status.get("completed"))
+        if not completed:continue
         when=pd.to_datetime(event.get("date"),utc=True,errors="coerce")
-        if pd.isna(when) or when>now.tz_convert("UTC"):
-            continue
-        competitors=[item for item in comp.get("competitors") or [] if isinstance(item,dict)]
-        if len(competitors)!=2:
-            continue
-        for item in competitors:
-            team=str((item.get("team") or {}).get("abbreviation") or "").upper()
-            if not team:
-                continue
-            rival=next((other for other in competitors if other is not item),None)
-            opp=str(((rival or {}).get("team") or {}).get("abbreviation") or "").upper()
-            team=aliases.get(team,team)
-            opp=aliases.get(opp,opp)
-            home_away=str(item.get("homeAway") or "").lower()
-            if not opp or home_away not in ("home","away"):
-                continue
-            for group in item.get("leaders") or []:
-                if not isinstance(group,dict):
-                    continue
-                label=str(group.get("name") or group.get("abbreviation") or "").lower()
-                label=label.replace(" ","").replace("-","")
+        if pd.isna(when) or when>now.tz_convert("UTC"):continue
+        for team in comp.get("competitors") or []:
+            if not isinstance(team,dict):continue
+            team_code=str((team.get("team") or {}).get("abbreviation") or "NBA").upper()
+            for group in team.get("leaders") or []:
+                if not isinstance(group,dict):continue
+                label=str(group.get("name") or group.get("abbreviation") or "").lower().replace(" ","").replace("-","")
                 market=allowed.get(label)
-                if not market:
-                    continue
+                if not market:continue
                 for leader in group.get("leaders") or []:
-                    if not isinstance(leader,dict):
-                        continue
+                    if not isinstance(leader,dict):continue
                     athlete=leader.get("athlete") or {}
-                    if not isinstance(athlete,dict):
-                        continue
+                    if not isinstance(athlete,dict):continue
                     name=str(athlete.get("displayName") or athlete.get("fullName") or "").strip()
-                    ident=str(athlete.get("id") or "").strip()
+                    if not name or len(name)>70:continue
                     amount=_value(leader.get("value"))
-                    if (not name or len(name)>70 or amount is None or
-                            amount>max_value[market] or not amount.is_integer()):
-                        continue
+                    if amount is None:continue
                     candidates.append({
-                        "name":name,"team":team[:4],"opponent":opp[:4],
-                        "home_away":home_away,"market":market,
-                        "value":int(amount),"date":when.tz_convert("Europe/Warsaw").date().isoformat(),
-                        "event_date":when.isoformat(),
-                        "game_id":str(event.get("id") or "")[:20],
-                        "athlete_id":ident[:20],
+                        "name":name,"team":team_code[:4],"market":market,
+                        "value":amount,"date":when.date().isoformat(),
+                        "athlete_id":str(athlete.get("id") or "")[:20]
                     })
-    if not candidates:
-        return []
-    # Never label several previous-day games as today's leaders.
-    recent_day=max(item["date"] for item in candidates)
-    winners=[]
-    for market in ("PTS","REB","AST"):
-        possible=[item for item in candidates if
-                  item["date"]==recent_day and item["market"]==market]
-        if possible:
-            # Highest reported result wins; latest game wins equal values.
-            winners.append(max(possible,key=lambda item:(
-                item["value"],item["event_date"],item["athlete_id"])))
-    return winners[:limit]
-
-
-def get_free_leader_boxscore(leader):
-    """Load ONE completed game's verified boxscore on click, never a season model.
-
-    The caller must select 'leader' from the server-side snapshot, not from
-    untrusted client-provided athlete names or remote URLs.
-    """
-    from espn_player_data import fetch_boxscore
-    game_id=str(leader.get("game_id") or "")
-    player_id=str(leader.get("athlete_id") or "")
-    team=str(leader.get("team") or "")
-    opponent=str(leader.get("opponent") or "")
-    home_away=leader.get("home_away")
-    if (not game_id.isdigit() or len(game_id)>10 or
-            not player_id.isdigit() or len(player_id)>20 or
-            not team or not opponent or home_away not in ("home","away")):
-        raise ValueError("Brak zweryfikowanego identyfikatora meczu lub zawodnika.")
-    game={
-        "game_id":game_id,"start_utc":leader.get("event_date"),
-        "away":team if home_away=="away" else opponent,
-        "home":team if home_away=="home" else opponent,
-    }
-    rows=fetch_boxscore(game)
-    found=[row for row in rows if
-           str(row.get("PLAYER_ID") or "")==player_id and
-           row.get("TEAM_ABBREVIATION")==team]
-    if len(found)!=1:
-        raise ValueError("ESPN nie udostępnił pełnego, potwierdzonego boxscore zawodnika.")
-    row=found[0]
-    result={"name":leader["name"],"team":team,"opponent":opponent,
-            "date":leader["date"],"market":leader["market"],
-            "leader_value":leader["value"],"verified":True}
-    for source,target in (("PTS","PTS"),("REB","REB"),("AST","AST"),("FG3M","3PM")):
-        value=_value(row.get(source))
-        if value is None or not value.is_integer():
-            raise ValueError("Niekompletne statystyki ESPN. Brak potwierdzonych danych.")
-        result[target]=int(value)
-    if result[leader["market"]] != leader["value"]:
-        raise ValueError("Wartości ESPN leaderboard i boxscore nie są zgodne.")
-    return result
+    # Keep the most recent confirmed result per player, and diversify names
+    candidates.sort(key=lambda c:(c["date"],c["value"]),reverse=True)
+    dedup=[];seen=set()
+    for row in candidates:
+        key=row["athlete_id"] or row["name"].casefold()
+        if key in seen:continue
+        seen.add(key)
+        dedup.append(row)
+        if len(dedup)>=limit:break
+    return dedup
 
 
 def get_centre_live_data(now=None):
@@ -225,6 +147,8 @@ def get_centre_live_data(now=None):
                 # Successful empty days can be a legitimate NBA off-day.
                 snap["error"]=""
             snap["players"]=extract_recent_leaders(raw,now=now,limit=3)
+            from bestbets_free_analyses import extract_free_leaders
+            snap.update(extract_free_leaders(raw, now=now, covered_days=succeeded_days))
             snap["coverage"]="Zweryfikowane dni "+dates[0]+"–"+dates[-1]
             snap["stale"]=bool(any_stale or failures)
             snap["fetched_at"]=now.strftime("%Y-%m-%d %H:%M %Z")
@@ -263,6 +187,8 @@ def get_centre_live_data(now=None):
         snap=build_centre_snapshot(table,meta,now=now,logo_provider=logo_data_uri)
         apply_season_form(snap,season_records,season_meta)
         snap["players"]=[]
+        from bestbets_free_analyses import extract_free_leaders
+        snap.update(extract_free_leaders({}))
         snap["calendar_loaded_days"]=[
             (now+timedelta(days=i)).date().isoformat() for i in range(-7,8)
         ]
@@ -275,6 +201,8 @@ def get_centre_live_data(now=None):
         empty=build_centre_snapshot(pd.DataFrame(),{"source":"NBA / ESPN"},now=now)
         apply_season_form(empty,season_records,season_meta)
         empty["players"]=[]
+        from bestbets_free_analyses import extract_free_leaders
+        empty.update(extract_free_leaders({}))
         empty["stale"]=True
         empty["coverage"]="Brak dostępnych danych"
         labels=("ESPN: "+failures[0], "NBA CDN: "+failures[-1])

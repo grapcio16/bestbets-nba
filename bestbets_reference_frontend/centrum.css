@@ -462,12 +462,17 @@
 #bestbets-centre .bc-lock-link{margin-top:8px}
 
 /* Free Centrum leader details: no changes to the paid Player Props canvas. */
-#bestbets-centre .bc-pick .bc-pick-info strong{
-  overflow:hidden;text-overflow:ellipsis;
+#bestbets-centre .bc-free-panel .bc-pick-info strong{
+  white-space:normal;line-height:12px;overflow-wrap:anywhere;
 }
-#bestbets-centre .bc-pick .bc-pick-info small{
-  overflow:hidden;text-overflow:ellipsis;
-}
+#bestbets-centre .bc-free-panel .bc-pick-info small{font-size:9px}
+#bestbets-centre .bc-free-avatar{position:relative;overflow:hidden}
+#bestbets-centre .bc-free-avatar img{width:100%;height:100%;object-fit:contain;position:absolute;inset:0}
+#bestbets-centre .bc-free-avatar [hidden]{display:none}
+#bestbets-centre .bc-free-missing{font-size:10px;color:#b9cde2}
+#bestbets-centre .bc-free-heading{display:flex;align-items:center;gap:13px}
+#bestbets-centre .bc-free-heading>.bc-free-avatar{width:62px;height:62px;flex-basis:62px;font-size:19px}
+#bestbets-centre .bc-free-heading strong{font-size:17px;color:#f3f9ff}
 #bestbets-centre #bc-dialog.bc-free-detail-dialog .bc-dialog{
   width:475px;padding:18px 20px;
 }

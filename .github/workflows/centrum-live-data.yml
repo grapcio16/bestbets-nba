@@ -25,7 +25,9 @@ jobs:
       - name: Compile real-data backend and validate mocked ESPN snapshots
         run: |
           python -m py_compile bestbets_centre_live.py bestbets_centre_data.py bestbets_custom_screen.py test_centre_live_data.py
-          python -m unittest -v test_centre_live_data test_centre_data
+          python -m unittest -v test_centre_live_data test_centre_data test_free_analyses
+      - name: Free leaders, safe details and opt-in photos in Playwright
+        run: python test_free_analyses_browser.py
       - name: Pixel baseline, browser fixture and unchanged Props
         run: python test_browser_reference_v10.py
       - name: Start production entrypoint WITHOUT deployment

@@ -11,6 +11,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright,expect
 from teams import TEAM_FULL
+from test_free_analyses import free_fixture
 
 ROOT=Path(__file__).resolve().parent
 
@@ -70,6 +71,7 @@ def check_static(page,out):
          {"name":"Luka Doncic","team":"LAL","opponent":"GSW","market":"AST","value":8,"date":"2026-11-11","game_id":"401234568","athlete_id":"11"},
          {"name":"Nikola Jokic","team":"DEN","opponent":"UTA","market":"REB","value":15,"date":"2026-11-11","game_id":"401234569","athlete_id":"12"}
        ]}
+    fixture.update(free_fixture(fixture["players"]))
     page.evaluate("(home) => window.postMessage({type:'streamlit:render',args:{payload:{player:null,error:'',brand:'',home:home}}},'*')",fixture)
     expect(page.locator(".bc-game")).to_have_count(1)
     assert page.locator(".bc-game").first.inner_text().find("NA ŻYWO")>=0
@@ -149,13 +151,13 @@ def check_static(page,out):
     expect(page.locator("#bc-dialog")).to_be_hidden()
     # Free analysis MUST remain inside Centrum and must not run Player Props.
     assert [v.strip() for v in page.locator(".bc-pick-tag").all_inner_texts()] == [
-        "PTS","AST","REB"]
+        "PTS","REB","AST"]
     page.locator(".bc-pick").first.click()
     expect(page.locator("#bc-dialog")).to_be_visible()
     expect(page.locator("#bc-dialog-title")).to_contain_text("Jayson Tatum")
     expect(page.locator("#bestbets-centre")).to_be_visible()
     assert page.locator("#props-pane").is_hidden()
-    page.evaluate("(home) => window.postMessage({type:'streamlit:render',args:{payload:{player:null,error:'',brand:'',home:home,free_details:{key:'401234567|10|PTS',error:'',data:{verified:true,name:'Jayson Tatum',team:'BOS',opponent:'NYK',date:'2026-11-11',PTS:26,REB:7,AST:5,'3PM':3}}}}},'*')",fixture)
+    page.evaluate("(home) => window.postMessage({type:'streamlit:render',args:{payload:{player:null,error:'',brand:'',home:home,free_details:{key:home.free_leaders[0].detail_key,error:'',data:{verified:true,athlete_id:'10',name:'Jayson Tatum',team:'BOS',opponent:'NYK',date:'2026-11-11',PTS:26,REB:7,AST:5,'3PM':3}}}}},'*')",fixture)
     expect(page.locator(".bc-free-stat")).to_have_count(4)
     assert [v.strip() for v in page.locator(".bc-free-stat strong").all_inner_texts()] == [
        "26","7","5","3"]

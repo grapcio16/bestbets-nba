@@ -17,6 +17,7 @@ import pandas as pd
 import streamlit as st
 
 from teams import TEAM_FULL
+from bestbets_free_analyses import SCHEMA, photo_policy, select_leader
 from streamlit.components.v1 import declare_component
 
 ROOT = Path(__file__).resolve().parent
@@ -30,6 +31,12 @@ def _cached_centre_live() -> dict:
     """Share fresh public scoreboard data between sessions, no secrets."""
     from bestbets_centre_live import get_centre_live_data
     return get_centre_live_data()
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _cached_free_details(leader: dict) -> dict:
+    from bestbets_free_analyses import get_free_leader_boxscore
+    return get_free_leader_boxscore(leader)
 
 
 @st.cache_data(ttl=900, show_spinner=False)
@@ -53,6 +60,7 @@ def _safe_centre_live() -> dict:
         )
     return {
         "games": [], "all_games": [], "ticker": [], "finals": [],
+        "free_schema": SCHEMA, "free_leaders": [], "free_leader_day": "",
         "form": [], "form_options": [
             {"team": code, "name": name, "logo": "", "wins": 0, "losses": 0, "sample": 0}
             for code, name in sorted(TEAM_FULL.items(), key=lambda pair: pair[1])
@@ -265,13 +273,15 @@ def main() -> None:
     # sometimes discards the initial setComponentValue/home_data message,
     # leaving the dashboard spinning indefinitely. The home snapshot is
     # now supplied in the very first streamlit:render packet.
-    if "bb10_centre_data" not in st.session_state:
+    if ("bb10_centre_data" not in st.session_state or
+            (st.session_state["bb10_centre_data"] or {}).get("free_schema") != SCHEMA):
         st.session_state["bb10_centre_data"] = _safe_centre_live()
         st.session_state["bb10_centre_last_at"] = time.monotonic()
     home_data = st.session_state.get("bb10_centre_data")
     if isinstance(home_data, dict):
         home_data = {
             **home_data,
+            "free_photos_enabled": photo_policy(),
             "calendar_extras": st.session_state.get("bb10_centre_extra_days", {}),
             "calendar_requested_day": st.session_state.get("bb10_centre_requested_day"),
         }
@@ -293,23 +303,24 @@ def main() -> None:
     if event.get("type") == "free_leader_details":
         # Only one verified leaderboard row from the trusted server snapshot
         # can trigger a boxscore read. Client-supplied athlete IDs are ignored.
-        from bestbets_centre_live import get_free_leader_boxscore
-        requested = event.get("index")
-        if type(requested) is not int or not (0 <= requested < 3):
-            return
+        key = event.get("key")
         snapshot = st.session_state.get("bb10_centre_data") or {}
-        leaders = snapshot.get("players") or []
-        if requested >= len(leaders):
+        leader = select_leader(snapshot, key)
+        if leader is None:
+            st.session_state["bb10_free_leader_details"] = {
+                "key": key if isinstance(key, str) and len(key) == 64 else "",
+                "data": None, "error": "Lista liderów została zaktualizowana. Otwórz szczegóły ponownie.",
+            }
+            st.rerun()
             return
-        leader = leaders[requested]
-        key = "|".join(str(leader.get(k) or "")
-                       for k in ("game_id", "athlete_id", "market"))
         try:
-            details = get_free_leader_boxscore(leader)
+            details = _cached_free_details(leader)
             st.session_state["bb10_free_leader_details"] = {
                 "key": key, "data": details, "error": "",
             }
-        except (ValueError, KeyError, TypeError, RuntimeError, OSError):
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("Free boxscore unavailable: %s", type(exc).__name__)
             st.session_state["bb10_free_leader_details"] = {
                 "key": key, "data": None,
                 "error": "Pełne statystyki tego meczu są chwilowo niedostępne w ESPN.",
