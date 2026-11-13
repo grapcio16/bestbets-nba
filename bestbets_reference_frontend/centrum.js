@@ -387,7 +387,7 @@ function modal(title,body){
  $("bc-dialog").hidden=false;
  $("bc-dialog").querySelector(".bc-dialog-close").focus();
 }
-function close(){$("bc-dialog").hidden=true}
+function close(){pendingFreeLeaderKey=null;$("bc-dialog").hidden=true}
 function gameDetails(g){
  if(!g)return;
  const kick=localTime(g.start);
