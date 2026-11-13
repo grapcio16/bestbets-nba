@@ -433,7 +433,7 @@
    Keep the original full-width #stage scale and Player Props fully unchanged.
    The 2 large middle cards were taking 222px, pushing navigation below fold. */
 #bestbets-centre{
-  height:620px;
+  height:585px;
   grid-template:
     "hero" 108px
     "." 12px
@@ -448,7 +448,7 @@
     "source" 10px / minmax(0,1fr);
 }
 #bestbets-centre .bc-main-row{gap:14px}
-#bestbets-centre .bc-schedule .bc-game-list{max-height:144px}
+#bestbets-centre .bc-schedule .bc-game-list{max-height:140px}
 #bestbets-centre .bc-game{height:28px;font-size:11px}
 #bestbets-centre .bc-pick{height:48px;gap:9px}
 #bestbets-centre .bc-pick-info strong{font-size:11.5px}

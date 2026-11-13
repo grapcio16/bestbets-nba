@@ -34,6 +34,9 @@ REFERENCE_REGIONS = {
 # A date selector is an explicitly approved change to Centrum-only HTML
 # and CSS. Keep all Props code, scaling and other public assets untouched.
 PROTECTED = ['app.py', 'assets/bestbets_brand_icon_64.png',
+    'bestbets_custom_screen.py', 'bestbets_centre_data.py',
+    'bestbets_reference_frontend/index.html', 'bestbets_reference_frontend/centrum.html',
+    'bestbets_reference_frontend/centrum.js',
     'core.py', 'mvp_app.py', 'mvp_prop_ui.py', 'season_props.py', 'prop_search.py',
     'simulation_engine.py', 'simulation_sources.py', 'sources.py', 'espn_player_data.py']
 BRAND = 'data:image/png;base64,' + base64.b64encode(
@@ -90,6 +93,13 @@ def non_overlapping(boxes):
             assert x <= .5 or y <= .5, ('Panels overlap', a, b)
 
 
+def rows_inside_cards(page):
+    clipped = page.locator('.bc-pick, .bc-watch button, .bc-result, .bc-team-form, .bc-small .bc-panel-note, .bc-game-list').evaluate_all(
+        'els=>els.filter(e=>e.getBoundingClientRect().bottom > '
+        'e.closest(".bc-panel").getBoundingClientRect().bottom+.5).map(e=>e.textContent)')
+    assert not clipped, ('Rows extend outside their cards', clipped)
+
+
 def geometry(page, size):
     major = rects(page, '#bestbets-centre > :not(.bc-dialog-backdrop)')
     non_overlapping(major)
@@ -107,7 +117,10 @@ def geometry(page, size):
         main = page.locator('.bc-main-row').bounding_box()
         summary = page.locator('.bc-four-grid').bounding_box()
         assert main and summary
-        assert main['height'] <= 260 and summary['height'] <= 167, (
+        # Normalize screen pixels back to the existing stage coordinates.
+        # A correctly scaled 188px panel is ~293px on a 1920px viewport.
+        scale = stage['width']/1231
+        assert 222*.80-.5 <= main['height']/scale <= 222*.85+.5 and summary['height']/scale <= 120.5, (
             'Middle cards grew beyond compact design',main,summary
         )
     for selector, count in [('.bc-main-row>.bc-panel',2), ('.bc-four-grid>.bc-panel',4),
@@ -125,6 +138,7 @@ def geometry(page, size):
             'els => els.filter(e => e.scrollWidth > e.clientWidth+1).map(e=>e.textContent)')
         assert not overflowing, ('Clipped text', selector, overflowing)
     assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
+    rows_inside_cards(page)
     return major
 
 
@@ -189,15 +203,29 @@ def interactions(page, out):
         'state':'scheduled', 'away_logo':'', 'home_logo':'', 'status':'TEST FIXTURE'}
     home = {'source':'SYNTHETIC TEST FIXTURE — NOT REAL NBA', 'as_of':'test-only',
         'day_label':'Dziś', 'games':[game]*5, 'ticker':[game]*5,
-        'finals':[], 'form':[], 'players':[
+        'finals':[{**game, 'away':'AAA', 'home':'BBB', 'state':'final',
+            'away_score':110, 'home_score':100}]*2, 'form':[], 'players':[
           {'name':'Jayson Tatum','team':'BOS','market':'PTS','value':26,'date':'2026-11-11'},
           {'name':'Luka Doncic','team':'LAL','market':'AST','value':8,'date':'2026-11-11'},
           {'name':'Nikola Jokic','team':'DEN','market':'REB','value':15,'date':'2026-11-11'}]}
     render(page, home=home)
     expect(page.locator('.bc-game')).to_have_count(5)
     expect(page.locator('.bc-ticker-card')).to_have_count(5)
+    expect(page.locator('.bc-pick')).to_have_count(3)
+    expect(page.locator('.bc-result')).to_have_count(2)
+    rows_inside_cards(page)
     assert page.locator('.bc-game-list').evaluate(
         'e=>e.getBoundingClientRect().bottom <= e.closest(".bc-panel").getBoundingClientRect().bottom')
+    # Longer schedules keep their existing list scrolling; the page stays put.
+    render(page, home={**home, 'games':[game]*8})
+    expect(page.locator('.bc-game')).to_have_count(8)
+    assert page.locator('.bc-game-list').evaluate('e=>e.scrollHeight > e.clientHeight')
+    page.locator('.bc-game').last.scroll_into_view_if_needed()
+    assert page.locator('.bc-game').last.evaluate(
+        'e=>e.getBoundingClientRect().bottom <= e.closest(".bc-panel").getBoundingClientRect().bottom+.5')
+    assert page.evaluate('scrollY') == 0
+    render(page, home=home)
+    expect(page.locator('.bc-game')).to_have_count(5)
     page.locator('.bc-game').first.click()
     expect(page.locator('#bc-dialog-title')).to_have_text('Mecz NBA')
     page.keyboard.press('Escape')
@@ -296,7 +324,7 @@ def main():
         'baseline_commit':subprocess.check_output(['git','rev-parse',args.baseline_ref],cwd=ROOT).decode().strip(),
         'safety':safety(args.baseline_ref), 'viewports':[], 'props_pixel_comparisons':[],
         'streamlit':[], 'reference_image':{'width':1672,'height':941,
-            'comparison':'measured regions + visual inspection; original supplied inline, no pixel-diff file'}}
+            'comparison':'compact layout geometry from PR65; not a pixel diff of the earlier reference image'}}
     with tempfile.TemporaryDirectory(prefix='bestbets-centre-baseline-') as temp:
         baseline = Path(temp)
         for name in ('index.html','centrum.css','centrum.js','centrum.html'):
