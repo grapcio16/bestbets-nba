@@ -123,8 +123,8 @@ function install(){
 if(!window.BestBetsCentre)return;
 const originalInit=window.BestBetsCentre.init,originalRender=window.BestBetsCentre.render;
 window.BestBetsCentre.init=function(ctx){api=ctx;originalInit(ctx);install();};
-window.BestBetsCentre.render=function(data,players){
- originalRender(data);
+window.BestBetsCentre.render=function(data,players,freeDetails){
+ originalRender(data,freeDetails);
  if(players&&typeof players==="object")catalog=players;
  const watchBox=$("bestbets-centre")?.querySelector(".bc-watch");
  if(watchBox){nativeWatch=watchBox.innerHTML;watch();}
