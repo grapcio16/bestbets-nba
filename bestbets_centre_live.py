@@ -147,6 +147,8 @@ def get_centre_live_data(now=None):
                 # Successful empty days can be a legitimate NBA off-day.
                 snap["error"]=""
             snap["players"]=extract_recent_leaders(raw,now=now,limit=3)
+            from bestbets_free_analyses import extract_free_leaders
+            snap.update(extract_free_leaders(raw, now=now, covered_days=succeeded_days))
             snap["coverage"]="Zweryfikowane dni "+dates[0]+"–"+dates[-1]
             snap["stale"]=bool(any_stale or failures)
             snap["fetched_at"]=now.strftime("%Y-%m-%d %H:%M %Z")
@@ -185,6 +187,8 @@ def get_centre_live_data(now=None):
         snap=build_centre_snapshot(table,meta,now=now,logo_provider=logo_data_uri)
         apply_season_form(snap,season_records,season_meta)
         snap["players"]=[]
+        from bestbets_free_analyses import extract_free_leaders
+        snap.update(extract_free_leaders({}))
         snap["calendar_loaded_days"]=[
             (now+timedelta(days=i)).date().isoformat() for i in range(-7,8)
         ]
@@ -197,6 +201,8 @@ def get_centre_live_data(now=None):
         empty=build_centre_snapshot(pd.DataFrame(),{"source":"NBA / ESPN"},now=now)
         apply_season_form(empty,season_records,season_meta)
         empty["players"]=[]
+        from bestbets_free_analyses import extract_free_leaders
+        empty.update(extract_free_leaders({}))
         empty["stale"]=True
         empty["coverage"]="Brak dostępnych danych"
         labels=("ESPN: "+failures[0], "NBA CDN: "+failures[-1])

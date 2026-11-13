@@ -16,6 +16,7 @@ import subprocess
 import tempfile
 
 from PIL import Image, ImageChops
+from test_free_analyses import free_fixture
 from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parent
@@ -33,10 +34,11 @@ REFERENCE_REGIONS = {
 }
 # A date selector is an explicitly approved change to Centrum-only HTML
 # and CSS. Keep all Props code, scaling and other public assets untouched.
+# The free leader feature intentionally modifies only Centrum frontend files and
+# adds a new Streamlit Centrum event. Props model code and shared NBA engines
+# remain byte-for-byte protected; Props pixels are compared below.
 PROTECTED = ['app.py', 'assets/bestbets_brand_icon_64.png',
-    'bestbets_custom_screen.py', 'bestbets_centre_data.py',
-    'bestbets_reference_frontend/index.html', 'bestbets_reference_frontend/centrum.html',
-    'bestbets_reference_frontend/centrum.js',
+    'bestbets_centre_data.py',
     'core.py', 'mvp_app.py', 'mvp_prop_ui.py', 'season_props.py', 'prop_search.py',
     'simulation_engine.py', 'simulation_sources.py', 'sources.py', 'espn_player_data.py']
 BRAND = 'data:image/png;base64,' + base64.b64encode(
@@ -56,6 +58,11 @@ def git_file(ref, name):
 def safety(ref):
     for name in PROTECTED:
         assert (ROOT/name).read_bytes() == git_file(ref, name), f'Protected source changed: {name}'
+    base_shell=git_file(ref,'bestbets_custom_screen.py').decode()
+    new_shell=(ROOT/'bestbets_custom_screen.py').read_text()
+    def props_model(src):
+        return src.split('def _research(',1)[1].split('\ndef main()',1)[0]
+    assert props_model(base_shell)==props_model(new_shell), 'Player Props research engine changed'
     css = (FRONTEND/'centrum.css').read_text()
     before_css = git_file(ref, 'bestbets_reference_frontend/centrum.css').decode()
     assert css.startswith(before_css), 'Original approved Centrum CSS was altered'
@@ -208,6 +215,7 @@ def interactions(page, out):
           {'name':'Jayson Tatum','team':'BOS','market':'PTS','value':26,'date':'2026-11-11'},
           {'name':'Luka Doncic','team':'LAL','market':'AST','value':8,'date':'2026-11-11'},
           {'name':'Nikola Jokic','team':'DEN','market':'REB','value':15,'date':'2026-11-11'}]}
+    home.update(free_fixture(home["players"]))
     render(page, home=home)
     expect(page.locator('.bc-game')).to_have_count(5)
     expect(page.locator('.bc-ticker-card')).to_have_count(5)
@@ -248,8 +256,12 @@ def interactions(page, out):
     expect(page.locator('#hero')).to_be_visible()
     expect(page.locator('#query')).to_have_value('Jayson Tatum over 25.5 points')
     page.locator('.nav-btn[data-page="home"]').click()
-    page.locator('.bc-pick').nth(2).click()
-    expect(page.locator('#query')).to_have_value('Nikola Jokic over 14.5 rebounds')
+    page.locator('.bc-pick').filter(has=page.locator('.bc-pick-tag',has_text='REB')).click()
+    expect(page.locator('#bc-dialog-title')).to_have_text('Nikola Jokic — występ NBA')
+    expect(page.locator('#bestbets-centre')).to_be_visible()
+    assert page.locator('#props-pane').is_hidden()
+    expect(page.locator('#bc-dialog-body')).to_contain_text('Pobieram statystyki')
+    page.keyboard.press('Escape')
 
 
 STARTUP_PROBE = """(() => {

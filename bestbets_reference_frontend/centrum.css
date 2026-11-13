@@ -460,3 +460,51 @@
 #bestbets-centre .bc-watch button{height:28px}
 #bestbets-centre .bc-lock-teams{margin-top:10px}
 #bestbets-centre .bc-lock-link{margin-top:8px}
+
+/* Free Centrum leader details: no changes to the paid Player Props canvas. */
+#bestbets-centre .bc-free-panel .bc-pick-info strong{
+  white-space:normal;line-height:12px;overflow-wrap:anywhere;
+}
+#bestbets-centre .bc-free-panel .bc-pick-info small{font-size:9px}
+#bestbets-centre .bc-free-avatar{position:relative;overflow:hidden}
+#bestbets-centre .bc-free-avatar img{width:100%;height:100%;object-fit:contain;position:absolute;inset:0}
+#bestbets-centre .bc-free-avatar [hidden]{display:none}
+#bestbets-centre .bc-free-missing{font-size:10px;color:#b9cde2}
+#bestbets-centre .bc-free-heading{display:flex;align-items:center;gap:13px}
+#bestbets-centre .bc-free-heading>.bc-free-avatar{width:62px;height:62px;flex-basis:62px;font-size:19px}
+#bestbets-centre .bc-free-heading strong{font-size:17px;color:#f3f9ff}
+#bestbets-centre #bc-dialog.bc-free-detail-dialog .bc-dialog{
+  width:475px;padding:18px 20px;
+}
+#bestbets-centre .bc-free-match{
+  color:#9bd8f8;font-size:12px;font-weight:750;margin:4px 0 13px;
+}
+#bestbets-centre .bc-free-stats{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;margin:10px 0 12px;
+}
+#bestbets-centre .bc-free-stat{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:72px;gap:5px;border:1px solid #168ec6;border-radius:11px;
+  background:linear-gradient(145deg,#103450,#071729);
+}
+#bestbets-centre .bc-free-stat strong{
+  color:#09e79a;font-size:25px;font-weight:950;
+}
+#bestbets-centre .bc-free-stat span{
+  color:#b4d9ef;font-size:11px;font-weight:800;
+}
+#bestbets-centre .bc-free-note{
+  font-size:11px;color:#b3cfe1;line-height:1.5;margin:12px 0;
+}
+#bestbets-centre .bc-free-premium{
+  border:1px solid #df8b30;border-radius:11px;
+  background:linear-gradient(115deg,#242033,#0c1f38);
+  padding:11px;font-size:12px;color:#fcd5a9;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+}
+#bestbets-centre .bc-free-premium button{
+  color:#fff;border:1px solid #ffca77;border-radius:9px;
+  background:linear-gradient(#ef961e,#b6520d);
+  padding:7px 18px;font-weight:900;font-size:12px;
+}
