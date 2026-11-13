@@ -1,0 +1,496 @@
+{
+  "recorded_at_utc": "2026-11-13T00:09:05.884565+00:00",
+  "baseline_commit": "b4838d5ffcd53bc146d3149a436670c38fab3bf2",
+  "safety": {
+    "protected_files": [
+      "app.py",
+      "assets/bestbets_brand_icon_64.png",
+      "bestbets_custom_screen.py",
+      "bestbets_centre_data.py",
+      "bestbets_reference_frontend/index.html",
+      "bestbets_reference_frontend/centrum.html",
+      "bestbets_reference_frontend/centrum.js",
+      "core.py",
+      "mvp_app.py",
+      "mvp_prop_ui.py",
+      "season_props.py",
+      "prop_search.py",
+      "simulation_engine.py",
+      "simulation_sources.py",
+      "sources.py",
+      "espn_player_data.py"
+    ],
+    "unchanged": true,
+    "new_dashboard_scale": false,
+    "original_centre_css_preserved": true
+  },
+  "viewports": [
+    {
+      "viewport": [
+        1672,
+        941
+      ],
+      "sections": [
+        {
+          "x": 237.6929473876953,
+          "y": 33.95613479614258,
+          "width": 1409.858642578125,
+          "height": 146.6905059814453
+        },
+        {
+          "x": 237.6929473876953,
+          "y": 196.94557189941406,
+          "width": 1409.858642578125,
+          "height": 70.62876892089844
+        },
+        {
+          "x": 237.6929473876953,
+          "y": 282.5150451660156,
+          "width": 1409.858642578125,
+          "height": 255.35012817382812
+        },
+        {
+          "x": 237.6929473876953,
+          "y": 554.1641235351562,
+          "width": 1409.858642578125,
+          "height": 162.98944091796875
+        },
+        {
+          "x": 237.6929473876953,
+          "y": 734.8107299804688,
+          "width": 1409.858642578125,
+          "height": 69.2705078125
+        },
+        {
+          "x": 237.6929473876953,
+          "y": 815.6263427734375,
+          "width": 1409.858642578125,
+          "height": 12.22418212890625
+        }
+      ],
+      "no_overlap": true,
+      "all_sections_visible": true
+    },
+    {
+      "viewport": [
+        1920,
+        1080
+      ],
+      "sections": [
+        {
+          "x": 272.9488220214844,
+          "y": 38.9926872253418,
+          "width": 1618.976318359375,
+          "height": 168.4484100341797
+        },
+        {
+          "x": 272.9488220214844,
+          "y": 226.1575927734375,
+          "width": 1618.976318359375,
+          "height": 81.10479736328125
+        },
+        {
+          "x": 272.9488220214844,
+          "y": 324.4191589355469,
+          "width": 1618.976318359375,
+          "height": 293.2250061035156
+        },
+        {
+          "x": 272.9488220214844,
+          "y": 636.3606567382812,
+          "width": 1618.976318359375,
+          "height": 187.1649169921875
+        },
+        {
+          "x": 272.9488220214844,
+          "y": 843.8017578125,
+          "width": 1618.976318359375,
+          "height": 79.54510498046875
+        },
+        {
+          "x": 272.9488220214844,
+          "y": 936.6043701171875,
+          "width": 1618.976318359375,
+          "height": 14.037353515625
+        }
+      ],
+      "no_overlap": true,
+      "all_sections_visible": true
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "sections": [
+        {
+          "x": 227.4573516845703,
+          "y": 32.4939079284668,
+          "width": 1349.14697265625,
+          "height": 140.37367248535156
+        },
+        {
+          "x": 227.4573516845703,
+          "y": 188.46466064453125,
+          "width": 1349.14697265625,
+          "height": 67.58734130859375
+        },
+        {
+          "x": 227.4573516845703,
+          "y": 270.34930419921875,
+          "width": 1349.14697265625,
+          "height": 244.35418701171875
+        },
+        {
+          "x": 227.4573516845703,
+          "y": 530.300537109375,
+          "width": 1349.14697265625,
+          "height": 155.97076416015625
+        },
+        {
+          "x": 227.4573516845703,
+          "y": 703.1681518554688,
+          "width": 1349.14697265625,
+          "height": 66.28759765625
+        },
+        {
+          "x": 227.4573516845703,
+          "y": 780.503662109375,
+          "width": 1349.14697265625,
+          "height": 11.69781494140625
+        }
+      ],
+      "no_overlap": true,
+      "all_sections_visible": true
+    },
+    {
+      "viewport": [
+        1366,
+        768
+      ],
+      "sections": [
+        {
+          "x": 194.19171142578125,
+          "y": 27.741674423217773,
+          "width": 1151.834228515625,
+          "height": 119.84403228759766
+        },
+        {
+          "x": 194.19171142578125,
+          "y": 160.90170288085938,
+          "width": 1151.834228515625,
+          "height": 57.70268249511719
+        },
+        {
+          "x": 194.19171142578125,
+          "y": 230.81072998046875,
+          "width": 1151.834228515625,
+          "height": 208.61737060546875
+        },
+        {
+          "x": 194.19171142578125,
+          "y": 452.7441101074219,
+          "width": 1151.834228515625,
+          "height": 133.16006469726562
+        },
+        {
+          "x": 194.19171142578125,
+          "y": 600.329833984375,
+          "width": 1151.834228515625,
+          "height": 56.593017578125
+        },
+        {
+          "x": 194.19171142578125,
+          "y": 666.35498046875,
+          "width": 1151.834228515625,
+          "height": 9.98699951171875
+        }
+      ],
+      "no_overlap": true,
+      "all_sections_visible": true
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "sections": [
+        {
+          "x": 55.442726135253906,
+          "y": 7.920389652252197,
+          "width": 328.8545837402344,
+          "height": 34.21608352661133
+        },
+        {
+          "x": 55.442726135253906,
+          "y": 45.93825912475586,
+          "width": 328.8545837402344,
+          "height": 16.474411010742188
+        },
+        {
+          "x": 55.442726135253906,
+          "y": 65.89764404296875,
+          "width": 328.8545837402344,
+          "height": 59.56132507324219
+        },
+        {
+          "x": 55.442726135253906,
+          "y": 129.26075744628906,
+          "width": 328.8545837402344,
+          "height": 38.01786804199219
+        },
+        {
+          "x": 55.442726135253906,
+          "y": 171.39723205566406,
+          "width": 328.8545837402344,
+          "height": 16.1575927734375
+        },
+        {
+          "x": 55.442726135253906,
+          "y": 190.2477569580078,
+          "width": 328.8545837402344,
+          "height": 2.851348876953125
+        }
+      ],
+      "no_overlap": true,
+      "all_sections_visible": true
+    }
+  ],
+  "props_pixel_comparisons": [
+    {
+      "viewport": [
+        1672,
+        941
+      ],
+      "state": "empty",
+      "subpixel_raster_tolerance": true,
+      "meaningfully_different_pixels": 0
+    },
+    {
+      "viewport": [
+        1672,
+        941
+      ],
+      "state": "test-fixture",
+      "subpixel_raster_tolerance": true,
+      "meaningfully_different_pixels": 0
+    },
+    {
+      "viewport": [
+        1920,
+        1080
+      ],
+      "state": "empty",
+      "subpixel_raster_tolerance": true,
+      "meaningfully_different_pixels": 0
+    },
+    {
+      "viewport": [
+        1920,
+        1080
+      ],
+      "state": "test-fixture",
+      "subpixel_raster_tolerance": true,
+      "meaningfully_different_pixels": 0
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "state": "empty",
+      "subpixel_raster_tolerance": true,
+      "meaningfully_different_pixels": 0
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "state": "test-fixture",
+      "subpixel_raster_tolerance": true,
+      "meaningfully_different_pixels": 0
+    },
+    {
+      "viewport": [
+        1366,
+        768
+      ],
+      "state": "empty",
+      "subpixel_raster_tolerance": true,
+      "meaningfully_different_pixels": 0
+    },
+    {
+      "viewport": [
+        1366,
+        768
+      ],
+      "state": "test-fixture",
+      "subpixel_raster_tolerance": true,
+      "meaningfully_different_pixels": 0
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "state": "empty",
+      "subpixel_raster_tolerance": true,
+      "meaningfully_different_pixels": 0
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "state": "test-fixture",
+      "subpixel_raster_tolerance": true,
+      "meaningfully_different_pixels": 0
+    }
+  ],
+  "streamlit": [
+    {
+      "viewport": [
+        1920,
+        1080
+      ],
+      "first_frame": {
+        "width": 1920,
+        "height": 1077.7579345703125,
+        "x": 0,
+        "viewport": 1920
+      },
+      "stable_paints": 84,
+      "no_page_errors": true,
+      "all_six_tiles_reachable": true
+    },
+    {
+      "viewport": [
+        1600,
+        900
+      ],
+      "first_frame": {
+        "width": 1600,
+        "height": 898.131591796875,
+        "x": 0,
+        "viewport": 1600
+      },
+      "stable_paints": 70,
+      "no_page_errors": true,
+      "all_six_tiles_reachable": true
+    },
+    {
+      "viewport": [
+        1366,
+        768
+      ],
+      "first_frame": {
+        "width": 1366,
+        "height": 766.7798461914062,
+        "x": 0,
+        "viewport": 1366
+      },
+      "stable_paints": 68,
+      "no_page_errors": true,
+      "all_six_tiles_reachable": true
+    },
+    {
+      "viewport": [
+        390,
+        844
+      ],
+      "first_frame": {
+        "width": 390,
+        "height": 218.91957092285156,
+        "x": 0,
+        "viewport": 390
+      },
+      "stable_paints": 70,
+      "no_page_errors": true,
+      "all_six_tiles_reachable": true
+    }
+  ],
+  "reference_image": {
+    "width": 1672,
+    "height": 941,
+    "comparison": "compact layout geometry from PR65; not a pixel diff of the earlier reference image",
+    "regions": {
+      ".bc-hero": {
+        "box": {
+          "x": 237.6929473876953,
+          "y": 33.95613479614258,
+          "width": 1409.8586883544922,
+          "height": 146.69050216674805
+        },
+        "reference": [
+          238,
+          34,
+          1409,
+          147
+        ],
+        "max_delta_px": 0.8586883544921875
+      },
+      ".bc-ticker": {
+        "box": {
+          "x": 237.6929473876953,
+          "y": 196.94557189941406,
+          "width": 1409.8586883544922,
+          "height": 70.62876892089844
+        },
+        "reference": [
+          238,
+          197,
+          1409,
+          71
+        ],
+        "max_delta_px": 0.8586883544921875
+      },
+      ".bc-main-row": {
+        "box": {
+          "x": 237.6929473876953,
+          "y": 282.5150451660156,
+          "width": 1409.8586883544922,
+          "height": 255.35012817382812
+        },
+        "reference": [
+          238,
+          282,
+          1409,
+          255
+        ],
+        "max_delta_px": 0.8586883544921875
+      },
+      ".bc-four-grid": {
+        "box": {
+          "x": 237.6929473876953,
+          "y": 554.1641235351562,
+          "width": 1409.8586883544922,
+          "height": 162.98944091796875
+        },
+        "reference": [
+          238,
+          554,
+          1409,
+          163
+        ],
+        "max_delta_px": 0.8586883544921875
+      },
+      ".bc-bottom": {
+        "box": {
+          "x": 237.6929473876953,
+          "y": 734.8107299804688,
+          "width": 1409.8586883544922,
+          "height": 69.2705078125
+        },
+        "reference": [
+          238,
+          735,
+          1409,
+          69
+        ],
+        "max_delta_px": 0.8586883544921875
+      }
+    }
+  },
+  "chromium_version": "151.0.7922.34"
+}
