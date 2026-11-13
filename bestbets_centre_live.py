@@ -32,6 +32,8 @@ def extract_recent_leaders(payload, now=None, limit=3):
         now=now.tz_convert("Europe/Warsaw")
 
     allowed={"points":"PTS","rebounds":"REB","assists":"AST"}
+    aliases={"GS":"GSW","NY":"NYK","SA":"SAS","NO":"NOP",
+             "PHO":"PHX","WSH":"WAS","BRK":"BKN","UTAH":"UTA"}
     max_value={"PTS":100,"REB":55,"AST":35}
     candidates=[]
     for event in (payload.get("events",[]) if isinstance(payload,dict) else []):
@@ -57,6 +59,8 @@ def extract_recent_leaders(payload, now=None, limit=3):
                 continue
             rival=next((other for other in competitors if other is not item),None)
             opp=str(((rival or {}).get("team") or {}).get("abbreviation") or "").upper()
+            team=aliases.get(team,team)
+            opp=aliases.get(opp,opp)
             home_away=str(item.get("homeAway") or "").lower()
             if not opp or home_away not in ("home","away"):
                 continue
