@@ -460,3 +460,46 @@
 #bestbets-centre .bc-watch button{height:28px}
 #bestbets-centre .bc-lock-teams{margin-top:10px}
 #bestbets-centre .bc-lock-link{margin-top:8px}
+
+/* Free Centrum leader details: no changes to the paid Player Props canvas. */
+#bestbets-centre .bc-pick .bc-pick-info strong{
+  overflow:hidden;text-overflow:ellipsis;
+}
+#bestbets-centre .bc-pick .bc-pick-info small{
+  overflow:hidden;text-overflow:ellipsis;
+}
+#bestbets-centre #bc-dialog.bc-free-detail-dialog .bc-dialog{
+  width:475px;padding:18px 20px;
+}
+#bestbets-centre .bc-free-match{
+  color:#9bd8f8;font-size:12px;font-weight:750;margin:4px 0 13px;
+}
+#bestbets-centre .bc-free-stats{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;margin:10px 0 12px;
+}
+#bestbets-centre .bc-free-stat{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:72px;gap:5px;border:1px solid #168ec6;border-radius:11px;
+  background:linear-gradient(145deg,#103450,#071729);
+}
+#bestbets-centre .bc-free-stat strong{
+  color:#09e79a;font-size:25px;font-weight:950;
+}
+#bestbets-centre .bc-free-stat span{
+  color:#b4d9ef;font-size:11px;font-weight:800;
+}
+#bestbets-centre .bc-free-note{
+  font-size:11px;color:#b3cfe1;line-height:1.5;margin:12px 0;
+}
+#bestbets-centre .bc-free-premium{
+  border:1px solid #df8b30;border-radius:11px;
+  background:linear-gradient(115deg,#242033,#0c1f38);
+  padding:11px;font-size:12px;color:#fcd5a9;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+}
+#bestbets-centre .bc-free-premium button{
+  color:#fff;border:1px solid #ffca77;border-radius:9px;
+  background:linear-gradient(#ef961e,#b6520d);
+  padding:7px 18px;font-weight:900;font-size:12px;
+}
