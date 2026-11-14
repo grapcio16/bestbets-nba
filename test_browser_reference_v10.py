@@ -52,6 +52,31 @@ def main():
         assert page.locator("#blank-pane").is_hidden()
         assert "Terminarz" in page.locator("#schedule-pane").inner_text()
         assert page.locator("#hzs-date-strip button").count() == 7
+        selected_day = page.locator(".hzs-date.selected").get_attribute("data-hzs-day")
+        schedule_games = [
+            {"id": f"layout-{index}", "day": selected_day,
+             "away": "DEN", "home": "NOP", "state": status,
+             "start": f"{selected_day}T02:00:00Z", "status": "Q3 03:00",
+             "away_score": 98, "home_score": 91}
+            for index, status in enumerate(("live", "final", "scheduled"))
+        ]
+        page.evaluate(
+            "home => window.postMessage({type:'streamlit:render',args:{payload:{home}}}, '*')",
+            {"calendar_today": selected_day, "calendar_loaded_days": [selected_day],
+             "calendar_games": schedule_games,
+             "form_options": [{"team": "DEN", "wins": 6, "losses": 4,
+                               "ppg": 114.5, "record_verified": True}]},
+        )
+        page.wait_for_function("document.querySelectorAll('#hzs-board .hzs-game').length===3")
+        assert page.locator("#hzs-board .hzs-game").count() == 3
+        assert page.locator("#hzs-board .hzs-rows").count() == 1
+        assert page.locator("#hzs-board .hzs-columns").count() == 0
+        assert "NA ŻYWO · 3. KWARTA" in page.locator("#hzs-board").inner_text()
+        assert "114,5 PPG" in page.locator("#hzs-board").inner_text()
+        board_box = page.locator("#hzs-board").bounding_box()
+        game_box = page.locator("#hzs-board .hzs-game").first.bounding_box()
+        assert board_box and game_box
+        assert game_box["width"] >= board_box["width"] - 16, (board_box, game_box)
         page.locator('[data-page="props"].nav-btn').click()
         assert page.locator("#hero").is_visible()
 

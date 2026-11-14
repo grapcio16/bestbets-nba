@@ -30,14 +30,20 @@ const data={calendar_today:day,calendar_loaded_days:[day],calendar_games:games,
   ]};
 schedule.render(data);
 let html=elements["hzs-board"].innerHTML;
-assert.equal((html.match(/<article class="hzs-game"/g)||[]).length,17,"All 17 games must render");
+assert.equal((html.match(/<article class="hzs-game /g)||[]).length,17,"All 17 games must render");
 assert.match(html,/116,8 PPG/);
 assert.match(html,/9–3/);
 assert.match(html,/112,3 PPG/);
 assert.match(html,/6–7/);
-assert.match(html,/NA ŻYWO/);
-assert.match(html,/ZAKOŃCZONE/);
+assert.match(html,/MECZE · 17/);
+assert.match(html,/NA ŻYWO · 4\. KWARTA/);
+assert.match(html,/KONIEC/);
 assert.match(html,/NADCHODZĄCE/);
+assert.equal((html.match(/class="hzs-rows"/g)||[]).length,1,"One full-width list for every status");
+assert.doesNotMatch(html,/hzs-columns/,"No blank second column");
+assert.equal((html.match(/hzs-live"/g)||[]).length,6);
+assert.equal((html.match(/hzs-final"/g)||[]).length,6);
+assert.equal((html.match(/hzs-upcoming"/g)||[]).length,5);
 assert.doesNotMatch(html,/typ dnia|kurs|projekcja/i);
 assert.match(elements["hzs-date-strip"].innerHTML,/aria-pressed="true"/);
 
@@ -46,6 +52,12 @@ schedule.render(unavailable);
 html=elements["hzs-board"].innerHTML;
 assert.doesNotMatch(html,/116,8 PPG/);
 assert.match(html,/— PPG/);
+
+schedule.render({...data,calendar_games:games.filter(game=>game.state==="scheduled")});
+html=elements["hzs-board"].innerHTML;
+assert.equal((html.match(/<article class="hzs-game/g)||[]).length,5);
+assert.equal((html.match(/class="hzs-rows"/g)||[]).length,1);
+assert.doesNotMatch(html,/hzs-columns|hzs-live|hzs-final/);
 
 const offDay={calendar_today:day,calendar_loaded_days:[day],calendar_games:[],form_options:[]};
 schedule.render(offDay);
