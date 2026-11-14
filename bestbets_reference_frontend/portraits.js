@@ -137,12 +137,35 @@ function loadStudioHeadshot(node,id){
   img.src="https://a.espncdn.com/i/headshots/nba/players/full/"+id+".png";
  });
 }
+function loadNbaStudioHeadshot(node,id){
+ return new Promise(resolve=>{
+  if(!/^\d{1,20}$/.test(id||"")){resolve(false);return;}
+  const img=new Image();let settled=false;
+  const done=loaded=>{if(settled)return;settled=true;clearTimeout(timer);resolve(loaded);};
+  const timer=setTimeout(()=>{img.src="";done(false);},6500);
+  img.alt="Studyjny portret zawodnika: "+node.dataset.hoopPlayer;
+  img.title="Portret zawodnika · NBA";
+  img.className="bc-headshot-photo bc-nba-studio-photo";
+  img.decoding="async";img.loading="eager";
+  img.onload=()=>{
+   if(settled)return;
+   if(!node.isConnected||node.querySelector("img")||img.naturalWidth<50||img.naturalHeight<50){done(false);return;}
+   node.appendChild(img);node.dataset.hoopPhotoState="studio";done(true);
+  };
+  img.onerror=()=>done(false);
+  img.src="https://cdn.nba.com/headshots/nba/latest/1040x760/"+id+".png";
+ });
+}
+async function loadPreferredHeadshot(node,espnId,nbaId){
+ if(await loadStudioHeadshot(node,espnId))return true;
+ return loadNbaStudioHeadshot(node,nbaId);
+}
 function pump(){
  while(running<3&&queue.length){
   const job=queue.shift();running++;
   if(!job.node.isConnected){running--;continue;}
-  loadStudioHeadshot(job.node,job.id).then(async loaded=>{
-   if(!loaded){const photo=await get(job.name);if(photo)apply(job.node,photo);}
+  loadPreferredHeadshot(job.node,job.id,job.nbaId).then(async loaded=>{
+   if(!loaded&&!job.studioOnly){const photo=await get(job.name);if(photo)apply(job.node,photo);}
   })
    .finally(()=>{running--;pump();});
  }
@@ -169,7 +192,9 @@ const observer=typeof IntersectionObserver==="function"?new IntersectionObserver
  for(const entry of entries){
   if(!entry.isIntersecting)continue;
   observer.unobserve(entry.target);
-  queue.unshift({node:entry.target,name:entry.target.dataset.hoopPlayer,id:entry.target.dataset.hoopId});
+  queue.unshift({node:entry.target,name:entry.target.dataset.hoopPlayer,
+   id:entry.target.dataset.hoopId,nbaId:entry.target.dataset.hoopNbaId,
+   studioOnly:entry.target.dataset.hoopStudioOnly==="true"});
  }
  pump();
 },{rootMargin:"140px"}):null;
@@ -177,9 +202,10 @@ function observe(container){
  if(!container)return;
  // The six visible Centrum avatars must not depend on the observer's timing.
  // Keep the 500+ player picker lazy so opening it never downloads every photo.
- const immediate=container.matches?.(".bc-watch,.bc-pick-list,.bc-injury-list,#bc-dialog-body")===true;
  const avatars=container.matches?.("[data-hoop-player]")?[container]:
   [...container.querySelectorAll(".bc-free-avatar[data-hoop-player]")];
+ const immediate=container.matches?.(".bc-watch,.bc-pick-list")===true ||
+   (container.id==="bc-dialog-body"&&avatars.length<=5);
  for(const node of avatars){
   if(node.dataset.hoopPhotoState)return;
   if(node.querySelector("img")){node.dataset.hoopPhotoState="licensed";continue;}
@@ -187,11 +213,14 @@ function observe(container){
   if(!name)continue;
   node.dataset.hoopPhotoState="queued";
   if(immediate){
-   loadStudioHeadshot(node,node.dataset.hoopId).then(async loaded=>{
-    if(!loaded){const photo=await get(name);if(photo)apply(node,photo);}
+   loadPreferredHeadshot(node,node.dataset.hoopId,node.dataset.hoopNbaId).then(async loaded=>{
+    if(!loaded&&node.dataset.hoopStudioOnly!=="true"){
+     const photo=await get(name);if(photo)apply(node,photo);
+    }
    });
   }else if(observer)observer.observe(node);
-  else{queue.push({node,name,id:node.dataset.hoopId});pump();}
+  else{queue.push({node,name,id:node.dataset.hoopId,nbaId:node.dataset.hoopNbaId,
+    studioOnly:node.dataset.hoopStudioOnly==="true"});pump();}
  }
 }
 function credits(){return [...credited.values()].sort((a,b)=>a.artist.localeCompare(b.artist));}

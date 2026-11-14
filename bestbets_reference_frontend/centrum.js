@@ -216,7 +216,7 @@ function renderFinals(data){
 }
 
 function injuryRow(p){
- const avatar=freeAvatar(p).replace('bc-free-avatar','bc-free-avatar bc-injury-avatar');
+ const avatar=freeAvatar(p,true).replace('bc-free-avatar','bc-free-avatar bc-injury-avatar');
  const tone=new Set(['out','question','probable','unknown']).has(p.tone)?p.tone:'unknown';
  return '<div class="bc-injury-row">'+avatar+
   '<span class="bc-injury-person"><span class="bc-injury-name"><strong title="'+escapeHtml(p.name)+'">'+escapeHtml(p.name)+
@@ -224,18 +224,24 @@ function injuryRow(p){
   '<small class="bc-injury-note" title="'+escapeHtml(p.note||p.status)+'">'+escapeHtml(p.note||p.status)+'</small></span>'+
   '<span class="bc-injury-status '+tone+'" title="'+escapeHtml(p.status)+'">'+escapeHtml(p.badge)+'</span></div>';
 }
+let injuryRenderSignature='';
 function renderInjuryWatch(data){
  const host=$('bc-injury-watch');if(!host)return;
  const report=data?.injury_watch;
  const rows=Array.isArray(report?.rows)?report.rows:[];
  const source=$('bc-injury-source');
  if(source)source.textContent=report?.stale?'ESPN · opóźnione':'ESPN · NBA';
+ const signature=JSON.stringify([rows,report?.available,report?.stale]);
+ if(signature===injuryRenderSignature)return;
+ injuryRenderSignature=signature;
+ const scrollTop=host.scrollTop;
  if(!report || report.available!==true){
   host.innerHTML='<div class="bc-muted">Raport kontuzji jest chwilowo niedostępny. Sprawdź pełny raport NBA.</div>';
  }else if(!rows.length){
   host.innerHTML='<div class="bc-muted">Brak pozycji w dostępnym raporcie kontuzji.</div>';
  }else{
-  host.innerHTML=rows.slice(0,2).map(injuryRow).join('');
+  host.innerHTML=rows.map(injuryRow).join('');
+  host.scrollTop=scrollTop;
   window.HoopzaroPortraits?.observe(host);
  }
 }
@@ -397,7 +403,7 @@ function renderPlayers(data){
   '<span class="bc-watch-chevron">›</span></button>').join("");
  window.HoopzaroPortraits?.observe(watch);
 }
-let pendingFreeLeaderKey=null, freeRenderSignature="",freeInfoOpen=false,pendingFreeReferral=null;
+let pendingFreeLeaderKey=null, freeRenderSignature="",freeInfoOpen=false,injuryInfoOpen=false,pendingFreeReferral=null;
 const freeLabels={PTS:"Lider punktów",REB:"Lider zbiórek",AST:"Lider asyst"};
 const FREE_REFERRAL_KEY="hoopzaro.freePropsReferral.v1";
 function localDay(){
@@ -449,10 +455,12 @@ function positionBadge(p,extraClass=""){
  const position=knownPositions.has(reported)?reported:(featuredPositions[String(p?.name||"")+"|"+String(p?.team||"")]||"");
  return knownPositions.has(position)?'<span class="bc-pos-badge '+extraClass+'" title="Pozycja zawodnika">'+escapeHtml(position)+'</span>':"";
 }
-function freeAvatar(p){
+function freeAvatar(p,studioOnly=false){
  const id=/^\d{1,20}$/.test(String(p.athlete_id||""))?String(p.athlete_id):"";
+ const nbaId=/^\d{1,20}$/.test(String(p.nba_id||""))?String(p.nba_id):"";
  return '<span class="bc-player-circle bc-free-avatar" data-hoop-player="'+escapeHtml(p.name||"")+
-  '" data-hoop-id="'+escapeHtml(id)+'"><span>'+escapeHtml(initials(p))+'</span></span>';
+  '" data-hoop-id="'+escapeHtml(id)+'" data-hoop-nba-id="'+escapeHtml(nbaId)+
+  '"'+(studioOnly?' data-hoop-studio-only="true"':'')+'><span>'+escapeHtml(initials(p))+'</span></span>';
 }
 function renderFreeLeaders(data){
  const host=document.querySelector(".bc-pick-list");if(!host)return;
@@ -609,9 +617,19 @@ function toggleFreeInfo(force){
  const panel=$("bc-free-info-popup"),button=$("bc-free-info-toggle"),backdrop=$("bc-free-info-backdrop");
  if(!panel||!button||!backdrop)return;
  freeInfoOpen=typeof force==="boolean"?force:!freeInfoOpen;
+ if(freeInfoOpen&&injuryInfoOpen)toggleInjuryInfo(false);
  backdrop.hidden=!freeInfoOpen;
  button.setAttribute("aria-expanded",String(freeInfoOpen));
  if(freeInfoOpen)panel.querySelector(".bc-free-info-heading button")?.focus();
+}
+function toggleInjuryInfo(force){
+ const panel=$("bc-injury-info-popup"),button=$("bc-injury-info-toggle"),backdrop=$("bc-injury-info-backdrop");
+ if(!panel||!button||!backdrop)return;
+ injuryInfoOpen=typeof force==="boolean"?force:!injuryInfoOpen;
+ if(injuryInfoOpen&&freeInfoOpen)toggleFreeInfo(false);
+ backdrop.hidden=!injuryInfoOpen;
+ button.setAttribute("aria-expanded",String(injuryInfoOpen));
+ if(injuryInfoOpen)panel.querySelector(".bc-free-info-heading button")?.focus();
 }
 function init(context){
  api=context;
@@ -630,6 +648,16 @@ function init(context){
   document.body.appendChild(backdrop);
   backdrop.appendChild(freeInfoPopup);
   freeInfoPopup.hidden=false;
+ }
+ const injuryInfoPopup=$("bc-injury-info-popup");
+ if(injuryInfoPopup && !$("bc-injury-info-backdrop")){
+  const backdrop=document.createElement("div");
+  backdrop.id="bc-injury-info-backdrop";
+  backdrop.className="bc-free-info-backdrop bc-injury-info-backdrop";
+  backdrop.hidden=true;
+  document.body.appendChild(backdrop);
+  backdrop.appendChild(injuryInfoPopup);
+  injuryInfoPopup.hidden=false;
  }
  // Data freshness and manual refresh controls share the ticker's header.
  const tickerHead=centre.querySelector(".bc-ticker-head");
@@ -663,6 +691,11 @@ function init(context){
   if(button.matches("[data-centre-free-info]")){
    toggleFreeInfo(button.id==="bc-free-info-toggle"?!freeInfoOpen:false);
    if(!freeInfoOpen && button.id!=="bc-free-info-toggle")$("bc-free-info-toggle")?.focus();
+   return;
+  }
+  if(button.matches("[data-centre-injury-info]")){
+   toggleInjuryInfo(button.id==="bc-injury-info-toggle"?!injuryInfoOpen:false);
+   if(!injuryInfoOpen&&button.id!=="bc-injury-info-toggle")$("bc-injury-info-toggle")?.focus();
    return;
   }
   if(button.matches("[data-centre-photo-credits]")){photoCredits();return;}
@@ -716,6 +749,8 @@ function init(context){
   }
   if(freeInfoOpen&&!ev.target.closest("#bc-free-info-backdrop .bc-free-info-popup") &&
      !ev.target.closest("#bc-free-info-toggle"))toggleFreeInfo(false);
+  if(injuryInfoOpen&&!ev.target.closest("#bc-injury-info-backdrop .bc-free-info-popup") &&
+     !ev.target.closest("#bc-injury-info-toggle"))toggleInjuryInfo(false);
  });
  // The close button is outside the Centrum click delegate after the popup is moved.
  $("bc-free-info-popup")?.addEventListener("click",ev=>{
@@ -723,11 +758,19 @@ function init(context){
    toggleFreeInfo(false);$("bc-free-info-toggle")?.focus();
   }
  });
+ $("bc-injury-info-popup")?.addEventListener("click",ev=>{
+  if(ev.target.closest("[data-centre-injury-info]")){
+   toggleInjuryInfo(false);$("bc-injury-info-toggle")?.focus();
+  }
+ });
  document.addEventListener("keydown",ev=>{
   if(ev.key!=="Escape")return;
   if(freeInfoOpen){
    toggleFreeInfo(false);
    $("bc-free-info-toggle")?.focus();
+  }else if(injuryInfoOpen){
+   toggleInjuryInfo(false);
+   $("bc-injury-info-toggle")?.focus();
   }else if(teamPickerOpen){
    teamPickerOpen=false;renderFormPicker(homeData);
    $("bc-form-toggle")?.focus();

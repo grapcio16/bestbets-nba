@@ -5,6 +5,34 @@ An unavailable or stale source must never silently become an invented report.
 from __future__ import annotations
 
 import re
+import unicodedata
+from functools import lru_cache
+
+
+def _name_key(name: str) -> str:
+    normalized = unicodedata.normalize("NFKD", str(name or ""))
+    return re.sub(r"[^a-z0-9]+", " ", "".join(
+        c for c in normalized.casefold() if not unicodedata.combining(c)
+    )).strip()
+
+
+@lru_cache(maxsize=1)
+def _nba_player_ids() -> dict[str, str]:
+    """NBA headshot IDs from the installed, offline NBA player catalog."""
+    try:
+        from nba_api.stats.static.players import get_players
+
+        players = get_players()
+    except (ImportError, OSError, ValueError, TypeError):
+        return {}
+    # Prefer currently active players if a historical name is duplicated.
+    result = {}
+    for player in sorted(players, key=lambda p: not bool(p.get("is_active"))):
+        key = _name_key(player.get("full_name", ""))
+        identifier = str(player.get("id") or "")
+        if key and identifier.isdigit() and len(identifier) <= 20:
+            result.setdefault(key, identifier)
+    return result
 
 
 def status_badge(value: str) -> tuple[str, str, int]:
@@ -25,7 +53,7 @@ def status_badge(value: str) -> tuple[str, str, int]:
     return "INFO", "unknown", 6
 
 
-def summarize_injuries(table, meta=None, limit=200) -> dict:
+def summarize_injuries(table, meta=None, limit=600, nba_ids=None) -> dict:
     """Normalize injury rows for an untrusted HTML client; no player examples."""
     meta = meta if isinstance(meta, dict) else {}
     timestamp = str(meta.get("timestamp") or "")[:35]
@@ -38,6 +66,7 @@ def summarize_injuries(table, meta=None, limit=200) -> dict:
         table = []
     else:
         table = table.to_dict(orient="records")
+    nba_ids = _nba_player_ids() if nba_ids is None else nba_ids
     rows = []
     for item in table:
         if not isinstance(item, dict):
@@ -54,6 +83,7 @@ def summarize_injuries(table, meta=None, limit=200) -> dict:
             "badge": badge, "tone": tone,
             "note": str(item.get("note") or "").strip()[:125],
             "athlete_id": athlete_id if athlete_id.isdigit() and len(athlete_id) <= 20 else "",
+            "nba_id": str(nba_ids.get(_name_key(player), ""))[:20],
             "_priority": priority,
         })
     # Preserve one report per player; high-impact, explicit statuses go first.

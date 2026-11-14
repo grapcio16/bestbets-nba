@@ -726,28 +726,46 @@
 
 /* Injury Watch — replaces the redundant results/clock summary card. */
 #bestbets-centre .bc-injury-panel{
+  display:flex;flex-direction:column;
   border-color:#05d3ed;
   background:radial-gradient(ellipse at 0 0,rgba(132,35,182,.13),transparent 70%),
     linear-gradient(122deg,#08172d,#06142a 75%,#091633)
 }
-#bestbets-centre .bc-injury-panel .bc-small-head{font-size:13.4px;letter-spacing:-.17px}
+#bestbets-centre .bc-injury-panel .bc-small-head{
+  flex:0 0 31px;height:31px;font-size:13.4px;letter-spacing:-.17px
+}
+#bestbets-centre .bc-injury-panel .bc-info-toggle{
+  flex:0 0 19px;width:19px;height:19px;min-width:19px;margin-left:2px;font-size:12px
+}
 #bestbets-centre .bc-injury-icon{
   display:inline-grid;place-items:center;flex:0 0 23px;width:23px;height:23px;
   color:#e66cff;filter:drop-shadow(0 0 4px rgba(213,64,255,.7))
 }
 #bestbets-centre .bc-injury-icon svg{width:22px;height:22px}
-#bestbets-centre .bc-injury-list{height:74px;display:flex;flex-direction:column;min-width:0}
+#bestbets-centre .bc-injury-list{
+  flex:1 1 auto;height:auto;min-height:0;min-width:0;
+  display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;
+  scrollbar-width:thin;scrollbar-color:#13b8e4 #102542;
+  overscroll-behavior:contain;padding-right:3px
+}
+#bestbets-centre .bc-injury-list::-webkit-scrollbar{width:5px}
+#bestbets-centre .bc-injury-list::-webkit-scrollbar-track{background:#102542;border-radius:6px}
+#bestbets-centre .bc-injury-list::-webkit-scrollbar-thumb{background:#13b8e4;border-radius:6px}
 #bestbets-centre .bc-injury-list>.bc-muted{
   display:grid;place-items:center;flex:1;padding:4px 8px;
   font-size:10.2px;line-height:1.35
 }
 #bestbets-centre .bc-injury-row{
   display:flex;align-items:center;min-width:0;gap:7px;
-  height:36px;padding:2px 1px;border-bottom:1px solid rgba(44,106,156,.44)
+  height:36px;flex:0 0 36px;padding:2px 1px;border-bottom:1px solid rgba(44,106,156,.44)
 }
 #bestbets-centre .bc-injury-avatar{
   width:28px;height:28px;flex:0 0 28px;border:1.5px solid #19cffa;
   box-shadow:0 0 5px rgba(2,221,255,.38)
+}
+#bestbets-centre .bc-injury-avatar img.bc-nba-studio-photo{
+  object-fit:cover;object-position:center 20%;
+  transform:scale(1.65);transform-origin:50% 20%
 }
 #bestbets-centre .bc-injury-person{display:flex;flex-direction:column;min-width:0;gap:1px;flex:1}
 #bestbets-centre .bc-injury-name{display:flex;align-items:center;gap:4px;min-width:0}
@@ -774,17 +792,29 @@
 #bestbets-centre .bc-injury-status.unknown{color:#b6d9f5;border-color:#427bb4;background:#102743;box-shadow:none}
 #bestbets-centre .bc-injury-foot{
   display:flex;align-items:center;justify-content:space-between;gap:5px;
-  margin-top:1px;min-height:17px
+  flex:0 0 22px;min-height:0;margin-top:0;padding:0 0 2px;
+  border-top:1px solid rgba(27,122,168,.4);
+  background:linear-gradient(#0a1c30,#08182c)
 }
 #bestbets-centre .bc-injury-foot button{
   padding:0;border:0;background:transparent;color:#18eff5;
-  text-decoration:underline;text-underline-offset:2px;font-size:9px;font-weight:900
+  text-decoration:underline;text-underline-offset:2px;font-size:10.5px;font-weight:900
 }
 #bestbets-centre .bc-injury-foot button:hover{color:#ecbdff}
-#bestbets-centre .bc-injury-foot>span{color:#7197b9;font-size:8px;white-space:nowrap}
+#bestbets-centre .bc-injury-foot>span{color:#a6c3d9;font-size:9px;white-space:nowrap}
 #bestbets-centre #bc-dialog.bc-injury-detail-dialog .bc-dialog{width:min(540px,95vw);padding:18px 22px}
 #bestbets-centre .bc-injury-report-intro{margin:0 0 10px;color:#b8cfe5;font-size:11px;line-height:1.45}
 #bestbets-centre .bc-injury-report-list{max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding-right:4px}
 #bestbets-centre .bc-injury-report-list .bc-injury-row{height:43px;flex-shrink:0}
 #bestbets-centre .bc-injury-report-list .bc-injury-avatar{width:32px;height:32px;flex-basis:32px}
 #bestbets-centre .bc-injury-official{display:inline-block;margin:12px 0 3px;color:#63e3ff;font-size:11px;font-weight:800;text-decoration:underline}
+
+/* The injury glossary deliberately shares the full-screen PTS/REB/AST modal design. */
+.bc-injury-info-backdrop .bc-free-info-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+.bc-injury-info-backdrop .bc-free-info-metric:first-child .bc-info-metric-emblem{color:#ff6586}
+.bc-injury-info-backdrop .bc-free-info-metric:nth-child(2) .bc-info-metric-emblem{color:#ffc252}
+.bc-injury-info-backdrop .bc-free-info-metric:first-child b{color:#ff6685}
+.bc-injury-info-backdrop .bc-free-info-metric:nth-child(2) b{color:#ffc252}
+@media(max-width:650px){
+  .bc-injury-info-backdrop .bc-free-info-metrics{grid-template-columns:1fr}
+}

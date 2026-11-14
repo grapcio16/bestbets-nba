@@ -276,12 +276,20 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
         </div>
         <div class="bc-free-info-foot"><span>Pokazujemy potwierdzone wyniki spotkań NBA — nie typy ani prognozy.</span><span class="bc-free-info-foot-badge">✓ Zweryfikowane dane</span></div>
       </div>
+      <div id="bc-injury-info-popup" class="bc-free-info-popup" role="dialog" aria-modal="true" aria-labelledby="bc-injury-info-title" hidden>
+        <div class="bc-free-info-heading"><div><span class="bc-free-info-kicker">HOOPZARO · INJURY WATCH</span><strong id="bc-injury-info-title">Co oznaczają statusy kontuzji?</strong><p>Raport mówi o dostępności zawodników — status może się zmienić przed meczem.</p></div><button type="button" data-centre-injury-info aria-label="Zamknij objaśnienia kontuzji">×</button></div>
+        <div class="bc-free-info-metrics">
+          <div class="bc-free-info-metric"><span class="bc-info-metric-emblem" aria-hidden="true">✖</span><b>OUT</b><strong>Nie zagra</strong><span>Według aktualnego raportu zawodnik jest wykluczony z gry. Przed kolejnym meczem status może zostać zmieniony.</span></div>
+          <div class="bc-free-info-metric"><span class="bc-info-metric-emblem" aria-hidden="true">◷</span><b>GTD</b><strong>Decyzja przed meczem</strong><span><i>Game-Time Decision</i> — udział zawodnika nie jest jeszcze potwierdzony. Decyzja zazwyczaj zapada blisko rozpoczęcia spotkania.</span></div>
+        </div>
+        <div class="bc-free-info-foot"><span>Inne oznaczenia: QST — questionable (występ niepewny), DTD — day-to-day (ocena z dnia na dzień), DBT — doubtful (mało prawdopodobny występ).</span><span class="bc-free-info-foot-badge">✓ ESPN / NBA</span></div>
+      </div>
       <div class="bc-pick-list"><div class="bc-muted">Ładowanie liderów zakończonych meczów NBA…</div></div>
     </section>
   </div>
   <div class="bc-four-grid">
     <section class="bc-panel bc-small bc-injury-panel" aria-label="NBA Injury Watch — kontuzje i dostępność zawodników">
-      <div class="bc-small-head"><span class="bc-injury-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M12 3h8v9h9v8h-9v9h-8v-9H3v-8h9z"/><path d="M5 16h5l3-5 4 10 3-5h7" stroke-width="1.5"/></svg></span> Injury Watch <span class="bc-free-tag">FREE</span></div>
+      <div class="bc-small-head"><span class="bc-injury-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M12 3h8v9h9v8h-9v9H3v-8h9z"/><path d="M5 16h5l3-5 4 10 3-5h7" stroke-width="1.5"/></svg></span> Injury Watch <span class="bc-free-tag">FREE</span><button id="bc-injury-info-toggle" type="button" class="bc-info-toggle" aria-label="Wyjaśnij statusy OUT i GTD" aria-expanded="false" aria-controls="bc-injury-info-popup" title="Co oznaczają OUT i GTD?" data-centre-injury-info>i</button></div>
       <div id="bc-injury-watch" class="bc-injury-list" aria-live="polite"><div class="bc-muted">Sprawdzanie raportu kontuzji…</div></div>
       <div class="bc-injury-foot"><button type="button" data-centre-injury-report>Pełny raport <span aria-hidden="true">›</span></button><span id="bc-injury-source">ESPN · NBA</span></div>
     </section>

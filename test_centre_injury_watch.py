@@ -32,6 +32,21 @@ class InjuryWatchTests(TestCase):
         self.assertEqual(result["rows"][0]["badge"], "OUT")
         self.assertNotIn("_priority", result["rows"][0])
 
+    def test_injury_portait_id_comes_from_offline_nba_catalog(self):
+        result = summarize_injuries(
+            pd.DataFrame([{"player": "Alperen Şengün", "team": "HOU", "status": "Out"}]),
+            nba_ids={"alperen sengun": "1630578"},
+        )
+        self.assertEqual(result["rows"][0]["nba_id"], "1630578")
+
+    def test_complete_report_keeps_more_than_two_players(self):
+        report = pd.DataFrame([
+            {"player": "Player " + str(index), "team": "BOS", "status": "Out"}
+            for index in range(22)
+        ])
+        result = summarize_injuries(report, nba_ids={})
+        self.assertEqual(len(result["rows"]), 22)
+
     def test_stale_two_hour_report_is_hidden(self):
         result = summarize_injuries(
             pd.DataFrame([{"player": "Player A", "team": "BOS", "status": "Out"}]),
