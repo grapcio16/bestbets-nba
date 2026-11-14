@@ -48,8 +48,10 @@ def main():
         assert page.locator("#player-name").inner_text() == "Wyszukaj zawodnika"
 
         page.locator('.nav-btn[data-page="games"]').click()
-        assert page.locator("#blank-pane").is_visible()
-        assert page.locator("#blank-title").inner_text() == "Terminarz"
+        assert page.locator("#schedule-pane").is_visible()
+        assert page.locator("#blank-pane").is_hidden()
+        assert "Terminarz" in page.locator("#schedule-pane").inner_text()
+        assert page.locator("#hzs-date-strip button").count() == 7
         page.locator('[data-page="props"].nav-btn').click()
         assert page.locator("#hero").is_visible()
 

@@ -28,6 +28,33 @@ def _integer(raw):
         return None
 
 
+def _points_per_game(stats: dict, games: int):
+    """Use a verified season scoring average, never the short scoreboard sample."""
+    if games <= 0:
+        return None
+    normalized = {re.sub(r"[^a-z0-9]", "", key): value
+                  for key, value in stats.items()}
+    for key in ("avgpointsfor", "pointspergame", "avgpoints", "ppg"):
+        raw = normalized.get(key)
+        try:
+            value = float(raw)
+            if math.isfinite(value) and 50 <= value <= 160:
+                return round(value, 1)
+        except (ValueError, TypeError, OverflowError):
+            pass
+    # Some feeds supply only total points scored across regular-season games.
+    # Accept this fallback only when it is unambiguously a total, not an average.
+    if games:
+        try:
+            total = float(normalized.get("pointsfor"))
+            average = total / games
+            if math.isfinite(total) and total >= games * 50 and 50 <= average <= 160:
+                return round(average, 1)
+        except (ValueError, TypeError, OverflowError):
+            pass
+    return None
+
+
 def parse_season_standings(payload: dict, expected_year: int = SEASON_YEAR) -> dict:
     """Parse ESPN's children[].standings.entries[] format without invented records."""
     if not isinstance(payload, dict):
@@ -76,7 +103,9 @@ def parse_season_standings(payload: dict, expected_year: int = SEASON_YEAR) -> d
             losses = _integer(stats.get("losses", stats.get("l")))
             if wins is None or losses is None or wins + losses > 82:
                 continue
-            record = {"wins": wins, "losses": losses, "sample": wins + losses, "record_verified": True}
+            record = {"wins": wins, "losses": losses, "sample": wins + losses,
+                      "record_verified": True,
+                      "ppg": _points_per_game(stats, wins + losses)}
             # Repeated conference/division entries must agree.
             if code in records and records[code] != record:
                 raise ValueError("Sprzeczne bilanse drużyny NBA")
@@ -117,6 +146,7 @@ def apply_season_form(snapshot: dict, records=None, meta=None) -> dict:
             "losses": source["losses"] if source else None,
             "sample": source["sample"] if source else 0,
             "record_verified": bool(source),
+            "ppg": source.get("ppg") if source else None,
         })
     snapshot["form_options"] = options
     by_code = {item["team"]: item for item in options}

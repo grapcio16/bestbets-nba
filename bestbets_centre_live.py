@@ -277,7 +277,7 @@ def get_centre_day_data(day):
     day_games=[g for g in snapshot["calendar_games"] if g["day"]==chosen.isoformat()]
     return {
         "date":chosen.isoformat(),
-        "games":day_games[:20],
+        "games":day_games,
         "error":"Niepełne dane z ESPN. Spróbuj odświeżyć." if errors else "",
         "complete":not errors,
     }

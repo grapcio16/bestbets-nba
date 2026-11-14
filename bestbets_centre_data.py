@@ -112,11 +112,11 @@ def build_centre_snapshot(schedule_df, meta=None, now=None, logo_provider=None):
          "logo":get_logo(option["team"])}
         for option in empty["form_options"]
     ]
-    # Include past and future matches for the date navigator. Cap at 150
-    # games across a two-week window: never send the full-season CDN payload.
+    # Include every match in the loaded two-week calendar window; truncating
+    # it at 150 can silently hide fixtures on a busy selected date.
     calendar_start=(now-pd.Timedelta(days=8)).date().isoformat()
     calendar_end=(now+pd.Timedelta(days=8)).date().isoformat()
-    calendar_games=[g for g in games if calendar_start<=g["day"]<=calendar_end][:150]
+    calendar_games=[g for g in games if calendar_start<=g["day"]<=calendar_end]
     # Keep the existing upcoming-games modal behavior.
     future=[g for g in games if g["start"]>=now.tz_convert("UTC").isoformat()]
     accessible=sorted(live,key=lambda g:g["start"])+future
