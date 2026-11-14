@@ -171,6 +171,9 @@ const observer=typeof IntersectionObserver==="function"?new IntersectionObserver
 },{rootMargin:"140px"}):null;
 function observe(container){
  if(!container)return;
+ // The six visible Centrum avatars must not depend on the observer's timing.
+ // Keep the 500+ player picker lazy so opening it never downloads every photo.
+ const immediate=container.matches?.(".bc-watch,.bc-pick-list,#bc-dialog-body")===true;
  const avatars=container.matches?.("[data-hoop-player]")?[container]:
   [...container.querySelectorAll(".bc-free-avatar[data-hoop-player]")];
  for(const node of avatars){
@@ -179,7 +182,7 @@ function observe(container){
   const name=node.dataset.hoopPlayer;
   if(!name)continue;
   node.dataset.hoopPhotoState="queued";
-  if(observer)observer.observe(node);
+  if(!immediate&&observer)observer.observe(node);
   else{queue.push({node,name,id:node.dataset.hoopId});pump();}
  }
 }
