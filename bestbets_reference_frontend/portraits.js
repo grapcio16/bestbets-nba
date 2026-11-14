@@ -13,12 +13,13 @@ const LICENSE_CC0="https://creativecommons.org/publicdomain/zero/1.0/";
 const CACHE_KEY="hoopzaro.commonsPortraits.v2";
 const DAY=86400000;
 const curated=[
- {name:"Alperen Şengün",file:"Alperen Şengün 23 Türkiye 20250823 (18).jpg",artist:"Zafer",license:"CC BY 4.0",licenseUrl:LICENSE_BY4},
- {name:"Karl-Anthony Towns",file:"Karl-Anthony Towns (51915599244).jpg",artist:"Erik Drost",license:"CC BY 2.0",licenseUrl:LICENSE_BY},
+ {name:"Alperen Şengün",file:"Alperen Şengün 23 Türkiye 20250823 (18).jpg",artist:"Zafer",license:"CC BY 4.0",licenseUrl:LICENSE_BY4,zoom:2,origin:"50% 15%",position:"center 17%"},
+ {name:"Karl-Anthony Towns",file:"Karl-Anthony Towns (51914283512) (square).jpg",artist:"Erik Drost",license:"CC BY 2.0",licenseUrl:LICENSE_BY,zoom:2.15,origin:"50% 9%",position:"center top"},
+ {name:"Jayson Tatum",file:"Jayson Tatum (51687926198) (cropped).jpg",artist:"Erik Drost",license:"CC BY-SA 2.0",licenseUrl:"https://creativecommons.org/licenses/by-sa/2.0/",zoom:1.85,origin:"56% 14%",position:"center 15%"},
  {name:"Donovan Mitchell",file:"Donovan Mitchell - 52976499477.jpg",artist:"Erik Drost",license:"CC BY 2.0",licenseUrl:LICENSE_BY},
- {name:"Davion Mitchell",file:"Davion Mitchell.jpg",artist:"LockedIN Magazine",license:"CC BY-SA 2.0",licenseUrl:"https://creativecommons.org/licenses/by-sa/2.0/"},
- {name:"Bam Adebayo",file:"Bam-Adebayo.jpg",artist:"Acdixon",license:"CC0 1.0",licenseUrl:LICENSE_CC0},
- {name:"Franz Wagner",file:"Franz Wagner Michigan.jpg",artist:"Marc-Grégor Campredon",license:"CC BY 2.0",licenseUrl:LICENSE_BY}
+ {name:"Davion Mitchell",file:"Davion Mitchell.jpg",artist:"LockedIN Magazine",license:"CC BY-SA 2.0",licenseUrl:"https://creativecommons.org/licenses/by-sa/2.0/",zoom:2.15,origin:"53% 43%",position:"center 30%"},
+ {name:"Bam Adebayo",file:"Bam-Adebayo.jpg",artist:"Acdixon",license:"CC0 1.0",licenseUrl:LICENSE_CC0,zoom:2,origin:"42% 9%",position:"center top"},
+ {name:"Franz Wagner",file:"Franz Wagner Michigan.jpg",artist:"Marc-Grégor Campredon",license:"CC BY 2.0",licenseUrl:LICENSE_BY,zoom:2.05,origin:"50% 40%",position:"center 35%"}
 ];
 const normalized=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
  .toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
@@ -27,7 +28,7 @@ function filePortrait(p){
  const encoded=encodeURIComponent(p.file);
  return {url:"https://commons.wikimedia.org/w/thumb.php?f="+encoded+"&w=160",
   source:COMMONS+encoded,artist:p.artist,license:p.license,licenseUrl:p.licenseUrl,
-  cropped:true};
+  cropped:true,zoom:p.zoom,origin:p.origin,position:p.position};
 }
 const memory=new Map(),credited=new Map(),pending=new Map();
 try{
@@ -133,6 +134,10 @@ function apply(node,photo){
  // loading eager here: browser lazy-loading skips elements hidden until load.
  img.loading="eager";img.decoding="async";img.hidden=true;
  img.className="bc-commons-photo";
+ const zoom=Number(photo.zoom);
+ img.style.setProperty("--hoop-portrait-zoom",String(Number.isFinite(zoom)?Math.max(1,Math.min(2.8,zoom)):1.3));
+ if(/^\d{1,3}% \d{1,3}%$/.test(photo.origin||""))img.style.setProperty("--hoop-portrait-origin",photo.origin);
+ if(/^(?:center|\d{1,3}%)(?: (?:top|bottom|\d{1,3}%))?$/.test(photo.position||""))img.style.setProperty("--hoop-portrait-position",photo.position);
  img.title="Fot.: "+photo.artist+" · "+photo.license+" · źródło: Wikimedia Commons";
  img.addEventListener("load",()=>{
   if(img.isConnected){credited.set(photo.source,photo);}
