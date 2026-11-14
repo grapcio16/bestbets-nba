@@ -76,7 +76,9 @@ def check_static(page,out):
     expect(page.locator(".bc-game")).to_have_count(1)
     assert page.locator(".bc-game").first.inner_text().find("NA ŻYWO")>=0
     assert page.locator(".bc-ticker-card.live").count()==1
-    assert page.locator(".bc-result").count()==1
+    # Final scores live in the dated calendar after the approved Centrum
+    # redesign; the old dedicated .bc-result tile no longer exists.
+    assert page.locator("#bc-games-list").count()==1
     assert page.locator(".bc-team-form").count()==1
     # A single dropdown lists all 30 NBA teams; stars are toggleable.
     page.locator("#bc-form-toggle").click()

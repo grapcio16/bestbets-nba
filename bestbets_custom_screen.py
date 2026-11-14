@@ -19,6 +19,8 @@ import streamlit as st
 from teams import TEAM_FULL
 from bestbets_free_analyses import SCHEMA, photo_policy, select_leader
 from bestbets_simulations_canvas import premium_entitled, simulation_for_entitled_user
+from access_control import (auth_configured, auth_context, current_principal,
+                            login_provider)
 from streamlit.components.v1 import declare_component
 
 ROOT = Path(__file__).resolve().parent
@@ -277,6 +279,13 @@ def main() -> None:
     )
     if "bb10_payload" not in st.session_state:
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
+    # Streamlit sessions can survive a login/logout round trip. Never send a
+    # previous account's cached paid results to a different authenticated user.
+    principal = current_principal()
+    if st.session_state.get("bb10_premium_principal") != principal:
+        st.session_state.pop("bb10_premium_game", None)
+        st.session_state.pop("bb10_premium_players", None)
+        st.session_state["bb10_premium_principal"] = principal
     # CRITICAL: preload data BEFORE mounting the v1 iframe. Production
     # sometimes discards the initial setComponentValue/home_data message,
     # leaving the dashboard spinning indefinitely. The home snapshot is
@@ -296,6 +305,7 @@ def main() -> None:
     has_premium = premium_entitled()
     payload = {
         "brand": _cached_brand(),
+        "auth": auth_context(),
         "player": st.session_state["bb10_payload"].get("player"),
         "error": st.session_state["bb10_payload"].get("error", ""),
         "home": home_data,
@@ -315,6 +325,15 @@ def main() -> None:
     if not event_id or event_id == st.session_state.get("bb10_last_event"):
         return
     st.session_state["bb10_last_event"] = event_id
+    if event.get("type") == "auth_login":
+        if auth_configured():
+            provider = login_provider()
+            st.login(provider) if provider else st.login()
+        return
+    if event.get("type") == "auth_logout":
+        if auth_configured() and bool(getattr(st.user, "is_logged_in", False)):
+            st.logout()
+        return
     if event.get("type") in ("premium_sim_game", "premium_sim_players"):
         # Entitlement is read from the *server*, never the browser event.
         if not premium_entitled():

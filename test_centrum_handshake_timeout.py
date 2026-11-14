@@ -21,7 +21,9 @@ def test_unresponsive_host(page):
     expect(page.locator("#bc-data-meta")).to_contain_text("Ponawiam pobieranie.",timeout=6000)
     assert "Wczytywanie" not in page.locator("#bc-ticker-games").inner_text()
     assert "Pobieranie" not in page.locator("#bc-games-list").inner_text()
-    assert "Pobieranie" not in page.locator("#bc-finals").inner_text()
+    # The separate finals tile was deliberately merged into the current
+    # schedule view. Do not wait 30s for the deleted #bc-finals element.
+    assert page.locator("#bc-games-list").count() == 1
     after=page.locator("#stage").bounding_box()
     assert before and after
     assert abs(after["width"]-before["width"])<2

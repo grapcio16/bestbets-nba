@@ -391,3 +391,21 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
 #stage:not(.bb-home-active) #notice{top:145px}
 #stage:not(.bb-home-active) #loader{top:89px}
 @media(prefers-reduced-motion:reduce){.topsearch{animation:none!important}}
+
+/* Account card appears only on the formerly empty Settings page. No change
+   to the approved homepage, Props, schedule or simulation canvas geometry. */
+#blank-pane.hz-account-page{padding:30px 26px 20px;text-align:left}
+#blank-pane.hz-account-page h2{margin:0 0 12px;color:#f0f5ff}
+.hz-account{border:1px solid #4064ae;border-radius:17px;padding:22px 25px;
+  background:radial-gradient(ellipse at 80% 0,rgba(149,64,234,.28),transparent 65%),
+  linear-gradient(115deg,#0a2342,#16143c);box-shadow:0 0 20px rgba(29,174,241,.16)}
+.hz-account[hidden]{display:none!important}
+.hz-account-kicker{display:block;color:#44d9fb;font-size:11px;font-weight:900;letter-spacing:2px}
+#hz-account-role{display:block;font-size:29px;margin:8px 0;color:white;letter-spacing:.5px}
+#blank-pane .hz-account p{font-size:15px;margin:5px 0 18px;color:#d7e7ff}
+.hz-account-actions{display:flex;gap:12px;margin-bottom:15px}
+.hz-account-actions button{border:1px solid #15c6e7;border-radius:11px;background:#103a62;
+  color:#f1faff;padding:10px 20px;font-weight:850;box-shadow:0 0 10px #006ca655}
+.hz-account-actions button[hidden]{display:none!important}
+.hz-account-actions button:hover{background:#0e597f}
+#hz-account-note{color:#9dbee0;font-size:11px}

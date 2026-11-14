@@ -329,7 +329,18 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     </div>
   </div>
 </section>
-  <section id="blank-pane"><h2 id="blank-title">Centrum</h2><p>Ta zakładka jest przygotowana do dalszej rozbudowy. Dane statystyczne pozostają zachowane.</p></section>
+  <section id="blank-pane"><h2 id="blank-title">Centrum</h2><p id="blank-description">Ta zakładka jest przygotowana do dalszej rozbudowy. Dane statystyczne pozostają zachowane.</p>
+    <div id="hz-account" class="hz-account" hidden>
+      <span class="hz-account-kicker">HOOPZARO · TWOJE KONTO</span>
+      <strong id="hz-account-role">GOŚĆ</strong>
+      <p id="hz-account-message">Sprawdź uprawnienia konta.</p>
+      <div class="hz-account-actions">
+        <button type="button" id="hz-account-login" hidden>Zaloguj się</button>
+        <button type="button" id="hz-account-logout" hidden>Wyloguj się</button>
+      </div>
+      <small id="hz-account-note">Dostęp Premium wymaga zatwierdzonej subskrypcji. Administrator ma bezpłatny dostęp.</small>
+    </div>
+  </section>
   <section id="schedule-pane" hidden aria-label="Terminarz NBA">
     <div class="hzs-header">
       <div class="hzs-headline"><span class="hzs-headline-bar" aria-hidden="true"></span><div><h1>Terminarz <em>NBA</em> <span class="hzs-free">FREE</span></h1><p>Każdy mecz. Jeden widok.</p></div></div>
@@ -371,7 +382,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
         </div>
       </div>
     </div>
-    <div class="hzm-insights"><div class="hzm-insight-title">DANE MODELU <span>I OGRANICZENIA</span></div><div><span class="hzm-insight-icon">↗</span><strong>Forma drużyn</strong><small>Ostatnie potwierdzone mecze</small></div><div><span class="hzm-insight-icon">◷</span><strong>Tempo gry</strong><small>Heurystyczna zmienność punktów</small></div><div><span class="hzm-insight-icon">▣</span><strong>Składy i kontuzje</strong><small>Niepełne dane nie są dopowiadane</small></div></div>
+    <div class="hzm-insights"><div class="hzm-insight-title">DANE MODELU <span>I OGRANICZENIA</span></div><div><span class="hzm-insight-icon">↗</span><strong>Forma drużyn</strong><small id="hzm-evidence-form">Ostatnie potwierdzone mecze</small></div><div><span class="hzm-insight-icon">◷</span><strong>Tempo i zmienność</strong><small id="hzm-evidence-pace">Heurystyczna zmienność punktów</small></div><div><span class="hzm-insight-icon">▣</span><strong>Odpoczynek i składy</strong><small id="hzm-evidence-rest">Kontuzje wymagają potwierdzenia</small></div></div>
     <div class="hzm-footer"><span>Źródło: NBA / ESPN · model eksperymentalny, nieskalibrowane prawdopodobieństwa</span><button type="button" id="hzm-premium-link">Sprawdź Premium ›</button></div>
   </section>
 </div>
@@ -598,6 +609,7 @@ function render(){
   $("footer").style.display=home||simulations?"none":"block";
   $("attribution").style.display=home||simulations?"none":"block";
   text("blank-title",pages[state.page]||"HOOPZARO");
+  renderAccount();
   $("props-heading").style.display=active?"flex":"none";
   document.querySelectorAll(".nav-btn[data-page]").forEach(function(el){el.classList.toggle("selected",el.dataset.page===state.page)});
   // The free Centrum has its own dashboard; the entire Props search/header
@@ -619,6 +631,28 @@ function render(){
   if(simulations && window.HoopzaroSimulations)window.HoopzaroSimulations.render(state.payload.home||null,state.payload.premium_simulation||null);
   if(active)renderPlayer();
   resize();
+}
+function renderAccount(){
+  const settings=state.page==="settings",auth=state.payload.auth||{},role=auth.role||"guest";
+  $("blank-pane").classList.toggle("hz-account-page",settings);
+  $("blank-description").hidden=settings;
+  $("hz-account").hidden=!settings;
+  if(!settings)return;
+  const roles={guest:"GOŚĆ",free:"KONTO FREE",premium:"PREMIUM",admin:"ADMINISTRATOR · PREMIUM"};
+  text("hz-account-role",roles[role]||"GOŚĆ");
+  text("hz-account-message",role==="admin"
+    ?"Witaj, "+(auth.name||"Administrator")+". Masz bezpłatny, pełny dostęp do narzędzi Premium."
+    :role==="premium"?"Twoje konto ma dostęp do analiz Premium."
+    :role==="free"?"Witaj, "+(auth.name||"Użytkowniku")+". Masz dostęp do podstawowych funkcji."
+    :auth.configured?"Zaloguj się, aby sprawdzić uprawnienia swojego konta."
+    :"Logowanie będzie dostępne po konfiguracji bezpiecznego dostawcy tożsamości.");
+  $("hz-account-login").hidden=!auth.configured||!!auth.logged_in;
+  $("hz-account-logout").hidden=!auth.configured||!auth.logged_in;
+}
+function sendAuth(action){
+  notify("streamlit:setComponentValue",{dataType:"json",value:{
+    type:action,id:String(Date.now())+"-auth-"+Math.random().toString(36).slice(2)
+  }});
 }
 function search(query){
   query=String(query||"").trim();
@@ -697,9 +731,11 @@ if(window.HoopzaroSimulations){
         id:String(Date.now())+"-premium-players-"+id+"-"+Math.random().toString(36).slice(2)
       }});
     },
-    premium:function(){window.BestBetsCentre?.openPremium?.()}
+    premium:function(){state.page="settings";render()}
   });
 }
+$("hz-account-login").addEventListener("click",function(){sendAuth("auth_login")});
+$("hz-account-logout").addEventListener("click",function(){sendAuth("auth_logout")});
 $("search-form").addEventListener("submit",function(e){e.preventDefault();search($("query").value)});
 document.querySelectorAll("[data-query]").forEach(function(b){b.addEventListener("click",function(){state.page="props";search(b.dataset.query)})});
 document.querySelectorAll("[data-page]").forEach(function(el){el.addEventListener("click",function(){state.page=el.dataset.page;state.payload.error="";render()})});
