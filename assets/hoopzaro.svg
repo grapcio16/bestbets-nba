@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Hoopzaro HZ emblem">
+  <defs>
+    <linearGradient id="edge" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#00e7ff"/><stop offset=".49" stop-color="#2076ff"/><stop offset="1" stop-color="#dd39fc"/>
+    </linearGradient>
+    <linearGradient id="fill" x1="0" x2="1" y1="0" y2="1">
+      <stop stop-color="#101a43"/><stop offset="1" stop-color="#090821"/>
+    </linearGradient>
+  </defs>
+  <path d="M64 7 111 34v60L64 121 17 94V34z" fill="url(#fill)" stroke="url(#edge)" stroke-width="5"/>
+  <path d="M64 7v17m0 80v17M17 64h16m62 0h16" stroke="#05d9ef" stroke-width="2" opacity=".5"/>
+  <circle cx="64" cy="64" r="43" fill="none" stroke="#38bff0" stroke-width="1.5" opacity=".16"/>
+  <text x="64" y="78" fill="#f8fcff" font-family="Arial,Helvetica,sans-serif" font-size="51" font-style="italic" font-weight="900" text-anchor="middle" letter-spacing="-6">HZ</text>
+</svg>

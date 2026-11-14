@@ -45,7 +45,7 @@ def main():
             expect(page.locator('#bc-dialog-body')).to_contain_text('Pobieram')
             render(page,home,{'key':first['detail_key'],'data':data})
             expect(page.locator('.bc-free-stat strong')).to_have_text(['26','7','5','3'])
-            expect(page.locator('.bc-free-premium')).to_contain_text('Odkryj więcej z BestBets Premium')
+            expect(page.locator('.bc-free-premium')).to_contain_text('Odkryj więcej z HOOPZARO Premium')
             page.screenshot(path=str(OUT/f'free-details-{w}x{h}.png'),animations='disabled')
             page.keyboard.press('Escape');assert page.locator('#bc-dialog').is_hidden()
             render(page,home,{'key':first['detail_key'],'data':data})

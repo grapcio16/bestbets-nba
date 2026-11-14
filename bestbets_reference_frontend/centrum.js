@@ -330,7 +330,7 @@ function freeDetailsBody(p,stats,note){
   ' · '+escapeHtml(p.date)+' NBA/ET</div></div></div><div class="bc-free-stats">'+
   ["PTS","REB","AST","3PM"].map(key=>'<div class="bc-free-stat"><strong>'+escapeHtml(stats?.[key]??"—")+
   '</strong><span>'+key+'</span></div>').join("")+'</div><p class="bc-free-note" role="status">'+escapeHtml(note)+
-  '</p><div class="bc-free-premium"><strong>Odkryj więcej z BestBets Premium</strong>'+
+  '</p><div class="bc-free-premium"><strong>Odkryj więcej z HOOPZARO Premium</strong>'+
   '<span>Zaawansowane wykresy, analizy zawodników i symulacje.</span>'+
   '<button type="button" data-centre-premium>Premium — wkrótce ›</button></div>';
 }
@@ -430,7 +430,7 @@ function showSchedule(){
   :"Nie ma obecnie dostępnego, potwierdzonego terminarza dla tej daty.");
 }
 function premium(){
- modal("BestBets Premium — wkrótce",
+ modal("HOOPZARO Premium — wkrótce",
    "Przygotowujemy rozbudowane modele, głębsze analizy zawodników i symulacje NBA.\n\n"+
    "Subskrypcje i płatności NIE są jeszcze uruchomione. Wszystkie widoczne informacje w Centrum są darmowe.");
 }
@@ -515,5 +515,5 @@ function init(context){
   }else if(!$("bc-dialog").hidden)close();
  });
 }
-window.BestBetsCentre={init:init,render:renderHome};
+window.BestBetsCentre={init:init,render:renderHome,openPremium:premium};
 })();

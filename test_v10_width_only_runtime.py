@@ -54,26 +54,27 @@ def smoke(browser, url, width, height, out):
         values=[v[axis] for v in size]
         assert max(values)-min(values)<1.5,("Unstable startup scale",axis,values[:5],values[-5:])
     assert frame.locator(".preview").count()==6
-    # Homepage is the new landing page; navigate back to the unchanged
-    # Player Props screen to test the original footer and card reachability.
+    # The original 1231x691 stage contract remains; the new Player Props
+    # layout has its own visible insight panel instead of legacy footer tiles.
     expect(frame.locator("#bestbets-centre")).to_be_visible()
     frame.locator('.nav-btn[data-page="props"]').click()
-    expect(frame.locator("#footer")).to_be_visible()
+    expect(frame.locator("#props-heading")).to_be_visible()
+    expect(frame.locator("#take")).to_be_visible()
     assert not errors,errors
     shot=out / f"v10-full-width-{width}x{height}.png"
     page.screenshot(path=str(shot))
-    # Ensure all six footer tiles are reachable by scrolling within iframe.
+    # Ensure the Player Props insight panel is reachable inside the iframe.
     # iframe scrolling is intentionally untouched; browser may use its own
     # scroll container, not window, so inspect whether footer actually
     # intersects the frame after scroll_into_view.
-    foot=frame.locator("#footer")
-    foot.scroll_into_view_if_needed(timeout=10000)
-    footbox=foot.bounding_box()
+    insight=frame.locator("#take")
+    insight.scroll_into_view_if_needed(timeout=10000)
+    footbox=insight.bounding_box()
     fb=iframe.bounding_box()
-    assert footbox and fb,("Footer not in the DOM",footbox,fb)
+    assert footbox and fb,("Player Props insight not in the DOM",footbox,fb)
     assert footbox["y"] < fb["y"]+fb["height"]+5, (
-        "Footer unreachable within the fixed-height iframe",footbox,fb)
-    page.screenshot(path=str(out / f"v10-footer-reachable-{width}x{height}.png"))
+        "Player Props insight unreachable within the fixed-height iframe",footbox,fb)
+    page.screenshot(path=str(out / f"hoopzaro-props-insight-{width}x{height}.png"))
     stage.locator('.nav-btn[data-page="games"]').click()
     expect(frame.locator('#blank-title')).to_have_text("Terminarz")
     context.close()
@@ -93,7 +94,7 @@ def main():
                  for w,h in [(1664,900),(1366,768),(1920,1080)]]
         browser.close()
     (args.out/"evidence.json").write_text(json.dumps(samples,indent=2),encoding="utf-8")
-    print("PASS: original look, full-width, stable iframe, scrollable footer; 3 viewports")
+    print("PASS: HOOPZARO full-width, stable iframe, reachable insights; 3 viewports")
 
 
 if __name__=="__main__":

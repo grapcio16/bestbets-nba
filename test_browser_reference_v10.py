@@ -1,4 +1,4 @@
-"""Chromium visual smoke for the custom 1231 × 691 px reference screen.
+"""Chromium visual smoke for the HOOPZARO 1231 × 691 px screen.
 
 Uses synthetic ONLY-in-test fixtures to verify layout and chart interaction,
 never inserts mock NBA data into the production app.
@@ -31,22 +31,23 @@ def main():
         errors = []
         page.on("pageerror", lambda exc: errors.append(str(exc)))
         page.goto(DOC, wait_until="load")
-        # Centrum is now the free landing screen. Navigate to the untouched
-        # Player Props route before checking its approved pixel positions.
+        # Centrum is the free landing screen. Player Props uses the matching
+        # HOOPZARO design, with the live chart and interaction logic intact.
         assert page.locator("#bestbets-centre").is_visible()
         page.locator('.nav-btn[data-page="props"]').click()
         assert_box(page, "#stage", 0, 0, 1231, 691)
-        assert_box(page, ".topsearch", 303, 10, 708, 38)
-        assert_box(page, "#hero", 191, 90, 1028, 89)
-        assert_box(page, ".controls", 192, 185, 1027, 42)
-        assert_box(page, "#chart-panel", 192, 235, 598, 208)
-        assert_box(page, "#side-stats", 807, 235, 412, 208)
-        assert_box(page, "#take", 192, 449, 1027, 45)
-        assert_box(page, "#card-shortcuts", 975, 519, 250, 128)
+        assert_box(page, ".topsearch", 195, 77, 827, 39)
+        assert_box(page, "#hero", 192, 158, 1027, 106)
+        assert_box(page, ".controls", 192, 271, 1027, 45)
+        assert_box(page, "#chart-panel", 192, 328, 598, 235)
+        assert_box(page, "#side-stats", 807, 328, 412, 235)
+        assert_box(page, "#take", 192, 576, 1027, 56)
+        assert page.locator("#props-heading").is_visible()
+        assert page.locator("#footer").is_hidden()
         assert page.locator(".preview").count() == 6
         assert page.locator("#player-name").inner_text() == "Wyszukaj zawodnika"
 
-        page.locator("#card-games").click()
+        page.locator('.nav-btn[data-page="games"]').click()
         assert page.locator("#blank-pane").is_visible()
         assert page.locator("#blank-title").inner_text() == "Terminarz"
         page.locator('[data-page="props"].nav-btn').click()
@@ -98,7 +99,7 @@ def main():
         assert event["type"] == "search"
         assert event["query"] == "Jayson Tatum over 25.5 points"
 
-        # Original reference artwork uses 1231x691 coordinates.
+        # The HOOPZARO artwork retains 1231x691 stage coordinates.
         # When wider than its original aspect ratio, use full browser width
         # and allow vertical scrolling. A 'fit height' assertion would
         # reproduce the original black-gutter regression.
@@ -108,9 +109,8 @@ def main():
         )
         box=page.locator("#stage").bounding_box()
         assert box and box["width"]>=1662 and box["height"]>820,box
-        footer=page.locator(".footer-links")
-        footer.scroll_into_view_if_needed()
-        assert page.evaluate("window.scrollY")>10,"Full-width original artwork must scroll on short windows"
+        page.locator("#take").scroll_into_view_if_needed()
+        assert page.locator("#take").is_visible()
         page.set_viewport_size({"width":1231, "height":691})
         page.emulate_media(reduced_motion="reduce")
         assert page.locator(".bb-plot-bar").first.evaluate(
@@ -120,7 +120,7 @@ def main():
         page.screenshot(path=str(OUT), full_page=True)
         assert not errors, errors
         browser.close()
-        print("Chromium reference coordinates and all interactions passed.")
+        print("HOOPZARO reference coordinates and all interactions passed.")
         print("Saved test screenshot:", OUT)
 
 

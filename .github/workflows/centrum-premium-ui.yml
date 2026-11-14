@@ -1,4 +1,4 @@
-name: BestBets Centrum Premium UI
+name: HOOPZARO Centrum and Player Props UI
 on:
   pull_request:
     branches: [main]
@@ -11,8 +11,6 @@ jobs:
   centrum-visual-regression:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      CENTRUM_BASE_SHA: ${{ github.event.pull_request.base.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,15 +39,19 @@ jobs:
           else:
               raise RuntimeError('Local Streamlit preview did not become ready')
           PY
-      - name: Reference geometry, pixel-identical Props and real iframe startup
-        run: python test_centrum_premium_ui.py --url http://127.0.0.1:8520 --out test-results/centrum-premium --baseline-ref "${CENTRUM_BASE_SHA:-origin/main}"
+      - name: HOOPZARO visual layout, live charts and route interactions
+        run: python test_hoopzaro_ui.py
+      - name: Real Streamlit iframe and responsive startup
+        run: python test_v10_width_only_runtime.py --url http://127.0.0.1:8520 --out test-results/hoopzaro-responsive
       - name: Existing Player Props chart and routing QA
         run: python test_browser_reference_v10.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: centrum-premium-ui-evidence
+          name: hoopzaro-ui-evidence
           path: |
-            test-results/centrum-premium/
+            test-results/hoopzaro-responsive/
+            hoopzaro_centre_smoke.png
+            hoopzaro_props_smoke.png
             reference_v10_smoke.png
             /tmp/bestbets-centre.log

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BestBets Reference Screen</title>
+<title>HOOPZARO | NBA Analytics</title>
 <style>
 :root{--bg:#020915;--navy:#051326;--border:#264b73;--cyan:#00c3ff;--orange:#ff8529;--green:#05ee75;--red:#ff534e;--white:#f4f8ff;font-family:Inter,Arial,Helvetica,sans-serif}
 *{box-sizing:border-box}
@@ -194,23 +194,26 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 </style>
 <link rel="stylesheet" href="centrum.css">
+<link rel="stylesheet" href="hoopzaro.css">
 </head>
 <body>
 <div id="app-shell"><div id="stage">
 <div class="top-orange"></div>
 <aside>
-  <div class="brand"><img id="brand-img" alt="" src=""><div class="wordmark">BEST<b>BETS</b></div></div>
+  <div class="brand"><img id="brand-img" alt="Logo HOOPZARO" src=""><div class="wordmark">HOOP<span>ZARO</span><small>NBA ANALYTICS</small></div></div>
   <nav class="left-menu">
     <button class="nav-btn selected" data-page="home"><span class="ic">⌂</span><span>Centrum</span></button>
-    <button class="nav-btn" data-page="props"><span class="ic">▥</span><span>Player Props<br>(Kalkulator)</span></button>
+    <button class="nav-btn" data-page="props"><span class="ic">▥</span><span>Player Props</span></button>
     <button class="nav-btn" data-page="games"><span class="ic">▣</span><span>Terminarz</span></button>
     <button class="nav-btn" data-page="simulations"><span class="ic">◈</span><span>Symulacje</span></button>
     <button class="nav-btn" data-page="players"><span class="ic">♧</span><span>Zawodnicy</span></button>
     <button class="nav-btn" data-page="teams"><span class="ic">⬡</span><span>Drużyny</span></button>
   </nav>
   <nav class="settings"><button class="nav-btn" data-page="settings"><span class="ic">⚙</span><span>Ustawienia</span></button></nav>
+  <button class="sidebar-premium" id="hz-premium" type="button">♛ &nbsp; Premium ›</button>
 </aside>
 <div id="work">
+  <header class="props-heading" id="props-heading"><div class="props-heading-icon" aria-hidden="true">◈</div><div><h1>Player <em>Props</em></h1><p>Player prop analysis, stats &amp; context</p></div><div class="props-orbit" aria-hidden="true"></div></header>
   <form class="topsearch" id="search-form"><span class="glass">⌕</span><input id="query" autocomplete="off" placeholder="Jayson Tatum over 25.5 points" aria-label="Wyszukaj zawodnika, linię i rynek"><button id="search-btn" type="submit">⌕</button></form>
   <div class="utility"><span title="Powiadomienia">♧<i class="dot"></i></span><span title="Profil">♙</span></div>
   <div class="suggestions">
@@ -240,7 +243,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <div class="averages"><div class="avg-box"><small>Season AVG</small><strong id="season-avg">—</strong></div><div class="avg-box selected"><small>⌂ Home</small><strong id="home-avg">—</strong></div><div class="avg-box"><small>➤ Away</small><strong id="away-avg">—</strong></div></div>
     <div class="defense-box"><div class="defense-heading"><span class="shield">⬡</span> <span id="defense-title">Matchup Defense</span></div><div class="defense-badge"><span id="defense-logo">◈</span></div><div class="defense-details" id="defense-details"><div>Weryfikacja danych obrony rywala</div><div>Bez niepotwierdzonych rankingów</div><div>Statystyki tylko z rzeczywistych meczów</div></div></div>
   </section>
-  <section id="take"><div class="take-title"><span class="target-icon">◎</span>BestBets Take</div><div class="take-text" id="take-text">Wyszukaj zawodnika i linię, aby zobaczyć analizę.</div></section>
+  <section id="take"><div class="take-title"><span class="target-icon">▥</span>HOOP<span>ZARO</span> Insight</div><div class="take-text" id="take-text">Wyszukaj zawodnika i linię, aby zobaczyć analizę.</div></section>
   </div>
   <section id="bestbets-centre" class="bc" aria-label="Centrum NBA" hidden>
   <div class="bc-hero">
@@ -288,18 +291,18 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     </section>
   </div>
   <div class="bc-bottom">
-    <button type="button" class="bc-bottom-item bc-current" data-centre-nav="home"><strong>🏀 &nbsp; BEST<span>BETS</span></strong><small>Najważniejsze dziś<br>Mecze • Statystyki • Analizy</small></button>
+    <button type="button" class="bc-bottom-item bc-current" data-centre-nav="home"><strong>◈ &nbsp; HOOP<span>ZARO</span></strong><small>Najważniejsze dziś<br>Mecze • Statystyki • Analizy</small></button>
     <button type="button" class="bc-bottom-item" data-centre-nav="simulations"><strong>▥ &nbsp; Symulacje</strong><small>Podgląd (FREE)<br><em>◈ &nbsp; Modele w Premium</em></small></button>
     <button type="button" class="bc-bottom-item" data-centre-nav="games"><strong>▣ &nbsp; Terminarz</strong><small>Wyniki i mecze<br><em>Pełny widok wkrótce</em></small></button>
     <button type="button" class="bc-bottom-item" data-centre-nav="players"><strong>♙ &nbsp; Zawodnicy</strong><small>Statystyki i forma<br><em>Rozszerzone dane wkrótce</em></small></button>
     <button type="button" class="bc-bottom-item" data-centre-nav="teams"><strong>⬡ &nbsp; Drużyny</strong><small>Forma i terminarz<br><em>Analiza matchup wkrótce</em></small></button>
-    <button type="button" class="bc-bottom-item bc-premium-item" data-centre-premium><strong>♛ &nbsp; BestBets Premium</strong><small>Przyszłe funkcje analityczne</small></button>
+    <button type="button" class="bc-bottom-item bc-premium-item" data-centre-premium><strong>♛ &nbsp; Premium</strong><small>Przyszłe funkcje analityczne</small></button>
   </div>
   <div class="bc-disclaimer" id="bc-data-meta">Dane terminarza NBA / ESPN. Brak fikcyjnych typów i prognoz.</div>
   <div class="bc-dialog-backdrop" id="bc-dialog" hidden>
     <div class="bc-dialog" role="dialog" aria-modal="true" aria-labelledby="bc-dialog-title">
       <button type="button" class="bc-dialog-close" data-centre-close aria-label="Zamknij">×</button>
-      <h2 id="bc-dialog-title">BestBets</h2><div id="bc-dialog-body"></div>
+      <h2 id="bc-dialog-title">HOOPZARO</h2><div id="bc-dialog-body"></div>
       <button class="bc-dialog-ok" type="button" data-centre-close>Rozumiem</button>
     </div>
   </div>
@@ -308,7 +311,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 </div>
 <footer id="footer">
  <div class="footer-tiles">
-  <div class="preview" id="card-home" data-page="home"><div class="mini-head orange">🏀 BESTBETS</div><div class="home-top"><div><small>Mecze dziś</small><strong>—</strong></div><div><small>Najlepszy typ</small><strong>—</strong></div><div><small>Value</small><strong>—</strong></div><div><small>Kontuzje</small><strong>—</strong></div></div><div class="mini-head">Top Typy Dnia</div><div class="home-person"><span>🏀</span><span>Centrum NBA<small>Otwórz podsumowanie</small></span><strong style="color:#06ef8c">›</strong></div></div>
+  <div class="preview" id="card-home" data-page="home"><div class="mini-head orange">◈ HOOPZARO</div><div class="home-top"><div><small>Mecze dziś</small><strong>—</strong></div><div><small>Najlepszy typ</small><strong>—</strong></div><div><small>Value</small><strong>—</strong></div><div><small>Kontuzje</small><strong>—</strong></div></div><div class="mini-head">Top Typy Dnia</div><div class="home-person"><span>🏀</span><span>Centrum NBA<small>Otwórz podsumowanie</small></span><strong style="color:#06ef8c">›</strong></div></div>
   <div class="preview" id="card-simulations" data-page="simulations"><div class="mini-head">Symulacje</div><div class="mini-head">Symulacje (5 000)</div><div class="sim-match"><span class="sim-team">◉</span><span class="sim-vs"><small>NBA</small><strong>VS</strong><small>5 000</small></span><span class="sim-team away">◉</span></div><div class="sim-split"><span class="left">MONTE CARLO</span><span class="right">NBA</span></div><div class="sim-track"><i></i></div></div>
   <div class="preview" id="card-games" data-page="games"><div class="mini-head">Terminarz</div><div class="mini-input">‹　 Dziś · terminy NBA　 ›</div><div class="mini-row"><span class="mini-ball">◉</span><span class="mini-name">Mecze NBA</span><span class="mini-code">›</span></div><div class="mini-row"><span class="mini-ball">◉</span><span class="mini-name">Wyniki na żywo</span><span class="mini-code">›</span></div><div class="mini-row"><span class="mini-ball">◉</span><span class="mini-name">Ostatnie wyniki</span><span class="mini-code">›</span></div></div>
   <div class="preview" id="card-players" data-page="players"><div class="mini-head">Zawodnicy</div><div class="mini-input">⌕ Szukaj zawodnika...</div><div class="mini-row"><span class="mini-ball">♙</span><span class="mini-name">Jayson Tatum</span><span class="mini-code">BOS</span></div><div class="mini-row"><span class="mini-ball">♙</span><span class="mini-name">Luka Dončić</span><span class="mini-code">LAL</span></div><div class="mini-row"><span class="mini-ball">♙</span><span class="mini-name">Nikola Jokić</span><span class="mini-code">DEN</span></div></div>
@@ -317,7 +320,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
  </div>
  <nav class="footer-links"><button data-page="home"><span class="icon">⌂</span>Centrum (Home)</button><button data-page="simulations"><span class="icon">◈</span>Symulacje</button><button data-page="games"><span class="icon">▣</span>Terminarz</button><button data-page="players"><span class="icon">♧</span>Zawodnicy</button><button data-page="teams"><span class="icon">⬡</span>Drużyny</button><button data-page="shortcuts"><span class="icon">⌨</span>Skrót wpisywania</button></nav>
 </footer>
-<div id="attribution">BESTBETS · Statystyki historyczne NBA / ESPN · nie są gwarancją przyszłego wyniku.</div>
+<div id="attribution">HOOPZARO · Statystyki historyczne NBA / ESPN · nie są gwarancją przyszłego wyniku.</div>
 </div></div>
 <script src="centrum.js"></script>
 <script src="player_picker.js"></script>
@@ -382,7 +385,7 @@ function measures(p){
 }
 function setImage(id,url,alternate){
   const img=$(id);
-  const okay=typeof url==="string"&&(url.startsWith("https://")||url.startsWith("data:image/png;base64,"));
+  const okay=typeof url==="string"&&(url.startsWith("https://")||url.startsWith("data:image/png;base64,")||url.startsWith("data:image/svg+xml;base64,"));
   img.hidden=!okay;
   if(okay){img.src=url;img.alt=alternate||""}
   else img.removeAttribute("src");
@@ -520,7 +523,8 @@ function render(){
   $("bestbets-centre").hidden=!home;
   $("footer").style.display=home?"none":"block";
   $("attribution").style.display=home?"none":"block";
-  text("blank-title",pages[state.page]||"BestBets");
+  text("blank-title",pages[state.page]||"HOOPZARO");
+  $("props-heading").style.display=active?"flex":"none";
   document.querySelectorAll(".nav-btn[data-page]").forEach(function(el){el.classList.toggle("selected",el.dataset.page===state.page)});
   // The free Centrum has its own dashboard; the entire Props search/header
   // stays available ONLY on the dedicated Player Props route.
@@ -528,7 +532,7 @@ function render(){
   document.querySelector(".suggestions").style.display=active?"flex":"none";
   document.querySelector(".utility").style.display=active?"flex":"none";
   $("query").placeholder=home?"Szukaj zawodnika, linii i rynku NBA...":"Jayson Tatum over 25.5 points";
-  if(state.payload.brand){setImage("brand-img",state.payload.brand,"BestBets")}
+  if(state.payload.brand){setImage("brand-img",state.payload.brand,"HOOPZARO")}
   if(home && window.BestBetsCentre){
     window.BestBetsCentre.render(state.payload.home||null,state.payload.player_catalog||null,state.payload.free_details||null);
     // The backend now embeds the Centrum snapshot in the FIRST render.
@@ -583,6 +587,7 @@ if(window.BestBetsCentre){
 $("search-form").addEventListener("submit",function(e){e.preventDefault();search($("query").value)});
 document.querySelectorAll("[data-query]").forEach(function(b){b.addEventListener("click",function(){state.page="props";search(b.dataset.query)})});
 document.querySelectorAll("[data-page]").forEach(function(el){el.addEventListener("click",function(){state.page=el.dataset.page;state.payload.error="";render()})});
+$("hz-premium").addEventListener("click",function(){state.page="home";render();window.BestBetsCentre?.openPremium?.()});
 document.querySelectorAll("[data-market]").forEach(function(el){el.addEventListener("click",function(){state.market=el.dataset.market;render()})});
 $("market").addEventListener("change",function(){state.market=this.value;render()});
 document.querySelectorAll("[data-side]").forEach(function(el){el.addEventListener("click",function(){state.side=el.dataset.side;render()})});

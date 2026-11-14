@@ -91,10 +91,10 @@ def _number(value: Any) -> float | None:
 
 
 def _brand_image() -> str:
-    file = ROOT / "assets" / "bestbets_brand_icon_64.png"
+    file = ROOT / "assets" / "hoopzaro.svg"
     if not file.is_file():
         return ""
-    return "data:image/png;base64," + b64encode(file.read_bytes()).decode("ascii")
+    return "data:image/svg+xml;base64," + b64encode(file.read_bytes()).decode("ascii")
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
