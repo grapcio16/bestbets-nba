@@ -60,6 +60,7 @@ def _safe_centre_live() -> dict:
         )
     return {
         "games": [], "all_games": [], "ticker": [], "finals": [],
+        "injury_watch": {"rows": [], "available": False, "stale": False, "as_of": "", "source": "ESPN"},
         "free_schema": SCHEMA, "free_leaders": [], "free_leader_day": "",
         "form": [], "form_options": [
             {"team": code, "name": name, "logo": "", "wins": 0, "losses": 0, "sample": 0}

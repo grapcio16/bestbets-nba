@@ -215,6 +215,55 @@ function renderFinals(data){
  ).join("");
 }
 
+function injuryRow(p){
+ const avatar=freeAvatar(p).replace('bc-free-avatar','bc-free-avatar bc-injury-avatar');
+ const tone=new Set(['out','question','probable','unknown']).has(p.tone)?p.tone:'unknown';
+ return '<div class="bc-injury-row">'+avatar+
+  '<span class="bc-injury-person"><span class="bc-injury-name"><strong title="'+escapeHtml(p.name)+'">'+escapeHtml(p.name)+
+  '</strong><span class="bc-injury-team">'+escapeHtml(p.team||'NBA')+'</span></span>'+
+  '<small class="bc-injury-note" title="'+escapeHtml(p.note||p.status)+'">'+escapeHtml(p.note||p.status)+'</small></span>'+
+  '<span class="bc-injury-status '+tone+'" title="'+escapeHtml(p.status)+'">'+escapeHtml(p.badge)+'</span></div>';
+}
+function renderInjuryWatch(data){
+ const host=$('bc-injury-watch');if(!host)return;
+ const report=data?.injury_watch;
+ const rows=Array.isArray(report?.rows)?report.rows:[];
+ const source=$('bc-injury-source');
+ if(source)source.textContent=report?.stale?'ESPN · opóźnione':'ESPN · NBA';
+ if(!report || report.available!==true){
+  host.innerHTML='<div class="bc-muted">Raport kontuzji jest chwilowo niedostępny. Sprawdź pełny raport NBA.</div>';
+ }else if(!rows.length){
+  host.innerHTML='<div class="bc-muted">Brak pozycji w dostępnym raporcie kontuzji.</div>';
+ }else{
+  host.innerHTML=rows.slice(0,2).map(injuryRow).join('');
+  window.HoopzaroPortraits?.observe(host);
+ }
+}
+function openInjuryReport(){
+ const report=homeData?.injury_watch;
+ const rows=Array.isArray(report?.rows)?report.rows:[];
+ setText('bc-dialog-title','NBA Injury Watch — pełny raport');
+ const age=report?.as_of?new Date(report.as_of):null;
+ const asOf=age&&Number.isFinite(age.getTime())
+  ?'Ostatnie pobranie: '+new Intl.DateTimeFormat('pl-PL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(age)+'. '
+  :'';
+ const message=report?.available===true
+  ?'Statusy zgłoszone przez ESPN. '+asOf+(report.stale?'Źródło jest opóźnione. ':'')+'Dostępność zawodników może się zmienić przed spotkaniem.'
+  :'Bieżących statusów nie udało się potwierdzić. Skorzystaj z oficjalnego raportu NBA.';
+ const list=report?.available===true?(rows.length?rows.map(injuryRow).join(''):
+  '<div class="bc-muted">Brak pozycji w otrzymanym raporcie.</div>'):'';
+ const body=$('bc-dialog-body');
+ body.innerHTML='<p class="bc-injury-report-intro">'+escapeHtml(message)+'</p>'+
+  '<div class="bc-injury-report-list">'+list+'</div>'+
+  '<a class="bc-injury-official" href="https://official.nba.com/nba-injury-report-2026-27-season/" target="_blank" rel="noopener noreferrer">Oficjalny raport kontuzji NBA ↗</a>';
+ const dialog=$('bc-dialog');
+ dialog.classList.remove('bc-free-detail-dialog');
+ dialog.classList.add('bc-injury-detail-dialog');
+ dialog.hidden=false;
+ window.HoopzaroPortraits?.observe(body);
+ dialog.querySelector('.bc-dialog-close')?.focus();
+}
+
 const TEAM_FAVORITES_KEY="bestbets.centrum.favoriteTeams.v1";
 let favoriteTeams=[],teamPickerOpen=false;
 function restoreTeamFavorites(){
@@ -445,6 +494,7 @@ function showFreeDetails(p,stats,note,verified=false){
  $("bc-dialog-body").innerHTML=freeDetailsBody(p,stats,note,verified);
  window.HoopzaroPortraits?.observe($("bc-dialog-body"));
  $("bc-dialog").classList.add("bc-free-detail-dialog");
+ $("bc-dialog").classList.remove("bc-injury-detail-dialog");
  $("bc-dialog").hidden=false;
 }
 function openFreeLeader(key){
@@ -503,10 +553,8 @@ function renderHome(data,details){
   setText("bc-data-meta","Ładowanie potwierdzonych danych NBA / ESPN…");
   return;
  }
- renderTicker(data);renderGames(data);renderFinals(data);renderForm(data);renderPlayers(data);renderFreeLeaders(data);renderSimulationPreview(data);
+ renderTicker(data);renderGames(data);renderInjuryWatch(data);renderForm(data);renderPlayers(data);renderFreeLeaders(data);renderSimulationPreview(data);
  renderFreeLeaderDetails(details);
- const now=new Date();
- setText("bc-local-time","Czas lokalny: "+new Intl.DateTimeFormat("pl-PL",{hour:"2-digit",minute:"2-digit",timeZoneName:"short"}).format(now));
  const message=data.error
   ? "Aktualne dane chwilowo niedostępne: "+data.error
   : "Dane: "+(data.source||"NBA / ESPN")+" · "+(data.coverage||"wybrany okres")+" · aktualizacja "+(data.fetched_at||data.as_of||"")+". Status LIVE może być opóźniony.";
@@ -516,6 +564,7 @@ function modal(title,body){
  setText("bc-dialog-title",title);
  const e=$("bc-dialog-body");if(e)e.textContent=body;
  $("bc-dialog").classList.remove("bc-free-detail-dialog");
+ $("bc-dialog").classList.remove("bc-injury-detail-dialog");
  $("bc-dialog").hidden=false;
  $("bc-dialog").querySelector(".bc-dialog-close").focus();
 }
@@ -552,6 +601,7 @@ function photoCredits(){
    '<p>Nie załadowano jeszcze zdjęć z otwartą licencją. Dla niedostępnych fotografii wyświetlamy inicjały.</p>')+
    '<p>Publiczne wykorzystanie wizerunków sportowców i dodatkowe prawa należy osobno zweryfikować przed premierą płatną.</p></div>';
  $("bc-dialog").classList.remove("bc-free-detail-dialog");
+ $("bc-dialog").classList.remove("bc-injury-detail-dialog");
  $("bc-dialog").hidden=false;
  $("bc-dialog").querySelector(".bc-dialog-close")?.focus();
 }
@@ -616,6 +666,7 @@ function init(context){
    return;
   }
   if(button.matches("[data-centre-photo-credits]")){photoCredits();return;}
+  if(button.matches("[data-centre-injury-report]")){openInjuryReport();return;}
   if(button.matches("[data-centre-form-toggle]")){
    teamPickerOpen=!teamPickerOpen;
    renderFormPicker(homeData);

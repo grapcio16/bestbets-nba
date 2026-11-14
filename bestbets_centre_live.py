@@ -86,6 +86,7 @@ def get_centre_live_data(now=None):
     from team_logos import logo_data_uri
     from bestbets_centre_data import build_centre_snapshot
     from bestbets_centre_standings import fetch_season_standings, apply_season_form
+    from bestbets_centre_injuries import get_centre_injury_watch
 
     now=pd.Timestamp(now) if now is not None else pd.Timestamp.now(tz="Europe/Warsaw")
     now=now.tz_localize("Europe/Warsaw") if now.tzinfo is None else now.tz_convert("Europe/Warsaw")
@@ -96,6 +97,8 @@ def get_centre_live_data(now=None):
     failures=[]
     season_records=None
     season_meta=None
+    injury_report={"rows": [], "available": False, "stale": False,
+                   "as_of": "", "source": "ESPN"}
 
     def fetch_day(offset, day):
         ttl=120 if offset in (-1,0,1) else 7200 if offset < -1 else 1800
@@ -119,6 +122,7 @@ def get_centre_live_data(now=None):
             # Season W-L is fetched independently from the short scoreboard.
             # A standings timeout must not block games, results or player cards.
             season_future=pool.submit(fetch_season_standings)
+            injury_future=pool.submit(get_centre_injury_watch)
             futures={pool.submit(fetch_day,offset,day):day for offset,day in zip(offsets,dates)}
             for future in as_completed(futures):
                 try:
@@ -139,6 +143,10 @@ def get_centre_live_data(now=None):
                 # Do not misrepresent the 6-day scoreboard as season-long data.
                 season_records=None
                 season_meta=None
+            try:
+                injury_report=injury_future.result()
+            except Exception:
+                pass
         if successes:
             raw={"events":list(events_by_id.values())}
             table=parse_espn_schedule(raw)
@@ -150,6 +158,7 @@ def get_centre_live_data(now=None):
                 # Successful empty days can be a legitimate NBA off-day.
                 snap["error"]=""
             snap["players"]=extract_recent_leaders(raw,now=now,limit=3)
+            snap["injury_watch"]=injury_report
             from bestbets_free_analyses import extract_free_leaders
             snap.update(extract_free_leaders(raw, now=now, covered_days=succeeded_days))
             snap["coverage"]="Zweryfikowane dni "+dates[0]+"–"+dates[-1]
@@ -190,6 +199,7 @@ def get_centre_live_data(now=None):
         snap=build_centre_snapshot(table,meta,now=now,logo_provider=logo_data_uri)
         apply_season_form(snap,season_records,season_meta)
         snap["players"]=[]
+        snap["injury_watch"]=injury_report
         from bestbets_free_analyses import extract_free_leaders
         snap.update(extract_free_leaders({}))
         snap["calendar_loaded_days"]=[
@@ -204,6 +214,7 @@ def get_centre_live_data(now=None):
         empty=build_centre_snapshot(pd.DataFrame(),{"source":"NBA / ESPN"},now=now)
         apply_season_form(empty,season_records,season_meta)
         empty["players"]=[]
+        empty["injury_watch"]=injury_report
         from bestbets_free_analyses import extract_free_leaders
         empty.update(extract_free_leaders({}))
         empty["stale"]=True

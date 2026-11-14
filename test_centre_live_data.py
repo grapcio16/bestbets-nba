@@ -63,6 +63,8 @@ class CentreLiveTest(TestCase):
         self.assertEqual(snapshot["ticker"][0]["away"],"BOS")
         self.assertEqual(snapshot["games"][-1]["state"],"scheduled")
         self.assertFalse(snapshot["stale"])
+        self.assertIn("injury_watch", snapshot)
+        self.assertIsInstance(snapshot["injury_watch"]["rows"], list)
 
     def test_daily_navigation_requests_two_single_espn_dates(self):
         # Warsaw night-time games can belong to the prior ESPN date.

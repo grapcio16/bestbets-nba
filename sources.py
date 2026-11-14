@@ -307,13 +307,17 @@ def injury_rows(payload):
             if team not in set(TEAM_MAP.values()):team='—'
             details=node.get('details') or {}
             note=details.get('detail','') if isinstance(details,dict) else str(details)
+            player_id=athlete.get('id') if isinstance(athlete,dict) else None
+            player_id=str(player_id) if player_id is not None else ''
+            if not player_id.isdigit() or len(player_id)>20:player_id=''
             k=(str(player),str(team),str(status))
             if k not in seen:
-                out.append({'player':player,'team':team,'status':str(status),'note':note});seen.add(k)
+                out.append({'player':player,'team':team,'status':str(status),'note':note,
+                            'athlete_id':player_id});seen.add(k)
         for key in ('injuries','items','teams','groups','athletes'):
             if key in node:traverse(node[key],team)
     traverse(payload)
-    return pd.DataFrame(out,columns=['player','team','status','note'])
+    return pd.DataFrame(out,columns=['player','team','status','note','athlete_id'])
 
 
 def injuries(refresh=False):
