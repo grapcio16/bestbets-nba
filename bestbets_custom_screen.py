@@ -102,11 +102,12 @@ def _cached_brand() -> str:
     return _brand_image()
 
 @st.cache_data(ttl=3600, max_entries=2, show_spinner=False)
-def _cached_centre_player_catalog():
+def _cached_centre_player_catalog(force_refresh: bool = False):
     """Load all ESPN team rosters only on explicit player-picker request."""
+    from datetime import datetime, timezone
     from global_player_catalog import build_global_catalog
 
-    table, coverage = build_global_catalog()
+    table, coverage = build_global_catalog(refresh_all=force_refresh)
     players = []
     for row in table.to_dict("records"):
         pid = str(row.get("PLAYER_ID") or "")
@@ -114,7 +115,9 @@ def _cached_centre_player_catalog():
         team = str(row.get("TEAM_ABBREVIATION") or "")
         if pid.isdigit() and name and team in TEAM_FULL:
             players.append({"id": pid, "name": name[:90], "team": team})
-    return {"players": players, "coverage": coverage}
+    return {"players": players, "coverage": {**coverage,
+            "fetched_at": datetime.now(timezone.utc).isoformat(timespec="minutes"),
+            "photo_license_enabled": photo_policy()}}
 
 
 
@@ -331,9 +334,14 @@ def main() -> None:
         # Do not delay first-paint Centrum: fetch full 30-team player index
         # only after explicit interaction with the picker.
         last = st.session_state.get("bb10_player_catalog_at", 0.0)
-        if "bb10_player_catalog" not in st.session_state or time.monotonic()-last >= 3600:
+        force = event.get("force") is True
+        last_force = st.session_state.get("bb10_player_catalog_force_at", 0.0)
+        allowed_force = force and (not last_force or time.monotonic()-last_force >= 180)
+        if (allowed_force or "bb10_player_catalog" not in st.session_state
+                or time.monotonic()-last >= 3600):
             try:
-                st.session_state["bb10_player_catalog"] = _cached_centre_player_catalog()
+                st.session_state["bb10_player_catalog"] = _cached_centre_player_catalog(
+                    force_refresh=allowed_force)
             except Exception:
                 st.session_state["bb10_player_catalog"] = {
                     "players": [],
@@ -341,6 +349,8 @@ def main() -> None:
                     "error": "Nie udało się pobrać pełnej listy ESPN. Spróbuj ponownie.",
                 }
             st.session_state["bb10_player_catalog_at"] = time.monotonic()
+            if allowed_force:
+                st.session_state["bb10_player_catalog_force_at"] = time.monotonic()
         st.rerun()
         return
     if event.get("type") == "home_date":

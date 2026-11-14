@@ -4,7 +4,8 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const KEY="bestbets.centrum.watchedPlayers.v1";
-let catalog=null,api=null,isOpen=false,filter="",nativeWatch="";
+let catalog=null,api=null,isOpen=false,filter="",nativeWatch="",refreshing=false,photosLicensed=false;
+let teamLogos={};
 let favorites=[];
 try{
  const rows=JSON.parse(localStorage.getItem(KEY)||"[]");
@@ -18,6 +19,19 @@ try{
  }
 }catch(_){}
 const escape=s=>String(s||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+function teamBadge(code){
+ const safe=escape(code||"NBA"),uri=teamLogos[code];
+ const image=typeof uri==="string"&&uri.startsWith("data:image/png;base64,")?
+  '<img alt="" src="'+uri+'" loading="lazy">':"";
+ return '<span class="bc-free-team">'+image+'<strong>'+safe+'</strong></span>';
+}
+function avatar(p,cls){
+ const abbrev=String(p.name||"").trim().split(/\s+/).slice(0,2).map(s=>s[0]||"").join("").toUpperCase();
+ const id=String(p.id||"");
+ const photo=photosLicensed&&/^\d{1,20}$/.test(id)?'<img hidden loading="lazy" decoding="async" alt="'+escape(p.name)+
+  '" src="https://a.espncdn.com/i/headshots/nba/players/full/'+id+'.png">':"";
+ return '<span class="bc-player-circle bc-free-avatar '+cls+'"><span>'+escape(abbrev)+'</span>'+photo+'</span>';
+}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(favorites));}catch(_){}}
 function watch(){
  const node=$("bestbets-centre")?.querySelector(".bc-watch");
@@ -25,8 +39,8 @@ function watch(){
  const selected=new Set(favorites.map(p=>p.name.toLocaleLowerCase("pl-PL")));
  const rows=favorites.map(p=>
   '<button type="button" data-centre-nav="props" title="Otwórz Player Props i wybierz linię">'+
-  '<b>'+escape(p.name.trim().split(/\s+/).slice(0,2).map(x=>x[0]).join(""))+'</b>'+
-  escape(p.name)+' <small>· '+escape(p.team)+'</small><span>›</span></button>');
+  avatar(p,"bc-watch-avatar")+'<span class="bc-watch-name">'+escape(p.name)+'</span>'+
+  teamBadge(p.team)+'<span class="bc-watch-chevron">›</span></button>');
  const rest=document.createElement("div");
  rest.innerHTML=nativeWatch;
  for(const b of rest.querySelectorAll("button")){
@@ -50,14 +64,15 @@ function options(){
  const matches=people.filter(p=>(String(p.name||"")+" "+String(p.team||"")).toLocaleLowerCase("pl-PL").includes(needle));
  matches.sort((a,b)=>Number(chosen.has(String(b.id)))-Number(chosen.has(String(a.id)))||
   String(a.name).localeCompare(String(b.name),"pl"));
- const missing=[...(meta.missing_teams||[]),...(meta.sparse_teams||[])];
+ const missing=[...(meta.missing_teams||[]),...(meta.sparse_teams||[]),...(meta.stale_teams||[])];
  const error=missing.length
-  ?'<p class="bc-catalog-note">Część składów ESPN może być niepełna: '+escape([...new Set(missing)].join(", "))+'</p>'
+  ?'<p class="bc-catalog-note">Składy wymagające ponownego sprawdzenia (brakujące, niepełne lub starsze): '+escape([...new Set(missing)].join(", "))+'</p>'
   :'';
  const rows=matches.map(p=>{
   const id=String(p.id),on=chosen.has(id);
   return '<div class="bc-catalog-athlete'+(on?' active':'')+'">'+
-   '<span><strong>'+escape(p.name)+'</strong><small>'+escape(p.team)+'</small></span>'+
+   avatar(p,"bc-catalog-avatar")+
+   '<span class="bc-catalog-identity"><strong>'+escape(p.name)+'</strong><small>'+teamBadge(p.team)+'</small></span>'+
    '<button type="button" data-bb-watch-id="'+escape(id)+'" class="bc-form-star'+(on?' is-favorite':'')+
    '" title="'+(on?'Usuń z obserwowanych':'Dodaj do obserwowanych')+
    '" aria-pressed="'+String(on)+'">'+(on?'★':'☆')+'</button></div>';
@@ -67,12 +82,18 @@ function options(){
   !people.length?'ESPN nie zwrócił katalogu zawodników.':
   !matches.length?'Brak pasujących nazwisk.':'';
  const oldScroll=node.querySelector(".bc-catalog-list")?.scrollTop||0;
+ const stamp=meta.fetched_at?new Date(meta.fetched_at):null;
+ const stampLabel=stamp&&Number.isFinite(stamp.getTime())?
+  ' · aktualizacja '+new Intl.DateTimeFormat("pl-PL",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).format(stamp):"";
  node.innerHTML=
-  '<div class="bc-catalog-head"><b>Wszyscy zawodnicy NBA</b><span>'+favorites.length+'/3</span></div>'+
-  '<div class="bc-catalog-meta">'+people.length+' graczy · '+(meta.teams_loaded||0)+'/30 drużyn</div>'+error+
+  '<div class="bc-catalog-head"><b>Aktualne składy NBA</b><div class="bc-catalog-actions"><span>'+favorites.length+'/3</span>'+
+  '<button type="button" class="bc-catalog-refresh" data-bb-catalog-refresh '+(refreshing?'disabled ':'')+
+  'aria-label="Odśwież składy wszystkich 30 drużyn">'+(refreshing?'Ładowanie…':'⟳ Odśwież')+'</button></div></div>'+
+  '<div class="bc-catalog-meta">'+people.length+' graczy · '+(meta.teams_loaded||0)+'/30 drużyn'+stampLabel+'</div>'+error+
   '<input id="bc-players-search" autocomplete="off" type="search" maxlength="70"'+
   ' placeholder="Znajdź zawodnika lub drużynę…" value="'+escape(filter)+'" aria-label="Wyszukaj gracza">'+
-  '<div class="bc-catalog-help" id="bc-catalog-help">Kliknij ☆, aby obserwować zawodnika.</div>'+
+  '<div class="bc-catalog-help" id="bc-catalog-help">Kliknij ☆, aby obserwować. '+
+  (photosLicensed?'Fotografie pochodzą z zatwierdzonego źródła.':'Fotografie zawodników dodamy po uzyskaniu odpowiednich praw.')+'</div>'+
   '<div class="bc-catalog-list">'+(rows||'<div class="bc-muted">'+info+'</div>')+'</div>';
  const list=node.querySelector(".bc-catalog-list");
  if(list)list.scrollTop=oldScroll;
@@ -100,6 +121,11 @@ function install(){
    if(isOpen&&!catalog&&api?.loadPlayers)api.loadPlayers();
    return;
   }
+  if(button.matches("[data-bb-catalog-refresh]")){
+   ev.stopPropagation();
+   if(refreshing||!api?.refreshPlayers)return;
+   refreshing=true;options();api.refreshPlayers();return;
+  }
   const id=button.getAttribute("data-bb-watch-id");
   if(id!==null){ev.stopPropagation();toggleFavorite(id);}
  });
@@ -125,7 +151,22 @@ const originalInit=window.BestBetsCentre.init,originalRender=window.BestBetsCent
 window.BestBetsCentre.init=function(ctx){api=ctx;originalInit(ctx);install();};
 window.BestBetsCentre.render=function(data,players,freeDetails){
  originalRender(data,freeDetails);
- if(players&&typeof players==="object")catalog=players;
+ if(data){
+  photosLicensed=data.free_photos_enabled===true;
+  teamLogos=Object.fromEntries((Array.isArray(data.form_options)?data.form_options:[])
+   .filter(t=>t&&typeof t.team==="string").map(t=>[t.team,t.logo]));
+ }
+ if(players&&typeof players==="object"){
+  catalog=players;refreshing=false;
+  const known=new Map((Array.isArray(players.players)?players.players:[]).map(p=>[String(p.id),p]));
+  let changed=false;
+  favorites=favorites.map(p=>{
+   const fresh=known.get(p.id);
+   if(!fresh||fresh.name===p.name&&fresh.team===p.team)return p;
+   changed=true;return {id:p.id,name:fresh.name,team:fresh.team};
+  });
+  if(changed)save();
+ }
  const watchBox=$("bestbets-centre")?.querySelector(".bc-watch");
  if(watchBox){nativeWatch=watchBox.innerHTML;watch();}
  options();

@@ -99,6 +99,16 @@ def check_static(page,out):
     assert page.locator("#bc-source-state").inner_text().startswith("●")
     assert page.locator(".bc-pick").count()==3
     assert page.locator(".bc-watch button").count()==3
+    # Accessible, compact glossary; never hijacks the Props route.
+    page.locator("#bc-free-info-toggle").click()
+    expect(page.locator("#bc-free-info-popup")).to_be_visible()
+    expect(page.locator("#bc-free-info-popup")).to_contain_text("PTS")
+    expect(page.locator("#bc-free-info-popup")).to_contain_text("Zbiórki")
+    expect(page.locator("#bc-free-info-popup")).to_contain_text("Asysty")
+    assert page.locator("#bc-free-info-toggle").get_attribute("aria-expanded")=="true"
+    page.keyboard.press("Escape")
+    expect(page.locator("#bc-free-info-popup")).to_be_hidden()
+    assert page.locator("#bc-free-info-toggle").get_attribute("aria-expanded")=="false"
     # Full player catalog opens only on demand. The browser fixture below is
     # synthetic, never a claim about real ESPN rosters.
     page.locator("#bc-players-toggle").click()
@@ -159,6 +169,7 @@ def check_static(page,out):
     assert page.locator("#props-pane").is_hidden()
     page.evaluate("(home) => window.postMessage({type:'streamlit:render',args:{payload:{player:null,error:'',brand:'',home:home,free_details:{key:home.free_leaders[0].detail_key,error:'',data:{verified:true,athlete_id:'10',name:'Jayson Tatum',team:'BOS',opponent:'NYK',date:'2026-11-11',PTS:26,REB:7,AST:5,'3PM':3}}}}},'*')",fixture)
     expect(page.locator(".bc-free-stat")).to_have_count(4)
+    expect(page.locator("[data-centre-free-props]")).to_be_visible()
     assert [v.strip() for v in page.locator(".bc-free-stat strong").all_inner_texts()] == [
        "26","7","5","3"]
     assert page.locator("#props-pane").is_hidden()

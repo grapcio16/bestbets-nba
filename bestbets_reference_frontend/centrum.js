@@ -59,6 +59,17 @@ function logo(code,uri) {
    return '<img alt="" src="'+uri+'" loading="lazy">';
  return '<span>'+escapeHtml(code||"NBA")+'</span>';
 }
+function teamLogoUri(code){
+ const list=Array.isArray(homeData?.form_options)?homeData.form_options:[];
+ const row=list.find(item=>item.team===code);
+ return row?.logo||"";
+}
+function teamBadge(code){
+ const uri=teamLogoUri(code);
+ return '<span class="bc-free-team">'+
+   (typeof uri==="string"&&uri.startsWith("data:image/png;base64,")?'<img src="'+uri+'" alt="" loading="lazy">':"")+
+   '<strong>'+escapeHtml(code||"NBA")+'</strong></span>';
+}
 function localTime(iso){
  if(!iso)return "—";
  const d=new Date(iso);
@@ -289,10 +300,47 @@ function renderPlayers(data){
  const safeQuery=p=>escapeHtml(query(p));
  watch.innerHTML=real.map(p=>
   '<button type="button" data-centre-query="'+safeQuery(p)+'" title="Przykładowy próg do analizy historii, nie typ bukmacherski">'+
-  '<b>'+escapeHtml(initial(p))+'</b> '+escapeHtml(p.name)+' <span>›</span></button>').join("");
+  freeAvatar(p).replace('bc-free-avatar','bc-free-avatar bc-watch-avatar')+
+  '<span class="bc-watch-name">'+escapeHtml(p.name)+'</span>'+teamBadge(p.team)+
+  '<span class="bc-watch-chevron">›</span></button>').join("");
 }
-let pendingFreeLeaderKey=null, freeRenderSignature="";
+let pendingFreeLeaderKey=null, freeRenderSignature="",freeInfoOpen=false,pendingFreeReferral=null;
 const freeLabels={PTS:"Lider punktów",REB:"Lider zbiórek",AST:"Lider asyst"};
+const FREE_REFERRAL_KEY="hoopzaro.freePropsReferral.v1";
+function localDay(){
+ const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");
+}
+function usedFreeReferral(){
+ try{
+  const stored=JSON.parse(localStorage.getItem(FREE_REFERRAL_KEY)||"null");
+  return stored&&stored.day===localDay()&&typeof stored.leaderKey==="string"?stored:null;
+ }catch(_){return null;}
+}
+function freeReferralQuery(p){
+ const markets={PTS:"points",REB:"rebounds",AST:"assists"};
+ const value=Number(p.value);
+ if(!markets[p.market]||!Number.isFinite(value)||value<=0)return "";
+ return p.name+" over "+Math.max(.5,Math.floor(value)-.5).toFixed(1)+" "+markets[p.market];
+}
+function referralButton(p,verified){
+ if(!verified)return "";
+ const query=freeReferralQuery(p),used=usedFreeReferral();
+ if(!query)return "";
+ if(used&&used.leaderKey!==p.detail_key){
+  return '<div class="bc-free-referral used">Dzisiejsze darmowe przejście do Player Props zostało wykorzystane. Kolejne analizy będą dostępne w Premium.</div>';
+ }
+ return '<div class="bc-free-referral"><span>'+(used?"Otwórz ponownie dzisiejszą analizę":"1 darmowe przejście do Player Props dziennie")+
+  ' · próg przykładowy, nie rekomendacja zakładu</span><button type="button" data-centre-free-props="'+
+  escapeHtml(p.detail_key)+'">'+(used?"Otwórz ponownie ›":"Przejdź do Player Props ›")+'</button></div>';
+}
+function recordFreePropsResult(player,error,currentQuery){
+ if(!pendingFreeReferral)return;
+ if(error||!player){if(error)pendingFreeReferral=null;return;}
+ if(currentQuery!==pendingFreeReferral.query)return;
+ if(!Array.isArray(player.games)||!player.games.length){pendingFreeReferral=null;return;}
+ try{localStorage.setItem(FREE_REFERRAL_KEY,JSON.stringify({day:pendingFreeReferral.day,leaderKey:pendingFreeReferral.leaderKey}));}catch(_){}
+ pendingFreeReferral=null;
+}
 const initials=p=>String(p.name||"").trim().split(/\s+/).slice(0,2).map(v=>v[0]||"").join("").toUpperCase();
 function freeAvatar(p){
  const allowed=homeData?.free_photos_enabled===true && /^[0-9]{1,20}$/.test(p.athlete_id||"");
@@ -319,24 +367,24 @@ function renderFreeLeaders(data){
     (p.tie_count>1?' (ex aequo)':'')+' — zakończone mecze NBA/ET">'+freeAvatar(p)+
     '<span class="bc-pick-info"><strong>'+escapeHtml(p.name)+'</strong><small>'+escapeHtml(freeLabels[market])+
     ' · '+escapeHtml(p.value)+' '+market+(p.tie_count>1?' · ex aequo':'')+'</small></span>'+
-    '<span class="bc-pick-tag">'+market+'</span><span class="bc-pick-explain">'+escapeHtml(p.team)+' vs '+
-    escapeHtml(p.opponent)+'<br><i>'+escapeHtml(p.date)+' NBA/ET</i></span>'+
+    '<span class="bc-pick-tag">'+market+'</span><span class="bc-pick-explain">'+teamBadge(p.team)+' vs '+
+    teamBadge(p.opponent)+'<br><i>'+escapeHtml(p.date)+' NBA/ET</i></span>'+
     '<span class="bc-mini-btn">Szczegóły ›</span></button>';
  }).join("");
 }
-function freeDetailsBody(p,stats,note){
+function freeDetailsBody(p,stats,note,verified=false){
  return '<div class="bc-free-heading">'+freeAvatar(p)+'<div><strong>'+escapeHtml(p.name)+
-  '</strong><div class="bc-free-match">'+escapeHtml(p.team)+' vs '+escapeHtml(p.opponent)+
+  '</strong><div class="bc-free-match">'+teamBadge(p.team)+' vs '+teamBadge(p.opponent)+
   ' · '+escapeHtml(p.date)+' NBA/ET</div></div></div><div class="bc-free-stats">'+
   ["PTS","REB","AST","3PM"].map(key=>'<div class="bc-free-stat"><strong>'+escapeHtml(stats?.[key]??"—")+
   '</strong><span>'+key+'</span></div>').join("")+'</div><p class="bc-free-note" role="status">'+escapeHtml(note)+
-  '</p><div class="bc-free-premium"><strong>Odkryj więcej z HOOPZARO Premium</strong>'+
+  '</p>'+referralButton(p,verified)+'<div class="bc-free-premium"><strong>Odkryj więcej z HOOPZARO Premium</strong>'+
   '<span>Zaawansowane wykresy, analizy zawodników i symulacje.</span>'+
   '<button type="button" data-centre-premium>Premium — wkrótce ›</button></div>';
 }
-function showFreeDetails(p,stats,note){
+function showFreeDetails(p,stats,note,verified=false){
  setText("bc-dialog-title",p.name+" — występ NBA");
- $("bc-dialog-body").innerHTML=freeDetailsBody(p,stats,note);
+ $("bc-dialog-body").innerHTML=freeDetailsBody(p,stats,note,verified);
  $("bc-dialog").classList.add("bc-free-detail-dialog");
  $("bc-dialog").hidden=false;
 }
@@ -360,7 +408,7 @@ function renderFreeLeaderDetails(reply){
   showFreeDetails(leader,null,String(reply.error||"Pełne statystyki tego meczu są chwilowo niedostępne w ESPN."));return;
  }
  showFreeDetails(leader,p,(p.stale?"Dane z pamięci podręcznej — ESPN chwilowo niedostępne. ":"")+
-  "Potwierdzony wynik jednego zakończonego meczu ESPN. Nie jest prognozą przyszłego występu.");
+  "Potwierdzony wynik jednego zakończonego meczu ESPN. Nie jest prognozą przyszłego występu.",true);
 }
 function renderSimulationPreview(data){
  const box=document.querySelector(".bc-lock-teams");
@@ -434,6 +482,14 @@ function premium(){
    "Przygotowujemy rozbudowane modele, głębsze analizy zawodników i symulacje NBA.\n\n"+
    "Subskrypcje i płatności NIE są jeszcze uruchomione. Wszystkie widoczne informacje w Centrum są darmowe.");
 }
+function toggleFreeInfo(force){
+ const panel=$("bc-free-info-popup"),button=$("bc-free-info-toggle");
+ if(!panel||!button)return;
+ freeInfoOpen=typeof force==="boolean"?force:!freeInfoOpen;
+ panel.hidden=!freeInfoOpen;
+ button.setAttribute("aria-expanded",String(freeInfoOpen));
+ if(freeInfoOpen)panel.querySelector(".bc-free-info-heading button")?.focus();
+}
 function init(context){
  api=context;
  const centre=$("bestbets-centre");
@@ -470,6 +526,11 @@ function init(context){
  centre.addEventListener("click",function(event){
   const button=event.target.closest("button");
   if(!button)return;
+  if(button.matches("[data-centre-free-info]")){
+   toggleFreeInfo(button.id==="bc-free-info-toggle"?!freeInfoOpen:false);
+   if(!freeInfoOpen && button.id!=="bc-free-info-toggle")$("bc-free-info-toggle")?.focus();
+   return;
+  }
   if(button.matches("[data-centre-form-toggle]")){
    teamPickerOpen=!teamPickerOpen;
    renderFormPicker(homeData);
@@ -479,6 +540,17 @@ function init(context){
   if(team!==null){event.stopPropagation();toggleTeamFavorite(team);return;}
   const leader=button.getAttribute("data-centre-free-key");
   if(leader!==null){openFreeLeader(leader);return;}
+  const freeProps=button.getAttribute("data-centre-free-props");
+  if(freeProps!==null){
+   const row=(homeData?.free_leaders||[]).find(p=>p.detail_key===freeProps);
+   if(!row||!api.search)return;
+   const used=usedFreeReferral();
+   if(used&&used.leaderKey!==freeProps){premium();return;}
+   const query=freeReferralQuery(row);
+   if(!query)return;
+   pendingFreeReferral={day:localDay(),leaderKey:freeProps,query:query};
+   close();api.search(query);return;
+  }
   const nav=button.getAttribute("data-centre-nav");
   const query=button.getAttribute("data-centre-query");
   if(nav&&api.go){api.go(nav);return}
@@ -506,14 +578,19 @@ function init(context){
   if(teamPickerOpen && !ev.target.closest("#bestbets-centre .bc-team-panel")){
    teamPickerOpen=false;renderFormPicker(homeData);
   }
+  if(freeInfoOpen&&!ev.target.closest("#bestbets-centre .bc-free-info-popup") &&
+     !ev.target.closest("#bc-free-info-toggle"))toggleFreeInfo(false);
  });
  document.addEventListener("keydown",ev=>{
   if(ev.key!=="Escape")return;
-  if(teamPickerOpen){
+  if(freeInfoOpen){
+   toggleFreeInfo(false);
+   $("bc-free-info-toggle")?.focus();
+  }else if(teamPickerOpen){
    teamPickerOpen=false;renderFormPicker(homeData);
    $("bc-form-toggle")?.focus();
   }else if(!$("bc-dialog").hidden)close();
  });
 }
-window.BestBetsCentre={init:init,render:renderHome,openPremium:premium};
+window.BestBetsCentre={init:init,render:renderHome,openPremium:premium,recordFreePropsResult:recordFreePropsResult};
 })();

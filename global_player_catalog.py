@@ -12,7 +12,7 @@ import pandas as pd
 from roster_data import ESPN_TEAM_IDS, COLUMNS, team_roster
 
 
-def build_global_catalog(roster_fetch=team_roster, max_workers=5):
+def build_global_catalog(roster_fetch=team_roster, max_workers=5, refresh_all=False):
     """Collect current ESPN team rosters with a bounded failed-team retry."""
     teams=sorted(ESPN_TEAM_IDS)
     loaded={}
@@ -47,7 +47,7 @@ def build_global_catalog(roster_fetch=team_roster, max_workers=5):
     # Keep request rate bounded; aggressive 30-at-once bursts can trigger
     # ESPN throttling and silently drop players.
     with ThreadPoolExecutor(max_workers=min(max(1,max_workers),5)) as pool:
-        tasks={pool.submit(fetch_one,team):team for team in teams}
+        tasks={pool.submit(fetch_one,team,refresh_all):team for team in teams}
         for future in as_completed(tasks):
             team=tasks[future]
             roster,meta=future.result()
@@ -85,4 +85,5 @@ def build_global_catalog(roster_fetch=team_roster, max_workers=5):
         "stale_teams":sorted(stale),
         "sparse_teams":sorted(sparse),
         "retried_teams":sorted(team for team,n in attempts.items() if n>1),
+        "team_counts":{team:len(roster) for team,roster in sorted(loaded.items())},
     }

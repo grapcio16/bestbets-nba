@@ -263,7 +263,14 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       <div id="bc-games-list" class="bc-game-list"><div class="bc-muted">Pobieranie potwierdzonego terminarza…</div></div>
     </section>
     <section class="bc-panel bc-free-panel">
-      <div class="bc-panel-head"><div class="bc-panel-title"><span class="bc-orange-icon">◎</span> Darmowe analizy <span class="bc-free-tag">FREE</span></div><span class="bc-subtle">Historyczne statystyki, nie prognozy</span></div>
+      <div class="bc-panel-head"><div class="bc-panel-title"><span class="bc-orange-icon">◎</span> Darmowe analizy <span class="bc-free-tag">FREE</span> <button id="bc-free-info-toggle" type="button" class="bc-info-toggle" aria-label="Wyjaśnij skróty PTS, REB i AST" aria-expanded="false" aria-controls="bc-free-info-popup" title="Co oznaczają skróty?" data-centre-free-info>i</button></div><span class="bc-subtle">Historyczne statystyki, nie prognozy</span></div>
+      <div id="bc-free-info-popup" class="bc-free-info-popup" role="dialog" aria-label="Skróty statystyk koszykarskich" hidden>
+        <div class="bc-free-info-heading"><strong>Co oznaczają skróty?</strong><button type="button" data-centre-free-info aria-label="Zamknij objaśnienia">×</button></div>
+        <div><b>PTS</b><span>Punkty zdobyte przez zawodnika</span></div>
+        <div><b>REB</b><span>Zbiórki piłki</span></div>
+        <div><b>AST</b><span>Asysty, czyli podania zakończone koszem</span></div>
+        <small>W tej sekcji pokazujemy potwierdzone wyniki meczów, nie typy ani prognozy.</small>
+      </div>
       <div class="bc-pick-list"><div class="bc-muted">Ładowanie liderów zakończonych meczów NBA…</div></div>
     </section>
   </div>
@@ -568,6 +575,11 @@ if(window.BestBetsCentre){
         type:"player_catalog",id:String(Date.now())+"-players-"+Math.random().toString(36).slice(2)
       }});
     },
+    refreshPlayers:function(){
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"player_catalog",force:true,id:String(Date.now())+"-roster-refresh-"+Math.random().toString(36).slice(2)
+      }});
+    },
     search:function(query){state.page="props";search(query)},
     refresh:function(){
       if(state.page!=="home")return;
@@ -643,6 +655,7 @@ window.addEventListener("message",function(event){
     }
   }
   render();
+  window.BestBetsCentre?.recordFreePropsResult?.(p,state.payload.error,state.query);
 });
 render();
 notify("streamlit:componentReady",{apiVersion:1});
