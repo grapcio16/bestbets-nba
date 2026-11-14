@@ -1,6 +1,7 @@
 """Offline Playwright regression of the free modal and licensed-photo switch."""
-import base64
 import json
+import struct
+import zlib
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 from test_free_analyses import event, NOW
@@ -8,7 +9,19 @@ from bestbets_free_analyses import extract_free_leaders
 
 ROOT=Path(__file__).resolve().parent
 OUT=ROOT/'work/centrum-qa/free-analyses'
-PNG=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=')
+def _fixture_png():
+    # 64px is intentionally larger than the portrait loader's min 50px rule.
+    # Its previous 1x1 fixture was rejected as a placeholder image.
+    def chunk(kind, payload):
+        return struct.pack('!I', len(payload)) + kind + payload + struct.pack(
+            '!I', zlib.crc32(kind + payload) & 0xffffffff)
+    row = b'\x00' + b'\x22\x88\xbb\xff' * 64
+    return (b'\x89PNG\r\n\x1a\n'
+            + chunk(b'IHDR', struct.pack('!2I5B', 64, 64, 8, 6, 0, 0, 0))
+            + chunk(b'IDAT', zlib.compress(row * 64)) + chunk(b'IEND', b''))
+
+
+PNG = _fixture_png()
 
 def render(page,home,details=None):
     page.evaluate("p=>window.postMessage({type:'streamlit:render',args:{payload:p}},'*')",
@@ -68,7 +81,8 @@ def main():
             page.route('https://a.espncdn.com/i/headshots/nba/players/full/*',photo)
             licensed={**home,'free_photos_enabled':True};render(page,licensed)
             img=page.locator('.bc-pick').first.locator('img');expect(img).to_be_visible()
-            assert img.evaluate('e=>getComputedStyle(e).objectFit')=='contain'
+            # Official portrait styling intentionally zooms/crops into the face.
+            assert img.evaluate('e=>getComputedStyle(e).objectFit')=='cover'
             assert img.get_attribute('src').endswith('/10.png')
             expect(page.locator('.bc-pick').nth(1).locator('img')).to_be_hidden()
             expect(page.locator('.bc-pick').nth(1).locator('.bc-free-avatar>span')).to_be_visible()

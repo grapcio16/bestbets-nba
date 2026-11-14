@@ -1,9 +1,8 @@
 """Verified-data adapter for the HOOPZARO Premium simulation canvas.
 
-No simulation data may be sent to the browser unless the Streamlit session has
-been authenticated and marked entitled by a trusted server-side payment flow.
-The public interface deliberately shows an empty (not invented) preview until
-that integration is available.
+Results are restricted by server-verified identity and an explicit entitlement
+(administrator or manually confirmed Premium). A payment integration must
+verify subscriptions on the server before granting customer entitlements.
 """
 from __future__ import annotations
 
@@ -12,15 +11,12 @@ from math import isfinite
 import numpy as np
 import pandas as pd
 import streamlit as st
+from access_control import premium_entitled as _verified_entitlement
 
 
 def premium_entitled() -> bool:
-    """Fail closed; no client event or query parameter can grant access.
-
-    An eventual Stripe webhook/auth callback must validate the *current user*
-    and explicitly set this server-side session value. It is never set here.
-    """
-    return st.session_state.get("bb_verified_premium_entitlement") is True
+    """Enforce role checks on every server-side Premium access."""
+    return _verified_entitlement()
 
 
 def _clean_float(value):
@@ -53,31 +49,57 @@ def _distribution(values):
     }
 
 
+def _season_at(tipoff) -> str:
+    stamp = pd.to_datetime(tipoff, utc=True)
+    first_year = stamp.year if stamp.month >= 10 else stamp.year - 1
+    return f"{first_year}-{(first_year + 1) % 100:02d}"
+
+
+@st.cache_data(ttl=3600, max_entries=4, show_spinner=False)
+def _advanced_from_verified_cache(season: str):
+    """Never delay an interactive simulation on blocked stats.nba.com calls."""
+    from sources import read_cache
+    from teams import standardize_teams
+
+    cached, meta = read_cache('extended-Drużyny • advanced (pace/def)-' + season, 12 * 3600)
+    if cached and meta and not meta.get('stale'):
+        return standardize_teams(pd.DataFrame(cached))
+    return pd.DataFrame()
+
+
 @st.cache_data(ttl=1800, max_entries=90, show_spinner=False)
 def _game_simulation(day: str, game_id: str):
-    """Run the existing model only for a confirmed, future ESPN fixture."""
+    """Future model, or clearly labeled retrospective model for a final game."""
     from bestbets_centre_live import get_centre_day_data
     from simulation_sources import historical_espn_results
-    from simulation_engine import (completed_team_scores, select_matchup_means,
-                                   simulate_game)
+    from simulation_engine import simulate_game
+    from simulation_context_v2 import simulation_inputs
 
     event = get_centre_day_data(day)
     games = event.get("games", [])
     match = next((g for g in games if str(g.get("id")) == game_id), None)
-    if match is None or match.get("state") != "scheduled":
-        return {"error": "Symulacje obejmują tylko przyszłe potwierdzone spotkania NBA."}
+    if match is None or match.get("state") not in ("scheduled", "final"):
+        return {"error": "Wybierz potwierdzony przyszły lub zakończony mecz NBA."}
     tipoff = pd.to_datetime(match.get("start"), utc=True, errors="coerce")
-    if pd.isna(tipoff) or tipoff <= pd.Timestamp.now(tz="UTC"):
-        return {"error": "Spotkanie już się rozpoczęło. Prognoza przedmeczowa jest niedostępna."}
-    historical, warning = historical_espn_results("2026-27")
+    if pd.isna(tipoff) or (match.get("state") == "scheduled" and
+                            tipoff <= pd.Timestamp.now(tz="UTC")):
+        return {"error": "Termin spotkania jest nieaktualny. Odśwież terminarz."}
+    season = _season_at(tipoff)
+    historical, warning = historical_espn_results(season)
     if historical is None or historical.empty:
         return {"error": "Brak wystarczającej zweryfikowanej historii ESPN."}
     away, home = str(match.get("away", "")), str(match.get("home", ""))
-    means = select_matchup_means(home, away, {}, completed_team_scores(historical))
+    game = {"game_id": game_id, "home": home, "away": away, "start_utc": tipoff}
+    # A present-day NBA Advanced cache contains games that happened AFTER a
+    # historical final. Using it here would leak future information.
+    advanced = (_advanced_from_verified_cache(season)
+                if match.get("state") == "scheduled" else pd.DataFrame())
+    context = simulation_inputs(historical, game, advanced)
+    means = context["means"]
     if means is None:
         return {"error": "Za mało historycznych spotkań do wiarygodnej symulacji."}
-    game = {"game_id": game_id, "home": home, "away": away, "start_utc": tipoff}
-    summary, _, home_scores, away_scores = simulate_game(game, means)
+    summary, _, home_scores, away_scores = simulate_game(
+        game, means, score_noise=context["score_noise"])
     return {
         "game_id": game_id, "away": away, "home": home,
         "away_win_pct": summary["away_win_pct"],
@@ -92,6 +114,8 @@ def _game_simulation(day: str, game_id: str):
         },
         "n_sims": summary["n_sims"], "source": str(summary.get("source") or "ESPN"),
         "warning": str(warning or "")[:150],
+        "retrospective": match.get("state") == "final",
+        "model_context": context["context"],
         "players": None,
     }
 
@@ -105,16 +129,21 @@ def _game_players(day: str, game_id: str):
 
     event = get_centre_day_data(day)
     match = next((g for g in event.get("games", []) if str(g.get("id")) == game_id), None)
-    if match is None or match.get("state") != "scheduled":
-        return {"error": "Nie znaleziono nadchodzącego spotkania.", "players": []}
+    if match is None or match.get("state") not in ("scheduled", "final"):
+        return {"error": "Nie znaleziono potwierdzonego spotkania.", "players": []}
     tipoff = pd.to_datetime(match.get("start"), utc=True, errors="coerce")
-    if pd.isna(tipoff) or tipoff <= pd.Timestamp.now(tz="UTC"):
-        return {"error": "Projekcje przedmeczowe są niedostępne.", "players": []}
-    historical, _ = historical_espn_results("2026-27")
+    if pd.isna(tipoff) or (match.get("state") == "scheduled" and
+                            tipoff <= pd.Timestamp.now(tz="UTC")):
+        return {"error": "Nieaktualny termin spotkania.", "players": []}
+    season = _season_at(tipoff)
+    historical, _ = historical_espn_results(season)
     game = {"game_id": game_id, "home": str(match["home"]),
             "away": str(match["away"]), "start_utc": tipoff}
-    table, _ = matchup_players_cached("2026-27", game, historical,
-                                      pd.DataFrame(), 0, research_mode=False)
+    advanced = (_advanced_from_verified_cache(season)
+                if match.get("state") == "scheduled" else pd.DataFrame())
+    table, _ = matchup_players_cached(season, game, historical,
+                                      advanced, 0,
+                                      research_mode=True)
     if table is None or table.empty:
         return {"players": [], "error": "ESPN nie dostarczył projekcji graczy dla tego spotkania."}
     required = {"Zawodnik", "Drużyna", "PTS", "REB", "AST"}

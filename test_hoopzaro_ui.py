@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from base64 import b64encode
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 
 ROOT = Path(__file__).resolve().parent
@@ -70,7 +70,14 @@ def main() -> None:
             assert page.locator("#chart-svg .bb-plot-bar").count() == 10
             assert page.locator("#hero-rate").inner_text().endswith("%")
             page.locator('[data-market="PRA"]').click()
-            assert "PTS + REB + AST" in page.locator("#chart-heading").inner_text()
+            # The chart now labels the combined market PRA directly.
+            expect_heading = "PRA"
+            actual_heading = page.locator("#chart-heading").inner_text()
+            assert expect_heading in actual_heading, (
+                f"PRA heading={actual_heading!r}, "
+                f"market={page.locator('#market').input_value()!r}, "
+                f"selected={page.locator('[data-market=PRA]').get_attribute('class')!r}"
+            )
             page.locator('[data-market="REB"]').click()
             page.locator("#line-plus").click()
             assert page.locator("#line").input_value() == "8"
@@ -78,6 +85,17 @@ def main() -> None:
             assert "UNDER" in page.locator("#take-text").inner_text()
             if width == 1800:
                 page.screenshot(path=str(ROOT / "hoopzaro_props_smoke.png"))
+            # Verified administrator sees an explicit ADMIN badge and the
+            # Premium shortcut opens real simulation tools, not an upsell.
+            page.evaluate(
+                "payload => window.postMessage({type:'streamlit:render',args:{payload}},'*')",
+                {"player": EXAMPLE_PLAYER, "home": None, "brand": BRAND, "error": "",
+                 "auth": {"configured": True, "logged_in": True,
+                          "role": "admin", "name": "Test Admin"}},
+            )
+            expect(page.locator("#hz-premium .hz-premium-text")).to_have_text("ADMIN")
+            page.locator("#hz-premium").click()
+            expect(page.locator("#simulations-pane")).to_be_visible()
             assert not errors, errors
             page.close()
         browser.close()

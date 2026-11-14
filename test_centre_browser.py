@@ -76,7 +76,9 @@ def check_static(page,out):
     expect(page.locator(".bc-game")).to_have_count(1)
     assert page.locator(".bc-game").first.inner_text().find("NA ŻYWO")>=0
     assert page.locator(".bc-ticker-card.live").count()==1
-    assert page.locator(".bc-result").count()==1
+    # Final scores live in the dated calendar after the approved Centrum
+    # redesign; the old dedicated .bc-result tile no longer exists.
+    assert page.locator("#bc-games-list").count()==1
     assert page.locator(".bc-team-form").count()==1
     # A single dropdown lists all 30 NBA teams; stars are toggleable.
     page.locator("#bc-form-toggle").click()
@@ -98,7 +100,9 @@ def check_static(page,out):
     expect(page.locator("#bc-refresh")).to_be_visible()
     assert page.locator("#bc-source-state").inner_text().startswith("●")
     assert page.locator(".bc-pick").count()==3
-    assert page.locator(".bc-watch button").count()==3
+    # Three watch rows each have a player action and an independent star
+    # toggle. Count rows, not all buttons (which are 6 in total).
+    expect(page.locator(".bc-watch .bc-watch-row")).to_have_count(3)
     # The glossary must be centered over a blurred full-viewport backdrop.
     page.locator("#bc-free-info-toggle").click()
     expect(page.locator("#bc-free-info-popup")).to_be_visible()
@@ -135,7 +139,7 @@ def check_static(page,out):
     page.locator("#bc-players-search").fill("")
     for pid in ("102","103","104"):
         page.locator(f'[data-bb-watch-id="{pid}"]').click()
-    expect(page.locator(".bc-watch button")).to_have_count(3)
+    expect(page.locator(".bc-watch .bc-watch-row")).to_have_count(3)
     page.locator('[data-bb-watch-id="101"]').click()
     expect(page.locator("#bc-catalog-help")).to_contain_text("Maksymalnie 3")
     expect(page.locator(".bc-catalog-head")).to_contain_text("3/3")
@@ -243,8 +247,10 @@ def check_streamlit(browser,url,out):
         expect(frame.locator("#bc-selected-day")).to_have_text(first)
         # Previously CI accepted a backend success while the visible NBA
         # ticker and results remained stuck at their initial placeholders.
-        # Requiring all 3 sections to leave loading covers that exact bug.
-        for selector in ("#bc-ticker-games","#bc-games-list","#bc-finals"):
+        # Requiring the ticker, schedule, and source status to leave loading
+        # covers that bug. The removed #bc-finals tile is not part of the
+        # redesigned dashboard; completed games live in the schedule.
+        for selector in ("#bc-ticker-games","#bc-games-list","#bc-source-state"):
             content=frame.locator(selector).inner_text()
             assert "Wczytywanie" not in content and "Pobieranie" not in content, (
                 "Dashboard is still loading after first real Streamlit paint",selector,content

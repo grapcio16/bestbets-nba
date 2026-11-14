@@ -242,7 +242,7 @@ function renderInjuryWatch(data){
  }else{
   host.innerHTML=rows.map(injuryRow).join('');
   host.scrollTop=scrollTop;
-  window.HoopzaroPortraits?.observe(host);
+  if(homeData?.free_photos_enabled===true)window.HoopzaroPortraits?.observe(host);
  }
 }
 function openInjuryReport(){
@@ -266,7 +266,7 @@ function openInjuryReport(){
  dialog.classList.remove('bc-free-detail-dialog');
  dialog.classList.add('bc-injury-detail-dialog');
  dialog.hidden=false;
- window.HoopzaroPortraits?.observe(body);
+ if(homeData?.free_photos_enabled===true)window.HoopzaroPortraits?.observe(body);
  dialog.querySelector('.bc-dialog-close')?.focus();
 }
 
@@ -401,7 +401,7 @@ function renderPlayers(data){
   freeAvatar(p).replace('bc-free-avatar','bc-free-avatar bc-watch-avatar')+
   '<span class="bc-watch-name">'+escapeHtml(p.name)+'</span>'+positionBadge(p,'bc-watch-position')+teamBadge(p.team)+
   '<span class="bc-watch-chevron">›</span></button>').join("");
- window.HoopzaroPortraits?.observe(watch);
+ if(data?.free_photos_enabled===true)window.HoopzaroPortraits?.observe(watch);
 }
 let pendingFreeLeaderKey=null, freeRenderSignature="",freeInfoOpen=false,injuryInfoOpen=false,pendingFreeReferral=null;
 const freeLabels={PTS:"Lider punktów",REB:"Lider zbiórek",AST:"Lider asyst"};
@@ -485,7 +485,7 @@ function renderFreeLeaders(data){
     teamBadge(p.opponent)+'<br><i>'+escapeHtml(p.date)+' NBA/ET</i></span>'+
     '<span class="bc-mini-btn">Szczegóły ›</span></button>';
  }).join("");
- window.HoopzaroPortraits?.observe(host);
+ if(data?.free_photos_enabled===true)window.HoopzaroPortraits?.observe(host);
 }
 function freeDetailsBody(p,stats,note,verified=false){
  return '<div class="bc-free-heading">'+freeAvatar(p)+'<div><strong>'+escapeHtml(p.name)+
@@ -500,7 +500,8 @@ function freeDetailsBody(p,stats,note,verified=false){
 function showFreeDetails(p,stats,note,verified=false){
  setText("bc-dialog-title",p.name+" — występ NBA");
  $("bc-dialog-body").innerHTML=freeDetailsBody(p,stats,note,verified);
- window.HoopzaroPortraits?.observe($("bc-dialog-body"));
+ if(homeData?.free_photos_enabled===true)
+  window.HoopzaroPortraits?.observe($("bc-dialog-body"));
  $("bc-dialog").classList.add("bc-free-detail-dialog");
  $("bc-dialog").classList.remove("bc-injury-detail-dialog");
  $("bc-dialog").hidden=false;

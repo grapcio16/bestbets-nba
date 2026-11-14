@@ -32,7 +32,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",chart:"away",expanded:false,requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",chart:"match",expanded:false,requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 function fixtures(home){
   const extra=home?.calendar_extras?.[state.day];
@@ -160,7 +160,7 @@ function showPlayers(premium,players){
   if(!state.expanded&&players.players.length>4){button.textContent='Pokaż wszystkich zawodników ('+players.players.length+') ▾'}
 }
 function maybeLoadPaid(game,premium,sim,players){
-  if(!premium?.entitled||!game||game.state!=="scheduled")return;
+  if(!premium?.entitled||!game||!["scheduled","final"].includes(game.state))return;
   const key=state.day+"|"+game.id;
   if(!sim&&state.gamePending!==key){state.gamePending=key;callbacks?.loadGame?.(state.day,game.id)}
   if(sim&&!sim.error&&!players&&state.playersPending!==key){state.playersPending=key;callbacks?.loadPlayers?.(state.day,game.id)}
@@ -180,6 +180,17 @@ function render(home,premium){
   gameButtons(data.games);
   const game=data.games.find(item=>item.id===state.gameId);
   const sim=trustedResult(premium,game),players=trustedPlayers(premium,game);
+  const ctx=sim?.model_context;
+  $("hzm-evidence-form").textContent=ctx
+    ?"Zweryfikowane mecze: "+ctx.away_sample+" / "+ctx.home_sample
+    :"Ostatnie potwierdzone mecze";
+  $("hzm-evidence-pace").textContent=ctx?.advanced_available
+    ?"NBA Advanced: PACE / OFF / DEF + historia ESPN"
+    :ctx?"Rzeczywiste odchylenia punktów; brak NBA Advanced"
+    :"Heurystyczna zmienność punktów";
+  $("hzm-evidence-rest").textContent=ctx?.rest_days?.every(n=>Number.isFinite(n))
+    ?"Dni odpoczynku: "+ctx.rest_days.join(" / ")+" · kontuzje niezweryfikowane"
+    :"Kontuzje wymagają potwierdzenia";
   const away=game?.away||"NBA",homeCode=game?.home||"NBA";
   $("hzm-match-label").innerHTML=esc(away)+' <span>VS</span> <span class="hzm-home-code">'+esc(homeCode)+'</span>';
   $("hzm-away-code").textContent=away;$("hzm-home-code").textContent=homeCode;
@@ -191,14 +202,15 @@ function render(home,premium){
     ?'conic-gradient(#16e9f6 0 '+Math.min(100,Math.max(0,sim.away_win_pct))+'%,#b15cef '+Math.min(100,Math.max(0,sim.away_win_pct))+'% 100%)'
     :'conic-gradient(#193d5c 0 50%,#351a54 50% 100%)';
   $("hzm-simulation-message").textContent=!premium?.entitled
-    ?"Zweryfikowane Premium wymagane":!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":"Średnia z 5 000 symulacji");
+    ?"Zweryfikowane Premium wymagane":!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":
+      sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji");
   $("simulations-pane").classList.toggle("hzm-premium-locked",!premium?.entitled);
   showChart(sim,game,premium);showPlayers(premium,players);
   maybeLoadPaid(game,premium,sim,players);
 }
 function navigate(day){
   if(!safeDate(day)||!withinRange(day)||state.day===day)return;
-  state.day=day;state.gameId="";state.chart="away";state.expanded=false;state.gamePending="";state.playersPending="";
+  state.day=day;state.gameId="";state.chart="match";state.expanded=false;state.gamePending="";state.playersPending="";
   render(state.lastHome,state.lastPremium);
 }
 function init(api){
@@ -207,7 +219,7 @@ function init(api){
     const arrow=event.target.closest("[data-hzm-shift]");
     if(arrow){navigate(dayShift(state.day,Number(arrow.dataset.hzmShift)));return}
     const gameButton=event.target.closest("[data-hzm-game]");
-    if(gameButton){state.gameId=gameButton.dataset.hzmGame;state.chart="away";state.expanded=false;render(state.lastHome,state.lastPremium);return}
+    if(gameButton){state.gameId=gameButton.dataset.hzmGame;state.chart="match";state.expanded=false;render(state.lastHome,state.lastPremium);return}
     const metric=event.target.closest("[data-hzm-chart]");
     if(metric){state.chart=metric.dataset.hzmChart;render(state.lastHome,state.lastPremium);return}
     if(event.target.closest("#hzm-expand-players")){state.expanded=!state.expanded;render(state.lastHome,state.lastPremium);return}

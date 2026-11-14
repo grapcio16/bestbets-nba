@@ -283,19 +283,27 @@ def _player_draws(rng,team_scores,roster):
                     'Status ESPN':r['status'],'Próba występów':r['n_games']})
     return pd.DataFrame(out)
 
-def simulate_game(game:dict,mean:dict,home_roster=None,away_roster=None,n:int=5000):
+def simulate_game(game:dict,mean:dict,home_roster=None,away_roster=None,n:int=5000,
+                  score_noise:dict|None=None):
     """Exactly n independent match draws, reproducible for each matchup and inputs."""
     if n!=5000:raise ValueError('BestBets v6 symuluje dokładnie 5000 przebiegów meczu.')
     mu_h=_num(mean.get('home'));mu_a=_num(mean.get('away'))
     if any(x is None or not 60<x<170 for x in (mu_h,mu_a)):
         raise ValueError('Brak wiarygodnych oczekiwanych punktów dla obu drużyn.')
-    key=f"{game.get('game_id')}|{game.get('home')}|{game.get('away')}|{mu_h:.6f}|{mu_a:.6f}|5000"
+    noise=score_noise or {}
+    shared_sd=_num(noise.get('shared_sd',6))
+    home_sd=_num(noise.get('home_sd',11))
+    away_sd=_num(noise.get('away_sd',11))
+    if any(x is None or not 2 <= x <= 22 for x in (shared_sd,home_sd,away_sd)):
+        raise ValueError('Zmienność punktów musi mieścić się w rozsądnym zakresie.')
+    key=(f"{game.get('game_id')}|{game.get('home')}|{game.get('away')}|"
+         f"{mu_h:.6f}|{mu_a:.6f}|{shared_sd:.3f}|{home_sd:.3f}|{away_sd:.3f}|5000")
     seed=int.from_bytes(sha256(key.encode()).digest()[:8],'big')
     rng=np.random.default_rng(seed)
-    # Correlated game pace +/- 6 and team-specific scoring +/- 11; heuristic variances.
-    shared=rng.normal(0,6,n)
-    home=np.rint(np.clip(mu_h+shared+rng.normal(0,11,n),60,175)).astype(int)
-    away=np.rint(np.clip(mu_a+shared+rng.normal(0,11,n),60,175)).astype(int)
+    # Correlated pace + shrunk, observed scoring variance when available.
+    shared=rng.normal(0,shared_sd,n)
+    home=np.rint(np.clip(mu_h+shared+rng.normal(0,home_sd,n),60,175)).astype(int)
+    away=np.rint(np.clip(mu_a+shared+rng.normal(0,away_sd,n),60,175)).astype(int)
     # NBA games don't finish tied. Equal regulation scores -> simplified overtime.
     tied=home==away
     if tied.any():
@@ -319,6 +327,7 @@ def simulate_game(game:dict,mean:dict,home_roster=None,away_roster=None,n:int=50
        'away_score_p10':int(np.percentile(away,10)),'away_score_p90':int(np.percentile(away,90)),
        'total_p10':int(np.percentile(home+away,10)),'total_p90':int(np.percentile(home+away,90)),
        'source':mean['source'],'warning':mean.get('warning',''),'sample':mean.get('samples'),
+       'score_noise':{'shared_sd':shared_sd,'home_sd':home_sd,'away_sd':away_sd},
        'winner':game['home'] if home_win>=.5 else game['away']}
     return summary,pd.concat(players,ignore_index=True) if players else pd.DataFrame(),home,away
 
