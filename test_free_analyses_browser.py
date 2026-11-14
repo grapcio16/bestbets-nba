@@ -81,7 +81,8 @@ def main():
             page.route('https://a.espncdn.com/i/headshots/nba/players/full/*',photo)
             licensed={**home,'free_photos_enabled':True};render(page,licensed)
             img=page.locator('.bc-pick').first.locator('img');expect(img).to_be_visible()
-            assert img.evaluate('e=>getComputedStyle(e).objectFit')=='contain'
+            # Official portrait styling intentionally zooms/crops into the face.
+            assert img.evaluate('e=>getComputedStyle(e).objectFit')=='cover'
             assert img.get_attribute('src').endswith('/10.png')
             expect(page.locator('.bc-pick').nth(1).locator('img')).to_be_hidden()
             expect(page.locator('.bc-pick').nth(1).locator('.bc-free-avatar>span')).to_be_visible()

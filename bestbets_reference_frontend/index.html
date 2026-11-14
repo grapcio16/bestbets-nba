@@ -598,6 +598,13 @@ function requestHomeData(){
 }
 function render(){
   const active=state.page==="props",home=state.page==="home";
+  const role=state.payload.auth?.role||"guest";
+  const sidebarRole=$("hz-premium")?.querySelector(".hz-premium-text");
+  if(sidebarRole)sidebarRole.textContent=role==="admin"?"ADMIN":"PREMIUM";
+  const propsHelp=$("props-heading")?.querySelector("p");
+  if(propsHelp)propsHelp.textContent=role==="admin"||role==="premium"
+    ?"Player prop analysis, stats & context"
+    :"Analizy wymagają Premium · dostęp po zalogowaniu w Ustawieniach";
   root.classList.toggle("bb-home-active",home);
   $("props-pane").style.display=active?"block":"none";
   const schedule=state.page==="games";

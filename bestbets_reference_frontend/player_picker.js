@@ -5,6 +5,7 @@
 const $=id=>document.getElementById(id);
 const KEY="bestbets.centrum.watchedPlayers.v1";
 let catalog=null,api=null,isOpen=false,filter="",nativeWatch="",refreshing=false;
+let photosAllowed=false;
 let teamLogos={};
 let favorites=[];
 try{
@@ -74,7 +75,7 @@ function watch(){
     position:b.querySelector(".bc-watch-position")?.textContent||""}));
  }
  node.innerHTML=rows.join("");
- window.HoopzaroPortraits?.observe(node);
+ if(photosAllowed)window.HoopzaroPortraits?.observe(node);
 }
 function options(){
  const node=$("bc-players-picker"),toggle=$("bc-players-toggle");
@@ -118,11 +119,12 @@ function options(){
   '<input id="bc-players-search" autocomplete="off" type="search" maxlength="70"'+
   ' placeholder="Znajdź zawodnika lub drużynę…" value="'+escape(filter)+'" aria-label="Wyszukaj gracza">'+
   '<div class="bc-catalog-help" id="bc-catalog-help">Kliknij ☆, aby obserwować. '+
-  'Zdjęcia portretowe: ESPN; gdy zdjęcie jest niedostępne, fotografia z Wikimedia Commons lub inicjały.</div>'+
+  (photosAllowed?'Zdjęcia portretowe: ESPN; gdy zdjęcie jest niedostępne, fotografia z Wikimedia Commons lub inicjały.':
+    'Wizerunki zawodników są wyłączone. Wyświetlane są inicjały.')+'</div>'+
   '<div class="bc-catalog-list">'+(rows||'<div class="bc-muted">'+info+'</div>')+'</div>';
  const list=node.querySelector(".bc-catalog-list");
  if(list)list.scrollTop=oldScroll;
- window.HoopzaroPortraits?.observe(list);
+ if(photosAllowed)window.HoopzaroPortraits?.observe(list);
 }
 function toggleFavorite(id,button){
  const fromVisible=button?.closest(".bc-watch-row")?{
@@ -181,6 +183,7 @@ window.BestBetsCentre.init=function(ctx){api=ctx;originalInit(ctx);install();};
 window.BestBetsCentre.render=function(data,players,freeDetails){
  originalRender(data,freeDetails);
  if(data){
+  photosAllowed=data.free_photos_enabled===true;
   teamLogos=Object.fromEntries((Array.isArray(data.form_options)?data.form_options:[])
    .filter(t=>t&&typeof t.team==="string").map(t=>[t.team,t.logo]));
  }

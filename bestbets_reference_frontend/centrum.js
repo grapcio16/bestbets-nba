@@ -242,7 +242,7 @@ function renderInjuryWatch(data){
  }else{
   host.innerHTML=rows.map(injuryRow).join('');
   host.scrollTop=scrollTop;
-  window.HoopzaroPortraits?.observe(host);
+  if(homeData?.free_photos_enabled===true)window.HoopzaroPortraits?.observe(host);
  }
 }
 function openInjuryReport(){
@@ -266,7 +266,7 @@ function openInjuryReport(){
  dialog.classList.remove('bc-free-detail-dialog');
  dialog.classList.add('bc-injury-detail-dialog');
  dialog.hidden=false;
- window.HoopzaroPortraits?.observe(body);
+ if(homeData?.free_photos_enabled===true)window.HoopzaroPortraits?.observe(body);
  dialog.querySelector('.bc-dialog-close')?.focus();
 }
 

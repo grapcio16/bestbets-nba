@@ -100,9 +100,9 @@ def check_static(page,out):
     expect(page.locator("#bc-refresh")).to_be_visible()
     assert page.locator("#bc-source-state").inner_text().startswith("●")
     assert page.locator(".bc-pick").count()==3
-    # The new watch-list shows one suggested athlete until the visitor picks
-    # up to three favorites from the verified 30-team catalog below.
-    expect(page.locator(".bc-watch button")).to_have_count(1)
+    # Three watch rows each have a player action and an independent star
+    # toggle. Count rows, not all buttons (which are 6 in total).
+    expect(page.locator(".bc-watch .bc-watch-row")).to_have_count(3)
     # The glossary must be centered over a blurred full-viewport backdrop.
     page.locator("#bc-free-info-toggle").click()
     expect(page.locator("#bc-free-info-popup")).to_be_visible()
@@ -139,7 +139,7 @@ def check_static(page,out):
     page.locator("#bc-players-search").fill("")
     for pid in ("102","103","104"):
         page.locator(f'[data-bb-watch-id="{pid}"]').click()
-    expect(page.locator(".bc-watch button")).to_have_count(3)
+    expect(page.locator(".bc-watch .bc-watch-row")).to_have_count(3)
     page.locator('[data-bb-watch-id="101"]').click()
     expect(page.locator("#bc-catalog-help")).to_contain_text("Maksymalnie 3")
     expect(page.locator(".bc-catalog-head")).to_contain_text("3/3")
