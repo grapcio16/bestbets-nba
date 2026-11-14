@@ -120,16 +120,20 @@ function loadStudioHeadshot(node,id){
  return new Promise(resolve=>{
   if(!/^\d{1,20}$/.test(id||"")){resolve(false);return;}
   const img=new Image();
+  let settled=false;
+  const done=loaded=>{if(settled)return;settled=true;clearTimeout(timer);resolve(loaded);};
+  const timer=setTimeout(()=>{img.src="";done(false);},6500);
   img.alt="Studyjny portret zawodnika: "+node.dataset.hoopPlayer;
   img.title="Portret zawodnika · zdjęcie z ESPN";
   img.className="bc-headshot-photo";
   img.decoding="async";img.loading="eager";
   img.onload=()=>{
-   if(!node.isConnected||node.querySelector("img")||img.naturalWidth<50||img.naturalHeight<50){resolve(false);return;}
+   if(settled)return;
+   if(!node.isConnected||node.querySelector("img")||img.naturalWidth<50||img.naturalHeight<50){done(false);return;}
    node.appendChild(img);node.dataset.hoopPhotoState="studio";
-   resolve(true);
+   done(true);
   };
-  img.onerror=()=>resolve(false);
+  img.onerror=()=>done(false);
   img.src="https://a.espncdn.com/i/headshots/nba/players/full/"+id+".png";
  });
 }
@@ -182,7 +186,11 @@ function observe(container){
   const name=node.dataset.hoopPlayer;
   if(!name)continue;
   node.dataset.hoopPhotoState="queued";
-  if(!immediate&&observer)observer.observe(node);
+  if(immediate){
+   loadStudioHeadshot(node,node.dataset.hoopId).then(async loaded=>{
+    if(!loaded){const photo=await get(name);if(photo)apply(node,photo);}
+   });
+  }else if(observer)observer.observe(node);
   else{queue.push({node,name,id:node.dataset.hoopId});pump();}
  }
 }
