@@ -264,12 +264,14 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     </section>
     <section class="bc-panel bc-free-panel">
       <div class="bc-panel-head"><div class="bc-panel-title"><span class="bc-orange-icon">◎</span> Darmowe analizy <span class="bc-free-tag">FREE</span> <button id="bc-free-info-toggle" type="button" class="bc-info-toggle" aria-label="Wyjaśnij skróty PTS, REB i AST" aria-expanded="false" aria-controls="bc-free-info-popup" title="Co oznaczają skróty?" data-centre-free-info>i</button></div><span class="bc-subtle">Historyczne statystyki, nie prognozy</span></div>
-      <div id="bc-free-info-popup" class="bc-free-info-popup" role="dialog" aria-modal="true" aria-label="Skróty statystyk koszykarskich" hidden>
-        <div class="bc-free-info-heading"><strong>Co oznaczają skróty?</strong><button type="button" data-centre-free-info aria-label="Zamknij objaśnienia">×</button></div>
-        <div><b>PTS</b><span>Punkty zdobyte przez zawodnika</span></div>
-        <div><b>REB</b><span>Zbiórki piłki</span></div>
-        <div><b>AST</b><span>Asysty, czyli podania zakończone koszem</span></div>
-        <small>W tej sekcji pokazujemy potwierdzone wyniki meczów, nie typy ani prognozy.</small>
+      <div id="bc-free-info-popup" class="bc-free-info-popup" role="dialog" aria-modal="true" aria-labelledby="bc-free-info-title" hidden>
+        <div class="bc-free-info-heading"><div><span class="bc-free-info-kicker">HOOPZARO · SŁOWNIK NBA</span><strong id="bc-free-info-title">Co oznaczają skróty?</strong><p>Trzy podstawowe statystyki, które zobaczysz w darmowych analizach.</p></div><button type="button" data-centre-free-info aria-label="Zamknij objaśnienia">×</button></div>
+        <div class="bc-free-info-metrics">
+          <div class="bc-free-info-metric"><span class="bc-info-metric-emblem" aria-hidden="true">●</span><b>PTS</b><strong>Punkty</strong><span>Wszystkie punkty zdobyte przez zawodnika w meczu.</span></div>
+          <div class="bc-free-info-metric"><span class="bc-info-metric-emblem" aria-hidden="true">◇</span><b>REB</b><strong>Zbiórki</strong><span>Piłki zebrane po niecelnych rzutach w ataku i obronie.</span></div>
+          <div class="bc-free-info-metric"><span class="bc-info-metric-emblem" aria-hidden="true">↗</span><b>AST</b><strong>Asysty</strong><span>Podania do kolegi z drużyny, po których pada kosz.</span></div>
+        </div>
+        <div class="bc-free-info-foot"><span>Pokazujemy potwierdzone wyniki spotkań NBA — nie typy ani prognozy.</span><span class="bc-free-info-foot-badge">✓ Zweryfikowane dane</span></div>
       </div>
       <div class="bc-pick-list"><div class="bc-muted">Ładowanie liderów zakończonych meczów NBA…</div></div>
     </section>
