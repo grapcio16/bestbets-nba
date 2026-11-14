@@ -448,25 +448,59 @@
   -webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px)
 }
 .bc-free-info-backdrop .bc-free-info-popup{
-  position:relative;display:block;width:min(440px,100%);padding:24px 26px 21px;
-  border:1.5px solid #b678ff;border-radius:19px;
-  color:#edf8ff;background:linear-gradient(135deg,#26154e,#081a39 88%);
-  box-shadow:0 24px 70px rgba(0,0,0,.83),0 0 32px rgba(149,76,253,.45),inset 0 1px rgba(216,151,255,.3);
-  font-family:Inter,Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5
+  position:relative;display:block;width:min(860px,calc(100vw - 40px));
+  min-height:450px;max-height:calc(100dvh - 36px);overflow-y:auto;
+  padding:32px 36px 28px;border:1.5px solid #b678ff;border-radius:24px;
+  color:#edf8ff;background:radial-gradient(ellipse at 88% 0%,rgba(125,39,204,.24),transparent 48%),linear-gradient(135deg,#24154e,#081a39 86%);
+  box-shadow:0 24px 85px rgba(0,0,0,.85),0 0 44px rgba(149,76,253,.45),inset 0 1px rgba(216,151,255,.3);
+  font-family:Inter,Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5
 }
-.bc-free-info-backdrop .bc-free-info-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px;gap:15px}
-.bc-free-info-backdrop .bc-free-info-heading strong{font-size:20px;color:#f4eaff}
+.bc-free-info-backdrop .bc-free-info-heading{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:25px;gap:22px}
+.bc-free-info-backdrop .bc-free-info-heading>div{display:flex;flex-direction:column;gap:5px}
+.bc-free-info-backdrop .bc-free-info-kicker{font-size:11px;letter-spacing:.15em;color:#3de5ff;font-weight:900}
+.bc-free-info-backdrop .bc-free-info-heading strong{font-size:30px;line-height:1.2;color:#f4eaff}
+.bc-free-info-backdrop .bc-free-info-heading p{font-size:14px;line-height:1.45;color:#b9cef2;margin:3px 0 0}
 .bc-free-info-backdrop .bc-free-info-heading button{
-  display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;
+  display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;
   border:1px solid #6e60ad;border-radius:50%;background:#332453;color:#e9e9ff;
-  font-size:24px;line-height:1;cursor:pointer
+  font-size:26px;line-height:1;cursor:pointer
 }
 .bc-free-info-backdrop .bc-free-info-heading button:hover,.bc-free-info-backdrop .bc-free-info-heading button:focus-visible{
   border-color:#16d7ff;outline:2px solid #16d7ff;outline-offset:1px
 }
-.bc-free-info-backdrop .bc-free-info-popup>div:not(.bc-free-info-heading){display:flex;gap:17px;align-items:baseline;margin:13px 0}
-.bc-free-info-backdrop .bc-free-info-popup>div>b{width:41px;flex:0 0 41px;color:#30ffc4;font-size:15px}
-.bc-free-info-backdrop .bc-free-info-popup small{display:block;margin-top:17px;padding-top:14px;border-top:1px solid #5d4587;color:#adc5e9;font-size:12px}
+.bc-free-info-backdrop .bc-free-info-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.bc-free-info-backdrop .bc-free-info-metric{
+  display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-height:217px;
+  padding:21px 20px 17px;border:1px solid #4773ac;border-radius:17px;
+  background:linear-gradient(150deg,rgba(15,62,91,.7),rgba(19,20,64,.64));
+  box-shadow:inset 0 1px rgba(255,255,255,.08)
+}
+.bc-free-info-backdrop .bc-info-metric-emblem{font-size:23px;line-height:1.1;color:#26e9ff}
+.bc-free-info-backdrop .bc-free-info-metric:nth-child(2) .bc-info-metric-emblem{color:#a47cff}
+.bc-free-info-backdrop .bc-free-info-metric:nth-child(3) .bc-info-metric-emblem{color:#ff9d62}
+.bc-free-info-backdrop .bc-free-info-metric b{font-size:24px;line-height:1.1;color:#36ffbc;font-weight:950}
+.bc-free-info-backdrop .bc-free-info-metric strong{font-size:17px;color:#fff;font-weight:850}
+.bc-free-info-backdrop .bc-free-info-metric>span:last-child{font-size:13px;line-height:1.5;color:#c3d8f2}
+.bc-free-info-backdrop .bc-free-info-foot{
+  display:flex;justify-content:space-between;align-items:center;gap:16px;
+  margin-top:24px;padding-top:17px;border-top:1px solid rgba(170,112,255,.35);
+  color:#b4cae9;font-size:13px
+}
+.bc-free-info-backdrop .bc-free-info-foot-badge{white-space:nowrap;color:#30ffc4;font-size:12px;font-weight:850}
+@media(max-width:650px){
+  .bc-free-info-backdrop{padding:12px}
+  .bc-free-info-backdrop .bc-free-info-popup{width:100%;min-height:0;padding:23px 19px;border-radius:18px}
+  .bc-free-info-backdrop .bc-free-info-heading{margin-bottom:18px}
+  .bc-free-info-backdrop .bc-free-info-heading strong{font-size:24px}
+  .bc-free-info-backdrop .bc-free-info-heading p{font-size:12px}
+  .bc-free-info-backdrop .bc-free-info-metrics{grid-template-columns:1fr;gap:9px}
+  .bc-free-info-backdrop .bc-free-info-metric{min-height:0;padding:12px 15px;gap:2px}
+  .bc-free-info-backdrop .bc-info-metric-emblem{display:none}
+  .bc-free-info-backdrop .bc-free-info-metric b{font-size:19px}
+  .bc-free-info-backdrop .bc-free-info-metric strong{font-size:15px}
+  .bc-free-info-backdrop .bc-free-info-metric>span:last-child{font-size:12px}
+  .bc-free-info-backdrop .bc-free-info-foot{flex-direction:column;align-items:flex-start;margin-top:14px;padding-top:12px;font-size:12px}
+}
 
 /* Small team marks and player portraits; images require an explicit license flag. */
 #bestbets-centre .bc-free-team{display:inline-flex;align-items:center;gap:3px;vertical-align:middle;white-space:nowrap}
@@ -532,8 +566,22 @@
 #bestbets-centre .bc-free-panel .bc-pick-info small{font-size:9px}
 #bestbets-centre .bc-free-avatar{position:relative;overflow:hidden}
 #bestbets-centre .bc-free-avatar img{width:100%;height:100%;object-fit:contain;position:absolute;inset:0}
-#bestbets-centre .bc-free-avatar img.bc-commons-photo{object-fit:cover;object-position:center 24%}
+#bestbets-centre .bc-free-avatar img.bc-commons-photo{
+  object-fit:cover;object-position:var(--hoop-portrait-position,center 27%);
+  transform:scale(var(--hoop-portrait-zoom,1.3));
+  transform-origin:var(--hoop-portrait-origin,50% 35%);
+}
 #bestbets-centre .bc-free-avatar [hidden]{display:none}
+#bestbets-centre .bc-free-panel .bc-pick>.bc-free-avatar{
+  width:38px;height:38px;flex:0 0 38px;
+  border:2px solid #2bdafa;background:radial-gradient(circle at 48% 25%,#194f85,#090f2d 78%);
+  box-shadow:0 0 7px rgba(50,191,255,.4)
+}
+#bestbets-centre .bc-watch .bc-watch-avatar{
+  width:26px;height:26px;flex:0 0 26px;
+  border-color:#29d4f4;background:radial-gradient(circle at 50% 25%,#194f85,#090f2d 80%)
+}
+#bestbets-centre .bc-catalog-athlete .bc-catalog-avatar{border-color:#29d4f4}
 #bestbets-centre .bc-photo-credits-trigger{
   float:right;padding:0 3px;background:none;border:0;color:#95d7ef;font-size:8px;
   text-decoration:underline;cursor:pointer
