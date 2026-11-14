@@ -154,6 +154,58 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
 }
 #bestbets-centre .bc-ticker-card.live{border-color:#1bea9a;box-shadow:0 0 8px rgba(0,238,128,.25),inset 0 1px rgba(64,255,186,.17)}
 #bestbets-centre .bc-ticker-card .bc-ticker-time{color:#37e7fa}
+
+/* NBA Live Center: approved reference composition.  Give the scoreboard the
+   hero's spare height instead of clipping the live quarter and progress. */
+#bestbets-centre{
+  grid-template:
+    "hero" 95px "." 10px
+    "ticker" 71px "." 10px
+    "main" 180px "." 11px
+    "summaries" 118px "." 17px
+    "navigation" 57px "." 8px
+    "source" 10px / minmax(0,1fr);
+}
+#bestbets-centre .bc-hero{padding-top:5px;padding-bottom:5px}
+#bestbets-centre .bc-hero-art{top:-5px;height:105px}
+#bestbets-centre .bc-art-ball{top:4px;width:101px;height:101px}
+#bestbets-centre .bc-ticker{padding:4px 6px;gap:8px}
+#bestbets-centre .bc-ticker-head{gap:11px;padding-left:7px}
+#bestbets-centre .bc-ticker-ball{flex-basis:42px;width:42px;height:42px}
+#bestbets-centre .bc-ticker-head-copy{gap:2px}
+#bestbets-centre .bc-ticker-head-copy strong{font-size:14px}
+#bestbets-centre .bc-ticker-head-copy small{font-size:10px}
+#bestbets-centre .bc-ticker-live-indicator{font-size:8px;margin-top:3px;padding:2px 8px}
+#bestbets-centre .bc-ticker-games{gap:8px}
+#bestbets-centre .bc-ticker-card{
+  justify-content:center;gap:3px;padding:22px 4px 8px;
+  border-radius:12px;
+}
+#bestbets-centre .bc-ticker-card-top{
+  position:absolute;top:5px;left:8px;right:8px;min-height:22px;
+  display:block;pointer-events:none;
+}
+#bestbets-centre .bc-ticker-team-marks{
+  position:absolute;left:0;right:0;top:0;
+  display:flex;align-items:center;justify-content:space-between;
+}
+#bestbets-centre .bc-ticker-team-mark{
+  flex:0 0 22px;width:22px;height:22px;
+  border-color:rgba(108,202,255,.6);
+}
+#bestbets-centre .bc-ticker-team-mark b{font-size:6px}
+#bestbets-centre .bc-ticker-card .bc-ticker-time,
+#bestbets-centre .bc-ticker-live-label{
+  position:absolute;top:4px;left:50%;transform:translateX(-50%);
+  font-size:9.5px;line-height:1.2;
+}
+#bestbets-centre .bc-ticker-card strong{font-size:12.5px;line-height:1.12;letter-spacing:-.2px}
+#bestbets-centre .bc-ticker-card .bc-ticker-score{font-size:13px}
+#bestbets-centre .bc-ticker-card small{font-size:9px;line-height:1.2;min-height:11px;color:#c3d7f1}
+#bestbets-centre .bc-ticker-progress{
+  bottom:4px;left:15%;width:70%;height:4px;background:rgba(60,113,135,.65);
+}
+#bestbets-centre .bc-ticker-progress i{box-shadow:0 0 8px #1afca0}
 #bestbets-centre .bc-main-row{grid-template-columns:44.2% minmax(0,1fr);gap:13px}
 #bestbets-centre .bc-panel{
   border-color:#6272e7;background:

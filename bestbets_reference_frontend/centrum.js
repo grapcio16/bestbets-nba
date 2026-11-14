@@ -114,7 +114,7 @@ function liveQuarter(statusText){
  const clock=raw.match(/(\d{1,2}):(\d{2})/);
  const minutes=clock?Number(clock[1])+Number(clock[2])/60:0;
  const elapsed=(q-1)*12+(clock?Math.max(0,12-minutes):0);
- return {label:q+". kwarta",progress:clock?Math.max(4,Math.min(100,Math.round(elapsed/48*100))):null};
+ return {label:q+". kwarta"+(clock?" · "+clock[0]:""),progress:clock?Math.max(4,Math.min(100,Math.round(elapsed/48*100))):null};
 }
 function renderTicker(data){
  const host=$("bc-ticker-games");
