@@ -476,7 +476,7 @@
   box-shadow:inset 0 1px rgba(255,255,255,.08)
 }
 .bc-free-info-backdrop .bc-info-metric-emblem{font-size:41px;line-height:1.1;color:#26e9ff}
-.bc-free-info-backdrop .bc-info-metric-emblem svg{display:block;width:52px;height:52px;filter:drop-shadow(0 0 7px currentColor)}
+.bc-free-info-backdrop .bc-info-metric-emblem svg{display:block;width:80px;height:80px;filter:drop-shadow(0 0 6px currentColor)}
 .bc-free-info-backdrop .bc-free-info-metric:first-child .bc-info-metric-emblem{color:#ff9b58}
 .bc-free-info-backdrop .bc-free-info-metric:nth-child(2) .bc-info-metric-emblem{color:#a47cff}
 .bc-free-info-backdrop .bc-free-info-metric:nth-child(3) .bc-info-metric-emblem{color:#26e9ff}
