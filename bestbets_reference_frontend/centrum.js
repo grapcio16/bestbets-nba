@@ -344,8 +344,17 @@ function recordFreePropsResult(player,error,currentQuery){
 }
 const initials=p=>String(p.name||"").trim().split(/\s+/).slice(0,2).map(v=>v[0]||"").join("").toUpperCase();
 const knownPositions=new Set(["PG","SG","SF","PF","C","G","F","G-F","F-G","F-C","C-F"]);
+// NBA.com 2026/27 roster positions for initially featured athletes. Scoreboard
+// leaders don't always expose a position; a matching team is required so these
+// verified labels never follow an athlete to a different franchise.
+const featuredPositions={
+ "Alperen Sengun|HOU":"C", "Karl-Anthony Towns|NYK":"C-F",
+ "Davion Mitchell|MIA":"G", "Jayson Tatum|BOS":"F-G",
+ "Bam Adebayo|MIA":"C-F", "Franz Wagner|ORL":"F"
+};
 function positionBadge(p,extraClass=""){
- const position=String(p?.position||"").trim().toUpperCase();
+ const reported=String(p?.position||"").trim().toUpperCase();
+ const position=knownPositions.has(reported)?reported:(featuredPositions[String(p?.name||"")+"|"+String(p?.team||"")]||"");
  return knownPositions.has(position)?'<span class="bc-pos-badge '+extraClass+'" title="Pozycja zawodnika">'+escapeHtml(position)+'</span>':"";
 }
 function freeAvatar(p){
