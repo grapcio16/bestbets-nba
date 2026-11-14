@@ -4,7 +4,7 @@
 "use strict";
 const $=id=>document.getElementById(id);
 const KEY="bestbets.centrum.watchedPlayers.v1";
-let catalog=null,api=null,isOpen=false,filter="",nativeWatch="",refreshing=false,photosLicensed=false;
+let catalog=null,api=null,isOpen=false,filter="",nativeWatch="",refreshing=false;
 let teamLogos={};
 let favorites=[];
 try{
@@ -37,9 +37,8 @@ function teamBadge(code){
 function avatar(p,cls){
  const abbrev=String(p.name||"").trim().split(/\s+/).slice(0,2).map(s=>s[0]||"").join("").toUpperCase();
  const id=String(p.id||"");
- const photo=photosLicensed&&/^\d{1,20}$/.test(id)?'<img hidden loading="lazy" decoding="async" alt="'+escape(p.name)+
-  '" src="https://a.espncdn.com/i/headshots/nba/players/full/'+id+'.png">':"";
- return '<span class="bc-player-circle bc-free-avatar '+cls+'" data-hoop-player="'+escape(p.name)+'"><span>'+escape(abbrev)+'</span>'+photo+'</span>';
+ return '<span class="bc-player-circle bc-free-avatar '+cls+'" data-hoop-player="'+escape(p.name)+
+  '" data-hoop-id="'+(/^\d{1,20}$/.test(id)?escape(id):'')+'"><span>'+escape(abbrev)+'</span></span>';
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(favorites));}catch(_){}}
 function watch(){
@@ -103,8 +102,7 @@ function options(){
   '<input id="bc-players-search" autocomplete="off" type="search" maxlength="70"'+
   ' placeholder="Znajdź zawodnika lub drużynę…" value="'+escape(filter)+'" aria-label="Wyszukaj gracza">'+
   '<div class="bc-catalog-help" id="bc-catalog-help">Kliknij ☆, aby obserwować. '+
-  (photosLicensed?'Zdjęcia: zatwierdzone źródło oraz Wikimedia Commons.':
-   'Zdjęcia: Wikimedia Commons — po weryfikacji licencji; pozostałe osoby: inicjały.')+'</div>'+
+  'Zdjęcia portretowe: ESPN; gdy zdjęcie jest niedostępne, fotografia z Wikimedia Commons lub inicjały.</div>'+
   '<div class="bc-catalog-list">'+(rows||'<div class="bc-muted">'+info+'</div>')+'</div>';
  const list=node.querySelector(".bc-catalog-list");
  if(list)list.scrollTop=oldScroll;
@@ -164,7 +162,6 @@ window.BestBetsCentre.init=function(ctx){api=ctx;originalInit(ctx);install();};
 window.BestBetsCentre.render=function(data,players,freeDetails){
  originalRender(data,freeDetails);
  if(data){
-  photosLicensed=data.free_photos_enabled===true;
   teamLogos=Object.fromEntries((Array.isArray(data.form_options)?data.form_options:[])
    .filter(t=>t&&typeof t.team==="string").map(t=>[t.team,t.logo]));
  }
