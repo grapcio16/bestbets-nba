@@ -70,6 +70,7 @@ function portraitFromPage(page){
  const image=page?.imageinfo?.[0],meta=image?.extmetadata||{};
  const file=String(page?.title||"").replace(/^File:/,"");
  const photo={url:image?.url?"https://commons.wikimedia.org/w/thumb.php?f="+encodeURIComponent(file)+"&w=160":"",
+  source:COMMONS+encodeURIComponent(file),
   artist:htmlText(meta.Artist?.value||meta.Attribution?.value),
   license:htmlText(meta.LicenseShortName?.value),licenseUrl:meta.LicenseUrl?.value||"",cropped:true};
  return validPortrait(photo)?photo:null;
