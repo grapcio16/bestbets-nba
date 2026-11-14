@@ -49,6 +49,7 @@ def main() -> None:
                  "brand": BRAND, "error": ""},
             )
             page.wait_for_function("document.querySelector('#brand-img').naturalWidth > 0")
+            assert page.locator("#brand-img").get_attribute("src") == "hoopzaro.svg"
             assert page.locator("#bestbets-centre").is_visible()
             assert page.locator("#props-heading").is_hidden()
             assert page.locator(".brand .wordmark").inner_text().startswith("HOOPZARO")
@@ -64,6 +65,7 @@ def main() -> None:
                 {"player": EXAMPLE_PLAYER, "home": None, "brand": BRAND, "error": ""},
             )
             page.wait_for_function("document.querySelector('#player-name').textContent==='Test Athlete'")
+            assert page.locator("#brand-img").get_attribute("src") == "hoopzaro.svg"
             assert page.locator("#props-heading").is_visible()
             assert page.locator("#chart-svg .bb-plot-bar").count() == 10
             assert page.locator("#hero-rate").inner_text().endswith("%")

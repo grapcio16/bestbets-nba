@@ -200,7 +200,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <div id="app-shell"><div id="stage">
 <div class="top-orange"></div>
 <aside>
-  <div class="brand"><img id="brand-img" alt="Logo HOOPZARO" src=""><div class="wordmark">HOOP<span>ZARO</span><small>NBA ANALYTICS</small></div></div>
+  <div class="brand"><img id="brand-img" alt="Logo HOOPZARO" src="hoopzaro.svg"><div class="wordmark">HOOP<span>ZARO</span><small>NBA ANALYTICS</small></div></div>
   <nav class="left-menu">
     <button class="nav-btn selected" data-page="home"><span class="ic">⌂</span><span>Centrum</span></button>
     <button class="nav-btn" data-page="props"><span class="ic">▥</span><span>Player Props</span></button>
@@ -532,7 +532,8 @@ function render(){
   document.querySelector(".suggestions").style.display=active?"flex":"none";
   document.querySelector(".utility").style.display=active?"flex":"none";
   $("query").placeholder=home?"Szukaj zawodnika, linii i rynku NBA...":"Jayson Tatum over 25.5 points";
-  if(state.payload.brand){setImage("brand-img",state.payload.brand,"HOOPZARO")}
+  // The official brand icon is shipped with this frontend. Do not overwrite
+  // it with a legacy PNG cached by an already-running Streamlit backend.
   if(home && window.BestBetsCentre){
     window.BestBetsCentre.render(state.payload.home||null,state.payload.player_catalog||null,state.payload.free_details||null);
     // The backend now embeds the Centrum snapshot in the FIRST render.
