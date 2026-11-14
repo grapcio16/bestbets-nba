@@ -158,7 +158,8 @@ function loadNbaStudioHeadshot(node,id){
 }
 async function loadPreferredHeadshot(node,espnId,nbaId){
  if(await loadStudioHeadshot(node,espnId))return true;
- return loadNbaStudioHeadshot(node,nbaId);
+ const rosterId=window.HoopzaroNbaIds?.[normalized(node.dataset.hoopPlayer)];
+ return loadNbaStudioHeadshot(node,nbaId||rosterId);
 }
 function pump(){
  while(running<3&&queue.length){

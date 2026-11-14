@@ -1,4 +1,5 @@
 """Offline tests for the publicly visible Injury Watch card's real-data contract."""
+from pathlib import Path
 from unittest import TestCase, mock
 
 import pandas as pd
@@ -9,6 +10,15 @@ from bestbets_centre_injuries import (
 
 
 class InjuryWatchTests(TestCase):
+    def test_public_studio_photo_index_is_loaded_before_portraits(self):
+        frontend = Path(__file__).resolve().parent / "bestbets_reference_frontend"
+        index = (frontend / "index.html").read_text(encoding="utf-8")
+        roster = (frontend / "nba_player_ids.js").read_text(encoding="utf-8")
+        self.assertLess(index.index('src="nba_player_ids.js"'),
+                        index.index('src="portraits.js"'))
+        self.assertIn('"adem bona":"1641737"', roster)
+        self.assertIn('"ajay mitchell":"1642349"', roster)
+
     def test_statuses_are_explicit_not_inferred(self):
         self.assertEqual(status_badge("Out")[:2], ("OUT", "out"))
         self.assertEqual(status_badge("Questionable")[:2], ("QST", "question"))
