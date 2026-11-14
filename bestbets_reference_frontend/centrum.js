@@ -91,21 +91,64 @@ function scoreboard(g) {
 function shortTeam(code,src){
  return logo(code,src)+'<b>'+escapeHtml(code||"NBA")+'</b>';
 }
+function tickerLogo(code,uri){
+ const safe=typeof uri==="string"&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(uri);
+ return '<span class="bc-ticker-team-mark">'+(safe
+  ?'<img src="'+uri+'" alt="" loading="lazy">'
+  :'<b>'+escapeHtml(String(code||"NBA").slice(0,3))+'</b>')+'</span>';
+}
+function tickerDay(iso){
+ const date=new Date(iso);
+ if(!Number.isFinite(date.getTime()))return "NADCHODZI";
+ const today=new Date();
+ if(date.toDateString()===today.toDateString())return "DZIŚ";
+ const tomorrow=new Date(today);tomorrow.setDate(today.getDate()+1);
+ if(date.toDateString()===tomorrow.toDateString())return "JUTRO";
+ return new Intl.DateTimeFormat("pl-PL",{day:"numeric",month:"short"}).format(date);
+}
+function liveQuarter(statusText){
+ const raw=String(statusText||"");
+ const match=raw.match(/\bQ([1-4])\b/i)||raw.match(/\b([1-4])(?:st|nd|rd|th)\b/i);
+ if(!match)return {label:raw||"W toku",progress:null};
+ const q=Number(match[1]);
+ const clock=raw.match(/(\d{1,2}):(\d{2})/);
+ const minutes=clock?Number(clock[1])+Number(clock[2])/60:0;
+ const elapsed=(q-1)*12+(clock?Math.max(0,12-minutes):0);
+ return {label:q+". kwarta",progress:clock?Math.max(4,Math.min(100,Math.round(elapsed/48*100))):null};
+}
 function renderTicker(data){
  const host=$("bc-ticker-games");
  if(!host)return;
  const games=(data&&Array.isArray(data.ticker))?data.ticker.slice(0,5):[];
+ const liveCount=games.filter(g=>g.state==="live").length;
+ const indicator=$("bc-ticker-live-indicator");
+ if(indicator){
+  indicator.textContent=liveCount?liveCount+" NA ŻYWO":games.some(g=>g.state==="scheduled")?"TERMINARZ":games.length?"OSTATNIE WYNIKI":"BRAK MECZÓW";
+  indicator.classList.toggle("is-live",liveCount>0);
+ }
  if(!games.length){
   host.innerHTML='<div class="bc-ticker-loading">'+(data&&data.error
     ? 'Dane terminarza niedostępne. Użyj ⟳, aby ponowić próbę.'
     : 'Brak potwierdzonych spotkań w najbliższym terminarzu.')+'</div>';
   return;
  }
- host.innerHTML=games.map((g,i)=>
-  '<button type="button" class="bc-ticker-card'+(g.state==="live"?' live':'')+'" data-centre-game="'+i+'" aria-label="Szczegóły meczu '+escapeHtml(g.away)+' – '+escapeHtml(g.home)+'">'+
-  '<span class="bc-ticker-time">'+escapeHtml(g.state==="live"?"NA ŻYWO":g.state==="final"?"KONIEC":localTime(g.start))+'</span>'+
-  '<strong>'+escapeHtml(g.away)+' '+scoreboard(g)+' '+escapeHtml(g.home)+'</strong>'+
-  '<small>'+escapeHtml(g.status||"NBA")+'</small></button>').join("");
+ host.innerHTML=games.map((g,i)=>{
+  const live=g.state==="live",final=g.state==="final";
+  const away=escapeHtml(g.away||"NBA"),home=escapeHtml(g.home||"NBA");
+  const marks=tickerLogo(g.away,g.away_logo)+tickerLogo(g.home,g.home_logo);
+  const quarter=liveQuarter(g.status);
+  const top=live
+   ?'<span class="bc-ticker-team-marks">'+marks+'</span><span class="bc-ticker-live-label"><span></span> NA ŻYWO</span>'
+   :'<span class="bc-ticker-team-marks">'+marks+'</span><span class="bc-ticker-time">'+escapeHtml(final?"KONIEC":localTime(g.start))+'</span>';
+  const score=live||final
+   ?away+' <span class="bc-ticker-score">'+escapeHtml(scoreboard(g))+'</span> '+home
+   :away+' <span class="bc-ticker-vs">–</span> '+home;
+  const caption=live?quarter.label:final?"WYNIK KOŃCOWY":tickerDay(g.start);
+  const progress=live&&quarter.progress!=null
+   ?'<span class="bc-ticker-progress" role="progressbar" aria-label="Przybliżony upływ czasu regulaminowego" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+quarter.progress+'"><i style="width:'+quarter.progress+'%"></i></span>':'';
+  return '<button type="button" class="bc-ticker-card'+(live?' live':final?' final':' upcoming')+'" data-centre-game="'+i+'" aria-label="Szczegóły meczu '+away+' – '+home+'">'+
+    '<span class="bc-ticker-card-top">'+top+'</span><strong>'+score+'</strong><small>'+escapeHtml(caption)+'</small>'+progress+'</button>';
+ }).join("");
 }
 function renderGames(data){
  const host=$("bc-games-list");if(!host)return;
@@ -538,20 +581,19 @@ function init(context){
   backdrop.appendChild(freeInfoPopup);
   freeInfoPopup.hidden=false;
  }
- // Small noninvasive refresh icon and data-source indicator in the ticker.
- // Adds no layout width and doesn't change the approved neon design.
+ // Data freshness and manual refresh controls share the ticker's header.
  const tickerHead=centre.querySelector(".bc-ticker-head");
  if(tickerHead){
    tickerHead.style.position="relative";
    const badge=document.createElement("span");
    badge.id="bc-source-state";badge.textContent="● Ładowanie";
-   badge.style.cssText="position:absolute;right:4px;bottom:2px;font-size:7px;font-weight:800;white-space:nowrap;background:#071b2e;padding:1px 2px;border-radius:4px";
+   badge.className="bc-ticker-source-state";
    badge.setAttribute("aria-live","polite");
    tickerHead.appendChild(badge);
    const refresh=document.createElement("button");
    refresh.type="button";refresh.id="bc-refresh";
    refresh.textContent="⟳";
-   refresh.style.cssText="position:absolute;right:3px;top:3px;display:grid;place-items:center;width:18px;height:18px;padding:0;border:1px solid #4989b0;border-radius:50%;background:#082841;color:#a6e8ff;font-size:17px;line-height:16px";
+   refresh.className="bc-ticker-refresh";
    refresh.setAttribute("data-centre-refresh","");
    refresh.setAttribute("aria-label","Odśwież dane NBA");
    refresh.title="Odśwież terminarz, wyniki i statystyki";
