@@ -476,8 +476,10 @@
   box-shadow:inset 0 1px rgba(255,255,255,.08)
 }
 .bc-free-info-backdrop .bc-info-metric-emblem{font-size:41px;line-height:1.1;color:#26e9ff}
+.bc-free-info-backdrop .bc-info-metric-emblem svg{display:block;width:52px;height:52px;filter:drop-shadow(0 0 7px currentColor)}
+.bc-free-info-backdrop .bc-free-info-metric:first-child .bc-info-metric-emblem{color:#ff9b58}
 .bc-free-info-backdrop .bc-free-info-metric:nth-child(2) .bc-info-metric-emblem{color:#a47cff}
-.bc-free-info-backdrop .bc-free-info-metric:nth-child(3) .bc-info-metric-emblem{color:#ff9d62}
+.bc-free-info-backdrop .bc-free-info-metric:nth-child(3) .bc-info-metric-emblem{color:#26e9ff}
 .bc-free-info-backdrop .bc-free-info-metric b{font-size:35px;line-height:1.1;color:#36ffbc;font-weight:950}
 .bc-free-info-backdrop .bc-free-info-metric strong{font-size:24px;color:#fff;font-weight:850}
 .bc-free-info-backdrop .bc-free-info-metric>span:last-child{font-size:19px;line-height:1.5;color:#c3d8f2}
@@ -585,6 +587,10 @@
 #bestbets-centre .bc-free-panel .bc-pick-info small{font-size:9px}
 #bestbets-centre .bc-free-avatar{position:relative;overflow:hidden}
 #bestbets-centre .bc-free-avatar img{width:100%;height:100%;object-fit:contain;position:absolute;inset:0}
+#bestbets-centre .bc-free-avatar img.bc-headshot-photo{
+  object-fit:cover;object-position:50% 16%;transform:scale(1.34);
+  transform-origin:50% 25%;background:radial-gradient(circle at 50% 17%,#115e85,#090d2a 82%)
+}
 #bestbets-centre .bc-free-avatar img.bc-commons-photo{
   object-fit:cover;object-position:var(--hoop-portrait-position,center 27%);
   transform:scale(var(--hoop-portrait-zoom,1.3));
