@@ -303,6 +303,7 @@ function renderPlayers(data){
   freeAvatar(p).replace('bc-free-avatar','bc-free-avatar bc-watch-avatar')+
   '<span class="bc-watch-name">'+escapeHtml(p.name)+'</span>'+teamBadge(p.team)+
   '<span class="bc-watch-chevron">›</span></button>').join("");
+ window.HoopzaroPortraits?.observe(watch);
 }
 let pendingFreeLeaderKey=null, freeRenderSignature="",freeInfoOpen=false,pendingFreeReferral=null;
 const freeLabels={PTS:"Lider punktów",REB:"Lider zbiórek",AST:"Lider asyst"};
@@ -346,7 +347,7 @@ function freeAvatar(p){
  const allowed=homeData?.free_photos_enabled===true && /^[0-9]{1,20}$/.test(p.athlete_id||"");
  const photo=allowed?'<img hidden loading="eager" decoding="async" alt="'+escapeHtml(p.name)+
    '" src="https://a.espncdn.com/i/headshots/nba/players/full/'+p.athlete_id+'.png">':"";
- return '<span class="bc-player-circle bc-free-avatar"><span>'+escapeHtml(initials(p))+'</span>'+photo+'</span>';
+ return '<span class="bc-player-circle bc-free-avatar" data-hoop-player="'+escapeHtml(p.name||"")+'"><span>'+escapeHtml(initials(p))+'</span>'+photo+'</span>';
 }
 function renderFreeLeaders(data){
  const host=document.querySelector(".bc-pick-list");if(!host)return;
@@ -371,6 +372,7 @@ function renderFreeLeaders(data){
     teamBadge(p.opponent)+'<br><i>'+escapeHtml(p.date)+' NBA/ET</i></span>'+
     '<span class="bc-mini-btn">Szczegóły ›</span></button>';
  }).join("");
+ window.HoopzaroPortraits?.observe(host);
 }
 function freeDetailsBody(p,stats,note,verified=false){
  return '<div class="bc-free-heading">'+freeAvatar(p)+'<div><strong>'+escapeHtml(p.name)+
@@ -385,6 +387,7 @@ function freeDetailsBody(p,stats,note,verified=false){
 function showFreeDetails(p,stats,note,verified=false){
  setText("bc-dialog-title",p.name+" — występ NBA");
  $("bc-dialog-body").innerHTML=freeDetailsBody(p,stats,note,verified);
+ window.HoopzaroPortraits?.observe($("bc-dialog-body"));
  $("bc-dialog").classList.add("bc-free-detail-dialog");
  $("bc-dialog").hidden=false;
 }
@@ -482,11 +485,25 @@ function premium(){
    "Przygotowujemy rozbudowane modele, głębsze analizy zawodników i symulacje NBA.\n\n"+
    "Subskrypcje i płatności NIE są jeszcze uruchomione. Wszystkie widoczne informacje w Centrum są darmowe.");
 }
+function photoCredits(){
+ const photos=window.HoopzaroPortraits?.credits()||[];
+ setText("bc-dialog-title","Zdjęcia zawodników — autorzy i licencje");
+ const body=$("bc-dialog-body");
+ body.innerHTML='<div class="bc-photo-credit-list"><p>Fotografie pochodzą z Wikimedia Commons. Autorzy i warunki użycia dla zdjęć załadowanych na tym ekranie:</p>'+
+  (photos.length?'<ul>'+photos.map(p=>'<li>'+escapeHtml(p.artist)+' · '+
+   '<a target="_blank" rel="noopener noreferrer" href="'+escapeHtml(p.source)+'">oryginalne zdjęcie</a> · '+
+   '<a target="_blank" rel="noopener noreferrer" href="'+escapeHtml(p.licenseUrl)+'">'+escapeHtml(p.license)+'</a> · kadrowanie do miniatury</li>').join("")+'</ul>':
+   '<p>Nie załadowano jeszcze zdjęć z otwartą licencją. Dla niedostępnych fotografii wyświetlamy inicjały.</p>')+
+   '<p>Publiczne wykorzystanie wizerunków sportowców i dodatkowe prawa należy osobno zweryfikować przed premierą płatną.</p></div>';
+ $("bc-dialog").classList.remove("bc-free-detail-dialog");
+ $("bc-dialog").hidden=false;
+ $("bc-dialog").querySelector(".bc-dialog-close")?.focus();
+}
 function toggleFreeInfo(force){
- const panel=$("bc-free-info-popup"),button=$("bc-free-info-toggle");
- if(!panel||!button)return;
+ const panel=$("bc-free-info-popup"),button=$("bc-free-info-toggle"),backdrop=$("bc-free-info-backdrop");
+ if(!panel||!button||!backdrop)return;
  freeInfoOpen=typeof force==="boolean"?force:!freeInfoOpen;
- panel.hidden=!freeInfoOpen;
+ backdrop.hidden=!freeInfoOpen;
  button.setAttribute("aria-expanded",String(freeInfoOpen));
  if(freeInfoOpen)panel.querySelector(".bc-free-info-heading button")?.focus();
 }
@@ -496,6 +513,18 @@ function init(context){
  if(!centre || centre.dataset.ready==="1")return;
  centre.dataset.ready="1";
  restoreTeamFavorites();
+ // A transformed app stage would constrain position:fixed to the scaled canvas.
+ // Move the glossary into <body> so the backdrop can cover the full iframe.
+ const freeInfoPopup=$("bc-free-info-popup");
+ if(freeInfoPopup && !$("bc-free-info-backdrop")){
+  const backdrop=document.createElement("div");
+  backdrop.id="bc-free-info-backdrop";
+  backdrop.className="bc-free-info-backdrop";
+  backdrop.hidden=true;
+  document.body.appendChild(backdrop);
+  backdrop.appendChild(freeInfoPopup);
+  freeInfoPopup.hidden=false;
+ }
  // Small noninvasive refresh icon and data-source indicator in the ticker.
  // Adds no layout width and doesn't change the approved neon design.
  const tickerHead=centre.querySelector(".bc-ticker-head");
@@ -531,6 +560,7 @@ function init(context){
    if(!freeInfoOpen && button.id!=="bc-free-info-toggle")$("bc-free-info-toggle")?.focus();
    return;
   }
+  if(button.matches("[data-centre-photo-credits]")){photoCredits();return;}
   if(button.matches("[data-centre-form-toggle]")){
    teamPickerOpen=!teamPickerOpen;
    renderFormPicker(homeData);
@@ -578,8 +608,14 @@ function init(context){
   if(teamPickerOpen && !ev.target.closest("#bestbets-centre .bc-team-panel")){
    teamPickerOpen=false;renderFormPicker(homeData);
   }
-  if(freeInfoOpen&&!ev.target.closest("#bestbets-centre .bc-free-info-popup") &&
+  if(freeInfoOpen&&!ev.target.closest("#bc-free-info-backdrop .bc-free-info-popup") &&
      !ev.target.closest("#bc-free-info-toggle"))toggleFreeInfo(false);
+ });
+ // The close button is outside the Centrum click delegate after the popup is moved.
+ $("bc-free-info-popup")?.addEventListener("click",ev=>{
+  if(ev.target.closest("[data-centre-free-info]")){
+   toggleFreeInfo(false);$("bc-free-info-toggle")?.focus();
+  }
  });
  document.addEventListener("keydown",ev=>{
   if(ev.key!=="Escape")return;

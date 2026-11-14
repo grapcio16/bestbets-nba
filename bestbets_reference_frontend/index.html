@@ -264,7 +264,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     </section>
     <section class="bc-panel bc-free-panel">
       <div class="bc-panel-head"><div class="bc-panel-title"><span class="bc-orange-icon">◎</span> Darmowe analizy <span class="bc-free-tag">FREE</span> <button id="bc-free-info-toggle" type="button" class="bc-info-toggle" aria-label="Wyjaśnij skróty PTS, REB i AST" aria-expanded="false" aria-controls="bc-free-info-popup" title="Co oznaczają skróty?" data-centre-free-info>i</button></div><span class="bc-subtle">Historyczne statystyki, nie prognozy</span></div>
-      <div id="bc-free-info-popup" class="bc-free-info-popup" role="dialog" aria-label="Skróty statystyk koszykarskich" hidden>
+      <div id="bc-free-info-popup" class="bc-free-info-popup" role="dialog" aria-modal="true" aria-label="Skróty statystyk koszykarskich" hidden>
         <div class="bc-free-info-heading"><strong>Co oznaczają skróty?</strong><button type="button" data-centre-free-info aria-label="Zamknij objaśnienia">×</button></div>
         <div><b>PTS</b><span>Punkty zdobyte przez zawodnika</span></div>
         <div><b>REB</b><span>Zbiórki piłki</span></div>
@@ -305,7 +305,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <button type="button" class="bc-bottom-item" data-centre-nav="teams"><strong>⬡ &nbsp; Drużyny</strong><small>Forma i terminarz<br><em>Analiza matchup wkrótce</em></small></button>
     <button type="button" class="bc-bottom-item bc-premium-item" data-centre-premium><strong>♛ &nbsp; Premium</strong><small>Przyszłe funkcje analityczne</small></button>
   </div>
-  <div class="bc-disclaimer" id="bc-data-meta">Dane terminarza NBA / ESPN. Brak fikcyjnych typów i prognoz.</div>
+  <div class="bc-disclaimer"><span id="bc-data-meta">Dane terminarza NBA / ESPN. Brak fikcyjnych typów i prognoz.</span><button type="button" class="bc-photo-credits-trigger" data-centre-photo-credits title="Autorzy, źródła i licencje fotografii zawodników">© Zdjęcia</button></div>
   <div class="bc-dialog-backdrop" id="bc-dialog" hidden>
     <div class="bc-dialog" role="dialog" aria-modal="true" aria-labelledby="bc-dialog-title">
       <button type="button" class="bc-dialog-close" data-centre-close aria-label="Zamknij">×</button>
@@ -329,6 +329,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 </footer>
 <div id="attribution">HOOPZARO · Statystyki historyczne NBA / ESPN · nie są gwarancją przyszłego wyniku.</div>
 </div></div>
+<script src="portraits.js"></script>
 <script src="centrum.js"></script>
 <script src="player_picker.js"></script>
 <script>

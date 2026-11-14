@@ -99,16 +99,24 @@ def check_static(page,out):
     assert page.locator("#bc-source-state").inner_text().startswith("●")
     assert page.locator(".bc-pick").count()==3
     assert page.locator(".bc-watch button").count()==3
-    # Accessible, compact glossary; never hijacks the Props route.
+    # The glossary must be centered over a blurred full-viewport backdrop.
     page.locator("#bc-free-info-toggle").click()
     expect(page.locator("#bc-free-info-popup")).to_be_visible()
+    expect(page.locator("#bc-free-info-backdrop")).to_be_visible()
+    assert page.locator("#bc-free-info-backdrop").evaluate(
+        "el => getComputedStyle(el).backdropFilter.includes('blur')")
+    assert page.locator("#bc-free-info-popup").evaluate("el => {"+
+        "const rect=el.getBoundingClientRect();"+
+        "return Math.abs(rect.left+rect.width/2-window.innerWidth/2)<3 && "+
+        "Math.abs(rect.top+rect.height/2-window.innerHeight/2)<3;}")
     expect(page.locator("#bc-free-info-popup")).to_contain_text("PTS")
     expect(page.locator("#bc-free-info-popup")).to_contain_text("Zbiórki")
     expect(page.locator("#bc-free-info-popup")).to_contain_text("Asysty")
     assert page.locator("#bc-free-info-toggle").get_attribute("aria-expanded")=="true"
     page.keyboard.press("Escape")
-    expect(page.locator("#bc-free-info-popup")).to_be_hidden()
+    expect(page.locator("#bc-free-info-backdrop")).to_be_hidden()
     assert page.locator("#bc-free-info-toggle").get_attribute("aria-expanded")=="false"
+    assert page.locator("#bc-free-info-popup").get_attribute("aria-modal")=="true"
     # Full player catalog opens only on demand. The browser fixture below is
     # synthetic, never a claim about real ESPN rosters.
     page.locator("#bc-players-toggle").click()

@@ -30,7 +30,7 @@ function avatar(p,cls){
  const id=String(p.id||"");
  const photo=photosLicensed&&/^\d{1,20}$/.test(id)?'<img hidden loading="lazy" decoding="async" alt="'+escape(p.name)+
   '" src="https://a.espncdn.com/i/headshots/nba/players/full/'+id+'.png">':"";
- return '<span class="bc-player-circle bc-free-avatar '+cls+'"><span>'+escape(abbrev)+'</span>'+photo+'</span>';
+ return '<span class="bc-player-circle bc-free-avatar '+cls+'" data-hoop-player="'+escape(p.name)+'"><span>'+escape(abbrev)+'</span>'+photo+'</span>';
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(favorites));}catch(_){}}
 function watch(){
@@ -50,6 +50,7 @@ function watch(){
   rows.push(b.outerHTML);
  }
  node.innerHTML=rows.join("");
+ window.HoopzaroPortraits?.observe(node);
 }
 function options(){
  const node=$("bc-players-picker"),toggle=$("bc-players-toggle");
@@ -93,10 +94,12 @@ function options(){
   '<input id="bc-players-search" autocomplete="off" type="search" maxlength="70"'+
   ' placeholder="Znajdź zawodnika lub drużynę…" value="'+escape(filter)+'" aria-label="Wyszukaj gracza">'+
   '<div class="bc-catalog-help" id="bc-catalog-help">Kliknij ☆, aby obserwować. '+
-  (photosLicensed?'Fotografie pochodzą z zatwierdzonego źródła.':'Fotografie zawodników dodamy po uzyskaniu odpowiednich praw.')+'</div>'+
+  (photosLicensed?'Zdjęcia: zatwierdzone źródło oraz Wikimedia Commons.':
+   'Zdjęcia: Wikimedia Commons — po weryfikacji licencji; pozostałe osoby: inicjały.')+'</div>'+
   '<div class="bc-catalog-list">'+(rows||'<div class="bc-muted">'+info+'</div>')+'</div>';
  const list=node.querySelector(".bc-catalog-list");
  if(list)list.scrollTop=oldScroll;
+ window.HoopzaroPortraits?.observe(list);
 }
 function toggleFavorite(id){
  const target=(catalog?.players||[]).find(p=>String(p.id)===id);

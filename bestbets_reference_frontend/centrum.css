@@ -429,7 +429,7 @@
 #bestbets-centre .bc-catalog-athlete small{font-size:9px;color:#77b7db}
 #bestbets-centre .bc-catalog-athlete button{flex:0 0 22px}
 
-/* Compact, keyboard-accessible glossary beside the free-analysis title. */
+/* Full-viewport, accessible glossary: the backdrop lives outside the scaled stage. */
 #bestbets-centre .bc-free-panel{overflow:visible;z-index:3}
 #bestbets-centre .bc-info-toggle{
   display:inline-grid;place-items:center;width:20px;height:20px;margin-left:4px;padding:0;
@@ -441,22 +441,32 @@
 #bestbets-centre .bc-info-toggle:focus-visible{
   background:#6c37ae;color:white;outline:2px solid #55e5ff;outline-offset:1px
 }
-#bestbets-centre .bc-free-info-popup[hidden]{display:none!important}
-#bestbets-centre .bc-free-info-popup{
-  position:absolute;z-index:70;top:39px;left:32%;width:min(280px,67%);
-  padding:13px 14px 11px;border:1.5px solid #b678ff;border-radius:12px;
-  color:#edf8ff;background:linear-gradient(135deg,#1e1744,#0a1937 88%);
-  box-shadow:0 15px 28px rgba(0,0,0,.73),0 0 20px rgba(170,66,255,.5);
-  font-size:11px;line-height:1.35
+.bc-free-info-backdrop[hidden]{display:none!important}
+.bc-free-info-backdrop{
+  position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;
+  justify-content:center;padding:20px;background:rgba(3,6,20,.66);
+  -webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px)
 }
-#bestbets-centre .bc-free-info-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-#bestbets-centre .bc-free-info-heading strong{font-size:12px;color:#f4eaff}
-#bestbets-centre .bc-free-info-heading button{
-  border:0;background:transparent;color:#d5d5ee;font-size:19px;line-height:1;cursor:pointer
+.bc-free-info-backdrop .bc-free-info-popup{
+  position:relative;display:block;width:min(440px,100%);padding:24px 26px 21px;
+  border:1.5px solid #b678ff;border-radius:19px;
+  color:#edf8ff;background:linear-gradient(135deg,#26154e,#081a39 88%);
+  box-shadow:0 24px 70px rgba(0,0,0,.83),0 0 32px rgba(149,76,253,.45),inset 0 1px rgba(216,151,255,.3);
+  font-family:Inter,Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5
 }
-#bestbets-centre .bc-free-info-popup>div:not(.bc-free-info-heading){display:flex;gap:10px;align-items:baseline;margin:6px 0}
-#bestbets-centre .bc-free-info-popup>div>b{width:32px;flex:0 0 32px;color:#30ffc4;font-size:11px}
-#bestbets-centre .bc-free-info-popup small{display:block;margin-top:9px;padding-top:8px;border-top:1px solid #5d4587;color:#adc5e9;font-size:9.5px}
+.bc-free-info-backdrop .bc-free-info-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px;gap:15px}
+.bc-free-info-backdrop .bc-free-info-heading strong{font-size:20px;color:#f4eaff}
+.bc-free-info-backdrop .bc-free-info-heading button{
+  display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;
+  border:1px solid #6e60ad;border-radius:50%;background:#332453;color:#e9e9ff;
+  font-size:24px;line-height:1;cursor:pointer
+}
+.bc-free-info-backdrop .bc-free-info-heading button:hover,.bc-free-info-backdrop .bc-free-info-heading button:focus-visible{
+  border-color:#16d7ff;outline:2px solid #16d7ff;outline-offset:1px
+}
+.bc-free-info-backdrop .bc-free-info-popup>div:not(.bc-free-info-heading){display:flex;gap:17px;align-items:baseline;margin:13px 0}
+.bc-free-info-backdrop .bc-free-info-popup>div>b{width:41px;flex:0 0 41px;color:#30ffc4;font-size:15px}
+.bc-free-info-backdrop .bc-free-info-popup small{display:block;margin-top:17px;padding-top:14px;border-top:1px solid #5d4587;color:#adc5e9;font-size:12px}
 
 /* Small team marks and player portraits; images require an explicit license flag. */
 #bestbets-centre .bc-free-team{display:inline-flex;align-items:center;gap:3px;vertical-align:middle;white-space:nowrap}
@@ -522,7 +532,17 @@
 #bestbets-centre .bc-free-panel .bc-pick-info small{font-size:9px}
 #bestbets-centre .bc-free-avatar{position:relative;overflow:hidden}
 #bestbets-centre .bc-free-avatar img{width:100%;height:100%;object-fit:contain;position:absolute;inset:0}
+#bestbets-centre .bc-free-avatar img.bc-commons-photo{object-fit:cover;object-position:center 24%}
 #bestbets-centre .bc-free-avatar [hidden]{display:none}
+#bestbets-centre .bc-photo-credits-trigger{
+  float:right;padding:0 3px;background:none;border:0;color:#95d7ef;font-size:8px;
+  text-decoration:underline;cursor:pointer
+}
+#bestbets-centre .bc-photo-credits-trigger:hover{color:#d8c5ff}
+#bestbets-centre .bc-photo-credit-list{display:flex;flex-direction:column;gap:10px}
+#bestbets-centre .bc-photo-credit-list p{font-size:11px;line-height:1.45;color:#dceaf9;margin:0 0 6px}
+#bestbets-centre .bc-photo-credit-list a{font-size:11px;color:#78e6ff;text-decoration:underline}
+#bestbets-centre .bc-photo-credit-list li{margin:6px 0;color:#e7f5ff;font-size:11px}
 #bestbets-centre .bc-free-missing{font-size:10px;color:#b9cde2}
 #bestbets-centre .bc-free-heading{display:flex;align-items:center;gap:13px}
 #bestbets-centre .bc-free-heading>.bc-free-avatar{width:62px;height:62px;flex-basis:62px;font-size:19px}
