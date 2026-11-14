@@ -449,6 +449,15 @@ def main() -> None:
         return
     if event.get("type") != "search":
         return
+    # Player Props is a paid research tool. Keep the protection on the server;
+    # browser-only hiding can be bypassed by sending a component event.
+    if not premium_entitled():
+        st.session_state["bb10_payload"] = {
+            "player": None,
+            "error": "Player Props wymaga konta Premium. Zaloguj się w Ustawieniach.",
+        }
+        st.rerun()
+        return
     query = _plain(event.get("query"))
     if len(query) > 280:
         st.session_state["bb10_payload"] = {"player": None, "error": "Zapytanie jest za długie."}

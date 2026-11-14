@@ -70,7 +70,8 @@ def main() -> None:
             assert page.locator("#chart-svg .bb-plot-bar").count() == 10
             assert page.locator("#hero-rate").inner_text().endswith("%")
             page.locator('[data-market="PRA"]').click()
-            expect_heading = "PTS + REB + AST"
+            # The chart now labels the combined market PRA directly.
+            expect_heading = "PRA"
             actual_heading = page.locator("#chart-heading").inner_text()
             assert expect_heading in actual_heading, (
                 f"PRA heading={actual_heading!r}, "
