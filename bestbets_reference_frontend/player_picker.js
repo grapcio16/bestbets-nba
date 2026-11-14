@@ -20,7 +20,14 @@ try{
 }catch(_){}
 const escape=s=>String(s||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 function safePosition(p){const value=String(p||"").trim().toUpperCase();return /^(PG|SG|SF|PF|C|G|F|G-F|F-G|F-C|C-F)$/.test(value)?value:"";}
-function positionBadge(p){const pos=safePosition(p.position);return pos?'<span class="bc-pos-badge bc-watch-position" title="Pozycja zawodnika">'+escape(pos)+'</span>':"";}
+// Same verified 2026/27 NBA.com positions as Centrum's initial highlights.
+const featuredPositions={"Alperen Sengun|HOU":"C","Karl-Anthony Towns|NYK":"C-F",
+ "Davion Mitchell|MIA":"G","Jayson Tatum|BOS":"F-G",
+ "Bam Adebayo|MIA":"C-F","Franz Wagner|ORL":"F"};
+function positionBadge(p){
+ const pos=safePosition(p.position)||featuredPositions[String(p.name||"")+"|"+String(p.team||"")]||"";
+ return pos?'<span class="bc-pos-badge bc-watch-position" title="Pozycja zawodnika">'+escape(pos)+'</span>':"";
+}
 function teamBadge(code){
  const safe=escape(code||"NBA"),uri=teamLogos[code];
  const image=typeof uri==="string"&&uri.startsWith("data:image/png;base64,")?
