@@ -244,6 +244,53 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
   border:1px solid #ff9b83;background:linear-gradient(105deg,#e56b65,#d54767 60%,#78284d);
   box-shadow:0 0 17px rgba(245,83,102,.51);
 }
+/* The PREMIUM tier has its own visual language: obsidian, champagne gold and a
+   small faceted gemstone. Keep the existing CTA sizes, routing and layout. */
+.sidebar-premium.hz-premium-cta,
+#bestbets-centre .bc-premium-top.hz-premium-cta,
+#bestbets-centre .bc-premium-item.hz-premium-cta{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  color:#f8dda0;border:1px solid #deb77d;
+  background:linear-gradient(112deg,#100d22 0%,#080c1b 52%,#21102f 100%);
+  box-shadow:0 0 14px rgba(199,150,100,.26),0 0 6px rgba(146,69,214,.25),
+             inset 0 1px rgba(255,244,207,.21),inset 0 -1px rgba(132,66,163,.34);
+  text-shadow:none;font-family:"Space Grotesk","Sora","Avenir Next",system-ui,sans-serif;
+  font-size:11.5px;font-weight:800;letter-spacing:1.25px;line-height:1;
+  transition:box-shadow .18s ease,filter .18s ease,transform .18s ease;
+}
+#bestbets-centre .bc-premium-top.hz-premium-cta{flex:0 0 132px;height:37px;padding:0 7px}
+.sidebar-premium.hz-premium-cta{height:38px;padding:0 7px}
+#bestbets-centre .bc-premium-item.hz-premium-cta{justify-content:center;padding:0 7px}
+#bestbets-centre .bc-premium-item.hz-premium-cta strong{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font:inherit;letter-spacing:inherit;overflow:visible;
+}
+#bestbets-centre .bc-premium-item.hz-premium-cta strong:after{content:none}
+.hz-premium-cta .hz-premium-gem{
+  display:inline-block;position:relative;flex:0 0 19px;width:19px;height:19px;
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
+  background:conic-gradient(from 0deg at 50% 50%,#fff0bb 0deg,#d3ae66 90deg,
+    #83cdd4 91deg,#3ea6b5 178deg,#efd48e 181deg,#ffefbd 268deg,
+    #e5b66a 270deg,#fff0bb 360deg);
+  filter:drop-shadow(0 0 3px rgba(255,226,150,.35));
+}
+.hz-premium-cta .hz-premium-gem:after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent 48%,rgba(255,255,245,.65) 50%,transparent 52%),
+             linear-gradient(0deg,transparent 48%,rgba(13,49,75,.24) 50%,transparent 52%);
+}
+.hz-premium-cta .hz-premium-text{white-space:nowrap;color:#f8dda0}
+.hz-premium-cta .hz-premium-arrow{font-size:23px;font-weight:700;line-height:.65;color:#f7e2ad}
+.sidebar-premium.hz-premium-cta:hover,
+#bestbets-centre .bc-premium-top.hz-premium-cta:hover,
+#bestbets-centre .bc-premium-item.hz-premium-cta:hover{
+  filter:brightness(1.1);box-shadow:0 0 21px rgba(242,192,112,.34),0 0 10px rgba(163,82,228,.3),inset 0 1px rgba(255,244,207,.25);
+}
+.sidebar-premium.hz-premium-cta:focus-visible,
+#bestbets-centre .bc-premium-top.hz-premium-cta:focus-visible,
+#bestbets-centre .bc-premium-item.hz-premium-cta:focus-visible{
+  outline:2px solid #ffdf9d;outline-offset:3px;
+}
 #bestbets-centre .bc-disclaimer{color:#729bb9}
 
 /* PLAYER PROPS — same HOOPZARO art direction, retaining real SVG plots. */
