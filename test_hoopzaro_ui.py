@@ -85,6 +85,17 @@ def main() -> None:
             assert "UNDER" in page.locator("#take-text").inner_text()
             if width == 1800:
                 page.screenshot(path=str(ROOT / "hoopzaro_props_smoke.png"))
+            # Verified administrator sees an explicit ADMIN badge and the
+            # Premium shortcut opens real simulation tools, not an upsell.
+            page.evaluate(
+                "payload => window.postMessage({type:'streamlit:render',args:{payload}},'*')",
+                {"player": EXAMPLE_PLAYER, "home": None, "brand": BRAND, "error": "",
+                 "auth": {"configured": True, "logged_in": True,
+                          "role": "admin", "name": "Test Admin"}},
+            )
+            expect(page.locator("#hz-premium .hz-premium-text")).to_have_text("ADMIN")
+            page.locator("#hz-premium").click()
+            expect(page.locator("#simulations-pane")).to_be_visible()
             assert not errors, errors
             page.close()
         browser.close()

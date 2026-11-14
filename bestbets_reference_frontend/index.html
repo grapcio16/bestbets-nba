@@ -746,7 +746,11 @@ $("hz-account-logout").addEventListener("click",function(){sendAuth("auth_logout
 $("search-form").addEventListener("submit",function(e){e.preventDefault();search($("query").value)});
 document.querySelectorAll("[data-query]").forEach(function(b){b.addEventListener("click",function(){state.page="props";search(b.dataset.query)})});
 document.querySelectorAll("[data-page]").forEach(function(el){el.addEventListener("click",function(){state.page=el.dataset.page;state.payload.error="";render()})});
-$("hz-premium").addEventListener("click",function(){state.page="home";render();window.BestBetsCentre?.openPremium?.()});
+$("hz-premium").addEventListener("click",function(){
+  const role=state.payload.auth?.role||"guest";
+  state.page=role==="admin"||role==="premium"?"simulations":"settings";
+  render();
+});
 document.querySelectorAll("[data-market]").forEach(function(el){el.addEventListener("click",function(){state.market=el.dataset.market;render()})});
 $("market").addEventListener("change",function(){state.market=this.value;render()});
 document.querySelectorAll("[data-side]").forEach(function(el){el.addEventListener("click",function(){state.side=el.dataset.side;render()})});
