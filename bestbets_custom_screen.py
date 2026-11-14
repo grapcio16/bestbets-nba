@@ -18,6 +18,7 @@ import streamlit as st
 
 from teams import TEAM_FULL
 from bestbets_free_analyses import SCHEMA, photo_policy, select_leader
+from bestbets_simulations_canvas import premium_entitled, simulation_for_entitled_user
 from streamlit.components.v1 import declare_component
 
 ROOT = Path(__file__).resolve().parent
@@ -292,6 +293,7 @@ def main() -> None:
             "calendar_extras": st.session_state.get("bb10_centre_extra_days", {}),
             "calendar_requested_day": st.session_state.get("bb10_centre_requested_day"),
         }
+    has_premium = premium_entitled()
     payload = {
         "brand": _cached_brand(),
         "player": st.session_state["bb10_payload"].get("player"),
@@ -299,6 +301,12 @@ def main() -> None:
         "home": home_data,
         "player_catalog": st.session_state.get("bb10_player_catalog"),
         "free_details": st.session_state.get("bb10_free_leader_details"),
+        # Never serialize premium model output into a guest's iframe.
+        "premium_simulation": {
+            "entitled": has_premium,
+            "game": st.session_state.get("bb10_premium_game") if has_premium else None,
+            "players": st.session_state.get("bb10_premium_players") if has_premium else None,
+        },
     }
     event = COMPONENT(payload=payload, default=None, key="bb10_reference_canvas")
     if not isinstance(event, dict):
@@ -307,6 +315,31 @@ def main() -> None:
     if not event_id or event_id == st.session_state.get("bb10_last_event"):
         return
     st.session_state["bb10_last_event"] = event_id
+    if event.get("type") in ("premium_sim_game", "premium_sim_players"):
+        # Entitlement is read from the *server*, never the browser event.
+        if not premium_entitled():
+            return
+        import re
+        day = _plain(event.get("date"))
+        game_id = _plain(event.get("game_id"))
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day):
+            return
+        if not re.fullmatch(r"\d{1,30}", game_id):
+            return
+        try:
+            today = pd.Timestamp.now(tz="Europe/Warsaw").tz_localize(None).normalize()
+            if abs((pd.Timestamp(day)-today).days) > 366:
+                return
+        except (ValueError, TypeError, OverflowError):
+            return
+        is_players = event["type"] == "premium_sim_players"
+        result = simulation_for_entitled_user(day, game_id, players=is_players)
+        key = "bb10_premium_players" if is_players else "bb10_premium_game"
+        st.session_state[key] = {"date": day, "game_id": game_id, **result}
+        if not is_players:
+            st.session_state.pop("bb10_premium_players", None)
+        st.rerun()
+        return
     if event.get("type") == "free_leader_details":
         # Only one verified leaderboard row from the trusted server snapshot
         # can trigger a boxscore read. Client-supplied athlete IDs are ignored.
