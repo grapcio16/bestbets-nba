@@ -71,7 +71,7 @@
   background:#d342ff;box-shadow:0 0 14px #c927f5;pointer-events:none
 }
 #bestbets-centre .bc-ticker-head{
-  display:flex;position:relative;align-items:center;gap:9px;flex:0 0 195px;min-width:0;
+  display:flex;position:relative;align-items:center;gap:9px;flex:0 0 245px;min-width:0;
   padding:1px 7px 1px 5px;background:transparent;border-right:1px solid rgba(133,154,246,.32)
 }
 #bestbets-centre .bc-ticker-ball{flex:0 0 33px;width:33px;height:33px;color:#9ac6ff;filter:drop-shadow(0 0 5px #7049ed)}
