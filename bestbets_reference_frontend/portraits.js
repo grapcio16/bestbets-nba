@@ -1,8 +1,6 @@
-/* HOOPZARO: real athlete portraits with explicit, reusable-image licensing.
-   Curated files cover the initial dashboard. Remaining NBA players are resolved
-   lazily through Wikidata's photo claim and Wikimedia Commons license metadata.
-   ESPN photos are NEVER requested unless the operator has enabled their own
-   separately licensed source; a failed lookup keeps the initials visible. */
+/* HOOPZARO: use official-style studio headshots by ESPN athlete ID.
+   A missing image falls back to credited Wikimedia Commons photographs, then
+   to the player's initials. Remote image terms remain the operator's concern. */
 (function(){
 "use strict";
 const COMMONS="https://commons.wikimedia.org/wiki/File:";
@@ -118,11 +116,30 @@ async function get(name){
  pending.set(key,promise);return promise;
 }
 const queue=[];let running=0;
+function loadStudioHeadshot(node,id){
+ return new Promise(resolve=>{
+  if(!/^\d{1,20}$/.test(id||"")){resolve(false);return;}
+  const img=new Image();
+  img.alt="Studyjny portret zawodnika: "+node.dataset.hoopPlayer;
+  img.title="Portret zawodnika · zdjęcie z ESPN";
+  img.className="bc-headshot-photo";
+  img.decoding="async";img.loading="eager";
+  img.onload=()=>{
+   if(!node.isConnected||node.querySelector("img")||img.naturalWidth<50||img.naturalHeight<50){resolve(false);return;}
+   node.appendChild(img);node.dataset.hoopPhotoState="studio";
+   resolve(true);
+  };
+  img.onerror=()=>resolve(false);
+  img.src="https://a.espncdn.com/i/headshots/nba/players/full/"+id+".png";
+ });
+}
 function pump(){
  while(running<3&&queue.length){
   const job=queue.shift();running++;
   if(!job.node.isConnected){running--;continue;}
-  get(job.name).then(photo=>photo&&apply(job.node,photo))
+  loadStudioHeadshot(job.node,job.id).then(async loaded=>{
+   if(!loaded){const photo=await get(job.name);if(photo)apply(job.node,photo);}
+  })
    .finally(()=>{running--;pump();});
  }
 }
@@ -148,7 +165,7 @@ const observer=typeof IntersectionObserver==="function"?new IntersectionObserver
  for(const entry of entries){
   if(!entry.isIntersecting)continue;
   observer.unobserve(entry.target);
-  queue.unshift({node:entry.target,name:entry.target.dataset.hoopPlayer});
+  queue.unshift({node:entry.target,name:entry.target.dataset.hoopPlayer,id:entry.target.dataset.hoopId});
  }
  pump();
 },{rootMargin:"140px"}):null;
@@ -162,9 +179,8 @@ function observe(container){
   const name=node.dataset.hoopPlayer;
   if(!name)continue;
   node.dataset.hoopPhotoState="queued";
-  if(curatedMap.has(normalized(name)))apply(node,curatedMap.get(normalized(name)));
-  else if(observer)observer.observe(node);
-  else{queue.push({node,name});pump();}
+  if(observer)observer.observe(node);
+  else{queue.push({node,name,id:node.dataset.hoopId});pump();}
  }
 }
 function credits(){return [...credited.values()].sort((a,b)=>a.artist.localeCompare(b.artist));}
