@@ -247,8 +247,10 @@ def check_streamlit(browser,url,out):
         expect(frame.locator("#bc-selected-day")).to_have_text(first)
         # Previously CI accepted a backend success while the visible NBA
         # ticker and results remained stuck at their initial placeholders.
-        # Requiring all 3 sections to leave loading covers that exact bug.
-        for selector in ("#bc-ticker-games","#bc-games-list","#bc-finals"):
+        # Requiring the ticker, schedule, and source status to leave loading
+        # covers that bug. The removed #bc-finals tile is not part of the
+        # redesigned dashboard; completed games live in the schedule.
+        for selector in ("#bc-ticker-games","#bc-games-list","#bc-source-state"):
             content=frame.locator(selector).inner_text()
             assert "Wczytywanie" not in content and "Pobieranie" not in content, (
                 "Dashboard is still loading after first real Streamlit paint",selector,content
