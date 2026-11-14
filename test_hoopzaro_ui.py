@@ -70,7 +70,13 @@ def main() -> None:
             assert page.locator("#chart-svg .bb-plot-bar").count() == 10
             assert page.locator("#hero-rate").inner_text().endswith("%")
             page.locator('[data-market="PRA"]').click()
-            assert "PTS + REB + AST" in page.locator("#chart-heading").inner_text()
+            expect_heading = "PTS + REB + AST"
+            actual_heading = page.locator("#chart-heading").inner_text()
+            assert expect_heading in actual_heading, (
+                f"PRA heading={actual_heading!r}, "
+                f"market={page.locator('#market').input_value()!r}, "
+                f"selected={page.locator('[data-market=PRA]').get_attribute('class')!r}"
+            )
             page.locator('[data-market="REB"]').click()
             page.locator("#line-plus").click()
             assert page.locator("#line").input_value() == "8"

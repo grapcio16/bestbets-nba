@@ -100,7 +100,9 @@ def check_static(page,out):
     expect(page.locator("#bc-refresh")).to_be_visible()
     assert page.locator("#bc-source-state").inner_text().startswith("●")
     assert page.locator(".bc-pick").count()==3
-    assert page.locator(".bc-watch button").count()==3
+    assert page.locator(".bc-watch button").count()==3, (
+        "Player rows after ESPN fixture: " + page.locator(".bc-watch").inner_html()[:800]
+    )
     # The glossary must be centered over a blurred full-viewport backdrop.
     page.locator("#bc-free-info-toggle").click()
     expect(page.locator("#bc-free-info-popup")).to_be_visible()
