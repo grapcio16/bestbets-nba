@@ -818,3 +818,46 @@
 @media(max-width:650px){
   .bc-injury-info-backdrop .bc-free-info-metrics{grid-template-columns:1fr}
 }
+
+/* Keep the team-season caption fully inside its 120px card at every stage scale. */
+#bestbets-centre .bc-team-panel{
+  display:flex;flex-direction:column;padding-bottom:6px
+}
+#bestbets-centre .bc-team-panel .bc-small-head{flex:0 0 31px}
+#bestbets-centre .bc-team-panel .bc-small-list{
+  display:flex;flex:1 1 auto;flex-direction:column;gap:0;
+  height:auto;min-height:0
+}
+#bestbets-centre .bc-team-panel .bc-team-form{
+  flex:1 1 0;height:auto;min-height:0;padding:0 1px
+}
+#bestbets-centre .bc-team-panel .bc-panel-note{
+  display:flex;align-items:center;flex:0 0 15px;min-height:0;
+  margin:0;color:#d7edff;font-size:9.4px;font-weight:700;
+  line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+
+/* Stars in the visible watched-player rows use the same favorite state as the roster picker. */
+#bestbets-centre .bc-watch .bc-watch-row{
+  display:flex;align-items:center;min-width:0;height:28px;
+  border-bottom:1px solid #17476b
+}
+#bestbets-centre .bc-watch .bc-watch-row>button[data-centre-query],
+#bestbets-centre .bc-watch .bc-watch-row>button[data-centre-nav]{
+  flex:1 1 0;width:auto;min-width:0;height:100%;border-bottom:0;
+  padding:1px 1px;gap:4px
+}
+#bestbets-centre .bc-watch .bc-watch-row>.bc-watch-star{
+  display:grid;place-items:center;flex:0 0 20px;width:20px;
+  height:24px;margin:0;padding:0;border:0;border-radius:5px;
+  background:transparent;color:#a2bfda;font-size:22px;
+  font-weight:850;line-height:1;cursor:pointer;
+  transition:color .12s,text-shadow .12s
+}
+#bestbets-centre .bc-watch .bc-watch-row>.bc-watch-star:hover,
+#bestbets-centre .bc-watch .bc-watch-row>.bc-watch-star.is-favorite{
+  color:#ffd43b;text-shadow:0 0 8px rgba(255,196,33,.55)
+}
+#bestbets-centre .bc-watch .bc-watch-row>.bc-watch-star:focus-visible{
+  outline:2px solid #66e7ff;outline-offset:1px
+}

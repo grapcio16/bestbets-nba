@@ -41,24 +41,37 @@ function avatar(p,cls){
   '" data-hoop-id="'+(/^\d{1,20}$/.test(id)?escape(id):'')+'"><span>'+escape(abbrev)+'</span></span>';
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(favorites));}catch(_){}}
+function watchStar(p){
+ const id=String(p.id||""),chosen=favorites.some(item=>item.id===id),valid=/^\d{1,20}$/.test(id);
+ const label=(chosen?"Usuń ":"Dodaj ")+String(p.name||"zawodnika")+(chosen?" z obserwowanych":" do obserwowanych");
+ return '<button type="button" class="bc-watch-star'+(chosen?' is-favorite':'')+
+  '" data-bb-watch-id="'+escape(id)+'" data-bb-watch-name="'+escape(p.name)+
+  '" data-bb-watch-team="'+escape(p.team||'')+'" data-bb-watch-position="'+escape(safePosition(p.position))+
+  '" aria-label="'+escape(label)+'" aria-pressed="'+String(chosen)+'" title="'+escape(label)+'"'+
+  (valid?'':' disabled')+'>'+(chosen?'★':'☆')+'</button>';
+}
+function watchRow(button,p){return '<div class="bc-watch-row">'+button+watchStar(p)+'</div>';}
 function watch(){
  const node=$("bestbets-centre")?.querySelector(".bc-watch");
- if(!node||!favorites.length)return;
+ if(!node)return;
  const selected=new Set(favorites.map(p=>p.name.toLocaleLowerCase("pl-PL")));
- const rows=favorites.map(p=>
+ const rows=favorites.map(p=>watchRow(
   '<button type="button" data-centre-nav="props" title="Otwórz Player Props i wybierz linię">'+
   avatar(p,"bc-watch-avatar")+'<span class="bc-watch-name">'+escape(p.name)+'</span>'+
-  positionBadge(p)+teamBadge(p.team)+'<span class="bc-watch-chevron">›</span></button>');
+  positionBadge(p)+teamBadge(p.team)+'<span class="bc-watch-chevron">›</span></button>',p));
  const rest=document.createElement("div");
  rest.innerHTML=nativeWatch;
- for(const b of rest.querySelectorAll("button")){
+ for(const b of rest.querySelectorAll("button[data-centre-query]")){
   if(rows.length>=3)break;
-  const title=b.textContent.trim().toLocaleLowerCase("pl-PL");
-  if([...selected].some(name=>title.includes(name)))continue;
+  const avatarNode=b.querySelector("[data-hoop-player]");
+  const name=avatarNode?.dataset.hoopPlayer||"";
+  if(!name||selected.has(name.toLocaleLowerCase("pl-PL")))continue;
   // Rows copied from the native watch panel are NEW DOM nodes. Reset the
   // old node's pending-photo marker so its replacement can load a headshot.
   b.querySelectorAll("[data-hoop-photo-state]").forEach(n=>n.removeAttribute("data-hoop-photo-state"));
-  rows.push(b.outerHTML);
+  rows.push(watchRow(b.outerHTML,{id:avatarNode?.dataset.hoopId||"",name,
+    team:b.querySelector(".bc-free-team strong")?.textContent||"",
+    position:b.querySelector(".bc-watch-position")?.textContent||""}));
  }
  node.innerHTML=rows.join("");
  window.HoopzaroPortraits?.observe(node);
@@ -111,8 +124,11 @@ function options(){
  if(list)list.scrollTop=oldScroll;
  window.HoopzaroPortraits?.observe(list);
 }
-function toggleFavorite(id){
- const target=(catalog?.players||[]).find(p=>String(p.id)===id);
+function toggleFavorite(id,button){
+ const fromVisible=button?.closest(".bc-watch-row")?{
+  id,name:button.dataset.bbWatchName,team:button.dataset.bbWatchTeam,
+  position:button.dataset.bbWatchPosition}:null;
+ const target=(catalog?.players||[]).find(p=>String(p.id)===id)||fromVisible;
  if(!target)return;
  if(favorites.some(p=>p.id===id))favorites=favorites.filter(p=>p.id!==id);
  else if(favorites.length>=3){
@@ -140,7 +156,7 @@ function install(){
    refreshing=true;options();api.refreshPlayers();return;
   }
   const id=button.getAttribute("data-bb-watch-id");
-  if(id!==null){ev.stopPropagation();toggleFavorite(id);}
+  if(id!==null){ev.stopPropagation();toggleFavorite(id,button);}
  });
  centre.addEventListener("input",ev=>{
   if(ev.target.id!=="bc-players-search")return;
