@@ -15,6 +15,7 @@ const curated=[
  {name:"Alperen Şengün",file:"Alperen Şengün 23 Türkiye 20250823 (18).jpg",artist:"Zafer",license:"CC BY 4.0",licenseUrl:LICENSE_BY4},
  {name:"Karl-Anthony Towns",file:"Karl-Anthony Towns (51915599244).jpg",artist:"Erik Drost",license:"CC BY 2.0",licenseUrl:LICENSE_BY},
  {name:"Donovan Mitchell",file:"Donovan Mitchell - 52976499477.jpg",artist:"Erik Drost",license:"CC BY 2.0",licenseUrl:LICENSE_BY},
+ {name:"Davion Mitchell",file:"Davion Mitchell.jpg",artist:"LockedIN Magazine",license:"CC BY-SA 2.0",licenseUrl:"https://creativecommons.org/licenses/by-sa/2.0/"},
  {name:"Bam Adebayo",file:"Bam-Adebayo.jpg",artist:"Acdixon",license:"CC0 1.0",licenseUrl:LICENSE_CC0},
  {name:"Franz Wagner",file:"Franz Wagner Michigan.jpg",artist:"Marc-Grégor Campredon",license:"CC BY 2.0",licenseUrl:LICENSE_BY}
 ];
