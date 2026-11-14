@@ -3,6 +3,8 @@
 Ten projekt używa tożsamości OpenID Connect (OIDC) w Streamlit (`st.login`,
 `st.user`, `st.logout`). Nie używa adresów IP, haseł w repozytorium ani stanu
 przesłanego z JavaScript do przyznawania uprawnień.
+`requirements.txt` instaluje `streamlit[auth]` razem z wymaganym Authlib;
+bez tego samo skonfigurowanie sekretów nie uruchomi logowania.
 
 ## Konfiguracja w Streamlit Community Cloud
 
