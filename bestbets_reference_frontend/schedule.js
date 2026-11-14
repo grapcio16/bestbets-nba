@@ -93,21 +93,16 @@ function score(game){
 function liveLabel(raw){
   const text=String(raw||"");
   const match=text.match(/\bQ([1-4])\b/i)||text.match(/\b([1-4])(?:st|nd|rd|th)\b/i);
-  return match?match[1]+". KWARTA":"NA ŻYWO";
+  return match?"NA ŻYWO · "+match[1]+". KWARTA":"NA ŻYWO";
 }
 function gameMarkup(game,data){
   const away=String(game.away||"NBA").toUpperCase(),home=String(game.home||"NBA").toUpperCase();
   const badge=game.state==="live"?liveLabel(game.status):game.state==="final"?"KONIEC":"NADCHODZĄCE";
-  return '<article class="hzs-game" aria-label="'+escapeHtml(away+' – '+home+', '+badge)+'">'+
+  const kind=game.state==="live"?"live":game.state==="final"?"final":"upcoming";
+  return '<article class="hzs-game hzs-'+kind+'" aria-label="'+escapeHtml(away+' – '+home+', '+badge)+'">'+
     '<div class="hzs-team away">'+teamMark(away,game.away_logo)+teamText(away,data)+'</div>'+
     '<div class="hzs-score"><strong>'+escapeHtml(score(game))+'</strong><span class="hzs-status">'+escapeHtml(badge)+'</span></div>'+
     '<div class="hzs-team home">'+teamText(home,data)+teamMark(home,game.home_logo)+'</div></article>';
-}
-function sectionMarkup(label,kind,games,data){
-  if(!games.length)return "";
-  return '<section class="hzs-section '+kind+'" aria-label="'+label+'">'+
-    '<div class="hzs-section-title"><span class="hzs-section-dot" aria-hidden="true"></span>'+label+' · '+games.length+'</div>'+
-    '<div class="hzs-rows">'+games.map(game=>gameMarkup(game,data)).join("")+'</div></section>';
 }
 function render(data){
   lastData=data;
@@ -134,26 +129,16 @@ function render(data){
     unique.set(String(key),game);
   });
   const games=[...unique.values()].sort((a,b)=>String(a.start||"").localeCompare(String(b.start||"")));
-  const live=games.filter(game=>game.state==="live");
-  const final=games.filter(game=>game.state==="final");
-  const upcoming=games.filter(game=>game.state==="scheduled");
   const alert=day.error?'<div class="hzs-alert">'+escapeHtml(day.error.slice(0,180))+'</div>':"";
   if(!games.length){
     host.innerHTML=alert+'<div class="hzs-empty">Brak potwierdzonych meczów NBA '+escapeHtml(selectedDay)+'.</div>';
     return;
   }
-  let left="",right="";
-  if(upcoming.length){
-    left=sectionMarkup("NA ŻYWO","live",live,data)+sectionMarkup("ZAKOŃCZONE","final",final,data);
-    right=sectionMarkup("NADCHODZĄCE","upcoming",upcoming,data);
-  }else if(live.length&&final.length){
-    left=sectionMarkup("NA ŻYWO","live",live,data);
-    right=sectionMarkup("ZAKOŃCZONE","final",final,data);
-  }else{
-    left=sectionMarkup("NA ŻYWO","live",live,data)+sectionMarkup("ZAKOŃCZONE","final",final,data);
-  }
-  host.innerHTML=alert+'<div class="hzs-columns'+(right?'':' single')+'"><div>'+left+'</div>'+
-    (right?'<div>'+right+'</div>':'')+'</div>';
+  // One chronological full-width list. Each card carries its own current
+  // LIVE / FINAL / UPCOMING status; no empty column when a day has one state.
+  host.innerHTML=alert+'<section class="hzs-section" aria-label="Mecze NBA">'+
+    '<div class="hzs-section-title"><span class="hzs-section-dot" aria-hidden="true"></span>MECZE · '+games.length+'</div>'+
+    '<div class="hzs-rows">'+games.map(game=>gameMarkup(game,data)).join("")+'</div></section>';
 }
 function requestDay(day){
   if(!callback?.selectDay||!safeDay(day)||!withinRange(day))return;
