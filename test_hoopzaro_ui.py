@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from base64 import b64encode
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 
 ROOT = Path(__file__).resolve().parent
