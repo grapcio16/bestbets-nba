@@ -21,6 +21,7 @@ def _value(x):
 
 def extract_recent_leaders(payload, now=None, limit=3):
     """Read explicitly reported NBA match leaders, never manufacture stats."""
+    from bestbets_free_analyses import athlete_position
     now=pd.Timestamp(now) if now is not None else pd.Timestamp.now(tz="Europe/Warsaw")
     if now.tzinfo is None:now=now.tz_localize("Europe/Warsaw")
     else:now=now.tz_convert("Europe/Warsaw")
@@ -53,10 +54,12 @@ def extract_recent_leaders(payload, now=None, limit=3):
                     if not name or len(name)>70:continue
                     amount=_value(leader.get("value"))
                     if amount is None:continue
+                    position=athlete_position(athlete)
                     candidates.append({
                         "name":name,"team":team_code[:4],"market":market,
                         "value":amount,"date":when.date().isoformat(),
-                        "athlete_id":str(athlete.get("id") or "")[:20]
+                        "athlete_id":str(athlete.get("id") or "")[:20],
+                        "position": position,
                     })
     # Keep the most recent confirmed result per player, and diversify names
     candidates.sort(key=lambda c:(c["date"],c["value"]),reverse=True)
