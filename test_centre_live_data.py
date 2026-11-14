@@ -36,6 +36,15 @@ class CentreLiveTest(TestCase):
         self.assertEqual(rows[1]["name"],"Al Horford")
         self.assertEqual(rows[2]["market"],"AST")
 
+    def test_optional_position_comes_from_reported_athlete_only(self):
+        import copy
+        source=copy.deepcopy(RAW)
+        player=source['events'][0]['competitions'][0]['competitors'][0]['leaders'][0]['leaders'][0]['athlete']
+        player['position']={'abbreviation':'SF'}
+        rows=extract_recent_leaders(source,NOW,limit=3)
+        self.assertEqual(rows[0]['position'],'SF')
+        self.assertEqual(rows[1]['position'],'')
+
     def test_schedule_and_final_score_are_actual_and_consistent(self):
         with mock.patch("sources.memoized_json",return_value=(RAW,{"timestamp":"2026-11-12T19:00:00Z","stale":False})) as fetch,\
              mock.patch("team_logos.logo_data_uri",return_value=""):
