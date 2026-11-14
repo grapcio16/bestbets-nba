@@ -301,7 +301,7 @@ function renderPlayers(data){
  watch.innerHTML=real.map(p=>
   '<button type="button" data-centre-query="'+safeQuery(p)+'" title="Przykładowy próg do analizy historii, nie typ bukmacherski">'+
   freeAvatar(p).replace('bc-free-avatar','bc-free-avatar bc-watch-avatar')+
-  '<span class="bc-watch-name">'+escapeHtml(p.name)+'</span>'+teamBadge(p.team)+
+  '<span class="bc-watch-name">'+escapeHtml(p.name)+'</span>'+positionBadge(p,'bc-watch-position')+teamBadge(p.team)+
   '<span class="bc-watch-chevron">›</span></button>').join("");
  window.HoopzaroPortraits?.observe(watch);
 }
@@ -343,6 +343,11 @@ function recordFreePropsResult(player,error,currentQuery){
  pendingFreeReferral=null;
 }
 const initials=p=>String(p.name||"").trim().split(/\s+/).slice(0,2).map(v=>v[0]||"").join("").toUpperCase();
+const knownPositions=new Set(["PG","SG","SF","PF","C","G","F","G-F","F-G","F-C","C-F"]);
+function positionBadge(p,extraClass=""){
+ const position=String(p?.position||"").trim().toUpperCase();
+ return knownPositions.has(position)?'<span class="bc-pos-badge '+extraClass+'" title="Pozycja zawodnika">'+escapeHtml(position)+'</span>':"";
+}
 function freeAvatar(p){
  const allowed=homeData?.free_photos_enabled===true && /^[0-9]{1,20}$/.test(p.athlete_id||"");
  const photo=allowed?'<img hidden loading="eager" decoding="async" alt="'+escapeHtml(p.name)+
@@ -366,7 +371,7 @@ function renderFreeLeaders(data){
   return '<button class="bc-pick" type="button" data-centre-free-key="'+p.detail_key+
     '" title="'+escapeHtml(p.name)+' · '+escapeHtml(freeLabels[market])+
     (p.tie_count>1?' (ex aequo)':'')+' — zakończone mecze NBA/ET">'+freeAvatar(p)+
-    '<span class="bc-pick-info"><strong>'+escapeHtml(p.name)+'</strong><small>'+escapeHtml(freeLabels[market])+
+    '<span class="bc-pick-info"><span class="bc-name-line"><strong>'+escapeHtml(p.name)+'</strong>'+positionBadge(p)+'</span><small>'+escapeHtml(freeLabels[market])+
     ' · '+escapeHtml(p.value)+' '+market+(p.tie_count>1?' · ex aequo':'')+'</small></span>'+
     '<span class="bc-pick-tag">'+market+'</span><span class="bc-pick-explain">'+teamBadge(p.team)+' vs '+
     teamBadge(p.opponent)+'<br><i>'+escapeHtml(p.date)+' NBA/ET</i></span>'+
