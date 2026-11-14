@@ -13,6 +13,7 @@ import pandas as pd
 from teams import TEAM_FULL
 
 MARKETS = {"points": "PTS", "rebounds": "REB", "assists": "AST"}
+POSITIONS = frozenset({"PG", "SG", "SF", "PF", "C", "G", "F", "G-F", "F-G", "F-C", "C-F"})
 ALIASES = {"GS": "GSW", "NY": "NYK", "SA": "SAS", "NO": "NOP",
            "PHO": "PHX", "WSH": "WAS", "BRK": "BKN", "UTAH": "UTA"}
 LIMITS = {"PTS": 100, "REB": 55, "AST": 35, "3PM": 35}
@@ -36,6 +37,15 @@ def identifier(value, length=20):
 def team_code(item):
     code = str((item.get("team") or {}).get("abbreviation") or "").upper()
     return ALIASES.get(code, code)
+
+
+def athlete_position(athlete):
+    """Only display positions explicitly reported by the player data source."""
+    pos = athlete.get("position") if isinstance(athlete, dict) else None
+    if not isinstance(pos, dict):
+        return ""
+    value = str(pos.get("abbreviation") or "").strip().upper()
+    return value if value in POSITIONS else ""
 
 
 def completed(event, competition):
@@ -116,6 +126,9 @@ def extract_free_leaders(payload, now=None, covered_days=None):
                            "home_away": competitor["homeAway"], "market": market, "value": value,
                            "date": latest, "local_date": when.tz_convert("Europe/Warsaw").date().isoformat(),
                            "event_date": when.isoformat()}
+                    position = athlete_position(athlete)
+                    if position:
+                        row["position"] = position
                     row["detail_key"] = detail_key(row)
                     reported[market].append(row)
             for market in candidates:
