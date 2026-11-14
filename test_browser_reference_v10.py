@@ -67,6 +67,7 @@ def main():
              "form_options": [{"team": "DEN", "wins": 6, "losses": 4,
                                "ppg": 114.5, "record_verified": True}]},
         )
+        page.wait_for_function("document.querySelectorAll('#hzs-board .hzs-game').length===3")
         assert page.locator("#hzs-board .hzs-game").count() == 3
         assert page.locator("#hzs-board .hzs-rows").count() == 1
         assert page.locator("#hzs-board .hzs-columns").count() == 0
