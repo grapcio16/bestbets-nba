@@ -49,6 +49,9 @@ def main():
 
         page.locator('.nav-btn[data-page="games"]').click()
         assert page.locator("#schedule-pane").is_visible()
+        # The schedule fills the workspace from the top, without the old
+        # 63-pixel spacer above its header. Its bottom edge stays unchanged.
+        assert_box(page, "#schedule-pane", 191, 9, 1025, 635)
         assert page.locator("#blank-pane").is_hidden()
         assert "Terminarz" in page.locator("#schedule-pane").inner_text()
         assert page.locator("#hzs-date-strip button").count() == 7
