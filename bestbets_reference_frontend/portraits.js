@@ -23,7 +23,7 @@ const normalized=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,""
 const curatedMap=new Map(curated.map(p=>[normalized(p.name),filePortrait(p)]));
 function filePortrait(p){
  const encoded=encodeURIComponent(p.file);
- return {url:"https://commons.wikimedia.org/wiki/Special:FilePath/"+encoded+"?width=160",
+ return {url:"https://commons.wikimedia.org/w/thumb.php?f="+encoded+"&w=160",
   source:COMMONS+encoded,artist:p.artist,license:p.license,licenseUrl:p.licenseUrl,
   cropped:true};
 }
@@ -68,7 +68,7 @@ function htmlText(raw){
 function portraitFromPage(page){
  const image=page?.imageinfo?.[0],meta=image?.extmetadata||{};
  const file=String(page?.title||"").replace(/^File:/,"");
- const photo={url:image?.thumburl||image?.url,source:COMMONS+encodeURIComponent(file),
+ const photo={url:image?.url?"https://commons.wikimedia.org/w/thumb.php?f="+encodeURIComponent(file)+"&w=160":"",
   artist:htmlText(meta.Artist?.value||meta.Attribution?.value),
   license:htmlText(meta.LicenseShortName?.value),licenseUrl:meta.LicenseUrl?.value||"",cropped:true};
  return validPortrait(photo)?photo:null;
