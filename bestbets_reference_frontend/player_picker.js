@@ -15,10 +15,12 @@ try{
    if(!p||!/^\d+$/.test(String(p.id||""))||typeof p.name!=="string"||
       !p.name.trim()||seen.has(String(p.id)))return false;
    seen.add(String(p.id));return true;
-  }).slice(0,3).map(p=>({id:String(p.id),name:String(p.name).slice(0,90),team:String(p.team||"").slice(0,4)}));
+  }).slice(0,3).map(p=>({id:String(p.id),name:String(p.name).slice(0,90),team:String(p.team||"").slice(0,4),position:safePosition(p.position)}));
  }
 }catch(_){}
 const escape=s=>String(s||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+function safePosition(p){const value=String(p||"").trim().toUpperCase();return /^(PG|SG|SF|PF|C|G|F|G-F|F-G|F-C|C-F)$/.test(value)?value:"";}
+function positionBadge(p){const pos=safePosition(p.position);return pos?'<span class="bc-pos-badge bc-watch-position" title="Pozycja zawodnika">'+escape(pos)+'</span>':"";}
 function teamBadge(code){
  const safe=escape(code||"NBA"),uri=teamLogos[code];
  const image=typeof uri==="string"&&uri.startsWith("data:image/png;base64,")?
@@ -40,7 +42,7 @@ function watch(){
  const rows=favorites.map(p=>
   '<button type="button" data-centre-nav="props" title="Otwórz Player Props i wybierz linię">'+
   avatar(p,"bc-watch-avatar")+'<span class="bc-watch-name">'+escape(p.name)+'</span>'+
-  teamBadge(p.team)+'<span class="bc-watch-chevron">›</span></button>');
+  positionBadge(p)+teamBadge(p.team)+'<span class="bc-watch-chevron">›</span></button>');
  const rest=document.createElement("div");
  rest.innerHTML=nativeWatch;
  for(const b of rest.querySelectorAll("button")){
@@ -73,7 +75,7 @@ function options(){
   const id=String(p.id),on=chosen.has(id);
   return '<div class="bc-catalog-athlete'+(on?' active':'')+'">'+
    avatar(p,"bc-catalog-avatar")+
-   '<span class="bc-catalog-identity"><strong>'+escape(p.name)+'</strong><small>'+teamBadge(p.team)+'</small></span>'+
+   '<span class="bc-catalog-identity"><strong>'+escape(p.name)+'</strong><small>'+teamBadge(p.team)+positionBadge(p)+'</small></span>'+
    '<button type="button" data-bb-watch-id="'+escape(id)+'" class="bc-form-star'+(on?' is-favorite':'')+
    '" title="'+(on?'Usuń z obserwowanych':'Dodaj do obserwowanych')+
    '" aria-pressed="'+String(on)+'">'+(on?'★':'☆')+'</button></div>';
@@ -108,7 +110,7 @@ function toggleFavorite(id){
  else if(favorites.length>=3){
   const msg=$("bc-catalog-help");if(msg){msg.textContent="Maksymalnie 3 obserwowani. Najpierw odznacz jednego.";msg.classList.add("bc-form-limit");}
   return;
- }else favorites.push({id:String(target.id),name:target.name,team:target.team});
+ }else favorites.push({id:String(target.id),name:target.name,team:target.team,position:safePosition(target.position)});
  save();watch();options();
 }
 function install(){
@@ -165,8 +167,10 @@ window.BestBetsCentre.render=function(data,players,freeDetails){
   let changed=false;
   favorites=favorites.map(p=>{
    const fresh=known.get(p.id);
-   if(!fresh||fresh.name===p.name&&fresh.team===p.team)return p;
-   changed=true;return {id:p.id,name:fresh.name,team:fresh.team};
+   if(!fresh)return p;
+   const position=safePosition(fresh.position);
+   if(fresh.name===p.name&&fresh.team===p.team&&position===p.position)return p;
+   changed=true;return {id:p.id,name:fresh.name,team:fresh.team,position};
   });
   if(changed)save();
  }
