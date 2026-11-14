@@ -16,7 +16,8 @@ def fixture():
                 (8, 6) if code == "MIN" else (0, 0))
         record = {"team": {"abbreviation": code, "displayName": name},
                   "stats": [{"name": "wins", "value": float(w)},
-                            {"name": "losses", "displayValue": str(l)}]}
+                            {"name": "losses", "displayValue": str(l)},
+                            {"name": "avgPointsFor", "value": 116.8}]}
         (east if index < 15 else west).append(record)
     return {"season": {"year": 2027},
             "children": [{"standings": {"entries": east}},
@@ -31,6 +32,7 @@ class SeasonStandingTests(unittest.TestCase):
         self.assertEqual(parsed["BOS"]["losses"], 3)
         self.assertEqual(parsed["BOS"]["sample"], 14)
         self.assertTrue(parsed["BOS"]["record_verified"])
+        self.assertEqual(parsed["BOS"]["ppg"], 116.8)
         self.assertEqual(parsed["ATL"]["sample"], 0)
         self.assertTrue(parsed["ATL"]["record_verified"])
 
@@ -60,6 +62,12 @@ class SeasonStandingTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse_season_standings(broken)
 
+    def test_ppg_accepts_verified_total_and_never_guesses_from_win_loss(self):
+        from bestbets_centre_standings import _points_per_game
+        self.assertEqual(_points_per_game({"pointsfor": 1510}, 13), 116.2)
+        self.assertIsNone(_points_per_game({"wins": 10, "losses": 3}, 13))
+        self.assertIsNone(_points_per_game({"avgpointsfor": "N/A"}, 13))
+
     def test_provider_request_is_season_specific_and_cached(self):
         with mock.patch("sources.memoized_json", return_value=(fixture(), {"stale": False})) as fetch:
             result, meta = fetch_season_standings()
@@ -84,9 +92,11 @@ class SeasonStandingTests(unittest.TestCase):
         self.assertEqual(verified["form"][0]["wins"], 11)
         self.assertEqual(verified["form"][0]["sample"], 14)
         self.assertTrue(verified["form_available"])
+        self.assertEqual(verified["form"][0]["ppg"], 116.8)
         unavailable = apply_season_form(dict(base), None)
         self.assertFalse(unavailable["form_available"])
         self.assertIsNone(unavailable["form"][0]["wins"])
+        self.assertIsNone(unavailable["form"][0]["ppg"])
         self.assertFalse(unavailable["form"][0]["record_verified"])
 
     def test_stale_cache_is_marked_not_presented_as_fresh(self):

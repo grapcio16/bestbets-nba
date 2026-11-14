@@ -195,6 +195,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 </style>
 <link rel="stylesheet" href="centrum.css">
 <link rel="stylesheet" href="hoopzaro.css">
+<link rel="stylesheet" href="schedule.css">
 </head>
 <body>
 <div id="app-shell"><div id="stage">
@@ -328,6 +329,19 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
   </div>
 </section>
   <section id="blank-pane"><h2 id="blank-title">Centrum</h2><p>Ta zakładka jest przygotowana do dalszej rozbudowy. Dane statystyczne pozostają zachowane.</p></section>
+  <section id="schedule-pane" hidden aria-label="Terminarz NBA">
+    <div class="hzs-header">
+      <div class="hzs-headline"><span class="hzs-headline-bar" aria-hidden="true"></span><div><h1>Terminarz <em>NBA</em> <span class="hzs-free">FREE</span></h1><p>Każdy mecz. Jeden widok.</p></div></div>
+      <div class="hzs-context"><span>◷ &nbsp; Czas spotkań: Polska</span><small>PPG = średnia pkt/mecz &nbsp; · &nbsp; Bilans = wygrane–przegrane</small></div>
+    </div>
+    <div class="hzs-day-navigation" aria-label="Wybierz dzień meczów NBA">
+      <button type="button" class="hzs-day-arrow" data-hzs-direction="-1" aria-label="Poprzedni dzień">‹</button>
+      <div id="hzs-date-strip" class="hzs-date-strip" role="group" aria-label="Daty spotkań NBA"></div>
+      <button type="button" class="hzs-day-arrow" data-hzs-direction="1" aria-label="Następny dzień">›</button>
+    </div>
+    <div class="hzs-board" id="hzs-board" aria-live="polite"><div class="hzs-empty">Wczytywanie terminarza NBA…</div></div>
+    <div class="hzs-footnote"><span id="hzs-source-note">Rzeczywiste mecze NBA / ESPN</span><span>Przewiń, aby zobaczyć wszystkie spotkania ↓</span></div>
+  </section>
 </div>
 <footer id="footer">
  <div class="footer-tiles">
@@ -346,6 +360,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <script src="portraits.js"></script>
 <script src="centrum.js"></script>
 <script src="player_picker.js"></script>
+<script src="schedule.js"></script>
 <script>
 (function(){
 "use strict";
@@ -541,7 +556,9 @@ function render(){
   const active=state.page==="props",home=state.page==="home";
   root.classList.toggle("bb-home-active",home);
   $("props-pane").style.display=active?"block":"none";
-  $("blank-pane").style.display=!active&&!home?"block":"none";
+  const schedule=state.page==="games";
+  $("blank-pane").style.display=!active&&!home&&!schedule?"block":"none";
+  $("schedule-pane").hidden=!schedule;
   $("bestbets-centre").hidden=!home;
   $("footer").style.display=home?"none":"block";
   $("attribution").style.display=home?"none":"block";
@@ -563,6 +580,7 @@ function render(){
     // it can cause a needless Streamlit rerun while the iframe is sizing.
     // The existing watchdog retries after 6.5s if the host never responds.
   }
+  if(schedule && window.HoopzaroSchedule)window.HoopzaroSchedule.render(state.payload.home||null);
   if(active)renderPlayer();
   resize();
 }
@@ -612,6 +630,15 @@ if(window.BestBetsCentre){
     }
   });
 }
+if(window.HoopzaroSchedule){
+  window.HoopzaroSchedule.init({selectDay:function(day){
+    if(state.page!=="games" || !/^\d{4}-\d{2}-\d{2}$/.test(day))return;
+    notify("streamlit:setComponentValue",{dataType:"json",value:{
+      type:"home_date",date:day,
+      id:String(Date.now())+"-schedule-day-"+day+"-"+Math.random().toString(36).slice(2)
+    }});
+  }});
+}
 $("search-form").addEventListener("submit",function(e){e.preventDefault();search($("query").value)});
 document.querySelectorAll("[data-query]").forEach(function(b){b.addEventListener("click",function(){state.page="props";search(b.dataset.query)})});
 document.querySelectorAll("[data-page]").forEach(function(el){el.addEventListener("click",function(){state.page=el.dataset.page;state.payload.error="";render()})});
@@ -645,7 +672,7 @@ setInterval(function(){
 // Refresh public game facts while the free dashboard is visible. Never
 // interfere with the existing search, props state or iframe sizing.
 setInterval(function(){
-  if(state.page!=="home")return;
+  if(state.page!=="home" && state.page!=="games")return;
   notify("streamlit:setComponentValue",{dataType:"json",value:{
     type:"home_data",id:String(Date.now())+"-home-refresh-"+Math.random().toString(36).slice(2)
   }});
