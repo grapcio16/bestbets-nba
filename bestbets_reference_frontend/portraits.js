@@ -125,7 +125,9 @@ function apply(node,photo){
  if(!node.isConnected||node.querySelector("img")||!validPortrait(photo))return;
  const img=document.createElement("img");
  img.alt="Zdjęcie zawodnika: "+node.dataset.hoopPlayer;
- img.loading="lazy";img.decoding="async";img.hidden=true;
+ // The avatar is already visibility-gated by IntersectionObserver. Keep image
+ // loading eager here: browser lazy-loading skips elements hidden until load.
+ img.loading="eager";img.decoding="async";img.hidden=true;
  img.className="bc-commons-photo";
  img.title="Fot.: "+photo.artist+" · "+photo.license+" · źródło: Wikimedia Commons";
  img.addEventListener("load",()=>{
