@@ -55,6 +55,9 @@ function watch(){
   if(rows.length>=3)break;
   const title=b.textContent.trim().toLocaleLowerCase("pl-PL");
   if([...selected].some(name=>title.includes(name)))continue;
+  // Rows copied from the native watch panel are NEW DOM nodes. Reset the
+  // old node's pending-photo marker so its replacement can load a headshot.
+  b.querySelectorAll("[data-hoop-photo-state]").forEach(n=>n.removeAttribute("data-hoop-photo-state"));
   rows.push(b.outerHTML);
  }
  node.innerHTML=rows.join("");
