@@ -114,7 +114,10 @@ def _cached_centre_player_catalog(force_refresh: bool = False):
         name = str(row.get("PLAYER_NAME") or "").strip()
         team = str(row.get("TEAM_ABBREVIATION") or "")
         if pid.isdigit() and name and team in TEAM_FULL:
-            players.append({"id": pid, "name": name[:90], "team": team})
+            position = str(row.get("POSITION") or "").strip().upper()
+            if position not in {"PG", "SG", "SF", "PF", "C", "G", "F", "G-F", "F-G", "F-C", "C-F"}:
+                position = ""
+            players.append({"id": pid, "name": name[:90], "team": team, "position": position})
     return {"players": players, "coverage": {**coverage,
             "fetched_at": datetime.now(timezone.utc).isoformat(timespec="minutes"),
             "photo_license_enabled": photo_policy()}}
