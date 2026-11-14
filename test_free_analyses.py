@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 import pandas as pd
 from bestbets_free_analyses import (extract_free_leaders, get_free_leader_boxscore,
-    detail_key, select_leader, photo_policy, integer)
+    detail_key, select_leader, photo_policy, integer, athlete_position)
 
 NOW = pd.Timestamp('2026-11-13T12:00:00Z')
 
@@ -107,6 +107,17 @@ class FreeAnalysesTest(unittest.TestCase):
         for source,target in (('UTAH','UTA'),('PHO','PHX'),('GS','GSW'),('WSH','WAS')):
             e=event();e['competitions'][0]['competitors'][0]['team']['abbreviation']=source
             self.assertEqual(self.rows({'events':[e]})['free_leaders'][0]['team'],target)
+
+    def test_position_is_verified_optional_and_does_not_change_referral_key(self):
+        source=event()
+        player=source['competitions'][0]['competitors'][0]['leaders'][0]['leaders'][0]['athlete']
+        before=self.rows({'events':[copy.deepcopy(source)]})['free_leaders'][0]
+        player['position']={'abbreviation':'SF'}
+        after=self.rows({'events':[source]})['free_leaders'][0]
+        self.assertEqual(after['position'],'SF')
+        self.assertEqual(before['detail_key'],after['detail_key'])
+        self.assertEqual(athlete_position({'position':{'abbreviation':'UNKNOWN'}}),'')
+        self.assertEqual(athlete_position({'position':'Guard'}),'')
 
     def test_equal_maximum_is_stable_and_marked(self):
         e=event('401234568');e['competitions'][0]['competitors'][0]['leaders'][0]['leaders'][0]['athlete']['id']='99'
