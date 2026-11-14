@@ -280,6 +280,7 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
              linear-gradient(0deg,transparent 48%,rgba(13,49,75,.24) 50%,transparent 52%);
 }
 .hz-premium-cta .hz-premium-text{white-space:nowrap;color:#f8dda0}
+#bestbets-centre .bc-bottom-item.bc-premium-item .hz-premium-text{color:#f8dda0}
 .hz-premium-cta .hz-premium-arrow{font-size:23px;font-weight:700;line-height:.65;color:#f7e2ad}
 .sidebar-premium.hz-premium-cta:hover,
 #bestbets-centre .bc-premium-top.hz-premium-cta:hover,
