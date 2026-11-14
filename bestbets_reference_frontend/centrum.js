@@ -358,10 +358,9 @@ function positionBadge(p,extraClass=""){
  return knownPositions.has(position)?'<span class="bc-pos-badge '+extraClass+'" title="Pozycja zawodnika">'+escapeHtml(position)+'</span>':"";
 }
 function freeAvatar(p){
- const allowed=homeData?.free_photos_enabled===true && /^[0-9]{1,20}$/.test(p.athlete_id||"");
- const photo=allowed?'<img hidden loading="eager" decoding="async" alt="'+escapeHtml(p.name)+
-   '" src="https://a.espncdn.com/i/headshots/nba/players/full/'+p.athlete_id+'.png">':"";
- return '<span class="bc-player-circle bc-free-avatar" data-hoop-player="'+escapeHtml(p.name||"")+'"><span>'+escapeHtml(initials(p))+'</span>'+photo+'</span>';
+ const id=/^\d{1,20}$/.test(String(p.athlete_id||""))?String(p.athlete_id):"";
+ return '<span class="bc-player-circle bc-free-avatar" data-hoop-player="'+escapeHtml(p.name||"")+
+  '" data-hoop-id="'+escapeHtml(id)+'"><span>'+escapeHtml(initials(p))+'</span></span>';
 }
 function renderFreeLeaders(data){
  const host=document.querySelector(".bc-pick-list");if(!host)return;
