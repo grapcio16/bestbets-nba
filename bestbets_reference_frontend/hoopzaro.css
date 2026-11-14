@@ -145,16 +145,15 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
 }
 #bestbets-centre .bc-ticker{gap:7px}
 #bestbets-centre .bc-ticker-head{
-  flex:0 0 145px;border-color:#ff9742;
-  background:radial-gradient(ellipse at 0 0,rgba(177,40,208,.3),transparent),#12132d;
-  box-shadow:0 0 13px rgba(232,75,235,.29);font-size:13px;
+  flex:0 0 245px;border:0;border-right:1px solid rgba(133,154,246,.32);
+  background:transparent;box-shadow:none;
 }
 #bestbets-centre .bc-ticker-card{
-  border-color:#0bcade;background:linear-gradient(140deg,#06142c,#071d34 68%,#082335);
-  box-shadow:inset 0 1px rgba(141,240,255,.15),0 0 10px rgba(0,183,223,.18);
+  border-color:#4675ae;background:linear-gradient(150deg,rgba(10,44,77,.92),rgba(11,20,52,.93) 75%);
+  box-shadow:inset 0 1px rgba(120,215,255,.18),0 0 5px rgba(0,166,255,.15);
 }
-#bestbets-centre .bc-ticker-card.live{border-color:#08dfbc;box-shadow:0 0 13px rgba(4,222,184,.26)}
-#bestbets-centre .bc-ticker-card .bc-ticker-time{color:#dff7ff}
+#bestbets-centre .bc-ticker-card.live{border-color:#1bea9a;box-shadow:0 0 8px rgba(0,238,128,.25),inset 0 1px rgba(64,255,186,.17)}
+#bestbets-centre .bc-ticker-card .bc-ticker-time{color:#37e7fa}
 #bestbets-centre .bc-main-row{grid-template-columns:44.2% minmax(0,1fr);gap:13px}
 #bestbets-centre .bc-panel{
   border-color:#6272e7;background:
