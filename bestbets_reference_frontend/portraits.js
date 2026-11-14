@@ -9,7 +9,8 @@ const COMMONS="https://commons.wikimedia.org/wiki/File:";
 const LICENSE_BY="https://creativecommons.org/licenses/by/2.0/";
 const LICENSE_BY4="https://creativecommons.org/licenses/by/4.0/";
 const LICENSE_CC0="https://creativecommons.org/publicdomain/zero/1.0/";
-const CACHE_KEY="hoopzaro.commonsPortraits.v1";
+// Version bump discards negative results written before source metadata was fixed.
+const CACHE_KEY="hoopzaro.commonsPortraits.v2";
 const DAY=86400000;
 const curated=[
  {name:"Alperen Şengün",file:"Alperen Şengün 23 Türkiye 20250823 (18).jpg",artist:"Zafer",license:"CC BY 4.0",licenseUrl:LICENSE_BY4},
@@ -110,7 +111,7 @@ async function get(name){
  const hit=memory.get(key);if(hit?.until>Date.now())return hit.photo;
  if(pending.has(key))return pending.get(key);
  const promise=findFreePortrait(name).catch(()=>null).then(photo=>{
-  memory.delete(key);memory.set(key,{photo,until:Date.now()+(photo?7:1)*DAY});
+  memory.delete(key);memory.set(key,{photo,until:Date.now()+(photo?7*DAY:15*60*1000)});
   persist();return photo;
  }).finally(()=>pending.delete(key));
  pending.set(key,promise);return promise;
@@ -119,6 +120,7 @@ const queue=[];let running=0;
 function pump(){
  while(running<3&&queue.length){
   const job=queue.shift();running++;
+  if(!job.node.isConnected){running--;continue;}
   get(job.name).then(photo=>photo&&apply(job.node,photo))
    .finally(()=>{running--;pump();});
  }
@@ -141,7 +143,7 @@ const observer=typeof IntersectionObserver==="function"?new IntersectionObserver
  for(const entry of entries){
   if(!entry.isIntersecting)continue;
   observer.unobserve(entry.target);
-  queue.push({node:entry.target,name:entry.target.dataset.hoopPlayer});
+  queue.unshift({node:entry.target,name:entry.target.dataset.hoopPlayer});
  }
  pump();
 },{rootMargin:"140px"}):null;
