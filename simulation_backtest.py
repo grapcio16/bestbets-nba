@@ -1,4 +1,4 @@
-"""Walk-forward comparison against old mean-only NBA team-score baseline.
+"""Walk-forward comparison of baseline, form, and enriched NBA score models.
 
 Each event is forecast using only games dated STRICTLY before its tipoff.
 Evaluation is descriptive and should not be used as betting recommendations.
@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import pandas as pd
 from simulation_engine import completed_team_scores, matchup_means, simulate_game
+from simulation_context_v2 import simulation_inputs
 
 
 def old_baseline(home,away,history):
@@ -28,11 +29,18 @@ def walk_forward_comparison(completed: pd.DataFrame, max_games=140):
         return pd.DataFrame(),{}
     past=completed.copy()
     past["start_utc"]=pd.to_datetime(past["start_utc"],utc=True,errors="coerce")
-    past=past[(past["status_code"]==3)&past["start_utc"].notna()].sort_values("start_utc")
+    past["status_code"]=pd.to_numeric(past["status_code"],errors="coerce")
+    past["home_score"]=pd.to_numeric(past["home_score"],errors="coerce")
+    past["away_score"]=pd.to_numeric(past["away_score"],errors="coerce")
+    past=past[(past["status_code"]==3)&past["start_utc"].notna()&
+              past["home_score"].between(55,200)&
+              past["away_score"].between(55,200)]
+    past=past.drop_duplicates("game_id",keep="last").sort_values("start_utc")
+    # Evaluate the latest available fixtures, but retain ALL older games as
+    # potential training history. This keeps the report current after 140 games.
+    limit=max(1,int(max_games))
     rows=[]
-    for g in past.to_dict("records"):
-        if len(rows)>=max_games:
-            break
+    for g in past.tail(limit).to_dict("records"):
         stamp=g["start_utc"]
         before=past[past["start_utc"]<stamp]
         history=completed_team_scores(before)
@@ -46,12 +54,20 @@ def walk_forward_comparison(completed: pd.DataFrame, max_games=140):
                 continue
             game={"game_id":str(g["game_id"]), "home":g["home"],
                   "away":g["away"],"start_utc":stamp}
+            # This is the exact evidence/variance path used by Premium's
+            # current game simulator; never use the eventual score as input.
+            enriched=simulation_inputs(before,game)
+            if enriched["means"] is None:
+                continue
             old_sim,*_=simulate_game(game,old)
             new_sim,*_=simulate_game(game,new)
+            enriched_sim,*_=simulate_game(
+                game,enriched["means"],score_noise=enriched["score_noise"])
             record={"game_id":str(g["game_id"]),"date":stamp,
                     "actual_total":true_home+true_away,
                     "actual_home":true_home,"actual_away":true_away}
-            for prefix,sim in (("old",old_sim),("new",new_sim)):
+            for prefix,sim in (("old",old_sim),("new",new_sim),
+                               ("enriched",enriched_sim)):
                 record[prefix+"_total"]=sim["total_points"]
                 record[prefix+"_home"]=sim["home_points"]
                 record[prefix+"_away"]=sim["away_points"]
@@ -70,7 +86,7 @@ def walk_forward_comparison(completed: pd.DataFrame, max_games=140):
     if frame.empty:
         return frame,{}
     result={"games":len(frame)}
-    for prefix in ("old","new"):
+    for prefix in ("old","new","enriched"):
         result[prefix+"_total_mae"]=round(
             float((frame[prefix+"_total"]-frame["actual_total"]).abs().mean()),2)
         result[prefix+"_winner_accuracy"]=round(
