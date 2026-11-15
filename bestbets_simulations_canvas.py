@@ -71,6 +71,7 @@ def _advanced_from_verified_cache(season: str):
 def _game_simulation(day: str, game_id: str):
     """Future model, or clearly labeled retrospective model for a final game."""
     from bestbets_centre_live import get_centre_day_data
+    from espn_player_data import prefetch_matchup_boxscores
     from simulation_sources import historical_espn_results
     from simulation_engine import simulate_game
     from simulation_context_v2 import simulation_inputs
@@ -98,6 +99,13 @@ def _game_simulation(day: str, game_id: str):
     means = context["means"]
     if means is None:
         return {"error": "Za mało historycznych spotkań do wiarygodnej symulacji."}
+    # Warm actual player boxscores while the independent team model runs.
+    # Only the server-authorized Premium simulation calls this path; warming
+    # failures cannot affect the primary 5,000-run model.
+    try:
+        prefetch_matchup_boxscores(historical, game)
+    except (OSError, RuntimeError, ValueError):
+        pass
     summary, _, home_scores, away_scores = simulate_game(
         game, means, score_noise=context["score_noise"])
     return {
