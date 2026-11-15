@@ -363,8 +363,10 @@ def matchup_espn_logs(history, game, games_per_team=7):
             store_cache('espn-summary-failed-'+eid,{'error':str(exc)[:120]})
             return eid,[],False
     results=[]; successes=0
-    # A bounded pool: at most two short API waves, only after a user clicks.
-    with ThreadPoolExecutor(max_workers=7) as executor:
+    # Each matchup needs up to seven final boxscores PER team. Fetch all
+    # distinct events in one bounded wave instead of serializing two waves;
+    # fetch_boxscore retains its per-event disk cache and six-second timeout.
+    with ThreadPoolExecutor(max_workers=min(len(chosen), 14)) as executor:
         jobs=[executor.submit(obtain,g) for g in chosen.values()]
         for job in as_completed(jobs):
             _,rows,ok=job.result()
