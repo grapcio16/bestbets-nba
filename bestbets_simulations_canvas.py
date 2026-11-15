@@ -67,16 +67,28 @@ def _advanced_from_verified_cache(season: str):
     return pd.DataFrame()
 
 
+@st.cache_data(ttl=120, max_entries=18, show_spinner=False)
+def _day_for_simulations(day: str):
+    """Reuse parsed ESPN calendar and local team-logo data across match picks."""
+    from bestbets_centre_live import get_centre_day_data
+    return get_centre_day_data(day)
+
+
+@st.cache_data(ttl=600, max_entries=4, show_spinner=False)
+def _history_for_simulations(season: str):
+    """Parse the season scoreboards once for concurrent Premium selections."""
+    from simulation_sources import historical_espn_results
+    return historical_espn_results(season)
+
+
 @st.cache_data(ttl=1800, max_entries=90, show_spinner=False)
 def _game_simulation(day: str, game_id: str):
     """Future model, or clearly labeled retrospective model for a final game."""
-    from bestbets_centre_live import get_centre_day_data
     from espn_player_data import prefetch_matchup_boxscores
-    from simulation_sources import historical_espn_results
     from simulation_engine import simulate_game
     from simulation_context_v2 import simulation_inputs
 
-    event = get_centre_day_data(day)
+    event = _day_for_simulations(day)
     games = event.get("games", [])
     match = next((g for g in games if str(g.get("id")) == game_id), None)
     if match is None or match.get("state") not in ("scheduled", "final"):
@@ -86,7 +98,7 @@ def _game_simulation(day: str, game_id: str):
                             tipoff <= pd.Timestamp.now(tz="UTC")):
         return {"error": "Termin spotkania jest nieaktualny. Odśwież terminarz."}
     season = _season_at(tipoff)
-    historical, warning = historical_espn_results(season)
+    historical, warning = _history_for_simulations(season)
     if historical is None or historical.empty:
         return {"error": "Brak wystarczającej zweryfikowanej historii ESPN."}
     away, home = str(match.get("away", "")), str(match.get("home", ""))
@@ -131,11 +143,9 @@ def _game_simulation(day: str, game_id: str):
 @st.cache_data(ttl=1800, max_entries=50, show_spinner=False)
 def _game_players(day: str, game_id: str):
     """Lazily fetch only the selected matchup's two actual ESPN player histories."""
-    from bestbets_centre_live import get_centre_day_data
-    from simulation_sources import historical_espn_results
     from simulation_view import matchup_players_cached
 
-    event = get_centre_day_data(day)
+    event = _day_for_simulations(day)
     match = next((g for g in event.get("games", []) if str(g.get("id")) == game_id), None)
     if match is None or match.get("state") not in ("scheduled", "final"):
         return {"error": "Nie znaleziono potwierdzonego spotkania.", "players": []}
@@ -144,7 +154,7 @@ def _game_players(day: str, game_id: str):
                             tipoff <= pd.Timestamp.now(tz="UTC")):
         return {"error": "Nieaktualny termin spotkania.", "players": []}
     season = _season_at(tipoff)
-    historical, _ = historical_espn_results(season)
+    historical, _ = _history_for_simulations(season)
     game = {"game_id": game_id, "home": str(match["home"]),
             "away": str(match["away"]), "start_utc": tipoff}
     advanced = (_advanced_from_verified_cache(season)
