@@ -5,7 +5,8 @@ import unittest
 import pandas as pd
 
 from simulation_data_audit import (
-    verified_history, team_snapshot, matchup_audit, venue_research_candidate,
+    verified_history, pregame_team_scores, team_snapshot,
+    matchup_audit, venue_research_candidate,
 )
 
 
@@ -47,6 +48,24 @@ class ExtraDataCoverage(unittest.TestCase):
         self.assertEqual(len(filtered),26)
         self.assertNotIn("future",set(filtered["game_id"]))
         self.assertNotIn("invalid",set(filtered["game_id"]))
+
+    def test_player_and_score_form_cannot_see_later_results(self):
+        cutoff=self.game["start_utc"]
+        baseline=pregame_team_scores(self.matches,cutoff)
+        future=pd.DataFrame([{
+            "game_id":"same_tipoff","start_utc":cutoff,
+            "home":"BOS","away":"NYK",
+            "home_score":200,"away_score":55,"status_code":3,
+        },{
+            "game_id":"next_day","start_utc":"2026-11-10T23:30:00Z",
+            "home":"NYK","away":"BOS",
+            "home_score":200,"away_score":55,"status_code":3,
+        }])
+        with_later=pregame_team_scores(
+            pd.concat([self.matches,future],ignore_index=True),cutoff)
+        self.assertEqual(baseline,with_later)
+        self.assertEqual(len(baseline["BOS"]),26)
+        self.assertTrue(all(start<pd.Timestamp(cutoff) for start,*_ in baseline["NYK"]))
 
     def test_sample_profiles_5_10_20_and_venue(self):
         df=verified_history(self.matches,self.game["start_utc"])

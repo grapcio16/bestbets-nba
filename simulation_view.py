@@ -17,7 +17,7 @@ from espn_player_data import matchup_espn_logs
 from roster_data import team_roster
 from matchup_roster import roster_projection_table
 from forecast_quality import quality_report
-from simulation_data_audit import matchup_audit, venue_research_candidate
+from simulation_data_audit import matchup_audit, venue_research_candidate, pregame_team_scores
 from availability_context import matchup_injuries,player_minutes_brief
 from rotation_intelligence import minutes_trends, rotation_report
 from simulation_lines import score_line_probabilities, quoted_price_diagnostics, scenario_line_table
@@ -34,9 +34,13 @@ def logo_html(code):
 
 @st.cache_data(ttl=60*60,max_entries=5,show_spinner=False)
 def build_sims(games,advanced,history,logs,injuries,research_mode=False):
-    """Process every upcoming game, returning simulation summaries AND all player means."""
+    """Simulate each matchup using only results known before its tipoff.
+
+    The caller can supply the entire season's completed scores (also for
+    retrospective player projections). A shared, unfiltered history would
+    otherwise reveal games played *after* the selected fixture.
+    """
     ratings=advanced_ratings(advanced)
-    history_by_team=completed_team_scores(history)
     summary=[];players_by_game={};unavailable=[]
     league_avg={}
     if not advanced.empty:
@@ -46,6 +50,7 @@ def build_sims(games,advanced,history,logs,injuries,research_mode=False):
                 if not z.empty:league_avg[k]=float(z.median())
     for _,row in games.iterrows():
         g=row.to_dict()
+        history_by_team=pregame_team_scores(history,g.get('start_utc'))
         mean=select_matchup_means(g['home'],g['away'],ratings,history_by_team,
                                   research_mode=research_mode)
         if mean is None:

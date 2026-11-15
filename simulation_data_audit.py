@@ -36,6 +36,17 @@ def verified_history(completed, cutoff_utc):
     return df.sort_values("start_utc").reset_index(drop=True)
 
 
+def pregame_team_scores(completed, kickoff_utc):
+    """Team scoring form strictly as known before the selected matchup.
+
+    Shared by score and player projection screens to avoid retrospective
+    lookahead when the supplied season history contains newer final games.
+    """
+    from simulation_engine import completed_team_scores
+
+    return completed_team_scores(verified_history(completed, kickoff_utc))
+
+
 def team_snapshot(verified, team, opponent=None, venue="home", window=20):
     """Observed last 5/10/20, opponent, and home/away splits; sample sizes shown."""
     own=verified[(verified["away"]==team)|(verified["home"]==team)].copy()
