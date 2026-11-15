@@ -1,7 +1,32 @@
 """Historical completed NBA scores for a transparent fallback scoring model."""
 from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
 from sources import ESPN_SCOREBOARD, memoized_json, parse_espn_schedule
+
+
+def _season_scoreboard_months(periods, refresh=False):
+    """Fetch independent ESPN calendar months concurrently, preserving month order."""
+    def one(period):
+        key=period.strftime('%Y%m')
+        raw,meta=memoized_json('sim-finished-scoreboard-'+key,ESPN_SCOREBOARD,
+            params={'dates':key,'limit':500},ttl_seconds=45*60,refresh=refresh)
+        return parse_espn_schedule(raw),meta
+
+    chunks=[];errors=[]
+    if not periods:return chunks,errors
+    # Month API calls may each take several seconds. Start them together,
+    # keeping the existing per-month disk cache and data validation.
+    with ThreadPoolExecutor(max_workers=min(len(periods),4)) as pool:
+        futures=[pool.submit(one,period) for period in periods]
+        for period,future in zip(periods,futures):
+            key=period.strftime('%Y%m')
+            try:
+                chunk,meta=future.result()
+                if not chunk.empty:chunks.append(chunk)
+                if meta.get('stale'):errors.append(f'{key}: zapis z pamięci')
+            except Exception as exc:errors.append(f'{key}: {str(exc)[:130]}')
+    return chunks,errors
 
 
 def historical_espn_results(season: str, refresh=False, lookback_months=3):
@@ -23,17 +48,8 @@ def historical_espn_results(season: str, refresh=False, lookback_months=3):
     except (ValueError,TypeError):
         window=3
     months=pd.period_range((now-pd.DateOffset(months=window-1)).strftime('%Y-%m'),now.strftime('%Y-%m'),freq='M')
-    chunks=[];errors=[]
-    for period in months:
-        if period.to_timestamp().tz_localize('UTC')<season_start:continue
-        key=period.strftime('%Y%m')
-        try:
-            raw,meta=memoized_json('sim-finished-scoreboard-'+key,ESPN_SCOREBOARD,
-                params={'dates':key,'limit':500},ttl_seconds=45*60,refresh=refresh)
-            chunk=parse_espn_schedule(raw)
-            if not chunk.empty:chunks.append(chunk)
-            if meta.get('stale'):errors.append(f'{key}: zapis z pamięci')
-        except Exception as exc:errors.append(f'{key}: {str(exc)[:130]}')
+    periods=[p for p in months if p.to_timestamp().tz_localize('UTC')>=season_start]
+    chunks,errors=_season_scoreboard_months(periods,refresh=refresh)
     if not chunks:return pd.DataFrame(),'ESPN nie dostarczył wyników zakończonych spotkań. '+'; '.join(errors)
     games=pd.concat(chunks,ignore_index=True).drop_duplicates(subset=['game_id'])
     games=games[(games['status_code']==3)&(games['start_utc']<now)]

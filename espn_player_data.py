@@ -4,6 +4,7 @@ ESPN event IDs differ from official NBA game IDs. Never silently call the data c
 from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
+from threading import Lock
 import math
 import re
 import pandas as pd
@@ -11,6 +12,13 @@ import pandas as pd
 ESPN_SUMMARY='https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary'
 ESPN_GAMELOG='https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/{athlete_id}/gamelog'
 ALIASES={'GS':'GSW','NY':'NYK','SA':'SAS','NO':'NOP','PHO':'PHX','WSH':'WAS','BRK':'BKN'}
+
+# A selected Premium game can start fetching real final boxscores while its
+# independent 5,000-run team simulation is being calculated. Only in-flight
+# requests are shared: final responses remain in the existing disk cache.
+_BOX_PREFETCH_POOL=ThreadPoolExecutor(max_workers=14,thread_name_prefix='espn-matchup')
+_BOX_PREFETCH_LOCK=Lock()
+_BOX_PREFETCH_PENDING={}
 
 def num(v,default=None):
     try:
@@ -314,20 +322,12 @@ def full_season_team_boxscores(results, teams, before_utc, max_games_per_team=28
     }
 
 
-def matchup_espn_logs(history, game, games_per_team=7):
-    """Fetch only real, final ESPN boxscores for the TWO selected teams.
-
-    Called on demand from the game-details button, NEVER while drawing the
-    schedule/cards. Shared game boxscores are persisted and reused across visitors.
-    Strict season/date filters and labels prevent mistaking samples for full logs.
-    """
-    from sources import read_cache, store_cache
+def _recent_matchup_events(history, game, games_per_team):
+    """Find real previous season games, never a final after this fixture."""
     codes=[str(game.get('away') or ''),str(game.get('home') or '')]
-    if not all(codes) or history is None or history.empty:
-        return pd.DataFrame(),{'source':'ESPN','coverage':'Brak zakończonych meczów drużyn'}
+    if not all(codes) or history is None or history.empty:return {}
     asof=pd.to_datetime(game.get('start_utc'),utc=True,errors='coerce')
-    if pd.isna(asof):
-        return pd.DataFrame(),{'source':'ESPN','coverage':'Nieznana data meczu'}
+    if pd.isna(asof):return {}
     season_start=asof.year if asof.month>=10 else asof.year-1
     cutoff=pd.Timestamp(f'{season_start}-10-01',tz='UTC')
     h=history.copy()
@@ -348,20 +348,70 @@ def matchup_espn_logs(history, game, games_per_team=7):
                 n+=1
             if n>=games_per_team:
                 break
+    return chosen
+
+
+def _obtain_final_boxscore(g):
+    """Use both the persistent success cache and short negative-failure cache."""
+    from sources import read_cache, store_cache
+    eid=str(g['game_id'])
+    bad,_=read_cache('espn-summary-failed-'+eid,15*60)
+    if bad is not None:return eid,[],False
+    try:
+        rows=fetch_boxscore(g)
+        if not rows:
+            store_cache('espn-summary-failed-'+eid,{'empty':True})
+        return eid,rows,bool(rows)
+    except Exception as exc:
+        store_cache('espn-summary-failed-'+eid,{'error':str(exc)[:120]})
+        return eid,[],False
+
+
+def prefetch_matchup_boxscores(history, game, games_per_team=7):
+    """Nonblocking, bounded warm-up for one server-authorized selected game.
+
+    This never runs for the public schedule. Background threads do not touch
+    Streamlit session state, auth, models or components.
+    """
+    from sources import read_cache
+    chosen=_recent_matchup_events(history,game,games_per_team)
+    submitted=0
+    with _BOX_PREFETCH_LOCK:
+        for eid,future in list(_BOX_PREFETCH_PENDING.items()):
+            if future.done():_BOX_PREFETCH_PENDING.pop(eid,None)
+        for eid,g in chosen.items():
+            if eid in _BOX_PREFETCH_PENDING or len(_BOX_PREFETCH_PENDING)>=28:
+                continue
+            cached,meta=read_cache('espn-final-summary-'+eid,100*86400)
+            if cached is not None and meta and not meta.get('stale'):continue
+            bad,_=read_cache('espn-summary-failed-'+eid,15*60)
+            if bad is not None:continue
+            _BOX_PREFETCH_PENDING[eid]=_BOX_PREFETCH_POOL.submit(_obtain_final_boxscore,g)
+            submitted+=1
+    return submitted
+
+
+def matchup_espn_logs(history, game, games_per_team=7):
+    """Fetch only real, final ESPN boxscores for the TWO selected teams.
+
+    Called on demand from details or an entitled Premium projection. Shared
+    in-flight requests and disk-cached boxscores prevent duplicate ESPN traffic.
+    Strict season/date filters and labels prevent fake full-season histories.
+    """
+    codes=[str(game.get('away') or ''),str(game.get('home') or '')]
+    if not all(codes) or history is None or history.empty:
+        return pd.DataFrame(),{'source':'ESPN','coverage':'Brak zakończonych meczów drużyn'}
+    asof=pd.to_datetime(game.get('start_utc'),utc=True,errors='coerce')
+    if pd.isna(asof):
+        return pd.DataFrame(),{'source':'ESPN','coverage':'Nieznana data meczu'}
+    chosen=_recent_matchup_events(history,game,games_per_team)
     if not chosen:
         return pd.DataFrame(),{'source':'ESPN','coverage':'Brak ostatnich meczów tych drużyn w ESPN'}
     def obtain(g):
         eid=str(g['game_id'])
-        bad,_=read_cache('espn-summary-failed-'+eid,15*60)
-        if bad is not None:return eid,[],False
-        try:
-            rows=fetch_boxscore(g)
-            if not rows:
-                store_cache('espn-summary-failed-'+eid,{'empty':True})
-            return eid,rows,bool(rows)
-        except Exception as exc:
-            store_cache('espn-summary-failed-'+eid,{'error':str(exc)[:120]})
-            return eid,[],False
+        with _BOX_PREFETCH_LOCK:
+            future=_BOX_PREFETCH_PENDING.get(eid)
+        return future.result() if future is not None else _obtain_final_boxscore(g)
     results=[]; successes=0
     # Each matchup needs up to seven final boxscores PER team. Fetch all
     # distinct events in one bounded wave instead of serializing two waves;

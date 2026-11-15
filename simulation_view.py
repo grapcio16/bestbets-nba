@@ -32,7 +32,7 @@ def logo_html(code):
     return (f'<img src="{esc(url)}" alt="{esc(TEAM_NAMES.get(code, code))}" '
             'loading="lazy" style="width:64px;height:64px;object-fit:contain" />') if url else '🏀'
 
-@st.cache_data(ttl=60*60,max_entries=5,show_spinner=False)
+@st.cache_data(ttl=60*60,max_entries=32,show_spinner=False)
 def build_sims(games,advanced,history,logs,injuries,research_mode=False):
     """Simulate each matchup using only results known before its tipoff.
 
@@ -114,7 +114,7 @@ def team_scoring_history(hist, code, games=10):
     return {'mean':round(float(np.mean(values)),1),'games':len(values)} if values else None
 
 
-@st.cache_data(ttl=3*3600,max_entries=8,show_spinner=False)
+@st.cache_data(ttl=3*3600,max_entries=32,show_spinner=False)
 def matchup_players_cached(season, g, hist, advanced, nonce, research_mode=False, cache_revision='v716'):
     """Fetch selected teams ONLY; streamlit and per-event disk cache prevent repeats."""
     selected, source=matchup_espn_logs(hist,g,games_per_team=7)
