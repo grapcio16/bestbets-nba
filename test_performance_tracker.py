@@ -100,6 +100,34 @@ class SimulationFormTests(unittest.TestCase):
         self.assertGreater(len(rows),0)
         self.assertEqual(metrics["games"],len(rows))
         self.assertTrue((rows["date"]>pd.Timestamp("2026-10-23",tz="UTC")).all())
+        for key in ("enriched_total_mae","enriched_team_mae",
+                    "enriched_brier","enriched_winner_accuracy"):
+            self.assertIn(key,metrics)
+
+    def test_walk_forward_uses_latest_games_and_only_past_observations(self):
+        matches=[]
+        start=pd.Timestamp("2026-10-20T02:00:00Z")
+        for i in range(36):
+            matches.append({
+                "game_id":str(402000000+i),
+                "home":"SAS" if i%2 else "POR",
+                "away":"POR" if i%2 else "SAS",
+                "start_utc":start+pd.Timedelta(days=i),
+                "home_score":110+i%8,"away_score":103+i%11,
+                "status_code":3,
+            })
+        complete=pd.DataFrame(matches)
+        frame,metrics=walk_forward_comparison(complete,max_games=5)
+        self.assertEqual(frame["game_id"].tolist(),[
+            str(402000000+i) for i in range(31,36)])
+        self.assertEqual(metrics["games"],5)
+        poisoned=pd.concat([complete,pd.DataFrame([{
+            "game_id":"bad","home":"SAS","away":"POR",
+            "start_utc":start+pd.Timedelta(days=40),
+            "home_score":500,"away_score":-2,"status_code":3,
+        }])],ignore_index=True)
+        again,_=walk_forward_comparison(poisoned,max_games=5)
+        pd.testing.assert_frame_equal(frame,again)
 
 
 if __name__=="__main__":
