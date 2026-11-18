@@ -32,7 +32,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",chart:"match",expanded:false,requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",expanded:false,requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 function fixtures(home){
   const extra=home?.calendar_extras?.[state.day];
@@ -71,12 +71,12 @@ function gameButtons(games){
 }
 function trustedResult(premium,game){
   const data=premium?.game;
-  return premium?.entitled===true&&data&&data.date===state.day&&String(data.game_id)===String(game?.id)
+  return premium?.entitled===true&&data&&data.date===state.day&&data.model_id===state.model&&String(data.game_id)===String(game?.id)
     ?data:null;
 }
 function trustedPlayers(premium,game){
   const data=premium?.players;
-  return premium?.entitled===true&&data&&data.date===state.day&&String(data.game_id)===String(game?.id)
+  return premium?.entitled===true&&data&&data.date===state.day&&data.model_id===state.model&&String(data.game_id)===String(game?.id)
     ?data:null;
 }
 function chartSvg(dist,code){
@@ -123,7 +123,7 @@ function showChart(sim,game,premium){
   $("hzm-home-average").textContent=sim&&!sim.error?fmt(sim.home_points):"—";
   $("hzm-total-average").textContent=sim&&!sim.error?fmt(sim.total_points):"—";
   const code=state.chart==="match"?"MECZ":state.chart==="away"?game?.away:game?.home;
-  $("hzm-chart-context").textContent=(code||"NBA")+" · 5 000 symulacji";
+  $("hzm-chart-context").textContent=(code||"NBA")+" · 5 000 symulacji · "+(state.model==="legacy_v72"?"V7.2":"V7.4");
   $("hzm-chart-source").textContent="Średnie wyłącznie z 5 000 symulacji; model eksperymentalny.";
   const plot=$("hzm-plot");
   if(!premium?.entitled){plot.innerHTML='<div class="hzm-no-chart"><strong>Rozkład punktów w Premium</strong><span>Wykres meczu i każdej drużyny zostanie odblokowany po aktywacji.</span></div>';return}
@@ -161,12 +161,13 @@ function showPlayers(premium,players){
 }
 function maybeLoadPaid(game,premium,sim,players){
   if(!premium?.entitled||!game||!["scheduled","final"].includes(game.state))return;
-  const key=state.day+"|"+game.id;
-  if(!sim&&state.gamePending!==key){state.gamePending=key;callbacks?.loadGame?.(state.day,game.id)}
-  if(sim&&!sim.error&&!players&&state.playersPending!==key){state.playersPending=key;callbacks?.loadPlayers?.(state.day,game.id)}
+  const key=state.day+"|"+game.id+"|"+state.model;
+  if(!sim&&state.gamePending!==key){state.gamePending=key;callbacks?.loadGame?.(state.day,game.id,state.model)}
+  if(sim&&!sim.error&&!players&&state.playersPending!==key){state.playersPending=key;callbacks?.loadPlayers?.(state.day,game.id,state.model)}
 }
 function render(home,premium){
   state.lastHome=home;state.lastPremium=premium;
+  $("hzm-model-select").value=state.model;
   if(!state.day)state.day=safeDate(home?.calendar_today)?home.calendar_today:localDay(new Date().toISOString());
   const data=gamesForDay(home);
   if(!data.known&&home&&state.requestedDay!==state.day){state.requestedDay=state.day;callbacks?.selectDay?.(state.day)}
@@ -186,7 +187,7 @@ function render(home,premium){
     :"Ostatnie potwierdzone mecze";
   $("hzm-evidence-pace").textContent=ctx?.advanced_available
     ?"NBA Advanced: PACE / OFF / DEF + historia ESPN"
-    :ctx?"Rzeczywiste odchylenia punktów; brak NBA Advanced"
+    :ctx?(state.model==="legacy_v72"?"Stała zmienność punktów V7.2; brak NBA Advanced":"Rzeczywiste odchylenia punktów; brak NBA Advanced")
     :"Heurystyczna zmienność punktów";
   $("hzm-evidence-rest").textContent=ctx?.rest_days?.every(n=>Number.isFinite(n))
     ?"Dni odpoczynku: "+ctx.rest_days.join(" / ")+" · kontuzje niezweryfikowane"
@@ -203,7 +204,7 @@ function render(home,premium){
     :'conic-gradient(#193d5c 0 50%,#351a54 50% 100%)';
   $("hzm-simulation-message").textContent=!premium?.entitled
     ?"Zweryfikowane Premium wymagane":!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":
-      sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji");
+      sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji · "+(state.model==="legacy_v72"?"V7.2":"V7.4"));
   $("simulations-pane").classList.toggle("hzm-premium-locked",!premium?.entitled);
   showChart(sim,game,premium);showPlayers(premium,players);
   maybeLoadPaid(game,premium,sim,players);
@@ -215,6 +216,12 @@ function navigate(day){
 }
 function init(api){
   callbacks=api;
+  $("hzm-model-select").addEventListener("change",event=>{
+    const model=event.target.value;
+    if(!["legacy_v72","research_form_v74"].includes(model)||model===state.model)return;
+    state.model=model;state.gamePending="";state.playersPending="";
+    render(state.lastHome,state.lastPremium);
+  });
   $("simulations-pane").addEventListener("click",event=>{
     const arrow=event.target.closest("[data-hzm-shift]");
     if(arrow){navigate(dayShift(state.day,Number(arrow.dataset.hzmShift)));return}
