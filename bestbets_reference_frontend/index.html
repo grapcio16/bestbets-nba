@@ -221,7 +221,32 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 </aside>
 <div id="work">
   <header class="props-heading" id="props-heading"><div class="props-heading-icon" aria-hidden="true">◈</div><div><h1>Player <em>Props</em></h1><p>Player prop analysis, stats &amp; context</p></div><div class="props-orbit" aria-hidden="true"></div></header>
-  <form class="topsearch" id="search-form"><span class="glass">⌕</span><input id="query" autocomplete="off" placeholder="Jayson Tatum over 25.5 points" aria-label="Wyszukaj zawodnika, linię i rynek"><button id="search-btn" type="submit">⌕</button></form>
+  <form class="topsearch" id="search-form"><span class="glass">⌕</span><input id="query" autocomplete="off" placeholder="Jayson Tatum over 25.5 points" aria-label="Wyszukaj zawodnika, linię i rynek"><button id="props-help-trigger" type="button" aria-label="Jak korzystać z wyszukiwarki Player Props" aria-controls="props-help-panel" aria-haspopup="dialog" aria-expanded="false" title="Jak wyszukiwać?">i</button><button id="search-btn" type="submit" aria-label="Wyszukaj">⌕</button></form>
+  <section id="props-help-panel" class="props-help-panel" role="dialog" aria-labelledby="props-help-title" aria-modal="false" hidden>
+    <div class="props-help-heading">
+      <span class="props-help-symbol" aria-hidden="true">ⓘ</span>
+      <div><span class="props-help-eyebrow">HOOPZARO GUIDE</span><h2 id="props-help-title">Jak wyszukiwać?</h2></div>
+      <button id="props-help-close" class="props-help-close" type="button" aria-label="Zamknij instrukcję">×</button>
+    </div>
+    <p class="props-help-intro">Wpisz <strong>zawodnika + over/under + linię + rynek</strong>. Nazwiska i nazwy rynków wpisuj po angielsku.</p>
+    <div class="props-help-example">
+      <span class="props-help-caption">PRZYKŁADOWE WYSZUKIWANIE</span>
+      <code>Jayson Tatum over 25.5 points</code>
+      <button type="button" data-help-query="Jayson Tatum over 25.5 points">Wstaw do wyszukiwarki <span aria-hidden="true">↗</span></button>
+    </div>
+    <div class="props-help-market-heading">Dostępne rynki</div>
+    <div class="props-help-markets">
+      <span><b>PTS</b> Points · punkty</span><span><b>REB</b> Rebounds · zbiórki</span>
+      <span><b>AST</b> Assists · asysty</span><span><b>3PM</b> Three-pointers · trójki</span>
+      <span class="props-help-market-wide"><b>PRA</b> Points + Rebounds + Assists</span>
+    </div>
+    <div class="props-help-more-examples">
+      <span class="props-help-caption">SPRÓBUJ RÓWNIEŻ</span>
+      <button type="button" data-help-query="Jayson Tatum under 3.5 assists">Jayson Tatum under 3.5 assists <span aria-hidden="true">↗</span></button>
+      <button type="button" data-help-query="Jayson Tatum over 35.5 PRA">Jayson Tatum over 35.5 PRA <span aria-hidden="true">↗</span></button>
+    </div>
+    <p class="props-help-note"><span aria-hidden="true">✦</span> Możesz też wybrać rynek, linię i Over/Under ręcznie poniżej wyszukiwarki.</p>
+  </section>
   <div class="utility"><span title="Powiadomienia">♧<i class="dot"></i></span><span title="Profil">♙</span></div>
   <div class="suggestions">
     <button data-query="Jayson Tatum under 3.5 assists"><span class="searchsymbol">⌕</span>Jayson Tatum under 3.5 assists</button>
@@ -530,6 +555,12 @@ function setMarketMenuOpen(open,focusSelected){
     if(selected)selected.focus({preventScroll:true});
   }
 }
+function setPropsHelpOpen(open,restoreFocus){
+  $("props-help-panel").hidden=!open;
+  $("props-help-trigger").setAttribute("aria-expanded",String(open));
+  if(open)$("props-help-close").focus({preventScroll:true});
+  else if(restoreFocus)$("props-help-trigger").focus({preventScroll:true});
+}
 function chooseMarket(value){
   if(!Object.prototype.hasOwnProperty.call(marketLabels,value))return;
   setMarketMenuOpen(false);
@@ -757,6 +788,7 @@ function requestHomeData(){
 function render(){
   const active=state.page==="props",home=state.page==="home";
   if(!active)setMarketMenuOpen(false);
+  if(!active)setPropsHelpOpen(false);
   const role=state.payload.auth?.role||"guest";
   if(state.page==="admin"&&role!=="admin")state.page="home";
   const admin=state.page==="admin";
@@ -972,6 +1004,19 @@ if(window.HoopzaroSimulations){
 $("hz-account-login").addEventListener("click",function(){sendAuth("auth_login")});
 $("hz-account-logout").addEventListener("click",function(){sendAuth("auth_logout")});
 $("search-form").addEventListener("submit",function(e){e.preventDefault();search($("query").value)});
+$("props-help-trigger").addEventListener("click",function(){setPropsHelpOpen($("props-help-panel").hidden)});
+$("props-help-close").addEventListener("click",function(){setPropsHelpOpen(false,true)});
+document.querySelectorAll("[data-help-query]").forEach(function(button){button.addEventListener("click",function(){
+  $("query").value=button.dataset.helpQuery;
+  setPropsHelpOpen(false);
+  $("query").focus({preventScroll:true});
+})});
+document.addEventListener("pointerdown",function(e){
+  if(!$("props-help-panel").hidden && !$("props-help-panel").contains(e.target) && !$("props-help-trigger").contains(e.target))setPropsHelpOpen(false);
+});
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape" && !$("props-help-panel").hidden){e.preventDefault();setPropsHelpOpen(false,true)}
+});
 document.querySelectorAll("[data-query]").forEach(function(b){b.addEventListener("click",function(){state.page="props";search(b.dataset.query)})});
 document.querySelectorAll("[data-page]").forEach(function(el){el.addEventListener("click",function(){
   state.page=el.dataset.page;state.payload.error="";render();
