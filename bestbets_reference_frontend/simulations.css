@@ -12,7 +12,7 @@
 .hzm-premium{font-size:10px;letter-spacing:1.2px;font-weight:900;color:#ffe7a0;background:linear-gradient(140deg,#070b1c,#1e1930);border:1px solid #d7a95d;border-radius:10px;box-shadow:0 0 10px rgba(222,180,96,.23);padding:7px 12px;display:inline-flex;align-items:center;gap:9px;height:31px}
 .hzm-premium .hz-premium-gem{position:relative;display:inline-block;flex:0 0 18px;width:18px;height:18px;transform:scale(.75);margin-right:0}
 .hzm-model-choice{display:flex;flex-direction:column;justify-content:center;gap:3px;align-self:flex-start;color:#81ddeb;font-size:9px;letter-spacing:1.4px;font-weight:900;white-space:nowrap}
-.hzm-model-choice select{height:28px;width:175px;padding:3px 8px;color:#ecfaff;background:#101d3f;border:1px solid #3cb5d8;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:0;cursor:pointer;box-shadow:0 0 9px rgba(0,200,240,.12)}
+.hzm-model-choice select{height:28px;width:205px;padding:3px 8px;color:#ecfaff;background:#101d3f;border:1px solid #3cb5d8;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:0;cursor:pointer;box-shadow:0 0 9px rgba(0,200,240,.12)}
 .hzm-model-choice select:focus-visible{outline:2px solid #28f0fd;outline-offset:2px}
 .hzm-day-control{display:flex;gap:10px;align-items:center;padding-top:3px}
 .hzm-day-control button{width:29px;height:29px;background:linear-gradient(#111a3b,#0b102d);border:1px solid #6273b6;border-radius:7px;color:#eff7ff;font-size:23px;line-height:18px}
