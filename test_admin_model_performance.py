@@ -3,6 +3,7 @@ import unittest
 import pandas as pd
 
 from admin_model_performance import build_model_report
+from tracker_postgres import _report_frame
 
 
 def forecast(model, game_id, *, settled=False, late=False):
@@ -19,6 +20,21 @@ def forecast(model, game_id, *, settled=False, late=False):
 
 
 class ModelReportTests(unittest.TestCase):
+    def test_postgres_rows_have_unique_model_id_column_and_render_report(self):
+        raw = forecast("first", "401000001", settled=True)
+        raw.update(total_points=222.0, source="test", warning="", settled_at_utc=None)
+        frame = _report_frame([raw])
+        self.assertFalse(frame.columns.duplicated().any())
+        report = build_model_report(frame, season="2026-27")
+        self.assertEqual(len(report["models"]), 1)
+        self.assertEqual(report["models"][0]["snapshots"], 1)
+        self.assertEqual(report["models"][0]["evaluated"], 1)
+
+    def test_empty_postgres_archive_has_no_duplicate_columns(self):
+        frame = _report_frame([])
+        self.assertFalse(frame.columns.duplicated().any())
+        self.assertEqual(build_model_report(frame, season="2026-27")["models"], [])
+
     def test_empty_report_does_not_fabricate_accuracy(self):
         report = build_model_report(pd.DataFrame(), season="2026-27")
         self.assertEqual(report["models"], [])
