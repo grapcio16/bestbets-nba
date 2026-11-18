@@ -160,6 +160,19 @@ def remote_settle(url,completed_games,settled_at=None):
     return count
 
 
+def _report_frame(records):
+    """Normalize PostgreSQL rows without duplicate column labels."""
+    df=pd.DataFrame(records)
+    if df.empty:
+        return pd.DataFrame(columns=COLUMNS)
+    for col in ("forecast_time_utc","start_utc","settled_at_utc"):
+        df[col]=pd.to_datetime(df[col],errors="coerce",utc=True).astype(str)
+    # COLUMNS already contains model_id. Duplicating this label makes the
+    # administrator's groupby("model_id") fail with a ValueError as soon as
+    # the PostgreSQL archive contains a forecast.
+    return df.reindex(columns=COLUMNS)
+
+
 def remote_read(url,season=None):
     from psycopg.rows import dict_row
     with connect(url) as conn:
@@ -171,9 +184,4 @@ def remote_read(url,season=None):
             else:
                 cur.execute("SELECT * FROM bestbets_forecasts_by_model ORDER BY start_utc DESC")
             records=cur.fetchall()
-    df=pd.DataFrame(records)
-    if df.empty:
-        return pd.DataFrame(columns=COLUMNS+["model_id"])
-    for col in ("forecast_time_utc","start_utc","settled_at_utc"):
-        df[col]=pd.to_datetime(df[col],errors="coerce",utc=True).astype(str)
-    return df.reindex(columns=COLUMNS+["model_id"])
+    return _report_frame(records)
