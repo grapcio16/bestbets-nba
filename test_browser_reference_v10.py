@@ -46,6 +46,16 @@ def main():
         assert page.locator("#footer").is_hidden()
         assert page.locator(".preview").count() == 6
         assert page.locator("#player-name").inner_text() == "Wyszukaj zawodnika"
+        # Player Props market dropdown must match HOOPZARO's dark controls.
+        # Keep the real native select for keyboard and screen-reader access,
+        # but suppress the unthemed Windows combobox appearance.
+        market = page.locator("#market")
+        assert market.evaluate("element => getComputedStyle(element).appearance") == "none"
+        assert market.evaluate("element => getComputedStyle(element).cursor") == "pointer"
+        market.select_option("PRA")
+        assert market.input_value() == "PRA"
+        market.select_option("PTS")
+        assert market.input_value() == "PTS"
 
         page.locator('.nav-btn[data-page="games"]').click()
         assert page.locator("#schedule-pane").is_visible()
