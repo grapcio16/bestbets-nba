@@ -59,6 +59,7 @@ class TeamsDirectoryBrowserTests(unittest.TestCase):
                     "home": 116.5, "away": 109.2}}}}
             page.evaluate("payload => window.postMessage({type:'streamlit:render',args:{payload}}, '*')",
                           premium_payload)
+            page.locator("#hzt-premium-unlocked").wait_for(state="visible", timeout=10000)
             self.assertTrue(page.locator("#hzt-premium-unlocked").is_visible())
             self.assertTrue(page.locator("#hzt-premium-cta").is_hidden())
             self.assertEqual(page.locator(".hzt-metric").count(), 5)
