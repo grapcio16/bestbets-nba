@@ -23,6 +23,8 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Verify screenshot coordinates, navigation and chart controls
         run: python test_browser_reference_v10.py
+      - name: Verify HOOPZARO team directory, premium access and verified results
+        run: python -m unittest -q test_teams_directory_browser.py test_premium_team_stats.py
       - name: Preserve test screenshot for review
         if: always()
         uses: actions/upload-artifact@v4
