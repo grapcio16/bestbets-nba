@@ -38,7 +38,7 @@
   background:linear-gradient(130deg,rgba(8,27,54,.96),rgba(12,18,47,.96));
   border:1px solid rgba(39,197,250,.6);border-radius:18px;overflow:hidden;
   box-shadow:inset 0 1px rgba(175,221,255,.09),0 0 26px rgba(0,163,245,.1)}
-.hzp-table-header,.hzp-player-row{display:grid;grid-template-columns:minmax(218px,2.3fr) minmax(97px,1fr) repeat(5,minmax(69px,.72fr));align-items:center}
+.hzp-table-header,.hzp-player-row{display:grid;grid-template-columns:minmax(218px,2.3fr) minmax(97px,1fr) repeat(6,minmax(64px,.72fr));align-items:center}
 .hzp-table-header{height:48px;min-height:48px;padding:0 18px;border-bottom:1px solid #365789;
   color:#8cb9d8;font-weight:850;letter-spacing:.9px;font-size:11px;background:rgba(18,37,77,.83)}
 .hzp-table-header span:nth-child(n+3){text-align:center}

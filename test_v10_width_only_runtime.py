@@ -20,6 +20,7 @@ def source_safety():
     assert "const scale=viewportWidth/1231;" in html
     assert 'notify("streamlit:setFrameHeight",{height:Math.ceil(691*scale)+2});' in html
     assert "height:calc(100dvh - 4px)!important;" in py
+    assert "height:max(calc(100dvh - 4px), 56.1332vw)!important;" in py
     assert "aspect-ratio:1231 / 691!important" not in py
     assert "componentReady" in html
 
@@ -44,6 +45,10 @@ def smoke(browser, url, width, height, out):
         "Black gutters remain: stage is not as wide as actual iframe",width,height,rect,fb)
     assert abs(rect["height"] - rect["width"]*691/1231)<5, (
         "Approved design aspect ratio changed",rect)
+    # If the full-width 16:9 canvas is taller than a short browser window,
+    # the Streamlit document must scroll instead of cropping its final cards.
+    assert fb["height"]+3>=rect["height"],(
+        "Iframe crops the bottom of the Teams/Players screen",rect,fb)
     # Ensure 3 seconds without progressive zoom after the screen appears.
     size=[]
     for _ in range(35):
@@ -77,6 +82,18 @@ def smoke(browser, url, width, height, out):
     page.screenshot(path=str(out / f"hoopzaro-props-insight-{width}x{height}.png"))
     stage.locator('.nav-btn[data-page="games"]').click()
     expect(frame.locator('#blank-title')).to_have_text("Terminarz")
+    stage.locator('.nav-btn[data-page="players"]').click()
+    expect(frame.locator('#hzp-players-pane')).to_be_visible()
+    frame.locator('.hzp-bottom-card').scroll_into_view_if_needed(timeout=10000)
+    player_cta=frame.locator('.hzp-bottom-card').bounding_box()
+    assert player_cta and player_cta["y"]+player_cta["height"]<=height+6, (
+        "Player directory bottom panel cannot be scrolled into view",player_cta)
+    stage.locator('.nav-btn[data-page="teams"]').click()
+    expect(frame.locator('#hzt-teams-pane')).to_be_visible()
+    frame.locator('.hzt-premium-panel').scroll_into_view_if_needed(timeout=10000)
+    team_cta=frame.locator('.hzt-premium-panel').bounding_box()
+    assert team_cta and team_cta["y"]+team_cta["height"]<=height+6, (
+        "Teams Premium panel cannot be scrolled into view",team_cta)
     context.close()
     return dict(viewport=[width,height],stage=rect,iframe=fb,stable_frames=len(size))
 
@@ -91,10 +108,10 @@ def main():
     with sync_playwright() as play:
         browser=play.chromium.launch(headless=True,args=["--disable-dev-shm-usage"])
         samples=[smoke(browser,args.url,w,h,args.out)
-                 for w,h in [(1664,900),(1366,768),(1920,1080)]]
+                 for w,h in [(1664,900),(1366,768),(1920,1080),(1920,900)]]
         browser.close()
     (args.out/"evidence.json").write_text(json.dumps(samples,indent=2),encoding="utf-8")
-    print("PASS: HOOPZARO full-width, stable iframe, reachable insights; 3 viewports")
+    print("PASS: HOOPZARO full-width, stable iframe, scrollable panels; 4 viewports")
 
 
 if __name__=="__main__":

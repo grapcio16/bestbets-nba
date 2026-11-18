@@ -20,6 +20,7 @@ class PlayerAveragesTests(unittest.TestCase):
         row = result["rows"]["jaysontatum"]
         self.assertEqual((row["pts"], row["reb"], row["ast"]), (25., 7., 6.))
         self.assertEqual(row["three_pm"], 2.)
+        self.assertEqual(row["three_pa"], 5.)
         self.assertEqual(row["three_pct"], 40.)
         self.assertEqual(row["games"], 2)
         self.assertFalse(result["partial"])
@@ -30,6 +31,7 @@ class PlayerAveragesTests(unittest.TestCase):
                              "REB": 3, "AST": 2, "FG3M": 1}])
         result = build_player_averages(raw, {"source": "ESPN", "partial": True})
         self.assertIsNone(result["rows"]["testplayer"]["three_pct"])
+        self.assertIsNone(result["rows"]["testplayer"]["three_pa"])
         self.assertTrue(result["partial"])
 
     def test_empty_source_is_honestly_reported(self):

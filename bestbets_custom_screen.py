@@ -323,10 +323,14 @@ def main() -> None:
         [data-testid="stMain"] iframe{
             display:block!important;border:0!important;
             width:100%!important;background:#020713!important;
-            /* Hard cap the embedded canvas to the visible app area.
-               Child resize() scales both axes to keep ALL six tiles visible. */
+            /* Preserve the approved proportional stage, including its full
+               height when wider screens require vertical page scrolling. */
             height:calc(100vh - 4px)!important;
             height:calc(100dvh - 4px)!important;
+            /* Keep the exact full-width canvas and let the Streamlit page
+               scroll vertically when that canvas is taller than the window.
+               Never squeeze or crop the Players/Teams bottom panels. */
+            height:max(calc(100dvh - 4px), 56.1332vw)!important;
             min-height:0!important;
         }
         .stApp{background:#020713!important}

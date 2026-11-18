@@ -41,7 +41,7 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
             page.evaluate("payload => window.postMessage({type:'streamlit:render',args:{payload}}, '*')",
                           {"auth": {"role": "free"}, "player_catalog": {"players": rows}})
             page.wait_for_function("document.querySelectorAll('.hzp-player-row').length===7")
-            self.assertEqual(page.locator(".hzp-stat.is-locked").count(), 35)
+            self.assertEqual(page.locator(".hzp-stat.is-locked").count(), 42)
             self.assertNotIn("28,1", page.locator("#hzp-table-rows").inner_text())
             page.locator("#hzp-cta").click()
             self.assertTrue(page.locator("#hz-paywall-dialog").is_visible())
@@ -52,10 +52,12 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
                           {"auth": {"role": "premium"}, "player_catalog": {"players": rows},
                            "premium_player_averages": {"scope": "sezon zasadniczy", "source": "NBA Stats",
                              "rows": {"jaysontatum": {"pts": 28.1, "reb": 8.1, "ast": 4.9,
-                                                    "three_pm": 3.0, "three_pct": 37.5}}}})
+                                                    "three_pm": 3.0, "three_pa": 8.0,
+                                                    "three_pct": 37.5}}}})
             page.wait_for_function("document.querySelector('#hzp-table-rows').textContent.includes('28,1')")
             self.assertEqual(page.locator(".hzp-stat.is-locked").count(), 0)
             self.assertIn("37,5%", page.locator("#hzp-table-rows").inner_text())
+            self.assertIn("8,0", page.locator("#hzp-table-rows").inner_text())
             page.locator("#hzp-search").fill("Tatum")
             self.assertEqual(page.locator(".hzp-player-row").count(), 1)
             page.locator("#hzp-search").fill("")

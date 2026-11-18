@@ -50,13 +50,13 @@ function playerRow(player){
   const teamCell=make("div");teamCell.append(make("span","hzp-team-tag",player.team||"NBA"));
   row.append(teamCell);
   const data=entitled()?averages?.rows?.[norm(player.name)]:null;
-  const figures=[data?.pts,data?.reb,data?.ast,data?.three_pm,data?.three_pct];
+  const figures=[data?.pts,data?.reb,data?.ast,data?.three_pm,data?.three_pa,data?.three_pct];
   figures.forEach((number,index)=>{
     const locked=!entitled();
     const loading=entitled()&&!averages;
     const blank=number===null||number===undefined;
-    const cell=make("span","hzp-stat"+(locked?" is-locked":blank?" is-missing":index===4?" is-highlight":""),
-      locked?"♢":loading?"…":safeNumber(number,index===4));
+    const cell=make("span","hzp-stat"+(locked?" is-locked":blank?" is-missing":index===5?" is-highlight":""),
+      locked?"♢":loading?"…":safeNumber(number,index===5));
     if(locked){cell.title="Dostępne w Hoopzaro Premium";cell.setAttribute("aria-label","Statystyka Premium");}
     row.append(cell);
   });
@@ -89,7 +89,7 @@ function render(nextCatalog,nextAverages,nextRole){
       " · liczba meczów zależy od zawodnika");
   $("hzp-cta-title").textContent=entitled()?"Chcesz przeanalizować kolejny mecz?":"Odblokuj statystyki zawodników";
   $("hzp-cta-text").textContent=entitled()?"Prognozy, linie OVER/UNDER i symulacje znajdziesz w Player Props.":
-    "Średnie PTS, REB, AST, 3PM i 3P% dostępne z Hoopzaro Premium.";
+    "Średnie PTS, REB, AST, 3PM, 3PA i 3P% dostępne z Hoopzaro Premium.";
   $("hzp-cta").firstChild.textContent=entitled()?"Otwórz Player Props ":"Premium · 9,99 USD/mies. ";
 }
 function init(api){
