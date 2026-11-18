@@ -50,6 +50,7 @@ def build_player_averages(raw: pd.DataFrame, metadata: dict | None = None) -> di
             "reb": round(float(games["REB"].mean()), 1),
             "ast": round(float(games["AST"].mean()), 1),
             "three_pm": round(float(games["FG3M"].mean()), 1),
+            "three_pa": None,
             "three_pct": None,
             "games": int(len(games)),
             "last_team": str(latest["TEAM_ABBREVIATION"] or "")[:5],
@@ -58,6 +59,8 @@ def build_player_averages(raw: pd.DataFrame, metadata: dict | None = None) -> di
         valid = games[(attempts.notna()) & (attempts >= 0) &
                       (games["FG3M"] >= 0) & (games["FG3M"] <= attempts)]
         total_attempts = float(valid["FG3A"].sum())
+        if not valid.empty:
+            metrics["three_pa"] = round(float(valid["FG3A"].mean()), 1)
         if math.isfinite(total_attempts) and total_attempts > 0:
             metrics["three_pct"] = round(
                 100 * float(valid["FG3M"].sum()) / total_attempts, 1)
