@@ -157,6 +157,16 @@ def _cached_centre_player_catalog(force_refresh: bool = False):
             "photo_license_enabled": photo_policy()}}
 
 
+@st.cache_data(ttl=3*3600, max_entries=2, show_spinner=False)
+def _cached_premium_player_averages() -> dict:
+    """Fetch actual regular-season rows only after a paid-page request."""
+    from sources import game_logs
+    from premium_player_stats import build_player_averages
+
+    logs, source = game_logs(SEASON)
+    return build_player_averages(logs, source)
+
+
 
 def _research(query: str) -> dict:
     """Run the existing strict athlete resolver and verified season analysis."""
@@ -315,6 +325,8 @@ def main() -> None:
     if st.session_state.get("bb10_premium_principal") != principal:
         st.session_state.pop("bb10_premium_game", None)
         st.session_state.pop("bb10_premium_players", None)
+        st.session_state.pop("bb10_premium_player_averages", None)
+        st.session_state.pop("bb10_player_averages_attempt_at", None)
         st.session_state.pop("bb10_admin_report", None)
         st.session_state.pop("bb10_admin_report_at", None)
         st.session_state["bb10_premium_principal"] = principal
@@ -344,6 +356,10 @@ def main() -> None:
         "error": st.session_state["bb10_payload"].get("error", ""),
         "home": home_data,
         "player_catalog": st.session_state.get("bb10_player_catalog"),
+        # No premium averages in guest or free browser payloads.
+        "premium_player_averages": (
+            st.session_state.get("bb10_premium_player_averages") if has_premium else None
+        ),
         "free_details": st.session_state.get("bb10_free_leader_details"),
         # This is intentionally absent for all non-admin identities.
         "admin_report": st.session_state.get("bb10_admin_report") if is_admin else None,
@@ -394,6 +410,26 @@ def main() -> None:
                       "Nie udało się odczytać prognoz z bazy. Spróbuj ponownie."}
         st.session_state["bb10_admin_report"] = result
         st.session_state["bb10_admin_report_at"] = now
+        st.rerun()
+        return
+    if event.get("type") == "premium_player_averages":
+        # Authorization comes from Streamlit's verified identity, not JS.
+        if not premium_entitled():
+            return
+        now = time.monotonic()
+        if now - st.session_state.get("bb10_player_averages_attempt_at", 0.0) < 60:
+            return
+        st.session_state["bb10_player_averages_attempt_at"] = now
+        try:
+            stats = _cached_premium_player_averages()
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Premium player averages unavailable: %s", type(exc).__name__)
+            stats = {"rows": {}, "source": "NBA / ESPN", "season": "2026/27",
+                     "partial": True,
+                     "error": "Statystyki są chwilowo niedostępne. Spróbuj później."}
+        st.session_state["bb10_premium_player_averages"] = stats
         st.rerun()
         return
     if event.get("type") in ("premium_sim_game", "premium_sim_players"):
