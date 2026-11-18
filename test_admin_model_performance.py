@@ -69,17 +69,40 @@ class ModelReportTests(unittest.TestCase):
         self.assertTrue(report["error"])
         self.assertEqual(report["models"], [])
 
-    def test_injury_minutes_model_has_distinct_readable_label(self):
+    def test_previous_v75_ids_combine_without_double_counting_games(self):
         frame = pd.DataFrame([
             forecast("auto_context_venue_rest_v75", "401000001", settled=True),
             forecast("auto_context_injury_minutes_v75", "401000001", settled=True),
+            forecast("auto_context_venue_rest_v75", "401000002", settled=True),
         ])
         report = build_model_report(frame, season="2026-27")
-        labels = {model["id"]: model["label"] for model in report["models"]}
-        self.assertEqual(labels["auto_context_injury_minutes_v75"],
-                         "V7.5 · Minuty i kontuzje")
-        self.assertNotEqual(labels["auto_context_venue_rest_v75"],
-                            labels["auto_context_injury_minutes_v75"])
+        self.assertEqual(len(report["models"]), 1)
+        model = report["models"][0]
+        self.assertEqual(model["id"], "auto_context_full_v75")
+        self.assertEqual(model["label"], "V7.5 · Pełny kontekst")
+        self.assertEqual(model["snapshots"], 2)
+        self.assertEqual(model["evaluated"], 2)
+        recent = {row["game_id"]: row for row in model["recent"]}
+        self.assertEqual(recent["401000001"]["origin_model_id"],
+                         "auto_context_injury_minutes_v75")
+
+    def test_v75_combined_prefers_fresh_injury_and_ignores_late_duplicates(self):
+        frame = pd.DataFrame([
+            {**forecast("auto_context_venue_rest_v75", "401000001", settled=True),
+             "warning": "only venue/rest"},
+            {**forecast("auto_context_injury_minutes_v75", "401000001", settled=True),
+             "warning": "ESPN OUT"},
+            {**forecast("auto_context_full_v75", "401000001", settled=True, late=True),
+             "warning": "ESPN OUT A/H"},
+            {**forecast("auto_context_full_v75", "401000002", settled=True),
+             "warning": "V7.5 pełny kontekst; ESPN OUT A/H"},
+        ])
+        report = build_model_report(frame, season="2026-27")
+        self.assertEqual(len(report["models"]), 1)
+        self.assertEqual(report["models"][0]["snapshots"], 2)
+        self.assertEqual(report["models"][0]["evaluated"], 2)
+        self.assertEqual(report["models"][0]["recent"][-1]["origin_model_id"],
+                         "auto_context_injury_minutes_v75")
 
 
 if __name__ == "__main__":
