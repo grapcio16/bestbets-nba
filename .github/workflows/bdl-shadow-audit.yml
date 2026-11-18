@@ -1,0 +1,49 @@
+name: BDL shadow audit (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      game_date:
+        description: 'Completed NBA game date (YYYY-MM-DD)'
+        required: true
+        type: string
+      max_games:
+        description: 'Maximum games to audit (GOAT trial: 5 requests/min)'
+        required: true
+        default: '10'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  bdl-shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+      BDL_AUDIT_DATE: ${{ inputs.game_date }}
+      BDL_AUDIT_MAX_GAMES: ${{ inputs.max_games }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install audit dependencies
+        run: python -m pip install 'requests>=2.31,<3' 'pandas>=2.2,<3'
+      - name: Verify offline audit behavior
+        run: python -m unittest -v test_bdl_shadow_audit.py
+      - name: Compare completed NBA games (read-only)
+        if: env.BALLDONTLIE_API_KEY != ''
+        run: python bdl_shadow_audit.py --date "$BDL_AUDIT_DATE" --max-games "$BDL_AUDIT_MAX_GAMES"
+      - name: No key configured
+        if: env.BALLDONTLIE_API_KEY == ''
+        run: echo 'BALLDONTLIE_API_KEY is missing; skip API test safely.'
+      - name: Attach comparison report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bdl-shadow-${{ github.run_number }}
+          path: .bdl-audit/
+          if-no-files-found: ignore
+          retention-days: 14
