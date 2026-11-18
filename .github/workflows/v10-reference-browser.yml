@@ -19,7 +19,7 @@ jobs:
           python-version: '3.11'
       - name: Install isolated Chromium test dependencies
         run: |
-          python -m pip install playwright
+          python -m pip install playwright pandas
           python -m playwright install --with-deps chromium
       - name: Verify screenshot coordinates, navigation and chart controls
         run: python test_browser_reference_v10.py
