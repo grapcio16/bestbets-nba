@@ -347,13 +347,17 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
 #props-help-panel[hidden]{display:none!important}
 .props-help-panel{
   position:absolute;z-index:120;top:122px;left:452px;width:395px;
-  max-height:487px;overflow:auto;padding:15px 17px 14px;
+  max-height:520px;overflow:auto;padding:15px 17px 14px;
   border:1px solid #18e4f3;border-radius:16px;
   background:radial-gradient(ellipse 56% 35% at 0 0,rgba(17,110,147,.31),transparent),
     linear-gradient(145deg,rgba(10,24,57,.985),rgba(9,17,44,.985) 63%,rgba(23,15,55,.99));
   box-shadow:0 19px 42px rgba(0,0,0,.77),0 0 22px rgba(10,217,245,.29),inset 0 1px rgba(220,250,255,.17);
   color:#eef8ff;
+  scrollbar-width:thin;scrollbar-color:#2c719d #101e40;
 }
+.props-help-panel::-webkit-scrollbar{width:5px}
+.props-help-panel::-webkit-scrollbar-track{background:#101e40;border-radius:5px}
+.props-help-panel::-webkit-scrollbar-thumb{background:#2c719d;border-radius:5px}
 .props-help-heading{display:flex;align-items:center;gap:11px}
 .props-help-symbol{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;
   border:1px solid #7a78e9;border-radius:12px;background:linear-gradient(140deg,#2a2261,#0d3156);
