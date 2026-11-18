@@ -108,10 +108,10 @@ def main():
     with sync_playwright() as play:
         browser=play.chromium.launch(headless=True,args=["--disable-dev-shm-usage"])
         samples=[smoke(browser,args.url,w,h,args.out)
-                 for w,h in [(1664,900),(1366,768),(1920,1080)]]
+                 for w,h in [(1664,900),(1366,768),(1920,1080),(1920,900)]]
         browser.close()
     (args.out/"evidence.json").write_text(json.dumps(samples,indent=2),encoding="utf-8")
-    print("PASS: HOOPZARO full-width, stable iframe, reachable insights; 3 viewports")
+    print("PASS: HOOPZARO full-width, stable iframe, scrollable panels; 4 viewports")
 
 
 if __name__=="__main__":
