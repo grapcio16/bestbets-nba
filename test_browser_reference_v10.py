@@ -66,6 +66,38 @@ def main():
         assert "#line-group .line-control input::-webkit-outer-spin-button" in stylesheet
         assert page.locator("#line-minus").is_visible()
         assert page.locator("#line-plus").is_visible()
+        # The compact help icon opens a branded, keyboard-accessible guide
+        # without using the normal search action or modifying chart data.
+        help_trigger = page.locator("#props-help-trigger")
+        help_panel = page.locator("#props-help-panel")
+        assert help_trigger.is_visible()
+        assert help_panel.is_hidden()
+        assert help_trigger.get_attribute("aria-expanded") == "false"
+        help_trigger.click()
+        assert help_panel.is_visible()
+        assert help_trigger.get_attribute("aria-expanded") == "true"
+        assert help_panel.get_attribute("role") == "dialog"
+        assert help_panel.evaluate("e => getComputedStyle(e).position") == "absolute"
+        assert "linear-gradient" in help_panel.evaluate("e => getComputedStyle(e).backgroundImage")
+        assert "over/under" in help_panel.inner_text()
+        assert all(market in help_panel.inner_text() for market in ("PTS", "REB", "AST", "3PM", "PRA"))
+        assert page.locator("#props-help-close").evaluate("e => e === document.activeElement")
+        page.keyboard.press("Escape")
+        assert help_panel.is_hidden()
+        assert help_trigger.evaluate("e => e === document.activeElement")
+        help_trigger.click()
+        page.locator('[data-help-query="Jayson Tatum under 3.5 assists"]').click()
+        assert help_panel.is_hidden()
+        assert page.locator("#query").input_value() == "Jayson Tatum under 3.5 assists"
+        assert page.locator("#query").evaluate("e => e === document.activeElement")
+        help_trigger.click()
+        page.locator("#hero").click(position={"x":70,"y":40})
+        assert help_panel.is_hidden()
+        help_trigger.click()
+        page.locator('.nav-btn[data-page="games"]').click()
+        assert help_panel.is_hidden()
+        page.locator('.nav-btn[data-page="props"]').click()
+        assert help_trigger.get_attribute("aria-expanded") == "false"
         trigger.click()
         assert menu.is_visible()
         assert trigger.get_attribute("aria-expanded") == "true"

@@ -327,7 +327,68 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
   background:linear-gradient(110deg,#07152e,#0b1e3e 72%,#142d48);
   box-shadow:0 0 16px rgba(0,214,247,.53),inset 0 0 11px rgba(3,120,199,.23);
 }
-#stage:not(.bb-home-active) .topsearch input{width:705px}
+#stage:not(.bb-home-active) .topsearch input{width:auto;min-width:0;flex:1 1 auto}
+#stage:not(.bb-home-active) .topsearch #props-help-trigger{
+  flex:0 0 29px;width:29px;height:29px;margin:0 0 0 auto;padding:0;
+  display:grid;place-items:center;border-radius:50%;border:1px solid #3cc9e5;
+  background:linear-gradient(135deg,#122d59,#15183c);color:#90efff;
+  font-size:16px;font-style:italic;font-weight:850;line-height:1;
+  box-shadow:0 0 10px rgba(0,215,249,.24),inset 0 1px rgba(178,246,255,.16);
+  transition:border-color .15s,color .15s,box-shadow .15s,background .15s;
+}
+#stage:not(.bb-home-active) .topsearch #props-help-trigger:hover,
+#stage:not(.bb-home-active) .topsearch #props-help-trigger[aria-expanded="true"]{
+  transform:none;filter:none;color:#fff;border-color:#32f3ff;
+  background:linear-gradient(135deg,#155486,#2e1f75);
+  box-shadow:0 0 14px rgba(5,237,255,.55),inset 0 1px rgba(225,255,255,.25);
+}
+#stage:not(.bb-home-active) .topsearch #props-help-trigger:focus-visible{outline:2px solid #92ecff;outline-offset:3px}
+#stage:not(.bb-home-active) .topsearch #search-btn{flex:0 0 56px;margin-left:7px}
+#props-help-panel[hidden]{display:none!important}
+.props-help-panel{
+  position:absolute;z-index:120;top:122px;left:452px;width:395px;
+  max-height:487px;overflow:auto;padding:15px 17px 14px;
+  border:1px solid #18e4f3;border-radius:16px;
+  background:radial-gradient(ellipse 56% 35% at 0 0,rgba(17,110,147,.31),transparent),
+    linear-gradient(145deg,rgba(10,24,57,.985),rgba(9,17,44,.985) 63%,rgba(23,15,55,.99));
+  box-shadow:0 19px 42px rgba(0,0,0,.77),0 0 22px rgba(10,217,245,.29),inset 0 1px rgba(220,250,255,.17);
+  color:#eef8ff;
+}
+.props-help-heading{display:flex;align-items:center;gap:11px}
+.props-help-symbol{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;
+  border:1px solid #7a78e9;border-radius:12px;background:linear-gradient(140deg,#2a2261,#0d3156);
+  color:#46edff;font-size:25px;box-shadow:0 0 13px rgba(129,82,226,.3)}
+.props-help-eyebrow{font-size:8px;letter-spacing:1.7px;color:#59dced;font-weight:900}
+.props-help-heading h2{margin:2px 0 0;font-size:20px;line-height:1.18;letter-spacing:-.3px}
+.props-help-close{margin-left:auto;width:30px;height:30px;flex:0 0 30px;border:1px solid #4e6a95;
+  border-radius:9px;background:#122342;color:#e7f6ff;font-size:25px;line-height:25px}
+.props-help-close:hover{border-color:#35e6f9;background:#233c65;box-shadow:0 0 9px rgba(5,209,245,.25)}
+.props-help-intro{margin:12px 0;color:#bfcee5;font-size:11px;line-height:1.5}
+.props-help-intro strong{color:#f2faff}
+.props-help-example{padding:11px;border:1px solid #386da7;border-radius:10px;
+  background:linear-gradient(125deg,#0d2b4a,#121f4d)}
+.props-help-caption{display:block;font-size:8px;letter-spacing:1.35px;font-weight:900;color:#60dff1}
+.props-help-example code{display:block;margin:8px 0;color:white;font-size:12px;font-weight:750;white-space:nowrap}
+.props-help-example button{border:1px solid #11dabe;border-radius:8px;background:rgba(2,120,104,.2);
+  color:#8ffbe5;font-size:10px;font-weight:800;padding:7px 10px;width:100%;text-align:left}
+.props-help-example button span{float:right}
+.props-help-example button:hover{background:rgba(7,173,153,.25);border-color:#52ffe2}
+.props-help-market-heading{margin:12px 0 7px;font-size:11px;color:#f1f8ff;font-weight:850}
+.props-help-markets{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.props-help-markets span{min-height:28px;display:flex;align-items:center;gap:7px;padding:5px 7px;
+  border:1px solid #29476c;border-radius:7px;background:rgba(17,38,75,.72);font-size:9px;color:#becde6}
+.props-help-markets b{flex:0 0 31px;color:#69e7fa;font-size:10px}
+.props-help-markets .props-help-market-wide{grid-column:1/-1}
+.props-help-more-examples{margin-top:13px}
+.props-help-more-examples button{display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:6px;
+  border:1px solid #3a538a;border-radius:8px;background:linear-gradient(110deg,#17264e,#0e1d40);
+  color:#e3effe;font-size:10px;text-align:left;padding:7px 9px}
+.props-help-more-examples button span{color:#55e5f5}
+.props-help-more-examples button:hover{border-color:#2fe5f8;background:#183968}
+.props-help-note{margin:12px 0 0;padding:9px 10px;border-radius:9px;background:rgba(7,100,102,.22);
+  color:#b5e6de;font-size:10px;line-height:1.4}
+.props-help-note span{color:#61f4ad}
+.props-help-panel button:focus-visible{outline:2px solid #65eaff;outline-offset:2px}
 #stage:not(.bb-home-active) .suggestions{left:20px;top:124px;width:1016px;gap:9px}
 .suggestions button{border-color:#4661a5;background:linear-gradient(110deg,#111d3d,#0b1732)}
 .utility{display:none!important}
