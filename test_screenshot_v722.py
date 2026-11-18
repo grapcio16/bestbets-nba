@@ -4,7 +4,7 @@ import unittest
 import pandas as pd
 
 from core import norm_name, normalize_logs
-from espn_player_data import parse_gamelog, full_season_team_boxscores
+from espn_player_data import parse_gamelog, full_season_team_boxscores, verified_threes
 from screenshot_import import parse_ocr_tokens, market_from_header
 from season_props import clean_player_season, observed_hit_rates, analyze_season_offers
 
@@ -41,7 +41,14 @@ class EspnNestedLogTests(unittest.TestCase):
         self.assertEqual(set(df["PLAYER_ID"]),{"123"})
         self.assertEqual(set(df["TEAM_ABBREVIATION"]),{"BOS"})
         self.assertTrue((df["FG3M"]==2).all())
+        self.assertTrue((df["FG3A"]==5).all())
         self.assertEqual(df["GAME_ID"].nunique(),13)
+
+    def test_split_three_attempts_are_real_not_guessed(self):
+        self.assertEqual(verified_threes({"3PM": "3", "3PA": "8"}), (3., 8.))
+        self.assertEqual(verified_threes({"3PT": "2-7"}), (2., 7.))
+        self.assertEqual(verified_threes({"3PM": "3"}), (3., None))
+        self.assertEqual(verified_threes({"3PM": "5", "3PA": "2"}), (None, None))
 
     def test_duplicate_category_does_not_duplicate_games(self):
         p=season_fixture(11)

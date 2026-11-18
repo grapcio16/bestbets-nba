@@ -29,6 +29,15 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.goto(PAGE, wait_until="load")
+            page.evaluate("""() => {
+              window.__premiumRequests = [];
+              window.addEventListener('message', e => {
+                if(e.data?.type === 'streamlit:setComponentValue' &&
+                   e.data?.value?.type === 'premium_player_averages') {
+                  window.__premiumRequests.push(e.data.value);
+                }
+              });
+            }""")
             page.locator('.nav-btn[data-page="players"]').click()
             self.assertTrue(page.locator("#hzp-players-pane").is_visible())
             self.assertTrue(page.locator("#blank-pane").is_hidden())
@@ -55,6 +64,12 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
                                                     "three_pm": 3.0, "three_pa": 8.0,
                                                     "three_pct": 37.5}}}})
             page.wait_for_function("document.querySelector('#hzp-table-rows').textContent.includes('28,1')")
+            page.wait_for_function("window.__premiumRequests.length > 0")
+            ids = page.evaluate("window.__premiumRequests[0].player_ids")
+            self.assertEqual(len(ids), 7)
+            self.assertTrue(all(identifier.isdigit() for identifier in ids))
+            self.assertEqual(page.locator("#hzp-team").evaluate(
+                "element => getComputedStyle(element).appearance"), "none")
             self.assertEqual(page.locator(".hzp-stat.is-locked").count(), 0)
             self.assertIn("37,5%", page.locator("#hzp-table-rows").inner_text())
             self.assertIn("8,0", page.locator("#hzp-table-rows").inner_text())

@@ -157,13 +157,18 @@ def _cached_centre_player_catalog(force_refresh: bool = False):
             "photo_license_enabled": photo_policy()}}
 
 
-@st.cache_data(ttl=3*3600, max_entries=2, show_spinner=False)
-def _cached_premium_player_averages() -> dict:
-    """Fetch actual regular-season rows only after a paid-page request."""
-    from sources import game_logs
+@st.cache_data(ttl=3*3600, max_entries=512, show_spinner=False)
+def _cached_premium_player_history(player_id: str, name: str, team: str) -> dict:
+    """Fetch a single athlete's current-season gamelog, not a 10-game league sample.
+
+    Only called for server-verified roster athletes after Premium entitlement
+    is confirmed. ESPN's season gamelog includes each completed appearance;
+    request-size and concurrency are bounded by the caller.
+    """
+    from espn_player_data import detailed_espn_gamelog
     from premium_player_stats import build_player_averages
 
-    logs, source = game_logs(SEASON)
+    logs, source = detailed_espn_gamelog(player_id, name, team, SEASON)
     return build_player_averages(logs, source)
 
 
@@ -423,16 +428,17 @@ def main() -> None:
             from admin_model_performance import build_model_report
             backend = tracker_backend()
             if not backend["remote"]:
-                result = {"season": SEASON, "models": [], "error":
-                          "Brak podłączonej bazy PostgreSQL. Sprawdź TRACKER_DATABASE_URL."}
+                # Missing deployment configuration is not a broken model.
+                # Report a structured setup state rather than a huge error
+                # banner; no ephemeral SQLite data is passed off as history.
+                result = {"season": SEASON, "models": [], "status": "setup_required"}
             else:
                 result = build_model_report(read(season=SEASON, config=backend), season=SEASON)
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning(
                 "Admin model report temporarily unavailable: %s", type(exc).__name__)
-            result = {"season": SEASON, "models": [], "error":
-                      "Nie udało się odczytać prognoz z bazy. Spróbuj ponownie."}
+            result = {"season": SEASON, "models": [], "status": "connection_issue"}
         st.session_state["bb10_admin_report"] = result
         st.session_state["bb10_admin_report_at"] = now
         st.rerun()
@@ -441,20 +447,50 @@ def main() -> None:
         # Authorization comes from Streamlit's verified identity, not JS.
         if not premium_entitled():
             return
-        now = time.monotonic()
-        if now - st.session_state.get("bb10_player_averages_attempt_at", 0.0) < 60:
+        from premium_player_stats import verified_roster_targets
+        targets = verified_roster_targets(
+            event.get("player_ids"), st.session_state.get("bb10_player_catalog"))
+        if not targets:
             return
-        st.session_state["bb10_player_averages_attempt_at"] = now
-        try:
-            stats = _cached_premium_player_averages()
-        except Exception as exc:
-            import logging
-            logging.getLogger(__name__).warning(
-                "Premium player averages unavailable: %s", type(exc).__name__)
-            stats = {"rows": {}, "source": "NBA / ESPN", "season": "2026/27",
-                     "partial": True,
-                     "error": "Statystyki są chwilowo niedostępne. Spróbuj później."}
-        st.session_state["bb10_premium_player_averages"] = stats
+        current = st.session_state.get("bb10_premium_player_averages") or {}
+        completed = set(current.get("attempted_ids") or [])
+        pending = [target for target in targets if target["id"] not in completed]
+        if not pending:
+            return
+        # Seven at most per page, three concurrent ESPN calls. The normalized
+        # gamelog cache avoids re-downloading a player's entire season.
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        rows = dict(current.get("rows") or {})
+        unavailable = set(current.get("unavailable_ids") or [])
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {
+                executor.submit(_cached_premium_player_history,
+                                target["id"], target["name"], target["team"]): target
+                for target in pending
+            }
+            for future in as_completed(futures):
+                target = futures[future]
+                try:
+                    stats = future.result()
+                    player_rows = stats.get("rows") or {}
+                    if player_rows:
+                        rows.update(player_rows)
+                    else:
+                        unavailable.add(target["id"])
+                except Exception as exc:
+                    import logging
+                    logging.getLogger(__name__).warning(
+                        "ESPN athlete history unavailable (%s): %s",
+                        target["id"], type(exc).__name__)
+                    unavailable.add(target["id"])
+                completed.add(target["id"])
+        st.session_state["bb10_premium_player_averages"] = {
+            "rows": rows, "attempted_ids": sorted(completed),
+            "unavailable_ids": sorted(unavailable),
+            "season": "2026/27", "source": "ESPN · sezonowe historie zawodników",
+            "scope": "zweryfikowane występy · liczba meczów przy zawodniku",
+            "partial": True,
+        }
         st.rerun()
         return
     if event.get("type") == "premium_team_analytics":
@@ -549,6 +585,7 @@ def main() -> None:
             st.session_state["bb10_player_catalog_at"] = time.monotonic()
             if allowed_force:
                 st.session_state["bb10_player_catalog_force_at"] = time.monotonic()
+                st.session_state.pop("bb10_premium_player_averages", None)
         st.rerun()
         return
     if event.get("type") == "home_date":

@@ -3,7 +3,7 @@ import unittest
 
 import pandas as pd
 
-from premium_player_stats import build_player_averages
+from premium_player_stats import build_player_averages, verified_roster_targets
 
 
 class PlayerAveragesTests(unittest.TestCase):
@@ -46,6 +46,19 @@ class PlayerAveragesTests(unittest.TestCase):
         raw = pd.DataFrame([row, row, {**row, "GAME_ID": "2", "MIN": 0, "PTS": 0}])
         result = build_player_averages(raw, {"source": "NBA Stats"})
         self.assertEqual(result["rows"]["nikolajokic"]["games"], 1)
+
+    def test_browser_ids_must_match_server_verified_roster(self):
+        catalog = {"players": [
+            {"id": "111", "name": "Nikola Jokić", "team": "DEN"},
+            {"id": "222", "name": "Stephen Curry", "team": "GSW"},
+        ]}
+        self.assertEqual(verified_roster_targets(
+            ["999", "111", "111", "222", "invalid"], catalog), [
+                {"id": "111", "name": "Nikola Jokić", "team": "DEN"},
+                {"id": "222", "name": "Stephen Curry", "team": "GSW"},
+            ])
+        self.assertEqual(verified_roster_targets(["111"], None), [])
+        self.assertEqual(verified_roster_targets("111", catalog), [])
 
 
 if __name__ == "__main__":

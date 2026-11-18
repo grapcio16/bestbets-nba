@@ -19,6 +19,47 @@
 .hz-admin-dashboard{margin-top:22px}
 .hz-admin-empty{margin:22px auto;padding:34px 22px;text-align:center;color:#a9c2e3;border:1px solid #48628f;border-radius:14px;background:#101b3a}
 .hz-admin-error{border-color:#fb7c86;color:#ffc5cd}
+.hz-admin-loading{min-height:285px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:12px;border:1px solid rgba(73,159,227,.38);border-radius:22px;
+  background:radial-gradient(circle at 50% 15%,rgba(35,91,177,.19),transparent 57%),#0b1731;
+  text-align:center;color:#e5f3ff}
+.hz-admin-loading b{font-size:21px}.hz-admin-loading p{margin:0;font-size:12px;color:#91abc9}
+.hz-admin-loader{font-size:42px;color:#30e6e4;filter:drop-shadow(0 0 12px #2be3ec)}
+.hz-admin-connection{position:relative;overflow:hidden;padding:27px 28px 20px;
+  border:1px solid rgba(111,103,207,.72);border-radius:21px;
+  background:radial-gradient(ellipse 58% 115% at 100% 0%,rgba(104,35,190,.3),transparent 73%),
+    linear-gradient(140deg,#101b41,#0b1934 64%,#102044);
+  box-shadow:inset 0 1px rgba(206,218,255,.12),0 13px 32px rgba(0,0,0,.16)}
+.hz-admin-connection:before{content:"";position:absolute;top:0;left:10%;right:10%;height:1px;
+  background:linear-gradient(90deg,transparent,#46e7ef,#9762ff,transparent);opacity:.9}
+.hz-admin-connection-head{display:flex;align-items:flex-start;gap:18px}
+.hz-admin-connection-icon{display:grid;place-items:center;flex:0 0 71px;height:71px;
+  color:#54f5e6;font-size:38px;border:1px solid rgba(60,225,232,.73);border-radius:18px;
+  background:linear-gradient(135deg,#123d55,#1b225c);
+  box-shadow:0 0 20px rgba(26,235,224,.14)}
+.hz-admin-connection-head>div:nth-child(2){flex:1;min-width:0}
+.hz-admin-connection-eyebrow{font-size:10px;letter-spacing:2px;color:#46eff2;font-weight:900}
+.hz-admin-connection h2{font-size:27px;line-height:1.18;letter-spacing:-.5px;margin:7px 0 7px;
+  color:#f6f8ff;font-weight:950}
+.hz-admin-connection-head p{font-size:12px;line-height:1.58;margin:0;color:#afc5e1;max-width:570px}
+.hz-admin-connection-status{flex:0 0 auto;font-size:9px;font-weight:950;
+  letter-spacing:1px;border:1px solid rgba(250,202,110,.5);border-radius:999px;
+  padding:8px 11px;color:#ffe0a7;background:rgba(234,169,77,.09)}
+.hz-admin-setup-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;
+  margin-top:27px}
+.hz-admin-setup-step{min-height:151px;padding:17px 16px;border-radius:15px;
+  border:1px solid rgba(90,151,212,.44);background:linear-gradient(150deg,rgba(22,52,88,.8),rgba(13,25,55,.83));
+  box-shadow:inset 0 1px rgba(179,226,255,.08)}
+.hz-admin-setup-step>span{display:inline-flex;align-items:center;justify-content:center;
+  width:33px;height:33px;border:1px solid rgba(39,235,234,.5);border-radius:10px;
+  background:rgba(20,226,214,.09);color:#43efe6;font-size:12px;font-weight:950}
+.hz-admin-setup-step b{display:block;margin:12px 0 7px;color:#f1f6ff;font-size:13px}
+.hz-admin-setup-step p{font-size:10.5px;line-height:1.54;color:#a9c2df;margin:0}
+.hz-admin-connection-foot{margin-top:21px;display:flex;align-items:flex-start;gap:9px;
+  border-top:1px solid rgba(108,146,211,.23);padding-top:15px;
+  font-size:10px;line-height:1.4;color:#8fa8c9}
+.hz-admin-connection-foot span{color:#3fe9e2;font-size:16px}
+.hz-admin-small-error{font-size:14px;color:#d9e9ff}.hz-admin-small-error p{font-size:11px;color:#afc8e5}
 .hz-admin-meta{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:15px;color:#b9d5ef;font-size:11px}
 .hz-admin-meta span:first-child{font-weight:850;color:#38e0d5}
 .hz-admin-models{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}

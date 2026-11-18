@@ -9,6 +9,19 @@
  const percentage=value=>typeof value==="number"&&Number.isFinite(value)?(value*100).toFixed(1).replace(".",",")+"%":"—";
  const signed=value=>typeof value==="number"&&Number.isFinite(value)?value.toFixed(2).replace(".",","):"—";
  const metric=(label,value,help)=>'<div class="hz-admin-stat"><span>'+label+'</span><b>'+value+'</b><small>'+help+'</small></div>';
+ const setupCard=(failure)=>'<section class="hz-admin-connection">'+
+   '<div class="hz-admin-connection-head"><div class="hz-admin-connection-icon">◇</div><div>'+
+   '<span class="hz-admin-connection-eyebrow">PRYWATNE ARCHIWUM · MODEL PERFORMANCE</span>'+
+   '<h2>'+(failure?'Połączenie wymaga uwagi':'Połącz archiwum prognoz')+'</h2>'+
+   '<p>'+(failure?'Dane nie zostały teraz odczytane. Wyniki pozostają bez zmian w bazie.':
+     'Panel jest gotowy. Wystarczy połączyć tę aplikację z bazą, w której tracker zapisuje prognozy sprzed meczów.')+'</p></div>'+
+   '<span class="hz-admin-connection-status">'+(failure?'PRÓBA PONOWIENIA':'DO KONFIGURACJI')+'</span></div>'+
+   '<div class="hz-admin-setup-steps">'+
+     '<div class="hz-admin-setup-step"><span>01</span><b>Otwórz Streamlit Cloud</b><p>Przejdź do ustawień tej aplikacji i sekcji Secrets.</p></div>'+
+     '<div class="hz-admin-setup-step"><span>02</span><b>Podłącz PostgreSQL</b><p>Dodaj TRACKER_DATABASE_URL z adresem tej samej bazy, której używa tracker.</p></div>'+
+     '<div class="hz-admin-setup-step"><span>03</span><b>Odśwież raport</b><p>Po zapisaniu konfiguracji użyj przycisku Odśwież powyżej.</p></div></div>'+
+   '<div class="hz-admin-connection-foot"><span>◈</span> Nie publikuj adresu bazy ani hasła w GitHubie lub na czacie. Sekret pozostaje po stronie serwera.</div>'+
+   '</section>';
  function modelCard(model){
    const m=model.metrics||{},ready=Number(m.games)||0;
    return '<article class="hz-admin-model">'+
@@ -33,11 +46,18 @@
  function render(report,loading){
    const root=target();if(!root)return;
    if(!report){
-     root.innerHTML='<div class="hz-admin-empty">'+(loading?'Łączenie z archiwum prognoz…':'Raport nie został jeszcze wczytany.')+'</div>';
+    root.innerHTML='<div class="hz-admin-loading"><span class="hz-admin-loader">◈</span><b>'+(
+      loading?'Pobieramy archiwum modeli':'Raport czeka na pierwsze odświeżenie')+'</b>'+
+      '<p>Wszystkie wyniki są liczone wyłącznie z zapisanych przed meczem prognoz.</p></div>';
      return;
    }
+  if(report.status==="setup_required"||report.status==="connection_issue"){
+    root.innerHTML=setupCard(report.status==="connection_issue");
+    return;
+  }
    if(report.error){
-     root.innerHTML='<div class="hz-admin-empty hz-admin-error">'+escapeHtml(report.error)+'</div>';
+    root.innerHTML='<div class="hz-admin-connection hz-admin-small-error"><b>Archiwum wymaga sprawdzenia</b><p>'+
+      escapeHtml(report.error)+'</p></div>';
      return;
    }
    const models=Array.isArray(report.models)?report.models:[];
