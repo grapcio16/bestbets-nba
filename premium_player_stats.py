@@ -13,6 +13,34 @@ import pandas as pd
 from core import norm_name, normalize_logs
 
 
+def verified_roster_targets(requested_ids, catalog, limit: int = 7) -> list[dict]:
+    """Resolve a bounded set of browser IDs against the server's actual roster.
+
+    A browser may request which visible athletes to load, but it cannot supply
+    the name, team, or Premium entitlement used for the underlying lookup.
+    """
+    if not isinstance(requested_ids, list) or not isinstance(catalog, dict):
+        return []
+    allowed = {}
+    for player in catalog.get("players", []):
+        if not isinstance(player, dict):
+            continue
+        identifier = str(player.get("id") or "")
+        name = str(player.get("name") or "").strip()
+        team = str(player.get("team") or "").strip()
+        if identifier.isascii() and identifier.isdecimal() and len(identifier) <= 12 and name and team:
+            allowed[identifier] = {"id": identifier, "name": name, "team": team}
+    selected, seen = [], set()
+    for identifier in requested_ids[:32]:
+        identifier = str(identifier)
+        if identifier in allowed and identifier not in seen:
+            selected.append(allowed[identifier])
+            seen.add(identifier)
+            if len(selected) >= limit:
+                break
+    return selected
+
+
 def build_player_averages(raw: pd.DataFrame, metadata: dict | None = None) -> dict:
     """Return per-player season/sample means, using attempts for true 3P%.
 

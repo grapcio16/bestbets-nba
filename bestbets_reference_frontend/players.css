@@ -25,12 +25,27 @@
 .hzp-search-wrap input{width:100%;height:100%;padding:0;background:transparent;border:0;outline:0;
   color:#fff;font:700 16px Inter,"Segoe UI",Arial,sans-serif}
 .hzp-search-wrap input::placeholder{color:#9eb5d5}
-.hzp-filter{display:flex;flex-direction:column;justify-content:center;gap:2px;width:154px;padding:3px 12px;
-  border:1px solid #43649a;border-radius:12px;background:linear-gradient(150deg,#102647,#101635)}
-.hzp-filter>span{color:#89a8cf;font-size:10px;letter-spacing:.6px;font-weight:700}
-.hzp-filter select{width:100%;color:#f0f6ff;background:transparent;outline:0;border:0;
-  font:750 12px Inter,"Segoe UI",Arial,sans-serif;cursor:pointer}
-.hzp-filter option{color:#fff;background:#101b39}
+.hzp-filter{position:relative;display:flex;flex-direction:column;justify-content:center;
+  gap:3px;width:154px;flex:0 0 154px;min-width:0;padding:6px 13px;
+  border:1px solid rgba(84,143,212,.7);border-radius:14px;
+  background:radial-gradient(circle at 100% 0%,rgba(70,88,207,.27),transparent 67%),
+    linear-gradient(145deg,#132a53,#0c1b3c);
+  box-shadow:inset 0 1px rgba(203,233,255,.09),0 3px 14px rgba(0,0,0,.17);
+  transition:border-color .15s,box-shadow .15s}
+.hzp-filter:hover,.hzp-filter:focus-within{border-color:#24dff6;
+  box-shadow:inset 0 1px rgba(203,233,255,.12),0 0 15px rgba(19,216,239,.19)}
+.hzp-filter>span{color:#91bce6;font-size:9px;text-transform:uppercase;
+  letter-spacing:1.05px;font-weight:850;pointer-events:none}
+.hzp-filter select{display:block;appearance:none;-webkit-appearance:none;width:100%;min-width:0;
+  padding:0 20px 0 0;color:#f3faff;background:transparent!important;
+  outline:0;border:0;box-shadow:none;line-height:19px;
+  font:800 12px Inter,"Segoe UI",Arial,sans-serif;cursor:pointer;
+  white-space:nowrap;text-overflow:ellipsis}
+.hzp-filter::after{content:"";position:absolute;right:15px;bottom:16px;
+  width:7px;height:7px;transform:rotate(45deg);pointer-events:none;
+  border-right:2px solid #30e9f0;border-bottom:2px solid #30e9f0;
+  filter:drop-shadow(0 0 3px rgba(40,230,244,.4))}
+.hzp-filter option{color:#edf8ff;background:#14284d;font-weight:650}
 #hzp-refresh{min-width:104px;border:1px solid #5872ac;background:linear-gradient(150deg,#17284d,#17153c);
   border-radius:12px;color:#d4ddf7;font:800 12px Inter,"Segoe UI",Arial,sans-serif}
 #hzp-refresh:hover{border-color:#22dcfc;color:#fff}

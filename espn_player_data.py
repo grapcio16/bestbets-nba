@@ -32,6 +32,18 @@ def made_attempt(v):
     if m:return float(m.group(1)),float(m.group(2))
     return num(v),None
 
+def verified_threes(data):
+    """Read both ESPN's combined 3PT (M-A) and separated 3PM/3PA shapes."""
+    combined=data.get('3PT')
+    made,attempted=made_attempt(combined if combined is not None
+                               else data.get('3PM',data.get('FG3M')))
+    if attempted is None:
+        attempted=num(data.get('3PA',data.get('FG3A')))
+    if made is not None and (made<0 or
+                            (attempted is not None and (attempted<0 or attempted<made))):
+        return None,None
+    return made,attempted
+
 def minutes(v):
     if ':' in str(v or ''):
         try:
@@ -76,7 +88,7 @@ def parse_summary(payload,game):
                     position=str(position_info or '').strip()
 
                 if not name or mins is None or mins<=0:continue
-                three,three_att=made_attempt(data.get('3PT',data.get('3PM')))
+                three,three_att=verified_threes(data)
                 _,fga=made_attempt(data.get('FG'))
                 row={'PLAYER_NAME':name,'PLAYER_ID':str(athlete.get('id') or ''),
                     'TEAM_ABBREVIATION':team,'GAME_ID':str(game.get('game_id') or ''),
@@ -204,8 +216,7 @@ def parse_gamelog(payload,player_id,name,team,return_meta=False):
         mins=minutes(data.get("MIN") or data.get("MINUTES"))
         if not date or mins is None or mins<=0:
             rejected+=1;continue
-        three,three_att=made_attempt(
-            data.get("3PT",data.get("3PM",data.get("FG3M"))))
+        three,three_att=verified_threes(data)
         _,fga=made_attempt(data.get("FG"))
         values={"PTS":num(data.get("PTS")),"REB":num(data.get("REB")),
                 "AST":num(data.get("AST")),"FG3M":three}

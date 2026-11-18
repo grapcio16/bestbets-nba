@@ -4,6 +4,7 @@
 const $=id=>document.getElementById(id);
 const PAGE_SIZE=7;
 let callbacks={},catalog=null,averages=null,role="guest",page=0,query="",team="",position="";
+const requestedIds=new Set();
 const norm=name=>String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
   .toLowerCase().replace(/[^a-z0-9]/g,"");
 const entitled=()=>role==="premium"||role==="admin";
@@ -45,19 +46,23 @@ function playerRow(player){
     .slice(0,2).map(part=>part[0]).join("").toUpperCase();
   name.append(make("span","hzp-player-avatar",initials));
   const identity=make("div","hzp-player-identity");
-  identity.append(make("strong","",player.name),make("small","",player.position||"NBA"));
+  const data=entitled()?averages?.rows?.[norm(player.name)]:null;
+  const gameCount=Number(data?.games)||0;
+  identity.append(make("strong","",player.name),make("small","",
+    (player.position||"NBA")+(entitled()&&gameCount?" · "+gameCount+" mecz.":"")));
   name.append(identity);row.append(name);
   const teamCell=make("div");teamCell.append(make("span","hzp-team-tag",player.team||"NBA"));
   row.append(teamCell);
-  const data=entitled()?averages?.rows?.[norm(player.name)]:null;
   const figures=[data?.pts,data?.reb,data?.ast,data?.three_pm,data?.three_pa,data?.three_pct];
+  const id=String(player.id||"");
+  const waiting=entitled()&&!data&&!((averages?.attempted_ids||[]).includes(id));
   figures.forEach((number,index)=>{
     const locked=!entitled();
-    const loading=entitled()&&!averages;
     const blank=number===null||number===undefined;
     const cell=make("span","hzp-stat"+(locked?" is-locked":blank?" is-missing":index===5?" is-highlight":""),
-      locked?"♢":loading?"…":safeNumber(number,index===5));
+      locked?"♢":waiting?"…":safeNumber(number,index===5));
     if(locked){cell.title="Dostępne w Hoopzaro Premium";cell.setAttribute("aria-label","Statystyka Premium");}
+    else cell.title=gameCount?"Średnia z "+gameCount+" potwierdzonych występów sezonu":"Brak zweryfikowanych występów";
     row.append(cell);
   });
   return row;
@@ -83,14 +88,23 @@ function render(nextCatalog,nextAverages,nextRole){
     !entitled()?"Darmowy podgląd · odblokuj statystyki Premium":
     "Wyświetlono "+visible.length+" z "+matches.length+" zawodników";
   const source=$("hzp-source");
+  const loaded=visible.filter(p=>(averages?.attempted_ids||[]).includes(String(p.id||""))).length;
   source.textContent=!entitled()?"Lista zawodników: ESPN · Statystyki zablokowane w Premium.":
-    averages?.error||(!averages?"Ładowanie rzeczywistych średnich…":
-      "Źródło: "+String(averages.source||"NBA / ESPN")+" · "+String(averages.scope||"dostępna próbka meczów")+
-      " · liczba meczów zależy od zawodnika");
+    "Źródło: ESPN · sezon 2026/27 · "+loaded+"/"+visible.length+" historii na tej stronie"+
+    " · średnie z rzeczywistych występów (liczba meczów pod nazwiskiem)";
   $("hzp-cta-title").textContent=entitled()?"Chcesz przeanalizować kolejny mecz?":"Odblokuj statystyki zawodników";
   $("hzp-cta-text").textContent=entitled()?"Prognozy, linie OVER/UNDER i symulacje znajdziesz w Player Props.":
     "Średnie PTS, REB, AST, 3PM, 3PA i 3P% dostępne z Hoopzaro Premium.";
   $("hzp-cta").firstChild.textContent=entitled()?"Otwórz Player Props ":"Premium · 9,99 USD/mies. ";
+  if(entitled()&&catalog&&visible.length&&typeof callbacks.requestAverages==="function"){
+    const done=new Set(averages?.attempted_ids||[]);
+    const missing=visible.map(p=>String(p.id||"")).filter(id=>
+      id&&/^\d+$/.test(id)&&!done.has(id)&&!requestedIds.has(id));
+    if(missing.length){
+      missing.forEach(id=>requestedIds.add(id));
+      callbacks.requestAverages(missing.slice(0,7));
+    }
+  }
 }
 function init(api){
   callbacks=api||{};
@@ -102,5 +116,5 @@ function init(api){
   $("hzp-refresh").addEventListener("click",()=>callbacks.refresh?.());
   $("hzp-cta").addEventListener("click",()=>entitled()?callbacks.openProps?.():callbacks.openPremium?.());
 }
-global.HoopzaroPlayers={init,render};
+global.HoopzaroPlayers={init,render,resetRequests:()=>requestedIds.clear()};
 })(window);

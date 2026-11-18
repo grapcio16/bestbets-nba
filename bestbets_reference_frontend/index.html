@@ -821,13 +821,8 @@ function requestPlayersData(){
     }});
     return;
   }
-  if(state.payload.player_catalog&&!premiumRequired()&&
-     !state.payload.premium_player_averages&&!state.playerAveragesRequested){
-    state.playerAveragesRequested=true;
-    notify("streamlit:setComponentValue",{dataType:"json",value:{
-      type:"premium_player_averages",id:String(Date.now())+"-directory-averages"
-    }});
-  }
+  // Individual season histories are requested by the Players directory only
+  // for the visible seven athletes, once the authenticated roster is known.
 }
 function requestTeamsData(){
   if(state.page!=="teams"||premiumRequired()||
@@ -844,8 +839,16 @@ if(window.HoopzaroPlayers){
   window.HoopzaroPlayers.init({
     refresh:function(){
       state.playerCatalogRequested=true;
+      window.HoopzaroPlayers.resetRequests();
       notify("streamlit:setComponentValue",{dataType:"json",value:{
         type:"player_catalog",force:true,id:String(Date.now())+"-directory-refresh"
+      }});
+    },
+    requestAverages:function(ids){
+      if(state.page!=="players"||premiumRequired()||!Array.isArray(ids)||!ids.length)return;
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"premium_player_averages",player_ids:ids.slice(0,7),
+        id:String(Date.now())+"-players-season-"+Math.random().toString(36).slice(2)
       }});
     },
     openPremium:showPremiumPaywall,
