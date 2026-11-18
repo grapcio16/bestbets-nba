@@ -25,7 +25,7 @@
  function modelCard(model){
    const m=model.metrics||{},ready=Number(m.games)||0;
    return '<article class="hz-admin-model">'+
-     '<div class="hz-admin-model-top"><div><span>MODEL · ZAMROŻONE PROGNOZY</span><h2>'+escapeHtml(model.id)+'</h2></div>'+
+     '<div class="hz-admin-model-top"><div><span>MODEL · ZAMROŻONE PROGNOZY</span><h2>'+escapeHtml(model.label||model.id)+'</h2></div>'+
      '<span class="hz-admin-counter">'+number(model.snapshots)+' zapisów</span></div>'+
      '<div class="hz-admin-stats">'+
        metric("Trafność zwycięzcy",percentage(m.winner_accuracy),ready+' zakończonych meczów')+
@@ -65,7 +65,7 @@
      root.innerHTML='<div class="hz-admin-empty">Brak zamrożonych prognoz w sezonie '+escapeHtml(report.season)+'. Tracker musi najpierw zapisać dane.</div>';
      return;
    }
-   const options=models.map((m,index)=>'<option value="'+index+'">'+escapeHtml(m.id)+'</option>').join("");
+   const options=models.map((m,index)=>'<option value="'+index+'">'+escapeHtml(m.label||m.id)+'</option>').join("");
    root.innerHTML='<div class="hz-admin-meta"><span>Sezon '+escapeHtml(report.season)+'</span><span>Aktualizacja '+escapeHtml(String(report.as_of_utc||"").slice(0,16).replace("T"," "))+' UTC</span>'+
      '<span>Dokładność liczona wyłącznie dla zapisów sprzed rozpoczęcia meczów.</span></div>'+
      '<div class="hz-admin-models">'+models.map(modelCard).join("")+'</div>'+

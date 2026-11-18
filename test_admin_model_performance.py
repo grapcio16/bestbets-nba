@@ -69,6 +69,18 @@ class ModelReportTests(unittest.TestCase):
         self.assertTrue(report["error"])
         self.assertEqual(report["models"], [])
 
+    def test_injury_minutes_model_has_distinct_readable_label(self):
+        frame = pd.DataFrame([
+            forecast("auto_context_venue_rest_v75", "401000001", settled=True),
+            forecast("auto_context_injury_minutes_v75", "401000001", settled=True),
+        ])
+        report = build_model_report(frame, season="2026-27")
+        labels = {model["id"]: model["label"] for model in report["models"]}
+        self.assertEqual(labels["auto_context_injury_minutes_v75"],
+                         "V7.5 · Minuty i kontuzje")
+        self.assertNotEqual(labels["auto_context_venue_rest_v75"],
+                            labels["auto_context_injury_minutes_v75"])
+
 
 if __name__ == "__main__":
     unittest.main()
