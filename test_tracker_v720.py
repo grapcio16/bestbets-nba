@@ -93,23 +93,23 @@ class AutomaticTrackerTests(unittest.TestCase):
         first=run_cycle(self.schedule,self.history,self.now,writer,settler)
         self.assertEqual(first["matched_forecast_rows_settled"],1)
         self.assertEqual(first["upcoming_games_checked"],2)
-        self.assertEqual(first["candidate_forecast_rows"],6)
-        self.assertEqual(first["new_pregame_snapshots"],6)
+        # V7.5 is frozen nearer tipoff, while V7.2/V7.4 remain early.
+        self.assertEqual(first["candidate_forecast_rows"],4)
+        self.assertEqual(first["new_pregame_snapshots"],4)
         second=run_cycle(self.schedule,self.history,self.now,writer,settler)
         self.assertEqual(second["matched_forecast_rows_settled"],0)
         self.assertEqual(second["new_pregame_snapshots"],0)
         all_rows=read_forecasts(self.db)
-        self.assertEqual(len(all_rows),7)
+        self.assertEqual(len(all_rows),5)
         existing=all_rows[all_rows["model_id"]=="legacy_v72"].iloc[0]
         self.assertEqual(existing["home_points"],113)
         self.assertEqual(existing["source"],"Prior user session")
         self.assertEqual(int(existing["home_score"]),int(past_game["home_score"]))
         self.assertEqual(
             set(all_rows["model_id"]),
-            {"legacy_v72","auto_legacy_v72","auto_research_form_v74",
-             "auto_context_venue_rest_v75"})
+            {"legacy_v72","auto_legacy_v72","auto_research_form_v74"})
         automatic=all_rows[all_rows["model_id"].str.startswith("auto_")]
-        self.assertEqual(len(automatic),6)
+        self.assertEqual(len(automatic),4)
         self.assertTrue(automatic["away_score"].isna().all())
         self.assertTrue((pd.to_datetime(automatic["forecast_time_utc"],utc=True)
                         < pd.to_datetime(automatic["start_utc"],utc=True)).all())
