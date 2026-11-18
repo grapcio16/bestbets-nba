@@ -8,6 +8,7 @@
  const number=value=>typeof value==="number"&&Number.isFinite(value)?value.toLocaleString("pl-PL"):"—";
  const percentage=value=>typeof value==="number"&&Number.isFinite(value)?(value*100).toFixed(1).replace(".",",")+"%":"—";
  const signed=value=>typeof value==="number"&&Number.isFinite(value)?value.toFixed(2).replace(".",","):"—";
+ const signedBias=value=>typeof value==="number"&&Number.isFinite(value)?(value>0?"+":"")+value.toFixed(2).replace(".",","):"—";
  const metric=(label,value,help)=>'<div class="hz-admin-stat"><span>'+label+'</span><b>'+value+'</b><small>'+help+'</small></div>';
  const setupCard=(failure)=>'<section class="hz-admin-connection">'+
    '<div class="hz-admin-connection-head"><div class="hz-admin-connection-icon">◇</div><div>'+
@@ -32,7 +33,8 @@
        metric("Błąd sumy punktów",signed(m.total_mae),"MAE · punkty")+
        metric("Błąd punktów drużyn",signed(m.team_mae),"MAE · punkty")+
        metric("Brier score",signed(m.brier),"Im niżej, tym lepiej")+
-     '</div><div class="hz-admin-model-foot"><span>Rozliczone: <b>'+number(model.settled)+'</b> / '+number(model.snapshots)+'</span>'+
+     '</div>'+(ready?'<div class="hz-admin-bias">Średni błąd ze znakiem: <b>'+signedBias(m.total_bias)+' pkt</b> <small>(wynik − prognoza; wartość ujemna oznacza zawyżanie)</small></div>':'')+
+     '<div class="hz-admin-model-foot"><span>Rozliczone: <b>'+number(model.settled)+'</b> / '+number(model.snapshots)+'</span>'+
      '<span>Zweryfikowane przez audyt: <b>'+number(ready)+'</b></span></div>'+
      (!ready?'<div class="hz-admin-pending">Brak zakończonych i zweryfikowanych prognoz. Wyniki oceny pojawią się po meczach.</div>':'')+
      '</article>';
