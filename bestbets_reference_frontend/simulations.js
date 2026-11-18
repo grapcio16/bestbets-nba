@@ -11,7 +11,7 @@ const WARSAW="Europe/Warsaw";
 const fmt=value=>value!==null&&value!==undefined&&value!==""&&Number.isFinite(Number(value))
   ?Number(value).toFixed(1).replace(".",","):"—";
 const percent=value=>Number.isFinite(Number(value))?fmt(value)+"%":"—";
-const modelLabel=()=>state.model==="legacy_v72"?"V7.2":state.model==="research_form_v74"?"V7.4":"V7.5 BADAWCZY";
+const modelLabel=()=>state.model==="legacy_v72"?"V7.2":state.model==="research_form_v74"?"V7.4":"V7.5 · PEŁNY KONTEKST (BADAWCZY)";
 const dayShift=(day,n)=>{const d=new Date(day+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
 function localDay(iso){
   const parts=new Intl.DateTimeFormat("en-GB",{timeZone:WARSAW,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(iso));

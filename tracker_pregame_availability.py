@@ -1,9 +1,9 @@
-"""On-demand, bounded pregame evidence for the *independent* auto V7.5 variant.
+"""On-demand, bounded pregame evidence for the unified V7.5 forecast.
 
 ESPN injuries are an unofficial source. This module creates a research
 snapshot only when both teams have enough actual pregame boxscores and the
 injury feed was recently fetched. It never infers who is healthy from an
-absent injury entry, and a missing feed yields NO enhanced prediction.
+absent injury entry. Missing evidence leaves the venue/rest baseline intact.
 """
 from __future__ import annotations
 
@@ -34,8 +34,8 @@ class PregameAvailabilityFeed:
     """Fetch ESPN injury records once per cycle, and boxscores per matchup.
 
     No Streamlit session, credentials, or browser is required in GitHub Actions.
-    Source failures are intentionally confined to this additional research
-    variant; the existing three automatic team models still run normally.
+    Source failures are confined to the injury adjustment; the combined V7.5
+    venue/rest fallback and other automatic models remain available.
     """
 
     def __init__(self, *, clock=None):

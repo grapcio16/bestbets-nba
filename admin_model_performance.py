@@ -13,9 +13,51 @@ from performance_tracker import performance_metrics
 MODEL_LABELS = {
     "auto_legacy_v72": "V7.2 · Model bazowy",
     "auto_research_form_v74": "V7.4 · Forma drużyn",
-    "auto_context_venue_rest_v75": "V7.5 · Dom, wyjazd i odpoczynek",
-    "auto_context_injury_minutes_v75": "V7.5 · Minuty i kontuzje",
+    "auto_context_full_v75": "V7.5 · Pełny kontekst",
 }
+
+# These IDs represent successive versions of the SAME V7.5 hypothesis.
+# Keep original database rows immutable, but display one audited forecast per
+# game. In particular, the 9 injury snapshots cannot be added to 16 venue
+# snapshots as though they represented 25 distinct matches.
+V75_ARCHIVE_IDS = {
+    "auto_context_venue_rest_v75",
+    "auto_context_injury_minutes_v75",
+    "auto_context_full_v75",
+}
+UNIFIED_V75_MODEL_ID = "auto_context_full_v75"
+
+
+def _report_groups(frame: pd.DataFrame):
+    rows = frame.copy()
+    rows["report_model_id"] = rows["model_id"].replace(
+        {name: UNIFIED_V75_MODEL_ID for name in V75_ARCHIVE_IDS})
+    for name, group in rows.groupby("report_model_id", dropna=False):
+        if name != UNIFIED_V75_MODEL_ID:
+            yield name, group.sort_values("start_utc", ascending=False).drop_duplicates("game_id")
+            continue
+
+        # Prefer the most complete trustworthy pregame evidence. If the fresh
+        # combined model had no injury feed, a saved injury-aware historical
+        # snapshot takes precedence. Late snapshots never trump pregame ones.
+        group = group.copy()
+        captured = pd.to_datetime(group["forecast_time_utc"], utc=True, errors="coerce")
+        tipoff = pd.to_datetime(group["start_utc"], utc=True, errors="coerce")
+        group["_pregame"] = captured.notna() & tipoff.notna() & (captured < tipoff)
+        ids = group["model_id"].astype(str)
+        informed = group.get("warning", pd.Series("", index=group.index)).astype(str).str.contains(
+            "ESPN OUT A/H", regex=False)
+        group["_rank"] = 4
+        group.loc[ids.eq("auto_context_venue_rest_v75"), "_rank"] = 3
+        group.loc[ids.eq(UNIFIED_V75_MODEL_ID), "_rank"] = 2
+        group.loc[ids.eq("auto_context_injury_minutes_v75"), "_rank"] = 1
+        group.loc[ids.eq(UNIFIED_V75_MODEL_ID) & informed, "_rank"] = 0
+        group = (group.sort_values(
+            ["_pregame", "_rank", "forecast_time_utc"],
+            ascending=[False, True, False], kind="stable")
+            .drop_duplicates("game_id")
+            .sort_values("start_utc", ascending=False))
+        yield name, group.drop(columns=["_pregame", "_rank"])
 
 
 def build_model_report(frame: pd.DataFrame | None, *, season: str) -> dict:
@@ -30,10 +72,9 @@ def build_model_report(frame: pd.DataFrame | None, *, season: str) -> dict:
     if not required.issubset(frame.columns):
         return {**base, "error": "Archiwum prognoz ma niepełny schemat."}
     models = []
-    for name, group in frame.groupby("model_id", dropna=False):
+    for name, group in _report_groups(frame):
         if pd.isna(name) or not str(name).strip():
             continue
-        group = group.sort_values("start_utc", ascending=False).drop_duplicates("game_id")
         settled = group["home_score"].notna() & group["away_score"].notna()
         _, metrics = performance_metrics(group)
         recent = []
@@ -48,6 +89,7 @@ def build_model_report(frame: pd.DataFrame | None, *, season: str) -> dict:
                 "away_pred": round(float(row["away_points"]), 1),
                 "home_actual": int(row["home_score"]) if actual else None,
                 "away_actual": int(row["away_score"]) if actual else None,
+                "origin_model_id": str(row["model_id"])[:65],
             })
         models.append({
             "id": str(name)[:65],

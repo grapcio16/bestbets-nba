@@ -19,16 +19,16 @@ from simulation_engine import (
     completed_team_scores, legacy_matchup_means, matchup_means, simulate_game,
 )
 from tracker_pregame_availability import (
-    INJURY_AWARE_MODEL_ID, MIN_MINUTE_COVERAGE,
-    PregameAvailabilityFeed, near_tipoff,
+    MIN_MINUTE_COVERAGE, PregameAvailabilityFeed, near_tipoff,
 )
+
+# Exactly one new V7.5 snapshot per game. Historical v75 IDs remain in the
+# database and are combined only in the read-only administrator report.
+UNIFIED_V75_MODEL_ID = "auto_context_full_v75"
 
 AUTO_MODELS = (
     ("auto_legacy_v72", legacy_matchup_means),
     ("auto_research_form_v74", matchup_means),
-    # The scheduled runner has ESPN data only; the ID explicitly separates it
-    # from the interactive Premium V7.5 path with optional NBA Advanced.
-    ("auto_context_venue_rest_v75", None),
 )
 
 
@@ -60,12 +60,12 @@ def upcoming_events(schedule, now, horizon_hours=36, min_lead_minutes=15):
 
 
 def build_automatic_forecasts(upcoming, completed, now, *, availability_provider=None):
-    """Forecast only on verified results known strictly before job timestamp.
+    """Forecast only on verified pregame evidence, one V7.5 per match.
 
-    The three existing team-only models retain their previous semantics.
-    The *fourth* version is created only near tipoff, when an injected data
-    source proves recent ESPN injuries + actual minutes for BOTH teams.
-    No available evidence means no fourth forecast, not a fabricated one.
+    V7.2 and V7.4 retain their independent snapshots. V7.5 is frozen near
+    tipoff so a fresh injury/minutes snapshot can be used when verified; if
+    unavailable, its venue/rest baseline is still valid and explicitly marked.
+    Neither variant is written twice under different V7.5 IDs.
     """
     history = verified_history(completed, now)
     grouped = completed_team_scores(history)
@@ -82,48 +82,53 @@ def build_automatic_forecasts(upcoming, completed, now, *, availability_provider
         # no hindsight and no guessed preseason ratings.
         for model_id, model in AUTO_MODELS:
             try:
-                if model is None:
-                    enriched = simulation_inputs_v75(history, g)
-                    mean = enriched["means"]
-                    score_noise = enriched["score_noise"]
-                else:
-                    mean = model(g["home"], g["away"], {}, grouped)
-                    score_noise = None
+                mean = model(g["home"], g["away"], {}, grouped)
                 if mean is None:
                     skipped += 1
                     continue
-                outcome, _, _, _ = simulate_game(g, mean, score_noise=score_noise)
+                outcome, _, _, _ = simulate_game(g, mean)
             except (KeyError, TypeError, ValueError):
                 skipped += 1
                 continue
             outcome["model_id"] = model_id
             stored.append(outcome)
-        if availability_provider is None or not near_tipoff(g, now):
+        # The new combined V7.5 is saved only once, inside the same pregame
+        # window used to fetch fresh injuries. Otherwise the first (up to 36h
+        # early) venue-only snapshot would permanently block an injury-aware
+        # version through the database's append-only unique constraint.
+        if not near_tipoff(g, now):
             continue
         try:
-            evidence = availability_provider(g, history, now)
-            if not evidence or not evidence.get("report_fresh"):
-                skipped += 1
-                continue
-            covered = evidence.get("minute_coverage") or {}
-            if min(covered.get("home", 0), covered.get("away", 0)) < MIN_MINUTE_COVERAGE:
-                skipped += 1
-                continue
-            enriched = simulation_inputs_v75(history, g, availability=evidence)
+            evidence = (availability_provider(g, history, now)
+                        if availability_provider is not None else None)
+        except (KeyError, TypeError, ValueError, RuntimeError, OSError,
+                ConnectionError, TimeoutError):
+            # ESPN failures must not erase the venue/rest projection.
+            evidence = None
+        try:
+            covered = (evidence or {}).get("minute_coverage") or {}
+            enhanced = bool(
+                evidence and evidence.get("report_fresh") and
+                min(float(covered.get("home") or 0),
+                    float(covered.get("away") or 0)) >= MIN_MINUTE_COVERAGE)
+            enriched = simulation_inputs_v75(
+                history, g, availability=evidence if enhanced else None)
             if enriched["means"] is None:
                 skipped += 1
                 continue
             outcome, _, _, _ = simulate_game(
                 g, enriched["means"], score_noise=enriched["score_noise"])
             impact = enriched["context"]["v75_factors"]
-            provenance = (
-                f"ESPN OUT A/H: {impact['injury_out_away']}/{impact['injury_out_home']}; "
-                f"korekta A/H: {impact['injury_away_pts']}/{impact['injury_home_pts']} pkt; "
-                f"minuty (>=3 mecze) A/H: {covered['away']}/{covered['home']}; "
-                f"raport: {str(evidence.get('snapshot_utc') or '')[:25]}; "
-                + ("boxscore częściowe; " if evidence.get("boxscores_partial") else "")
-                + "nieoficjalne, niekalibrowane")
-            outcome["model_id"] = INJURY_AWARE_MODEL_ID
+            provenance = ("V7.5 pełny kontekst: dom/wyjazd + odpoczynek; "
+                          + (f"ESPN OUT A/H: {impact['injury_out_away']}/{impact['injury_out_home']}; "
+                             f"korekta A/H: {impact['injury_away_pts']}/{impact['injury_home_pts']} pkt; "
+                             f"minuty A/H: {covered['away']}/{covered['home']}; "
+                             f"raport: {str(evidence.get('snapshot_utc') or '')[:25]}; "
+                             + ("boxscore częściowe; " if evidence.get("boxscores_partial") else "")
+                             + "nieoficjalne, niekalibrowane"
+                             if enhanced else "brak zweryfikowanego raportu ESPN / minut; "
+                                             "bez korekty kontuzji"))
+            outcome["model_id"] = UNIFIED_V75_MODEL_ID
             outcome["warning"] = provenance
             stored.append(outcome)
         except (KeyError, TypeError, ValueError, RuntimeError, OSError):
