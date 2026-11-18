@@ -3,6 +3,7 @@ import sys
 import types
 import unittest
 from unittest.mock import patch
+import pandas as pd
 
 try:
     import streamlit
@@ -43,6 +44,34 @@ class ModelChoiceTests(unittest.TestCase):
                     self.assertIn("error", result)
             calculate.assert_not_called()
             player_calculation.assert_not_called()
+
+    def test_v75_out_player_has_zero_minutes_without_fake_points(self):
+        table = pd.DataFrame([
+            {"Zawodnik": "Sample Starter", "Drużyna": "BOS", "PTS": 22.2,
+             "REB": 5.5, "AST": 4.6, "Minuty": 30, "Próba występów": 7},
+            {"Zawodnik": "Sample Guard", "Drużyna": "NYK", "PTS": 15.0,
+             "REB": 3.0, "AST": 8.0, "Minuty": 28, "Próba występów": 7},
+        ])
+        evidence = {"players": {
+            ("BOS", "samplestarter"): {"status": "Out", "minutes": 0, "sample": 7},
+            ("NYK", "sampleguard"): {"status": "Niezweryfikowany", "minutes": 28, "sample": 7},
+        }, "warning": "Raport ESPN"}
+        game = {"id": "401123456", "home": "BOS", "away": "NYK",
+                "start": "2026-11-19T01:00:00Z", "state": "scheduled"}
+        dummy = types.ModuleType("simulation_view")
+        dummy.matchup_players_cached = lambda *_a, **_kw: (table, {})
+        with patch.dict(sys.modules, {"simulation_view": dummy}), \
+             patch.object(canvas, "_day_for_simulations", return_value={"games": [game]}), \
+             patch.object(canvas, "_history_for_simulations", return_value=(pd.DataFrame(), "")), \
+             patch.object(canvas, "_advanced_from_verified_cache", return_value=pd.DataFrame()), \
+             patch.object(canvas, "_v75_player_evidence", return_value=(table, evidence)):
+            result = canvas._game_players("2026-11-19", "401123456", "research_context_v75")
+        self.assertEqual(len(result["players"]), 2)
+        by_name = {entry["name"]: entry for entry in result["players"]}
+        self.assertEqual(by_name["Sample Starter"]["minutes"], 0)
+        self.assertIsNone(by_name["Sample Starter"]["pts"])
+        self.assertEqual(by_name["Sample Guard"]["minutes"], 28)
+        self.assertEqual(by_name["Sample Guard"]["pts"], 15.0)
 
 
 if __name__ == "__main__":

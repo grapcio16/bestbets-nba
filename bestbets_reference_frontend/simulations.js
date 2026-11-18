@@ -139,6 +139,10 @@ function showChart(sim,game,premium){
 }
 function showPlayers(premium,players){
   const panel=$("hzm-players-panel"),button=$("hzm-expand-players"),rows=$("hzm-player-rows");
+  const withMinutes=state.model==="research_context_v75";
+  const headings=$("hzm-player-headings");
+  headings.classList.toggle("with-min",withMinutes);
+  headings.innerHTML=(withMinutes?'<span>MIN</span>':'')+'<span>PTS</span><span>REB</span><span>AST</span>';
   panel.classList.toggle("expanded",state.expanded);
   button.setAttribute("aria-expanded",String(state.expanded));
   button.innerHTML=(state.expanded?'Zwiń listę':'Rozwiń pełną listę zawodników')+' <span aria-hidden="true">⌄</span>';
@@ -154,9 +158,16 @@ function showPlayers(premium,players){
   const visible=state.expanded?players.players:players.players.slice(0,4);
   rows.innerHTML=visible.map(item=>{
     const initials=String(item.name||'').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
+    const status=withMinutes?String(item.availability||''):'';
+    const atRisk=["Questionable","Doubtful","Day-to-day"].includes(status);
+    const statusHtml=status==="Out"?'<small class="hzm-injured">'+esc(item.team)+' · OUT (ESPN)</small>':
+      atRisk?'<small class="hzm-uncertain">'+esc(item.team)+' · '+esc(status)+' (ESPN)</small>':
+      '<small class="'+(item.team===players.home?'home':'')+'">'+esc(item.team)+'</small>';
     return '<div class="hzm-player-row"><span class="hzm-player-initials">'+esc(initials)+'</span>'+
-      '<div class="hzm-player-info"><strong>'+esc(item.name)+'</strong><small class="'+(item.team===players.home?'home':'')+'">'+esc(item.team)+'</small></div>'+
-      '<div class="hzm-player-stats"><span>'+fmt(item.pts)+'</span><span>'+fmt(item.reb)+'</span><span>'+fmt(item.ast)+'</span></div></div>';
+      '<div class="hzm-player-info"><strong>'+esc(item.name)+'</strong>'+statusHtml+'</div>'+
+      '<div class="hzm-player-stats'+(withMinutes?' with-min':'')+'">'+
+      (withMinutes?'<span title="Szacowane minuty z '+esc(item.minutes_sample||0)+' występów">'+fmt(item.minutes)+'</span>':'')+
+      '<span>'+fmt(item.pts)+'</span><span>'+fmt(item.reb)+'</span><span>'+fmt(item.ast)+'</span></div></div>';
   }).join("");
   if(!state.expanded&&players.players.length>4){button.textContent='Pokaż wszystkich zawodników ('+players.players.length+') ▾'}
 }
@@ -191,11 +202,17 @@ function render(home,premium){
     ?"NBA Advanced: PACE / OFF / DEF + historia ESPN"
     :ctx?(state.model==="legacy_v72"?"Stała zmienność punktów V7.2; brak NBA Advanced":"Rzeczywiste odchylenia punktów; brak NBA Advanced")
     :"Heurystyczna zmienność punktów";
+  const availability=ctx?.v75_factors;
+  const injuryLine=availability?(availability.injuries_espn_fresh
+    ?" · OUT ESPN: "+(availability.injury_out_away||0)+" / "+(availability.injury_out_home||0)+
+      " · wpływ pkt: "+fmt(availability.injury_away_pts)+" / "+fmt(availability.injury_home_pts)
+    :" · brak świeżego raportu kontuzji")
+    :" · kontuzje niezweryfikowane";
   $("hzm-evidence-rest").textContent=ctx?.rest_days?.every(n=>Number.isFinite(n))
     ?"Dni odpoczynku: "+ctx.rest_days.join(" / ")+
-      (ctx.v75_factors?" · korekta B2B: "+fmt(ctx.v75_factors.rest_away_pts)+" / "+fmt(ctx.v75_factors.rest_home_pts):"")+
-      " · kontuzje niezweryfikowane"
-    :"Kontuzje wymagają potwierdzenia";
+      (availability?" · korekta B2B: "+fmt(availability.rest_away_pts)+" / "+fmt(availability.rest_home_pts):"")+
+      injuryLine
+    :"Raport ESPN nie jest oficjalnym potwierdzeniem składu";
   const away=game?.away||"NBA",homeCode=game?.home||"NBA";
   $("hzm-match-label").innerHTML=esc(away)+' <span>VS</span> <span class="hzm-home-code">'+esc(homeCode)+'</span>';
   $("hzm-away-code").textContent=away;$("hzm-home-code").textContent=homeCode;

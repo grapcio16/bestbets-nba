@@ -12,7 +12,7 @@ const ids=[
   "hzm-away-win","hzm-home-win","hzm-donut","hzm-simulation-message",
   "hzm-away-average-label","hzm-home-average-label","hzm-away-average",
   "hzm-home-average","hzm-total-average","hzm-chart-context","hzm-chart-source",
-  "hzm-plot","hzm-players-panel","hzm-expand-players","hzm-player-rows",
+  "hzm-plot","hzm-players-panel","hzm-player-headings","hzm-expand-players","hzm-player-rows",
   "hzm-evidence-form","hzm-evidence-pace","hzm-evidence-rest",
 ];
 for(const id of ids){
@@ -76,12 +76,23 @@ elements["hzm-model-select"].on_change({target:{value:"research_context_v75"}});
 assert.equal(elements["hzm-score"].textContent,"— : —","Research V7.5 cannot show V7.2 result");
 assert.equal(requests,2,"V7.5 triggers independent simulation");
 const advanced={...fakeGame,model_id:"research_context_v75",away_points:119.2,home_points:105.4,
-  model_context:{v75_factors:{away_venue_games:9,home_venue_games:11,rest_away_pts:-0.8,rest_home_pts:0.4},
+  model_context:{v75_factors:{away_venue_games:9,home_venue_games:11,rest_away_pts:-0.8,rest_home_pts:0.4,
+    injury_out_away:0,injury_out_home:1,injury_away_pts:0,injury_home_pts:-2.4,injuries_espn_fresh:true},
   away_sample:19,home_sample:21,rest_days:[0,1]}};
 app.render(home,{entitled:true,game:advanced,players:null});
 assert.equal(elements["hzm-score"].textContent,"119 : 105");
 assert.match(elements["hzm-evidence-rest"].textContent,/korekta B2B/);
+assert.match(elements["hzm-evidence-rest"].textContent,/OUT ESPN/);
 assert.equal(elements["hzm-model-select"].value,"research_context_v75");
+const v75Players={...fakePlayers,model_id:"research_context_v75",players:[
+  {name:"Sample Star",team:"IND",pts:null,reb:null,ast:null,minutes:0,minutes_sample:7,availability:"Out"},
+  {name:"Sample Guard",team:"NYK",pts:22,reb:5,ast:8,minutes:31.5,minutes_sample:6,availability:"Questionable"},
+]};
+app.render(home,{entitled:true,game:advanced,players:v75Players});
+assert.match(elements["hzm-player-headings"].innerHTML,/MIN/);
+assert.match(elements["hzm-player-rows"].innerHTML,/OUT \(ESPN\)/);
+assert.match(elements["hzm-player-rows"].innerHTML,/31,5/);
+assert.match(elements["hzm-player-rows"].innerHTML,/Questionable/);
 
 app.render(home,{entitled:false,game:fakeGame,players:fakePlayers});
 assert.equal(elements["hzm-score"].textContent,"— : —","Premium expiry instantly hides figures");

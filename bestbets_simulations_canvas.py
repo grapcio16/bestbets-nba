@@ -83,7 +83,52 @@ def _history_for_simulations(season: str):
     return historical_espn_results(season)
 
 
-@st.cache_data(ttl=1800, max_entries=90, show_spinner=False)
+@st.cache_data(ttl=600, max_entries=90, show_spinner=False)
+def _v75_player_evidence(day: str, game_id: str):
+    """One bounded, cached selected-matchup fetch for V7.5 only.
+
+    No current injury report is ever applied retrospectively to a final game.
+    A failed ESPN request degrades to zero injury correction, not an invented
+    active lineup. Other simulation models never enter this routine.
+    """
+    from availability_context import matchup_injuries
+    from espn_player_data import matchup_espn_logs
+    from simulation_availability_v75 import availability_evidence
+    from simulation_view import matchup_players_cached
+
+    event = _day_for_simulations(day)
+    match = next((g for g in event.get("games", []) if str(g.get("id")) == game_id), None)
+    if match is None or match.get("state") not in ("scheduled", "final"):
+        return pd.DataFrame(), {}
+    tipoff = pd.to_datetime(match.get("start"), utc=True, errors="coerce")
+    if pd.isna(tipoff):
+        return pd.DataFrame(), {}
+    season = _season_at(tipoff)
+    historical, _ = _history_for_simulations(season)
+    game = {"game_id": game_id, "home": str(match["home"]),
+            "away": str(match["away"]), "start_utc": tipoff}
+    advanced = (_advanced_from_verified_cache(season)
+                if match.get("state") == "scheduled" else pd.DataFrame())
+    table, _ = matchup_players_cached(season, game, historical, advanced, 0,
+                                      research_mode=True)
+    logs, _ = matchup_espn_logs(historical, game)
+    report, meta = pd.DataFrame(), {}
+    if match.get("state") == "scheduled":
+        try:
+            from sources import injuries
+            raw, source_meta = injuries()
+            report, report_meta = matchup_injuries(raw, game["home"], game["away"], source_meta)
+            meta = {**source_meta, "available": report_meta["available"]}
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError):
+            # Missing or broken feed must never be interpreted as 'healthy'.
+            meta = {"available": False, "stale": True}
+    result = availability_evidence(
+        table, report, meta, game, logs=logs,
+        historical=match.get("state") == "final")
+    return table, result
+
+
+@st.cache_data(ttl=600, max_entries=90, show_spinner=False)
 def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"):
     """Future model, or clearly labeled retrospective model for a final game."""
     from espn_player_data import prefetch_matchup_boxscores
@@ -112,7 +157,20 @@ def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"
     # historical final. Using it here would leak future information.
     advanced = (_advanced_from_verified_cache(season)
                 if match.get("state") == "scheduled" else pd.DataFrame())
-    context = (simulation_inputs_v75(historical, game, advanced)
+    # Start the selected matchup's real ESPN boxscores early; team and player
+    # calculations use the same shared in-flight requests and cached results.
+    try:
+        prefetch_matchup_boxscores(historical, game)
+    except (OSError, RuntimeError, ValueError):
+        pass
+    evidence = None
+    if model_id == "research_context_v75" and match.get("state") == "scheduled":
+        try:
+            _, evidence = _v75_player_evidence(day, game_id)
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError):
+            # Team predictions still work when ESPN player endpoints time out.
+            evidence = None
+    context = (simulation_inputs_v75(historical, game, advanced, availability=evidence)
                if model_id == "research_context_v75" else
                simulation_inputs(historical, game, advanced))
     # All modes use verified pregame evidence. The legacy baseline retains its
@@ -123,13 +181,6 @@ def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"
         if model_id == "legacy_v72" else context["means"])
     if means is None:
         return {"error": "Za mało historycznych spotkań do wiarygodnej symulacji."}
-    # Warm actual player boxscores while the independent team model runs.
-    # Only the server-authorized Premium simulation calls this path; warming
-    # failures cannot affect the primary 5,000-run model.
-    try:
-        prefetch_matchup_boxscores(historical, game)
-    except (OSError, RuntimeError, ValueError):
-        pass
     summary, _, home_scores, away_scores = simulate_game(
         game, means, score_noise=(context["score_noise"]
                                  if model_id != "legacy_v72" else None))
@@ -153,7 +204,7 @@ def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"
     }
 
 
-@st.cache_data(ttl=1800, max_entries=50, show_spinner=False)
+@st.cache_data(ttl=600, max_entries=50, show_spinner=False)
 def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     """Lazily fetch only the selected matchup's two actual ESPN player histories."""
     from simulation_view import matchup_players_cached
@@ -172,27 +223,46 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
             "away": str(match["away"]), "start_utc": tipoff}
     advanced = (_advanced_from_verified_cache(season)
                 if match.get("state") == "scheduled" else pd.DataFrame())
-    table, _ = matchup_players_cached(season, game, historical,
-                                      advanced, 0,
-                                      research_mode=model_id != "legacy_v72")
+    availability = {}
+    if model_id == "research_context_v75":
+        table, availability = _v75_player_evidence(day, game_id)
+    else:
+        table, _ = matchup_players_cached(season, game, historical,
+                                          advanced, 0,
+                                          research_mode=model_id != "legacy_v72")
     if table is None or table.empty:
         return {"players": [], "error": "ESPN nie dostarczył projekcji graczy dla tego spotkania."}
     required = {"Zawodnik", "Drużyna", "PTS", "REB", "AST"}
     if not required.issubset(table.columns):
         return {"players": [], "error": "Źródło nie dostarczyło pełnych statystyk zawodników."}
     players = []
+    from core import norm_name
     for row in table.to_dict("records"):
         name = str(row.get("Zawodnik") or "").strip()
         team = str(row.get("Drużyna") or "").upper().strip()
         points = _clean_float(row.get("PTS"))
         if not name or not team or points is None:
             continue
-        players.append({"name": name[:70], "team": team[:4],
-                        "pts": points, "reb": _clean_float(row.get("REB")),
-                        "ast": _clean_float(row.get("AST"))})
-    players.sort(key=lambda item: (-item["pts"], item["name"]))
+        player = {"name": name[:70], "team": team[:4],
+                  "pts": points, "reb": _clean_float(row.get("REB")),
+                  "ast": _clean_float(row.get("AST"))}
+        if model_id == "research_context_v75":
+            pctx = (availability.get("players") or {}).get((team, norm_name(name)), {})
+            player["minutes"] = pctx.get("minutes")
+            player["minutes_sample"] = pctx.get("sample", 0)
+            player["availability"] = pctx.get("status", "Niezweryfikowany")
+            # A fresh OUT designation removes the player's projected minutes
+            # and production; other players are NOT blindly credited with them.
+            if pctx.get("status") == "Out":
+                player.update({"pts": None, "reb": None, "ast": None})
+        players.append(player)
+    # OUT players have no projected production; keep them visible after
+    # available scorers rather than treating missing values as zero points.
+    players.sort(key=lambda item: (-(item["pts"] or 0), item["name"]))
     return {"players": players[:40], "home": str(match["home"]),
-            "model_id": model_id, "error": ""}
+            "model_id": model_id, "error": "",
+            "minutes_warning": (availability.get("warning", "")
+                                if model_id == "research_context_v75" else "")}
 
 
 def simulation_for_entitled_user(day: str, game_id: str, players: bool = False,
