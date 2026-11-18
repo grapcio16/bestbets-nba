@@ -46,6 +46,44 @@ def main():
         assert page.locator("#footer").is_hidden()
         assert page.locator(".preview").count() == 6
         assert page.locator("#player-name").inner_text() == "Wyszukaj zawodnika"
+        # The OPEN market popup must also be HOOPZARO-themed. Styling a native
+        # select alone leaves Windows/Opera to draw an unthemed options list.
+        market = page.locator("#market")
+        trigger = page.locator("#market-trigger")
+        menu = page.locator("#market-options")
+        assert market.evaluate("e => getComputedStyle(e).opacity") == "0"
+        assert menu.is_hidden()
+        trigger.click()
+        assert menu.is_visible()
+        assert trigger.get_attribute("aria-expanded") == "true"
+        assert menu.locator('[role="option"]').count() == 5
+        assert menu.evaluate("e => getComputedStyle(e).position") == "absolute"
+        assert menu.evaluate("e => getComputedStyle(e).backgroundImage").startswith("linear-gradient")
+        assert menu.evaluate("e => getComputedStyle(e).borderTopColor") != "rgb(0, 0, 0)"
+        assert menu.bounding_box()["width"] > trigger.bounding_box()["width"]
+        assert menu.locator('[data-market-choice="PTS"]').get_attribute("aria-selected") == "true"
+        menu.locator('[data-market-choice="PRA"]').click()
+        assert menu.is_hidden()
+        assert market.input_value() == "PRA"
+        assert trigger.get_attribute("aria-expanded") == "false"
+        assert page.locator("#market-selected-label").inner_text() == "PTS + REB + AST"
+        assert page.locator('[data-market="PRA"]').get_attribute("class") == "on"
+        trigger.focus()
+        page.keyboard.press("ArrowDown")
+        assert menu.is_visible()
+        assert menu.locator('[data-market-choice="PRA"]').evaluate("e => e === document.activeElement")
+        page.keyboard.press("Home")
+        page.keyboard.press("ArrowDown")
+        assert menu.locator('[data-market-choice="REB"]').evaluate("e => e === document.activeElement")
+        page.keyboard.press("Enter")
+        assert market.input_value() == "REB"
+        assert page.locator("#market-selected-label").inner_text() == "Rebounds"
+        trigger.click()
+        page.keyboard.press("Escape")
+        assert menu.is_hidden()
+        trigger.click()
+        page.locator("#chart-panel").click(position={"x":500,"y":150})
+        assert menu.is_hidden()
 
         page.locator('.nav-btn[data-page="games"]').click()
         assert page.locator("#schedule-pane").is_visible()
