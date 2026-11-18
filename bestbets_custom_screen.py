@@ -524,7 +524,7 @@ def main() -> None:
             return
         if not re.fullmatch(r"\d{1,30}", game_id):
             return
-        if model_id not in ("legacy_v72", "research_form_v74"):
+        if model_id not in ("legacy_v72", "research_form_v74", "research_context_v75"):
             return
         try:
             today = pd.Timestamp.now(tz="Europe/Warsaw").tz_localize(None).normalize()

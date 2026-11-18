@@ -11,6 +11,7 @@ const WARSAW="Europe/Warsaw";
 const fmt=value=>value!==null&&value!==undefined&&value!==""&&Number.isFinite(Number(value))
   ?Number(value).toFixed(1).replace(".",","):"—";
 const percent=value=>Number.isFinite(Number(value))?fmt(value)+"%":"—";
+const modelLabel=()=>state.model==="legacy_v72"?"V7.2":state.model==="research_form_v74"?"V7.4":"V7.5 BADAWCZY";
 const dayShift=(day,n)=>{const d=new Date(day+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
 function localDay(iso){
   const parts=new Intl.DateTimeFormat("en-GB",{timeZone:WARSAW,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(iso));
@@ -123,7 +124,7 @@ function showChart(sim,game,premium){
   $("hzm-home-average").textContent=sim&&!sim.error?fmt(sim.home_points):"—";
   $("hzm-total-average").textContent=sim&&!sim.error?fmt(sim.total_points):"—";
   const code=state.chart==="match"?"MECZ":state.chart==="away"?game?.away:game?.home;
-  $("hzm-chart-context").textContent=(code||"NBA")+" · 5 000 symulacji · "+(state.model==="legacy_v72"?"V7.2":"V7.4");
+  $("hzm-chart-context").textContent=(code||"NBA")+" · 5 000 symulacji · "+modelLabel();
   $("hzm-chart-source").textContent="Średnie wyłącznie z 5 000 symulacji; model eksperymentalny.";
   const plot=$("hzm-plot");
   if(!premium?.entitled){plot.innerHTML='<div class="hzm-no-chart"><strong>Rozkład punktów w Premium</strong><span>Wykres meczu i każdej drużyny zostanie odblokowany po aktywacji.</span></div>';return}
@@ -183,14 +184,17 @@ function render(home,premium){
   const sim=trustedResult(premium,game),players=trustedPlayers(premium,game);
   const ctx=sim?.model_context;
   $("hzm-evidence-form").textContent=ctx
-    ?"Zweryfikowane mecze: "+ctx.away_sample+" / "+ctx.home_sample
+    ?"Zweryfikowane mecze: "+ctx.away_sample+" / "+ctx.home_sample+
+       (ctx.v75_factors?" · dom/wyjazd: "+ctx.v75_factors.away_venue_games+" / "+ctx.v75_factors.home_venue_games:"")
     :"Ostatnie potwierdzone mecze";
   $("hzm-evidence-pace").textContent=ctx?.advanced_available
     ?"NBA Advanced: PACE / OFF / DEF + historia ESPN"
     :ctx?(state.model==="legacy_v72"?"Stała zmienność punktów V7.2; brak NBA Advanced":"Rzeczywiste odchylenia punktów; brak NBA Advanced")
     :"Heurystyczna zmienność punktów";
   $("hzm-evidence-rest").textContent=ctx?.rest_days?.every(n=>Number.isFinite(n))
-    ?"Dni odpoczynku: "+ctx.rest_days.join(" / ")+" · kontuzje niezweryfikowane"
+    ?"Dni odpoczynku: "+ctx.rest_days.join(" / ")+
+      (ctx.v75_factors?" · korekta B2B: "+fmt(ctx.v75_factors.rest_away_pts)+" / "+fmt(ctx.v75_factors.rest_home_pts):"")+
+      " · kontuzje niezweryfikowane"
     :"Kontuzje wymagają potwierdzenia";
   const away=game?.away||"NBA",homeCode=game?.home||"NBA";
   $("hzm-match-label").innerHTML=esc(away)+' <span>VS</span> <span class="hzm-home-code">'+esc(homeCode)+'</span>';
@@ -204,7 +208,7 @@ function render(home,premium){
     :'conic-gradient(#193d5c 0 50%,#351a54 50% 100%)';
   $("hzm-simulation-message").textContent=!premium?.entitled
     ?"Zweryfikowane Premium wymagane":!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":
-      sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji · "+(state.model==="legacy_v72"?"V7.2":"V7.4"));
+      sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji · "+modelLabel());
   $("simulations-pane").classList.toggle("hzm-premium-locked",!premium?.entitled);
   showChart(sim,game,premium);showPlayers(premium,players);
   maybeLoadPaid(game,premium,sim,players);
@@ -218,7 +222,7 @@ function init(api){
   callbacks=api;
   $("hzm-model-select").addEventListener("change",event=>{
     const model=event.target.value;
-    if(!["legacy_v72","research_form_v74"].includes(model)||model===state.model)return;
+    if(!["legacy_v72","research_form_v74","research_context_v75"].includes(model)||model===state.model)return;
     state.model=model;state.gamePending="";state.playersPending="";
     render(state.lastHome,state.lastPremium);
   });

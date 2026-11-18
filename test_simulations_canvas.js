@@ -72,6 +72,17 @@ assert.equal(elements["hzm-score"].textContent,"106 : 103");
 assert.equal(elements["hzm-model-select"].value,"legacy_v72");
 assert.equal(requests,1);
 
+elements["hzm-model-select"].on_change({target:{value:"research_context_v75"}});
+assert.equal(elements["hzm-score"].textContent,"— : —","Research V7.5 cannot show V7.2 result");
+assert.equal(requests,2,"V7.5 triggers independent simulation");
+const advanced={...fakeGame,model_id:"research_context_v75",away_points:119.2,home_points:105.4,
+  model_context:{v75_factors:{away_venue_games:9,home_venue_games:11,rest_away_pts:-0.8,rest_home_pts:0.4},
+  away_sample:19,home_sample:21,rest_days:[0,1]}};
+app.render(home,{entitled:true,game:advanced,players:null});
+assert.equal(elements["hzm-score"].textContent,"119 : 105");
+assert.match(elements["hzm-evidence-rest"].textContent,/korekta B2B/);
+assert.equal(elements["hzm-model-select"].value,"research_context_v75");
+
 app.render(home,{entitled:false,game:fakeGame,players:fakePlayers});
 assert.equal(elements["hzm-score"].textContent,"— : —","Premium expiry instantly hides figures");
 assert.doesNotMatch(elements["hzm-player-rows"].innerHTML,/Test Athlete/);

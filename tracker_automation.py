@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from simulation_data_audit import verified_history
+from simulation_context_v75 import simulation_inputs_v75
 from simulation_engine import (
     completed_team_scores, legacy_matchup_means, matchup_means, simulate_game,
 )
@@ -21,6 +22,9 @@ from simulation_engine import (
 AUTO_MODELS = (
     ("auto_legacy_v72", legacy_matchup_means),
     ("auto_research_form_v74", matchup_means),
+    # The scheduled runner has ESPN data only; the ID explicitly separates it
+    # from the interactive Premium V7.5 path with optional NBA Advanced.
+    ("auto_context_venue_rest_v75", None),
 )
 
 
@@ -72,12 +76,18 @@ def build_automatic_forecasts(upcoming, completed, now):
         # ESPN states and valid final scores before the scheduled execution;
         # no hindsight and no guessed preseason ratings.
         for model_id, model in AUTO_MODELS:
-            mean = model(g["home"], g["away"], {}, grouped)
-            if mean is None:
-                skipped += 1
-                continue
             try:
-                outcome, _, _, _ = simulate_game(g, mean)
+                if model is None:
+                    enriched = simulation_inputs_v75(history, g)
+                    mean = enriched["means"]
+                    score_noise = enriched["score_noise"]
+                else:
+                    mean = model(g["home"], g["away"], {}, grouped)
+                    score_noise = None
+                if mean is None:
+                    skipped += 1
+                    continue
+                outcome, _, _, _ = simulate_game(g, mean, score_noise=score_noise)
             except (KeyError, TypeError, ValueError):
                 skipped += 1
                 continue
