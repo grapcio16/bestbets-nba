@@ -1,9 +1,9 @@
 """Experimental V7.5: verified venue split and schedule-rest research signals.
 
 Only games completed BEFORE the predicted tipoff are eligible. This model is
-separate from V7.2/V7.4 to allow prospective comparison. Adjustments are
-deliberately small, are NOT trained/calibrated, and cannot imply that missing
-injury or projected-minute information has been accounted for.
+separate from V7.2/V7.4 to allow prospective comparison. Optional on-demand
+ESPN injury research is not used in the autonomous team-only tracker. All
+adjustments are experimental, small and uncalibrated.
 """
 from __future__ import annotations
 
@@ -48,8 +48,9 @@ def _rest_deltas(rest: dict) -> tuple[float, float]:
 
 
 def simulation_inputs_v75(completed: pd.DataFrame, game: dict,
-                          advanced: pd.DataFrame | None = None) -> dict:
-    """V7.4 evidence plus guarded venue/rest adjustments with provenance."""
+                          advanced: pd.DataFrame | None = None,
+                          availability: dict | None = None) -> dict:
+    """V7.4 evidence plus guarded venue/rest and optional ESPN OUT evidence."""
     prior = simulation_inputs(completed, game, advanced)
     if prior["means"] is None:
         return prior
@@ -62,23 +63,38 @@ def simulation_inputs_v75(completed: pd.DataFrame, game: dict,
     venue_home = _venue_delta(h, a)
     venue_away = _venue_delta(a, h)
     rest_home, rest_away = _rest_deltas(schedule)
+    evidence = availability or {}
+    score_delta = evidence.get("score_delta") or {}
+    injury_home = float(np.clip(score_delta.get("home") or 0.0, -3.5, 0.0))
+    injury_away = float(np.clip(score_delta.get("away") or 0.0, -3.5, 0.0))
     original = prior["means"]
     # The simulator validates the final result; never conceal invalid source
     # ratings by forcing a nonsensical mean into its accepted input range.
     updated = {
         **original,
-        "home": float(original["home"] + venue_home + rest_home),
-        "away": float(original["away"] + venue_away + rest_away),
-        "source": str(original.get("source") or "ESPN") + " • V7.5 (dom/wyjazd, odpoczynek)",
+        "home": float(original["home"] + venue_home + rest_home + injury_home),
+        "away": float(original["away"] + venue_away + rest_away + injury_away),
+        "source": str(original.get("source") or "ESPN") + " • V7.5 (dom/wyjazd, odpoczynek, raport ESPN)",
         "warning": (str(original.get("warning") or "") + " "
                     "V7.5: eksperymentalna korekta dom/wyjazd i back-to-back; "
-                    "bez potwierdzonej kalibracji ani wpływu absencji zawodników.").strip(),
+                    + (str(evidence.get("warning")) if evidence else
+                       "bez potwierdzonej kalibracji ani wpływu absencji zawodników.")).strip(),
     }
     factors = {
         "venue_home_pts": round(venue_home, 2),
         "venue_away_pts": round(venue_away, 2),
         "rest_home_pts": rest_home,
         "rest_away_pts": rest_away,
+        "injury_home_pts": injury_home,
+        "injury_away_pts": injury_away,
+        "injuries_espn_fresh": bool(evidence.get("report_fresh")),
+        "injury_out_home": (evidence.get("out_count") or {}).get("home", 0),
+        "injury_out_away": (evidence.get("out_count") or {}).get("away", 0),
+        "injury_uncertain_home": (evidence.get("uncertain_count") or {}).get("home", 0),
+        "injury_uncertain_away": (evidence.get("uncertain_count") or {}).get("away", 0),
+        "minutes_estimated": bool(evidence) and any((evidence.get("minute_coverage") or {}).values()),
+        "minute_coverage_home": (evidence.get("minute_coverage") or {}).get("home", 0),
+        "minute_coverage_away": (evidence.get("minute_coverage") or {}).get("away", 0),
         "home_venue_games": h.get("venue_sample", 0),
         "away_venue_games": a.get("venue_sample", 0),
         "injuries_confirmed": False,
