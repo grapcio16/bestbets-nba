@@ -73,6 +73,20 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
             self.assertEqual(page.locator(".hzp-stat.is-locked").count(), 0)
             self.assertIn("37,5%", page.locator("#hzp-table-rows").inner_text())
             self.assertIn("8,0", page.locator("#hzp-table-rows").inner_text())
+            # When verified ESPN IDs exist, never fall back to a conflicting
+            # same-name athlete's historical row.
+            page.evaluate("payload => window.postMessage({type:'streamlit:render',args:{payload}}, '*')",
+                          {"auth": {"role": "premium"}, "player_catalog": {"players": rows},
+                           "premium_player_averages": {
+                             "rows": {"jaysontatum": {"pts": 99.9}},
+                             "id_rows": {"0": {"pts": 22.2, "reb": 7.0,
+                                                "ast": 5.0, "games": 3,
+                                                "three_pm_games": 1,
+                                                "three_pa_games": 1,
+                                                "three_pct_games": 1}},
+                             "attempted_ids": ["0"], "unavailable_ids": []}})
+            page.wait_for_function("document.querySelector('#hzp-table-rows').textContent.includes('22,2')")
+            self.assertNotIn("99,9", page.locator("#hzp-table-rows").inner_text())
             page.locator("#hzp-search").fill("Tatum")
             self.assertEqual(page.locator(".hzp-player-row").count(), 1)
             page.locator("#hzp-search").fill("")

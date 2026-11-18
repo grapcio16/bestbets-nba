@@ -4,7 +4,7 @@ import unittest
 import pandas as pd
 
 from core import norm_name, normalize_logs
-from espn_player_data import parse_gamelog, full_season_team_boxscores, verified_threes
+from espn_player_data import parse_gamelog, parse_summary, full_season_team_boxscores, verified_threes
 from screenshot_import import parse_ocr_tokens, market_from_header
 from season_props import clean_player_season, observed_hit_rates, analyze_season_offers
 
@@ -49,6 +49,30 @@ class EspnNestedLogTests(unittest.TestCase):
         self.assertEqual(verified_threes({"3PT": "2-7"}), (2., 7.))
         self.assertEqual(verified_threes({"3PM": "3"}), (3., None))
         self.assertEqual(verified_threes({"3PM": "5", "3PA": "2"}), (None, None))
+
+    def test_missing_three_point_split_retains_verified_pts_reb_ast(self):
+        payload=season_fixture(2)
+        payload["seasonTypes"][0]["categories"][0]["events"][0]["stats"][2]="--"
+        df=parse_gamelog(payload,"123","Sample Player","BOS")
+        self.assertEqual(len(df),2)
+        self.assertTrue(pd.isna(df.iloc[0]["FG3M"]))
+        self.assertEqual(df.iloc[0]["PTS"],15)
+        self.assertEqual(df.iloc[1]["FG3A"],5)
+
+    def test_final_boxscore_without_shooting_split_still_preserves_athlete(self):
+        game={"game_id":"4010000","away":"BOS","home":"NYK",
+              "start_utc":"2026-11-08T23:30:00Z"}
+        payload={"boxscore":{"players":[{
+            "team":{"abbreviation":"BOS"},"statistics":[{
+                "labels":["MIN","3PT","PTS","REB","AST"],
+                "athletes":[{"athlete":{"id":"123","displayName":"Sample Player"},
+                             "stats":["31","--","20","8","6"]}]
+            }]
+        }]}}
+        parsed=parse_summary(payload,game)
+        self.assertEqual(len(parsed),1)
+        self.assertEqual(parsed[0]["PTS"],20)
+        self.assertIsNone(parsed[0]["FG3M"])
 
     def test_duplicate_category_does_not_duplicate_games(self):
         p=season_fixture(11)

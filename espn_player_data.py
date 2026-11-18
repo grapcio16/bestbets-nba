@@ -98,7 +98,11 @@ def parse_summary(payload,game):
                     'AST':num(data.get('AST')),'FG3M':three,'FG3A':three_att,
                     'FGA':fga,'OREB':num(data.get('OREB')),'DREB':num(data.get('DREB')),
                     'TOV':num(data.get('TO',data.get('TOV')))}
-                if all(row[k] is not None for k in ('PTS','REB','AST','FG3M')):
+                # ESPN occasionally omits the shooting split while publishing
+                # official PTS/REB/AST. Preserve those known values and leave
+                # the missing 3-point fields unknown rather than dropping the
+                # player's entire appearance.
+                if all(row[k] is not None and row[k]>=0 for k in ('PTS','REB','AST')):
                     rows.append(row)
     return rows
 
@@ -219,7 +223,7 @@ def parse_gamelog(payload,player_id,name,team,return_meta=False):
         three,three_att=verified_threes(data)
         _,fga=made_attempt(data.get("FG"))
         values={"PTS":num(data.get("PTS")),"REB":num(data.get("REB")),
-                "AST":num(data.get("AST")),"FG3M":three}
+                "AST":num(data.get("AST"))}
         if any(v is None or v<0 for v in values.values()):
             rejected+=1;continue
         opponent=info.get("opponent") or event.get("opponent") or {}
@@ -247,7 +251,7 @@ def parse_gamelog(payload,player_id,name,team,return_meta=False):
             "TEAM_ABBREVIATION":actual_code,
             "GAME_DATE":date,"GAME_ID":event_id,
             "MATCHUP":f"{actual_code} {'vs.' if home else '@'} {opp}" if opp else actual_code,
-            "OPPONENT":opp,"MIN":mins,**values,
+            "OPPONENT":opp,"MIN":mins,**values,"FG3M":three,
             "FG3A":three_att,"FGA":fga,
         })
     if not rows:
