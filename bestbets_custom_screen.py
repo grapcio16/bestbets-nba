@@ -10,6 +10,7 @@ from base64 import b64encode
 from pathlib import Path
 from math import isfinite
 from typing import Any
+import os
 import uuid
 import time
 
@@ -20,13 +21,42 @@ from teams import TEAM_FULL
 from bestbets_free_analyses import SCHEMA, photo_policy, select_leader
 from bestbets_simulations_canvas import premium_entitled, simulation_for_entitled_user
 from access_control import (auth_configured, auth_context, current_principal,
-                            login_provider)
+                            current_role, login_provider)
+from checkout_links import validated_checkout_url, is_test_checkout_url
 from streamlit.components.v1 import declare_component
 
 ROOT = Path(__file__).resolve().parent
 FRONTEND = ROOT / "bestbets_reference_frontend"
 COMPONENT = declare_component("bestbets_reference_canvas_v10", path=str(FRONTEND))
 SEASON = "2026-27"
+
+
+def premium_checkout_url() -> str:
+    """Only expose a public, explicitly configured Stripe checkout destination.
+
+    Stripe secret keys and unverified URLs must never reach the browser.
+    """
+    url = os.environ.get("HOOPZARO_PREMIUM_CHECKOUT_URL", "").strip()
+    if not url:
+        try:
+            url = str(st.secrets.get("HOOPZARO_PREMIUM_CHECKOUT_URL", "")).strip()
+        except (FileNotFoundError, KeyError, AttributeError, RuntimeError):
+            return ""
+    url = validated_checkout_url(url)
+    if not url:
+        return ""
+    # A Payment Link alone cannot grant an account access. Until Stripe's
+    # fulfillment/webhook path is verified, only test links may be exposed.
+    if not is_test_checkout_url(url):
+        ready = os.environ.get("HOOPZARO_PREMIUM_FULFILLMENT_READY", "").lower()
+        if not ready:
+            try:
+                ready = str(st.secrets.get("HOOPZARO_PREMIUM_FULFILLMENT_READY", "")).lower()
+            except (FileNotFoundError, KeyError, AttributeError, RuntimeError):
+                return ""
+        if ready not in ("true", "1", "yes"):
+            return ""
+    return url
 
 
 @st.cache_data(ttl=100, show_spinner=False)
@@ -125,6 +155,16 @@ def _cached_centre_player_catalog(force_refresh: bool = False):
     return {"players": players, "coverage": {**coverage,
             "fetched_at": datetime.now(timezone.utc).isoformat(timespec="minutes"),
             "photo_license_enabled": photo_policy()}}
+
+
+@st.cache_data(ttl=3*3600, max_entries=2, show_spinner=False)
+def _cached_premium_player_averages() -> dict:
+    """Fetch actual regular-season rows only after a paid-page request."""
+    from sources import game_logs
+    from premium_player_stats import build_player_averages
+
+    logs, source = game_logs(SEASON)
+    return build_player_averages(logs, source)
 
 
 
@@ -285,6 +325,10 @@ def main() -> None:
     if st.session_state.get("bb10_premium_principal") != principal:
         st.session_state.pop("bb10_premium_game", None)
         st.session_state.pop("bb10_premium_players", None)
+        st.session_state.pop("bb10_premium_player_averages", None)
+        st.session_state.pop("bb10_player_averages_attempt_at", None)
+        st.session_state.pop("bb10_admin_report", None)
+        st.session_state.pop("bb10_admin_report_at", None)
         st.session_state["bb10_premium_principal"] = principal
     # CRITICAL: preload data BEFORE mounting the v1 iframe. Production
     # sometimes discards the initial setComponentValue/home_data message,
@@ -303,14 +347,22 @@ def main() -> None:
             "calendar_requested_day": st.session_state.get("bb10_centre_requested_day"),
         }
     has_premium = premium_entitled()
+    is_admin = current_role() == "admin"
     payload = {
         "brand": _cached_brand(),
         "auth": auth_context(),
+        "premium_checkout_url": premium_checkout_url(),
         "player": st.session_state["bb10_payload"].get("player"),
         "error": st.session_state["bb10_payload"].get("error", ""),
         "home": home_data,
         "player_catalog": st.session_state.get("bb10_player_catalog"),
+        # No premium averages in guest or free browser payloads.
+        "premium_player_averages": (
+            st.session_state.get("bb10_premium_player_averages") if has_premium else None
+        ),
         "free_details": st.session_state.get("bb10_free_leader_details"),
+        # This is intentionally absent for all non-admin identities.
+        "admin_report": st.session_state.get("bb10_admin_report") if is_admin else None,
         # Never serialize premium model output into a guest's iframe.
         "premium_simulation": {
             "entitled": has_premium,
@@ -333,6 +385,52 @@ def main() -> None:
     if event.get("type") == "auth_logout":
         if auth_configured() and bool(getattr(st.user, "is_logged_in", False)):
             st.logout()
+        return
+    if event.get("type") == "admin_report":
+        # Never infer access from event payload or the browser's visible role.
+        if current_role() != "admin":
+            return
+        now = time.monotonic()
+        if now - st.session_state.get("bb10_admin_report_at", 0.0) < 30:
+            return
+        try:
+            from tracker_storage import tracker_backend, read
+            from admin_model_performance import build_model_report
+            backend = tracker_backend()
+            if not backend["remote"]:
+                result = {"season": SEASON, "models": [], "error":
+                          "Brak podłączonej bazy PostgreSQL. Sprawdź TRACKER_DATABASE_URL."}
+            else:
+                result = build_model_report(read(season=SEASON, config=backend), season=SEASON)
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Admin model report temporarily unavailable: %s", type(exc).__name__)
+            result = {"season": SEASON, "models": [], "error":
+                      "Nie udało się odczytać prognoz z bazy. Spróbuj ponownie."}
+        st.session_state["bb10_admin_report"] = result
+        st.session_state["bb10_admin_report_at"] = now
+        st.rerun()
+        return
+    if event.get("type") == "premium_player_averages":
+        # Authorization comes from Streamlit's verified identity, not JS.
+        if not premium_entitled():
+            return
+        now = time.monotonic()
+        if now - st.session_state.get("bb10_player_averages_attempt_at", 0.0) < 60:
+            return
+        st.session_state["bb10_player_averages_attempt_at"] = now
+        try:
+            stats = _cached_premium_player_averages()
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Premium player averages unavailable: %s", type(exc).__name__)
+            stats = {"rows": {}, "source": "NBA / ESPN", "season": "2026/27",
+                     "partial": True,
+                     "error": "Statystyki są chwilowo niedostępne. Spróbuj później."}
+        st.session_state["bb10_premium_player_averages"] = stats
+        st.rerun()
         return
     if event.get("type") in ("premium_sim_game", "premium_sim_players"):
         # Entitlement is read from the *server*, never the browser event.

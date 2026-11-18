@@ -96,7 +96,8 @@ def main():
             ]
         }
         page.evaluate("(data) => window.postMessage({type:'streamlit:render',args:{payload:data}}, '*')",
-                      {"player":player,"error":"","brand":""})
+                      # Props search now correctly requires a Premium identity.
+                      {"player":player,"error":"","brand":"", "auth":{"role":"premium"}})
         page.wait_for_function("document.querySelector('#player-name').textContent==='Test Athlete'")
         assert page.locator("#hero-avg").inner_text() == "25.3"
         assert page.locator("#hero-rate").inner_text() == "67%"
