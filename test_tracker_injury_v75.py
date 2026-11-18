@@ -1,4 +1,4 @@
-"""Automatic enhanced V7.5 must be distinct, append-only and evidence-gated."""
+"""One combined V7.5 model with optional verified injury/minute evidence."""
 from __future__ import annotations
 
 import tempfile
@@ -10,9 +10,11 @@ import pandas as pd
 
 from performance_tracker import read_forecasts, settle_forecasts, store_forecasts
 from test_tracker_v720 import fixture
-from tracker_automation import build_automatic_forecasts, run_cycle, upcoming_events
+from tracker_automation import (
+    UNIFIED_V75_MODEL_ID, build_automatic_forecasts, run_cycle, upcoming_events,
+)
 from tracker_pregame_availability import (
-    INJURY_AWARE_MODEL_ID, PregameAvailabilityFeed, near_tipoff,
+    PregameAvailabilityFeed, near_tipoff,
 )
 
 
@@ -34,23 +36,24 @@ class EnhancedTrackerTests(unittest.TestCase):
             "warning": "ESPN: badawcze i nieoficjalne",
         }
 
-    def test_fourth_variant_changes_only_its_own_forecast(self):
+    def test_single_v75_merges_context_and_verified_injury_effect(self):
         chosen = upcoming_events(self.schedule, self.now)
         before, _ = build_automatic_forecasts(chosen, self.history, self.now)
         after, _ = build_automatic_forecasts(
             chosen, self.history, self.now, availability_provider=self.provider)
         self.assertEqual(len(before), 3)
-        self.assertEqual(len(after), 4)
-        self.assertEqual(after[:3], before)
-        injury = next(row for row in after if row["model_id"] == INJURY_AWARE_MODEL_ID)
-        team_only = next(row for row in after if row["model_id"] == "auto_context_venue_rest_v75")
+        self.assertEqual(len(after), 3)
+        self.assertEqual(after[:2], before[:2])
+        injury = next(row for row in after if row["model_id"] == UNIFIED_V75_MODEL_ID)
+        team_only = next(row for row in before if row["model_id"] == UNIFIED_V75_MODEL_ID)
         # The seeded 5,000-draw Monte Carlo changes its draw sequence when
         # the mean changes, so allow small, genuine sampling noise.
         self.assertAlmostEqual(injury["home_points"], team_only["home_points"] - 2.5, delta=0.7)
         self.assertIn("korekta A/H", injury["warning"])
         self.assertEqual(injury["game_id"], team_only["game_id"])
+        self.assertEqual(sum(row["model_id"] == UNIFIED_V75_MODEL_ID for row in after), 1)
 
-    def test_stale_or_missing_evidence_never_emits_enhanced_variant(self):
+    def test_stale_or_missing_evidence_keeps_venue_rest_fallback(self):
         chosen = upcoming_events(self.schedule, self.now)
         for fake in (None, {**self.provider(), "report_fresh": False},
                      {**self.provider(), "minute_coverage": {"home": 3, "away": 8}}):
@@ -59,14 +62,26 @@ class EnhancedTrackerTests(unittest.TestCase):
                     chosen, self.history, self.now,
                     availability_provider=lambda *_: fake)
                 self.assertEqual(len(rows), 3)
+                self.assertEqual(rows[-1]["model_id"], UNIFIED_V75_MODEL_ID)
+                self.assertIn("bez korekty kontuzji", rows[-1]["warning"])
         too_far = self.schedule.copy()
         too_far.loc[:, "start_utc"] = self.now + pd.Timedelta(hours=9)
         called = []
         rows, _ = build_automatic_forecasts(
             upcoming_events(too_far, self.now), self.history, self.now,
             availability_provider=lambda *_: called.append(1))
-        self.assertEqual(len(rows), 3)
+        self.assertEqual(len(rows), 2)
         self.assertEqual(called, [])
+
+    def test_espn_exception_still_falls_back_to_single_v75(self):
+        chosen = upcoming_events(self.schedule, self.now)
+        def broken_provider(*_):
+            raise TimeoutError("ESPN timeout")
+        rows, _ = build_automatic_forecasts(
+            chosen, self.history, self.now, availability_provider=broken_provider)
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(rows[-1]["model_id"], UNIFIED_V75_MODEL_ID)
+        self.assertIn("bez korekty kontuzji", rows[-1]["warning"])
 
     def test_enhanced_forecast_is_immutable_and_settles_once(self):
         with tempfile.TemporaryDirectory() as path:
@@ -80,8 +95,8 @@ class EnhancedTrackerTests(unittest.TestCase):
             run_cycle(self.schedule, self.history, self.now, save, settle,
                       availability_provider=lambda *_: None)
             snapshot = read_forecasts(db)
-            self.assertEqual(len(snapshot), 4)
-            injury = snapshot[snapshot.model_id == INJURY_AWARE_MODEL_ID].iloc[0]
+            self.assertEqual(len(snapshot), 3)
+            injury = snapshot[snapshot.model_id == UNIFIED_V75_MODEL_ID].iloc[0]
             self.assertTrue(pd.isna(injury["home_score"]))
             future_result = pd.DataFrame([{
                 "game_id": self.schedule.iloc[0]["game_id"],
@@ -91,7 +106,7 @@ class EnhancedTrackerTests(unittest.TestCase):
             }])
             after = self.now + pd.Timedelta(hours=6)
             settled = settle_forecasts(db, future_result, settled_at=after)
-            self.assertEqual(settled, 4)
+            self.assertEqual(settled, 3)
             self.assertEqual(settle_forecasts(db, future_result, settled_at=after), 0)
 
     def test_no_future_game_data_alters_existing_enhanced_forecast(self):
