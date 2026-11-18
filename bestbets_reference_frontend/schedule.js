@@ -32,14 +32,14 @@ function dateNavigation(){
   const host=$("hzs-date-strip");if(!host)return;
   const weekdays=["NIE","PON","WTO","ŚRO","CZW","PIĄ","SOB"];
   const months=["STY","LUT","MAR","KWI","MAJ","CZE","LIP","SIE","WRZ","PAŹ","LIS","GRU"];
-  host.innerHTML=Array.from({length:7},(_,index)=>{
+  setBoardMarkup(host,Array.from({length:7},(_,index)=>{
     const day=shiftDay(selectedDay,index-3),date=dateAtNoon(day);
     const label=weekdays[date.getUTCDay()]+" "+date.getUTCDate()+" "+months[date.getUTCMonth()];
     return '<button type="button" class="hzs-date'+(day===selectedDay?' selected':'')+'"'+
       ' data-hzs-day="'+day+'"'+(withinRange(day)?'':' disabled')+
       ' aria-label="Mecze NBA '+escapeHtml(day)+'" aria-pressed="'+(day===selectedDay?'true':'false')+'">'+
       '<strong>'+weekdays[date.getUTCDay()]+'</strong><span>'+date.getUTCDate()+' '+months[date.getUTCMonth()]+'</span></button>';
-  }).join("");
+  }).join(""));
   document.querySelectorAll("[data-hzs-direction]").forEach(button=>{
     const candidate=shiftDay(selectedDay,Number(button.dataset.hzsDirection));
     button.disabled=!withinRange(candidate);
@@ -104,6 +104,8 @@ function gameMarkup(game,data){
     '<div class="hzs-score"><strong>'+escapeHtml(score(game))+'</strong><span class="hzs-status">'+escapeHtml(badge)+'</span></div>'+
     '<div class="hzs-team home">'+teamText(home,data)+teamMark(home,game.home_logo)+'</div></article>';
 }
+// Preserve fixture cards (including lazy-loaded logos) on repeated payloads.
+function setBoardMarkup(node,markup){if(node.innerHTML!==markup)node.innerHTML=markup}
 function render(data){
   lastData=data;
   if(!selectedDay)selectedDay=safeDay(data?.calendar_today)?data.calendar_today:today();
@@ -111,12 +113,12 @@ function render(data){
   const host=$("hzs-board");if(!host)return;
   const footnote=$("hzs-source-note");
   if(footnote)footnote.textContent="ESPN · rzeczywiste mecze · statystyki sezonu 2026/27 (stan bieżący)";
-  if(!data){host.innerHTML='<div class="hzs-empty">Wczytywanie potwierdzonych spotkań NBA…</div>';return}
+  if(!data){setBoardMarkup(host,'<div class="hzs-empty">Wczytywanie potwierdzonych spotkań NBA…</div>');return}
   const day=selectedGames(data);
   if(!day.known){
-    host.innerHTML='<div class="hzs-empty">'+(requestedDay===selectedDay
+    setBoardMarkup(host,'<div class="hzs-empty">'+(requestedDay===selectedDay
       ?'Pobieranie spotkań NBA z '+escapeHtml(selectedDay)+'…'
-      :'Wybierz dzień, aby pobrać jego terminarz NBA.')+'</div>';
+      :'Wybierz dzień, aby pobrać jego terminarz NBA.')+'</div>');
     if(requestedDay!==selectedDay)requestDay(selectedDay);
     return;
   }
@@ -131,14 +133,14 @@ function render(data){
   const games=[...unique.values()].sort((a,b)=>String(a.start||"").localeCompare(String(b.start||"")));
   const alert=day.error?'<div class="hzs-alert">'+escapeHtml(day.error.slice(0,180))+'</div>':"";
   if(!games.length){
-    host.innerHTML=alert+'<div class="hzs-empty">Brak potwierdzonych meczów NBA '+escapeHtml(selectedDay)+'.</div>';
+    setBoardMarkup(host,alert+'<div class="hzs-empty">Brak potwierdzonych meczów NBA '+escapeHtml(selectedDay)+'.</div>');
     return;
   }
   // One chronological full-width list. Each card carries its own current
   // LIVE / FINAL / UPCOMING status; no empty column when a day has one state.
-  host.innerHTML=alert+'<section class="hzs-section" aria-label="Mecze NBA">'+
+  setBoardMarkup(host,alert+'<section class="hzs-section" aria-label="Mecze NBA">'+
     '<div class="hzs-section-title"><span class="hzs-section-dot" aria-hidden="true"></span>MECZE · '+games.length+'</div>'+
-    '<div class="hzs-rows">'+games.map(game=>gameMarkup(game,data)).join("")+'</div></section>';
+    '<div class="hzs-rows">'+games.map(game=>gameMarkup(game,data)).join("")+'</div></section>');
 }
 function requestDay(day){
   if(!callback?.selectDay||!safeDay(day)||!withinRange(day))return;

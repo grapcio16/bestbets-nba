@@ -116,6 +116,9 @@ function liveQuarter(statusText){
  const elapsed=(q-1)*12+(clock?Math.max(0,12-minutes):0);
  return {label:q+". kwarta"+(clock?" · "+clock[0]:""),progress:clock?Math.max(4,Math.min(100,Math.round(elapsed/48*100))):null};
 }
+// Keep live cards, fixture rows and portraits mounted when an unrelated
+// Streamlit event repeats the same snapshot. Only changed markup gets parsed.
+function stableMarkup(node,markup){if(node.innerHTML!==markup)node.innerHTML=markup}
 function renderTicker(data){
  const host=$("bc-ticker-games");
  if(!host)return;
@@ -127,12 +130,12 @@ function renderTicker(data){
   indicator.classList.toggle("is-live",liveCount>0);
  }
  if(!games.length){
-  host.innerHTML='<div class="bc-ticker-loading">'+(data&&data.error
+  stableMarkup(host,'<div class="bc-ticker-loading">'+(data&&data.error
     ? 'Dane terminarza niedostępne. Użyj ⟳, aby ponowić próbę.'
-    : 'Brak potwierdzonych spotkań w najbliższym terminarzu.')+'</div>';
+    : 'Brak potwierdzonych spotkań w najbliższym terminarzu.')+'</div>');
   return;
  }
- host.innerHTML=games.map((g,i)=>{
+ stableMarkup(host,games.map((g,i)=>{
   const live=g.state==="live",final=g.state==="final";
   const away=escapeHtml(g.away||"NBA"),home=escapeHtml(g.home||"NBA");
   const marks=tickerLogo(g.away,g.away_logo)+tickerLogo(g.home,g.home_logo);
@@ -148,7 +151,7 @@ function renderTicker(data){
    ?'<span class="bc-ticker-progress" role="progressbar" aria-label="Przybliżony upływ czasu regulaminowego" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+quarter.progress+'"><i style="width:'+quarter.progress+'%"></i></span>':'';
   return '<button type="button" class="bc-ticker-card'+(live?' live':final?' final':' upcoming')+'" data-centre-game="'+i+'" aria-label="Szczegóły meczu '+away+' – '+home+'">'+
     '<span class="bc-ticker-card-top">'+top+'</span><strong>'+score+'</strong><small>'+escapeHtml(caption)+'</small>'+progress+'</button>';
- }).join("");
+ }).join(""));
 }
 function renderGames(data){
  const host=$("bc-games-list");if(!host)return;
@@ -174,20 +177,20 @@ function renderGames(data){
   control.disabled=boundary;
  }
  if(!day.known){
-  host.innerHTML='<div class="bc-muted">'+(pendingDay===selectedDay
+  stableMarkup(host,'<div class="bc-muted">'+(pendingDay===selectedDay
      ?'Pobieranie potwierdzonych spotkań z '+escapeHtml(selectedDay)+'…'
-     :'Wybierz datę, aby pobrać spotkania.')+'</div>';
+     :'Wybierz datę, aby pobrać spotkania.')+'</div>');
   return;
  }
  const games=day.games;
  if(!games.length){
-  host.innerHTML='<div class="bc-muted">'+(day.error
+  stableMarkup(host,'<div class="bc-muted">'+(day.error
     ?escapeHtml(day.error)
     :data?.error?'Terminarz niedostępny. Spróbuj odświeżyć dane NBA.'
-    :'Brak spotkań NBA '+escapeHtml(selectedDay)+'.')+'</div>';
+    :'Brak spotkań NBA '+escapeHtml(selectedDay)+'.')+'</div>');
   return;
  }
- host.innerHTML=games.slice(0,20).map((g,i)=>{
+ stableMarkup(host,games.slice(0,20).map((g,i)=>{
    const scored=(g.state==="final"||g.state==="live");
    const valid=(g.away_score!=null && g.home_score!=null);
    const result=scored
@@ -198,21 +201,21 @@ function renderGames(data){
     '<span class="bc-gteam">'+shortTeam(g.away,g.away_logo)+'</span>'+
     '<span class="bc-gteam">'+shortTeam(g.home,g.home_logo)+'</span>'+
     status(g)+result+'</button>';
- }).join("");
+ }).join(""));
 }
 function renderFinals(data){
  const host=$("bc-finals");if(!host)return;
  const games=data&&Array.isArray(data.finals)?data.finals.slice(0,2):[];
- if(!games.length){host.innerHTML='<div class="bc-muted">'+(data&&data.error
+ if(!games.length){stableMarkup(host,'<div class="bc-muted">'+(data&&data.error
    ?'Wyniki niedostępne — źródło danych nie odpowiedziało.'
-   :'Brak wyników potwierdzonych w bieżącym źródle.')+'</div>';return}
- host.innerHTML=games.map(g=>
+   :'Brak wyników potwierdzonych w bieżącym źródle.')+'</div>');return}
+ stableMarkup(host,games.map(g=>
    '<div class="bc-result">'+
    '<span>'+logo(g.away,g.away_logo)+' '+escapeHtml(g.away)+'</span>'+
    '<strong>'+scoreboard(g)+'</strong>'+
    '<span>'+escapeHtml(g.home)+' '+logo(g.home,g.home_logo)+'</span>'+
    '<span class="bc-result-time">KONIEC</span></div>'
- ).join("");
+ ).join(""));
 }
 
 function injuryRow(p){
@@ -340,9 +343,9 @@ function renderForm(data){
   if(visible.length===2)break;
  }
  if(!visible.length){
-  host.innerHTML='<div class="bc-muted">Brak wyników. Wybierz ulubione drużyny ☆.</div>';
+  stableMarkup(host,'<div class="bc-muted">Brak wyników. Wybierz ulubione drużyny ☆.</div>');
  }else{
-  host.innerHTML=visible.map(t=>{
+  stableMarkup(host,visible.map(t=>{
    const sample=Number(t.sample)||0;
    const known=t.record_verified===true || (!data?.form_period && sample>0);
    return '<div class="bc-team-form">'+logo(t.team,t.logo)+
@@ -350,7 +353,7 @@ function renderForm(data){
     '<span class="bc-form-record">'+(known?'Bilans '+escapeHtml(t.wins)+'–'+escapeHtml(t.losses):'Brak danych')+'</span>'+
     '<i>'+(known?escapeHtml(sample)+' mecz.':'—')+'</i>'+
     favoriteStar(t.team)+'</div>';
-  }).join("");
+  }).join(""));
  }
  const note=document.querySelector("#bestbets-centre .bc-team-panel .bc-panel-note");
  if(note && data?.form_period){
@@ -390,18 +393,18 @@ function renderPlayers(data){
  const real=rows.filter(p=>p && typeof p.name==="string" &&
    Number.isFinite(Number(p.value)) && Number(p.value)>0 && mappers[p.market]);
  if(!real.length){
-   watch.innerHTML='<div class="bc-muted">Dane zawodników są tymczasowo niedostępne.</div>';
+   stableMarkup(watch,'<div class="bc-muted">Dane zawodników są tymczasowo niedostępne.</div>');
    return;
  }
  const initial=p=>String(p.name).trim().split(/\\s+/).map(n=>n[0]||"").slice(0,2).join("").toUpperCase();
  const sampleLine=p=>Math.max(.5,Math.floor(Number(p.value))-.5).toFixed(1);
  const query=p=>p.name+" over "+sampleLine(p)+" "+mappers[p.market];
  const safeQuery=p=>escapeHtml(query(p));
- watch.innerHTML=real.map(p=>
+ stableMarkup(watch,real.map(p=>
   '<button type="button" data-centre-query="'+safeQuery(p)+'" title="Przykładowy próg do analizy historii, nie typ bukmacherski">'+
   freeAvatar(p).replace('bc-free-avatar','bc-free-avatar bc-watch-avatar')+
   '<span class="bc-watch-name">'+escapeHtml(p.name)+'</span>'+positionBadge(p,'bc-watch-position')+teamBadge(p.team)+
-  '<span class="bc-watch-chevron">›</span></button>').join("");
+  '<span class="bc-watch-chevron">›</span></button>').join(""));
  if(data?.free_photos_enabled===true)window.HoopzaroPortraits?.observe(watch);
 }
 let pendingFreeLeaderKey=null, freeRenderSignature="",freeInfoOpen=false,injuryInfoOpen=false,pendingFreeReferral=null;

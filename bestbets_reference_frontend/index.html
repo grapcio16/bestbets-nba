@@ -496,6 +496,7 @@ const root=$("stage"),shell=$("app-shell");
 const marketNames={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PTS + REB + AST"};
 const pages={home:"Centrum",props:"Player Props",games:"Terminarz",simulations:"Symulacje",players:"Zawodnicy",teams:"Drużyny",settings:"Ustawienia",shortcuts:"Skrót wpisywania",admin:"Model Performance"};
 const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",loading:false,lastIdentity:"",homeRequested:false,homeRequestAt:0,homeLastAttempt:0,homeRetryCount:0,homeTimedOut:false,paywallOpen:false,paywallServerErrorSeen:"",adminLoading:false,adminLastRequest:0,playerCatalogRequested:false,playerAveragesRequested:false,teamAnalyticsRequested:false,playerIdentity:""};
+let haloLogo=null,haloTeam=null;
 function premiumRequired(){
   const role=state.payload.auth?.role||"guest";
   return role!=="admin"&&role!=="premium";
@@ -580,8 +581,10 @@ function setImage(id,url,alternate){
   const img=$(id);
   const okay=typeof url==="string"&&(url.startsWith("https://")||url.startsWith("data:image/png;base64,")||url.startsWith("data:image/svg+xml;base64,"));
   img.hidden=!okay;
-  if(okay){img.src=url;img.alt=alternate||""}
-  else img.removeAttribute("src");
+  if(okay){
+    if(img.getAttribute("src")!==url)img.src=url;
+    if(img.alt!==(alternate||""))img.alt=alternate||"";
+  }else if(img.hasAttribute("src"))img.removeAttribute("src");
 }
 function escapeHtml(raw){
   return String(raw==null?"":raw).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]});
@@ -620,7 +623,10 @@ function chartMarkup(games){
 }
 function renderChart(p){
   const svg=$("chart-svg"),placeholder=$("chart-placeholder");
-  if(!p||!Array.isArray(p.games)){svg.innerHTML="";placeholder.style.display="block";return}
+  if(!p||!Array.isArray(p.games)){
+    if(svg.innerHTML)svg.innerHTML="";
+    placeholder.style.display="block";return;
+  }
   let rows=p.games.filter(function(g){return finite(g[state.market])});
   if(state.period==="L5")rows=rows.slice(-5);
   else if(state.period==="L10")rows=rows.slice(-10);
@@ -628,8 +634,9 @@ function renderChart(p){
   else if(state.period==="2026")rows=rows.filter(function(g){return String(g.date||"").startsWith("2026")});
   if(rows.length>20)rows=rows.slice(-20);
   placeholder.style.display=rows.length?"none":"block";
-  if(!rows.length){svg.innerHTML="";return}
-  svg.innerHTML=chartMarkup(rows);
+  if(!rows.length){if(svg.innerHTML)svg.innerHTML="";return}
+  const nextMarkup=chartMarkup(rows);
+  if(svg.innerHTML!==nextMarkup)svg.innerHTML=nextMarkup;
 }
 const searchMarketLabels={PTS:"points",REB:"rebounds",AST:"assists",FG3M:"three-pointers",PRA:"PRA"};
 function currentSearchText(p){
@@ -652,12 +659,16 @@ function renderPlayer(){
   text("hero-sub",p?("NBA "+p.season+" · "+p.games.length+" zweryfikowanych występów"+(p.next_game?" · "+p.next_game:"")):"Prawdziwe dane NBA / ESPN · bez przykładowych statystyk");
   $("portrait").classList.toggle("empty",!p);
   setImage("player-img",p?p.photo:"",p?p.name:"");
-  $("team-halo").innerHTML="";
-  if(p&&p.logo){
-    const img=document.createElement("img");
-    img.src=p.logo;img.alt=p.team;
-    $("team-halo").appendChild(img);
-  }else $("team-halo").textContent="♧";
+  const nextHaloLogo=p?.logo||"",nextHaloTeam=p?.team||"";
+  if(nextHaloLogo!==haloLogo||nextHaloTeam!==haloTeam){
+    haloLogo=nextHaloLogo;haloTeam=nextHaloTeam;
+    $("team-halo").innerHTML="";
+    if(p&&p.logo){
+      const img=document.createElement("img");
+      img.src=p.logo;img.alt=p.team;
+      $("team-halo").appendChild(img);
+    }else $("team-halo").textContent="♧";
+  }
   text("hero-avg",m?fmt(m.avg):"—");
   text("hero-line",p?fmt(state.line):"—");
   text("hero-rate",m?m.l10.label:"—");

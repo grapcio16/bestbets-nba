@@ -20,6 +20,14 @@ for(const id of ids){
     classList:{toggle(){},add(){},remove(){}},
     setAttribute(k,v){this.attributes[k]=v},addEventListener(type,fn){this["on_"+type]=fn}};
 }
+// Repeated Streamlit messages must not remount the same chart/cards, because
+// that restarts animations and reloads logos without changing the result.
+for(const id of ["hzm-matches","hzm-plot","hzm-player-rows"]){
+  const element=elements[id];element.writes=0;element.markup="";
+  Object.defineProperty(element,"innerHTML",{
+    get(){return this.markup},set(value){this.markup=value;this.writes++},
+  });
+}
 const tabs=["match","away","home"].map(chart=>({dataset:{hzmChart:chart},textContent:"",attributes:{},
   classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v}}));
 elements["hzm-chart-tabs"]={querySelectorAll(){return tabs}};
@@ -52,6 +60,10 @@ assert.equal(elements["hzm-away-average"].textContent,"116,8");
 assert.equal(elements["hzm-home-average"].textContent,"111,6");
 assert.match(elements["hzm-plot"].innerHTML,/<svg/);
 assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,4);
+const mountedBefore=["hzm-matches","hzm-plot","hzm-player-rows"].map(id=>elements[id].writes);
+app.render(home,{entitled:true,game:fakeGame,players:fakePlayers});
+assert.deepEqual(["hzm-matches","hzm-plot","hzm-player-rows"].map(id=>elements[id].writes),mountedBefore,
+  "An identical server payload should preserve the existing DOM");
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="#hzm-expand-players"?{}:null;
 }}});
