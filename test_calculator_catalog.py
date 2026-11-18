@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 import pandas as pd
 from global_player_catalog import build_global_catalog
+from roster_data import ESPN_TEAM_IDS
 from roster_view import show_calculator_history_chart
 
 
@@ -20,7 +21,7 @@ class GlobalCatalogTests(unittest.TestCase):
                     "TEAM_ABBREVIATION":"DEN","POSITION":"PF","ROSTER_STATUS":"?"
                 }]),{"stale":False}
             return pd.DataFrame([{
-                "PLAYER_ID":str(10000 + sum(ord(ch) for ch in team)),"PLAYER_NAME":"Test "+team,
+                "PLAYER_ID":str(10000+ESPN_TEAM_IDS[team]),"PLAYER_NAME":"Test "+team,
                 "TEAM_ABBREVIATION":team,"POSITION":"?", "ROSTER_STATUS":"?"
             }]),{"stale":False}
         catalog,coverage=build_global_catalog(fake_team)
@@ -36,7 +37,7 @@ class GlobalCatalogTests(unittest.TestCase):
             if team=="DEN":
                 raise RuntimeError("ESPN error")
             return pd.DataFrame([{
-                "PLAYER_ID":str(10000 + sum(ord(ch) for ch in team)),"PLAYER_NAME":team,"TEAM_ABBREVIATION":team,
+                "PLAYER_ID":str(10000+ESPN_TEAM_IDS[team]),"PLAYER_NAME":team,"TEAM_ABBREVIATION":team,
                 "POSITION":"?","ROSTER_STATUS":"?"
             }]),{"stale":False}
         catalog,coverage=build_global_catalog(fake_team)
@@ -51,7 +52,7 @@ class GlobalCatalogTests(unittest.TestCase):
             if team=="DEN" and attempts[team]==1:
                 raise TimeoutError("Temporary ESPN failure")
             return pd.DataFrame([{
-                "PLAYER_ID":str(20000+sum(ord(c) for c in team)),
+                "PLAYER_ID":str(20000+ESPN_TEAM_IDS[team]),
                 "PLAYER_NAME":"Player "+team,
                 "TEAM_ABBREVIATION":team,
                 "POSITION":"G","ROSTER_STATUS":"Active"
@@ -68,12 +69,37 @@ class GlobalCatalogTests(unittest.TestCase):
             return pd.DataFrame([
                 {"PLAYER_ID":"ABC","PLAYER_NAME":"Unverified",
                  "TEAM_ABBREVIATION":team},
-                {"PLAYER_ID":"1234","PLAYER_NAME":"Verified "+team,
+                {"PLAYER_ID":str(10000+ESPN_TEAM_IDS[team]),"PLAYER_NAME":"Verified "+team,
                  "TEAM_ABBREVIATION":team}
             ]),{}
         catalog,coverage=build_global_catalog(mock_roster)
         self.assertNotIn("Unverified",catalog["PLAYER_NAME"].tolist())
         self.assertEqual(len(catalog),30)
+
+    def test_duplicate_espn_athlete_id_does_not_assign_two_teams(self):
+        def rosters(team):
+            rows=[{"PLAYER_ID":str(10000+ESPN_TEAM_IDS[team]),
+                   "PLAYER_NAME":"Other "+team,"TEAM_ABBREVIATION":team}]
+            if team in {"BOS","MIA"}:
+                rows.append({"PLAYER_ID":"555","PLAYER_NAME":"Traded Player",
+                             "TEAM_ABBREVIATION":team})
+            return pd.DataFrame(rows),{"stale":team=="BOS"}
+        catalog,coverage=build_global_catalog(rosters)
+        target=catalog[catalog["PLAYER_ID"]=="555"]
+        self.assertEqual(target["TEAM_ABBREVIATION"].tolist(),["MIA"])
+        self.assertEqual(coverage["stale_roster_conflicts_resolved"],1)
+
+    def test_two_current_rosters_with_same_id_are_not_trusted(self):
+        def rosters(team):
+            rows=[{"PLAYER_ID":str(10000+ESPN_TEAM_IDS[team]),
+                   "PLAYER_NAME":"Other "+team,"TEAM_ABBREVIATION":team}]
+            if team in {"BOS","MIA"}:
+                rows.append({"PLAYER_ID":"555","PLAYER_NAME":"Ambiguous",
+                             "TEAM_ABBREVIATION":team})
+            return pd.DataFrame(rows),{"stale":False}
+        catalog,coverage=build_global_catalog(rosters)
+        self.assertNotIn("555",catalog["PLAYER_ID"].tolist())
+        self.assertEqual(coverage["ambiguous_player_ids"],["555"])
 
     def test_history_chart_has_game_values_and_both_reference_lines(self):
         sample=pd.DataFrame([

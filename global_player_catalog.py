@@ -73,9 +73,26 @@ def build_global_catalog(roster_fetch=team_roster, max_workers=5, refresh_all=Fa
 
     catalog=(pd.concat(list(loaded.values()),ignore_index=True)
              if loaded else pd.DataFrame(columns=COLUMNS))
+    ambiguous_ids=[]
+    resolved_stale_ids=[]
     if not catalog.empty:
         catalog["PLAYER_ID"]=catalog["PLAYER_ID"].astype(str)
         catalog=catalog.drop_duplicates(subset=["PLAYER_ID","TEAM_ABBREVIATION"])
+        # A trade or an older cached roster can temporarily list one athlete
+        # on two clubs. An ESPN ID is unique, so never publish both as though
+        # the roster assignments were independently verified.
+        conflicting=catalog.groupby("PLAYER_ID")["TEAM_ABBREVIATION"].nunique()
+        for player_id in conflicting[conflicting>1].index:
+            matches=catalog[catalog["PLAYER_ID"]==player_id]
+            fresh=matches[~matches["TEAM_ABBREVIATION"].isin(stale)]
+            if len(fresh)==1:
+                keep_team=fresh.iloc[0]["TEAM_ABBREVIATION"]
+                catalog=catalog[(catalog["PLAYER_ID"]!=player_id) |
+                                (catalog["TEAM_ABBREVIATION"]==keep_team)]
+                resolved_stale_ids.append(str(player_id))
+            else:
+                catalog=catalog[catalog["PLAYER_ID"]!=player_id]
+                ambiguous_ids.append(str(player_id))
         catalog=catalog.sort_values(["PLAYER_NAME","TEAM_ABBREVIATION"]).reset_index(drop=True)
     return catalog,{
         "teams_loaded":len(teams)-len(missing),
@@ -85,5 +102,7 @@ def build_global_catalog(roster_fetch=team_roster, max_workers=5, refresh_all=Fa
         "stale_teams":sorted(stale),
         "sparse_teams":sorted(sparse),
         "retried_teams":sorted(team for team,n in attempts.items() if n>1),
+        "ambiguous_player_ids":sorted(ambiguous_ids),
+        "stale_roster_conflicts_resolved":len(resolved_stale_ids),
         "team_counts":{team:len(roster) for team,roster in sorted(loaded.items())},
     }

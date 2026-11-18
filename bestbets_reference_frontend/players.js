@@ -46,7 +46,10 @@ function playerRow(player){
     .slice(0,2).map(part=>part[0]).join("").toUpperCase();
   name.append(make("span","hzp-player-avatar",initials));
   const identity=make("div","hzp-player-identity");
-  const data=entitled()?averages?.rows?.[norm(player.name)]:null;
+  const id=String(player.id||"");
+  // The ESPN ID is the authority for identity. Names can collide and a
+  // player's roster team can differ from the team in historical game logs.
+  const data=entitled()?(averages?.id_rows?averages.id_rows[id]:averages?.rows?.[norm(player.name)]):null;
   const gameCount=Number(data?.games)||0;
   identity.append(make("strong","",player.name),make("small","",
     (player.position||"NBA")+(entitled()&&gameCount?" · "+gameCount+" mecz.":"")));
@@ -54,15 +57,25 @@ function playerRow(player){
   const teamCell=make("div");teamCell.append(make("span","hzp-team-tag",player.team||"NBA"));
   row.append(teamCell);
   const figures=[data?.pts,data?.reb,data?.ast,data?.three_pm,data?.three_pa,data?.three_pct];
-  const id=String(player.id||"");
   const waiting=entitled()&&!data&&!((averages?.attempted_ids||[]).includes(id));
+  const unavailable=(averages?.unavailable_ids||[]).includes(id);
+  const fieldCounts=[gameCount,gameCount,gameCount,data?.three_pm_games,
+    data?.three_pa_games,data?.three_pct_games];
   figures.forEach((number,index)=>{
     const locked=!entitled();
     const blank=number===null||number===undefined;
     const cell=make("span","hzp-stat"+(locked?" is-locked":blank?" is-missing":index===5?" is-highlight":""),
       locked?"♢":waiting?"…":safeNumber(number,index===5));
     if(locked){cell.title="Dostępne w Hoopzaro Premium";cell.setAttribute("aria-label","Statystyka Premium");}
-    else cell.title=gameCount?"Średnia z "+gameCount+" potwierdzonych występów sezonu":"Brak zweryfikowanych występów";
+    else if(unavailable)cell.title="ESPN nie udostępnia teraz potwierdzonej historii. Spróbuj ponownie przyciskiem Odśwież.";
+    else if(waiting)cell.title="Pobieranie zweryfikowanej historii zawodnika…";
+    else if(gameCount){
+      const count=Number.isFinite(fieldCounts[index])?fieldCounts[index]:gameCount;
+      cell.title="Potwierdzone występy: "+count+"/"+gameCount+
+        (index>=3&&count<gameCount?" · część meczów bez danych rzutowych":"")+
+        (data?.last_game?" · ostatni: "+data.last_game:"")+
+        (data?.sample_source?" · "+data.sample_source:"");
+    }else cell.title="Brak zweryfikowanych występów";
     row.append(cell);
   });
   return row;
@@ -89,9 +102,11 @@ function render(nextCatalog,nextAverages,nextRole){
     "Wyświetlono "+visible.length+" z "+matches.length+" zawodników";
   const source=$("hzp-source");
   const loaded=visible.filter(p=>(averages?.attempted_ids||[]).includes(String(p.id||""))).length;
+  const failed=visible.filter(p=>(averages?.unavailable_ids||[]).includes(String(p.id||""))).length;
   source.textContent=!entitled()?"Lista zawodników: ESPN · Statystyki zablokowane w Premium.":
-    "Źródło: ESPN · sezon 2026/27 · "+loaded+"/"+visible.length+" historii na tej stronie"+
-    " · średnie z rzeczywistych występów (liczba meczów pod nazwiskiem)";
+    "Źródło: ESPN · sezon 2026/27 · "+(loaded-failed)+"/"+visible.length+" historii na tej stronie"+
+    (failed?" · "+failed+" chwilowo niedostępnych (Odśwież)":"")+
+    " · średnie z potwierdzonych występów · najedź na statystykę, aby sprawdzić próbkę";
   $("hzp-cta-title").textContent=entitled()?"Chcesz przeanalizować kolejny mecz?":"Odblokuj statystyki zawodników";
   $("hzp-cta-text").textContent=entitled()?"Prognozy, linie OVER/UNDER i symulacje znajdziesz w Player Props.":
     "Średnie PTS, REB, AST, 3PM, 3PA i 3P% dostępne z Hoopzaro Premium.";

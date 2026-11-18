@@ -159,17 +159,15 @@ def _cached_centre_player_catalog(force_refresh: bool = False):
 
 @st.cache_data(ttl=3*3600, max_entries=512, show_spinner=False)
 def _cached_premium_player_history(player_id: str, name: str, team: str) -> dict:
-    """Fetch a single athlete's current-season gamelog, not a 10-game league sample.
+    """Fetch a verified athlete's season, with a bounded real-boxscore fallback.
 
     Only called for server-verified roster athletes after Premium entitlement
     is confirmed. ESPN's season gamelog includes each completed appearance;
     request-size and concurrency are bounded by the caller.
     """
-    from espn_player_data import detailed_espn_gamelog
-    from premium_player_stats import build_player_averages
+    from premium_player_stats import load_verified_player_history
 
-    logs, source = detailed_espn_gamelog(player_id, name, team, SEASON)
-    return build_player_averages(logs, source)
+    return load_verified_player_history(player_id, name, team, SEASON)
 
 
 @st.cache_data(ttl=3600, max_entries=2, show_spinner=False)
@@ -461,6 +459,7 @@ def main() -> None:
         # gamelog cache avoids re-downloading a player's entire season.
         from concurrent.futures import ThreadPoolExecutor, as_completed
         rows = dict(current.get("rows") or {})
+        id_rows = dict(current.get("id_rows") or {})
         unavailable = set(current.get("unavailable_ids") or [])
         with ThreadPoolExecutor(max_workers=3) as executor:
             futures = {
@@ -472,9 +471,14 @@ def main() -> None:
                 target = futures[future]
                 try:
                     stats = future.result()
-                    player_rows = stats.get("rows") or {}
-                    if player_rows:
-                        rows.update(player_rows)
+                    player_stats = (stats.get("id_rows") or {}).get(target["id"])
+                    if player_stats:
+                        id_rows[target["id"]] = {
+                            **player_stats, "sample_source": stats.get("source", "ESPN"),
+                            "partial": bool(stats.get("partial", True)),
+                        }
+                        rows.update(stats.get("rows") or {})
+                        unavailable.discard(target["id"])
                     else:
                         unavailable.add(target["id"])
                 except Exception as exc:
@@ -485,7 +489,7 @@ def main() -> None:
                     unavailable.add(target["id"])
                 completed.add(target["id"])
         st.session_state["bb10_premium_player_averages"] = {
-            "rows": rows, "attempted_ids": sorted(completed),
+            "rows": rows, "id_rows": id_rows, "attempted_ids": sorted(completed),
             "unavailable_ids": sorted(unavailable),
             "season": "2026/27", "source": "ESPN · sezonowe historie zawodników",
             "scope": "zweryfikowane występy · liczba meczów przy zawodniku",
