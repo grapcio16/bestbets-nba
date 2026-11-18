@@ -282,6 +282,7 @@ function restoreTeamFavorites(){
 }
 function storeTeamFavorites(){
  try{window.localStorage.setItem(TEAM_FAVORITES_KEY,JSON.stringify(favoriteTeams));}catch(_){}
+ window.dispatchEvent(new CustomEvent("hoopzaro:favorites-changed"));
 }
 function formCatalog(data){
  const options=Array.isArray(data?.form_options)?data.form_options:[];
@@ -779,4 +780,7 @@ function init(context){
  });
 }
 window.BestBetsCentre={init:init,render:renderHome,openPremium:premium,recordFreePropsResult:recordFreePropsResult};
+window.addEventListener("hoopzaro:favorites-changed",()=>{
+ restoreTeamFavorites();if(homeData)renderForm(homeData);
+});
 })();

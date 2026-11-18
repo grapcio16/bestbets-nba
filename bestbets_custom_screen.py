@@ -167,6 +167,21 @@ def _cached_premium_player_averages() -> dict:
     return build_player_averages(logs, source)
 
 
+@st.cache_data(ttl=3600, max_entries=2, show_spinner=False)
+def _cached_premium_team_analytics() -> dict:
+    """Use completed ESPN results; advanced ratings only when cached and verified."""
+    from bestbets_simulations_canvas import _advanced_from_verified_cache, _history_for_simulations
+    from premium_team_stats import build_team_analytics
+    from simulation_engine import advanced_ratings
+
+    games, warning = _history_for_simulations(SEASON)
+    advanced = advanced_ratings(_advanced_from_verified_cache(SEASON))
+    report = build_team_analytics(games, advanced)
+    if warning:
+        report["notice"] = "Niektóre wyniki ESPN są tymczasowo niedostępne."
+    return report
+
+
 
 def _research(query: str) -> dict:
     """Run the existing strict athlete resolver and verified season analysis."""
@@ -326,6 +341,8 @@ def main() -> None:
         st.session_state.pop("bb10_premium_game", None)
         st.session_state.pop("bb10_premium_players", None)
         st.session_state.pop("bb10_premium_player_averages", None)
+        st.session_state.pop("bb10_premium_team_analytics", None)
+        st.session_state.pop("bb10_team_analytics_attempt_at", None)
         st.session_state.pop("bb10_player_averages_attempt_at", None)
         st.session_state.pop("bb10_admin_report", None)
         st.session_state.pop("bb10_admin_report_at", None)
@@ -359,6 +376,10 @@ def main() -> None:
         # No premium averages in guest or free browser payloads.
         "premium_player_averages": (
             st.session_state.get("bb10_premium_player_averages") if has_premium else None
+        ),
+        # Never disclose paid team trends/ratings to guests or free accounts.
+        "premium_team_analytics": (
+            st.session_state.get("bb10_premium_team_analytics") if has_premium else None
         ),
         "free_details": st.session_state.get("bb10_free_leader_details"),
         # This is intentionally absent for all non-admin identities.
@@ -430,6 +451,25 @@ def main() -> None:
                      "partial": True,
                      "error": "Statystyki są chwilowo niedostępne. Spróbuj później."}
         st.session_state["bb10_premium_player_averages"] = stats
+        st.rerun()
+        return
+    if event.get("type") == "premium_team_analytics":
+        # The user-controlled browser cannot authorize or supply metrics.
+        if not premium_entitled():
+            return
+        now = time.monotonic()
+        if now - st.session_state.get("bb10_team_analytics_attempt_at", 0.0) < 60:
+            return
+        st.session_state["bb10_team_analytics_attempt_at"] = now
+        try:
+            result = _cached_premium_team_analytics()
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Premium team analytics temporarily unavailable: %s", type(exc).__name__)
+            result = {"teams": {}, "source": "ESPN / NBA Stats", "partial": True,
+                      "error": "Zaawansowane statystyki drużyn są chwilowo niedostępne."}
+        st.session_state["bb10_premium_team_analytics"] = result
         st.rerun()
         return
     if event.get("type") in ("premium_sim_game", "premium_sim_players"):
