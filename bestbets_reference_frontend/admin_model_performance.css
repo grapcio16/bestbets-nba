@@ -76,6 +76,9 @@
 .hz-admin-stat:nth-child(4) b{color:#d28cff}
 .hz-admin-stat small{color:#92a8cb;font-size:10px}
 .hz-admin-model-foot{display:flex;justify-content:space-between;gap:10px;margin-top:15px;color:#a8bddc;font-size:11px}
+.hz-admin-bias{margin-top:12px;padding:8px 10px;border:1px solid rgba(40,217,235,.28);border-radius:9px;background:rgba(12,35,62,.55);color:#c5deef;font-size:11px}
+.hz-admin-bias b{color:#50eced;font-size:13px}
+.hz-admin-bias small{color:#97b8ce}
 .hz-admin-model-foot b{color:#fff}
 .hz-admin-pending{margin-top:10px;color:#ebc99a;font-size:11px}
 .hz-admin-history{margin-top:17px;border:1px solid #496ca0;border-radius:15px;padding:18px;background:#0a1a33}
