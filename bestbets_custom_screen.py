@@ -519,9 +519,12 @@ def main() -> None:
         import re
         day = _plain(event.get("date"))
         game_id = _plain(event.get("game_id"))
+        model_id = _plain(event.get("model_id"))
         if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day):
             return
         if not re.fullmatch(r"\d{1,30}", game_id):
+            return
+        if model_id not in ("legacy_v72", "research_form_v74"):
             return
         try:
             today = pd.Timestamp.now(tz="Europe/Warsaw").tz_localize(None).normalize()
@@ -530,9 +533,11 @@ def main() -> None:
         except (ValueError, TypeError, OverflowError):
             return
         is_players = event["type"] == "premium_sim_players"
-        result = simulation_for_entitled_user(day, game_id, players=is_players)
+        result = simulation_for_entitled_user(
+            day, game_id, players=is_players, model_id=model_id)
         key = "bb10_premium_players" if is_players else "bb10_premium_game"
-        st.session_state[key] = {"date": day, "game_id": game_id, **result}
+        st.session_state[key] = {"date": day, "game_id": game_id,
+                                 **result, "model_id": model_id}
         if not is_players:
             st.session_state.pop("bb10_premium_players", None)
         st.rerun()

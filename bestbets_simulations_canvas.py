@@ -13,6 +13,8 @@ import pandas as pd
 import streamlit as st
 from access_control import premium_entitled as _verified_entitlement
 
+SIMULATION_MODELS = {"legacy_v72", "research_form_v74"}
+
 
 def premium_entitled() -> bool:
     """Enforce role checks on every server-side Premium access."""
@@ -82,11 +84,13 @@ def _history_for_simulations(season: str):
 
 
 @st.cache_data(ttl=1800, max_entries=90, show_spinner=False)
-def _game_simulation(day: str, game_id: str):
+def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"):
     """Future model, or clearly labeled retrospective model for a final game."""
     from espn_player_data import prefetch_matchup_boxscores
-    from simulation_engine import simulate_game
+    from simulation_engine import (advanced_ratings, completed_team_scores,
+                                   legacy_matchup_means, simulate_game)
     from simulation_context_v2 import simulation_inputs
+    from simulation_data_audit import verified_history
 
     event = _day_for_simulations(day)
     games = event.get("games", [])
@@ -108,7 +112,13 @@ def _game_simulation(day: str, game_id: str):
     advanced = (_advanced_from_verified_cache(season)
                 if match.get("state") == "scheduled" else pd.DataFrame())
     context = simulation_inputs(historical, game, advanced)
-    means = context["means"]
+    # Both modes use identical verified pregame evidence. The legacy baseline
+    # retains its original fixed variance; the research variant additionally
+    # uses observed, shrunk team scoring variance.
+    means = (legacy_matchup_means(
+        home, away, advanced_ratings(advanced),
+        completed_team_scores(verified_history(historical, tipoff)))
+        if model_id == "legacy_v72" else context["means"])
     if means is None:
         return {"error": "Za mało historycznych spotkań do wiarygodnej symulacji."}
     # Warm actual player boxscores while the independent team model runs.
@@ -119,9 +129,10 @@ def _game_simulation(day: str, game_id: str):
     except (OSError, RuntimeError, ValueError):
         pass
     summary, _, home_scores, away_scores = simulate_game(
-        game, means, score_noise=context["score_noise"])
+        game, means, score_noise=(context["score_noise"]
+                                 if model_id == "research_form_v74" else None))
     return {
-        "game_id": game_id, "away": away, "home": home,
+        "game_id": game_id, "model_id": model_id, "away": away, "home": home,
         "away_win_pct": summary["away_win_pct"],
         "home_win_pct": summary["home_win_pct"],
         "away_points": summary["away_points"],
@@ -141,7 +152,7 @@ def _game_simulation(day: str, game_id: str):
 
 
 @st.cache_data(ttl=1800, max_entries=50, show_spinner=False)
-def _game_players(day: str, game_id: str):
+def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     """Lazily fetch only the selected matchup's two actual ESPN player histories."""
     from simulation_view import matchup_players_cached
 
@@ -161,7 +172,7 @@ def _game_players(day: str, game_id: str):
                 if match.get("state") == "scheduled" else pd.DataFrame())
     table, _ = matchup_players_cached(season, game, historical,
                                       advanced, 0,
-                                      research_mode=True)
+                                      research_mode=model_id == "research_form_v74")
     if table is None or table.empty:
         return {"players": [], "error": "ESPN nie dostarczył projekcji graczy dla tego spotkania."}
     required = {"Zawodnik", "Drużyna", "PTS", "REB", "AST"}
@@ -178,18 +189,22 @@ def _game_players(day: str, game_id: str):
                         "pts": points, "reb": _clean_float(row.get("REB")),
                         "ast": _clean_float(row.get("AST"))})
     players.sort(key=lambda item: (-item["pts"], item["name"]))
-    return {"players": players[:40], "home": str(match["home"]), "error": ""}
+    return {"players": players[:40], "home": str(match["home"]),
+            "model_id": model_id, "error": ""}
 
 
-def simulation_for_entitled_user(day: str, game_id: str, players: bool = False):
+def simulation_for_entitled_user(day: str, game_id: str, players: bool = False,
+                                 model_id: str = "research_form_v74"):
     """Single server-side authorization check for every premium data read."""
     if not premium_entitled():
         return {"error": "Wymagana jest zweryfikowana subskrypcja Premium."}
     try:
         pd.Timestamp(day)
-        if len(day) != 10 or not game_id.isdigit() or len(game_id) > 30:
+        if (len(day) != 10 or not game_id.isdigit() or len(game_id) > 30
+                or model_id not in SIMULATION_MODELS):
             raise ValueError("Niepoprawny identyfikator spotkania")
-        return _game_players(day, game_id) if players else _game_simulation(day, game_id)
+        return (_game_players(day, game_id, model_id) if players
+                else _game_simulation(day, game_id, model_id))
     except (ValueError, TypeError, KeyError, RuntimeError) as exc:
         import logging
         logging.getLogger(__name__).warning("Premium simulation unavailable: %s", type(exc).__name__)
