@@ -64,6 +64,37 @@ class GlobalCatalogTests(unittest.TestCase):
         self.assertEqual(attempts["DEN"],2)
         self.assertTrue((catalog["TEAM_ABBREVIATION"]=="DEN").any())
 
+    def test_sparse_roster_retries_use_at_most_two_workers(self):
+        # Tiny, synthetic rosters force the retry path without external ESPN.
+        from threading import Lock
+        from time import sleep
+        attempts={}
+        lock=Lock()
+        active=0
+        peak=0
+        def sparse_roster(team):
+            nonlocal active,peak
+            with lock:
+                attempts[team]=attempts.get(team,0)+1
+                retry=attempts[team]==2
+                if retry:
+                    active+=1
+                    peak=max(peak,active)
+            if retry:
+                sleep(.005)
+                with lock:
+                    active-=1
+            return pd.DataFrame([{
+                "PLAYER_ID":str(10000+ESPN_TEAM_IDS[team]),
+                "PLAYER_NAME":"Athlete "+team,
+                "TEAM_ABBREVIATION":team,
+            }]),{"stale":False}
+        catalog,coverage=build_global_catalog(sparse_roster)
+        self.assertEqual(len(catalog),30)
+        self.assertEqual(coverage["retried_teams"],sorted(ESPN_TEAM_IDS))
+        self.assertGreaterEqual(peak,2,"Retries should overlap instead of serial timeouts")
+        self.assertLessEqual(peak,2,"Do not burst ESPN requests for recovery")
+
     def test_invalid_athlete_id_is_excluded(self):
         def mock_roster(team):
             return pd.DataFrame([

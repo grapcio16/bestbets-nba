@@ -3,6 +3,9 @@
 (function(){
 "use strict";
 const $=id=>document.getElementById(id);
+// Streamlit may resend an unchanged payload. Keep existing chart/card DOM when
+// its markup is identical, avoiding costly SVG parsing, image reloads and paint.
+const stableMarkup=(node,markup)=>{if(node.innerHTML!==markup)node.innerHTML=markup};
 const esc=value=>String(value==null?"":value).replace(/[&<>"']/g,char=>({
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
 })[char]);
@@ -59,8 +62,8 @@ function teamLogo(code,url){
 }
 function gameButtons(games){
   const list=$("hzm-matches");
-  if(!games.length){list.innerHTML='<div class="hzm-no-players">Brak potwierdzonych spotkań NBA w tym dniu.</div>';return}
-  list.innerHTML=games.map(game=>{
+  if(!games.length){stableMarkup(list,'<div class="hzm-no-players">Brak potwierdzonych spotkań NBA w tym dniu.</div>');return}
+  stableMarkup(list,games.map(game=>{
     const away=String(game.away).toUpperCase(),home=String(game.home).toUpperCase();
     const finished=game.state==="final",live=game.state==="live";
     const status=finished?"Koniec":live?"Na żywo":clock(game.start);
@@ -68,7 +71,7 @@ function gameButtons(games){
     return '<button type="button" class="hzm-match'+(selected?' selected':'')+'" data-hzm-game="'+esc(game.id)+'"'+
       ' aria-pressed="'+selected+'" aria-label="'+esc(away+' – '+home+', '+status)+'">'+
       teamLogo(away,game.away_logo)+'<span class="hzm-match-center"><strong>'+esc(away)+' – '+esc(home)+'</strong><small>'+esc(status)+'</small></span>'+teamLogo(home,game.home_logo)+'</button>';
-  }).join("");
+  }).join(""));
 }
 function trustedResult(premium,game){
   const data=premium?.game;
@@ -127,12 +130,12 @@ function showChart(sim,game,premium){
   $("hzm-chart-context").textContent=(code||"NBA")+" · 5 000 symulacji · "+modelLabel();
   $("hzm-chart-source").textContent="Średnie wyłącznie z 5 000 symulacji; model eksperymentalny.";
   const plot=$("hzm-plot");
-  if(!premium?.entitled){plot.innerHTML='<div class="hzm-no-chart"><strong>Rozkład punktów w Premium</strong><span>Wykres meczu i każdej drużyny zostanie odblokowany po aktywacji.</span></div>';return}
-  if(!game){plot.innerHTML='<div class="hzm-no-chart">Wybierz spotkanie NBA.</div>';return}
-  if(!sim){plot.innerHTML='<div class="hzm-no-chart">Obliczanie symulacji wybranego meczu…</div>';return}
-  if(sim.error){plot.innerHTML='<div class="hzm-no-chart">'+esc(sim.error)+'</div>';return}
+  if(!premium?.entitled){stableMarkup(plot,'<div class="hzm-no-chart"><strong>Rozkład punktów w Premium</strong><span>Wykres meczu i każdej drużyny zostanie odblokowany po aktywacji.</span></div>');return}
+  if(!game){stableMarkup(plot,'<div class="hzm-no-chart">Wybierz spotkanie NBA.</div>');return}
+  if(!sim){stableMarkup(plot,'<div class="hzm-no-chart">Obliczanie symulacji wybranego meczu…</div>');return}
+  if(sim.error){stableMarkup(plot,'<div class="hzm-no-chart">'+esc(sim.error)+'</div>');return}
   const dist=sim.distributions?.[state.chart];
-  plot.innerHTML=chartSvg(dist,code);
+  stableMarkup(plot,chartSvg(dist,code));
   if(Number.isFinite(Number(dist?.threshold))&&Number.isFinite(Number(dist?.over_pct))){
     $("hzm-chart-source").textContent='P('+code+' ≥ '+dist.threshold+' pkt): '+fmt(dist.over_pct)+'% · przedział 80%: '+dist.p10+'–'+dist.p90+' pkt';
   }
@@ -142,21 +145,21 @@ function showPlayers(premium,players){
   const withMinutes=state.model==="research_context_v75";
   const headings=$("hzm-player-headings");
   headings.classList.toggle("with-min",withMinutes);
-  headings.innerHTML=(withMinutes?'<span>MIN</span>':'')+'<span>PTS</span><span>REB</span><span>AST</span>';
+  stableMarkup(headings,(withMinutes?'<span>MIN</span>':'')+'<span>PTS</span><span>REB</span><span>AST</span>');
   panel.classList.toggle("expanded",state.expanded);
   button.setAttribute("aria-expanded",String(state.expanded));
   button.innerHTML=(state.expanded?'Zwiń listę':'Rozwiń pełną listę zawodników')+' <span aria-hidden="true">⌄</span>';
   if(!premium?.entitled){
-    rows.innerHTML='<div class="hzm-no-players">'+(state.expanded
+    stableMarkup(rows,'<div class="hzm-no-players">'+(state.expanded
       ?'Pełna lista i projekcje graczy wymagają zweryfikowanej subskrypcji Premium.'
-      :'Projekcje PTS, REB i AST są dostępne w Premium.')+'</div>';return;
+      :'Projekcje PTS, REB i AST są dostępne w Premium.')+'</div>');return;
   }
-  if(!players){rows.innerHTML='<div class="hzm-no-players">Pobieranie projekcji zawodników z ESPN…</div>';return}
+  if(!players){stableMarkup(rows,'<div class="hzm-no-players">Pobieranie projekcji zawodników z ESPN…</div>');return}
   if(!Array.isArray(players.players)||!players.players.length){
-    rows.innerHTML='<div class="hzm-no-players">'+esc(players.error||'Brak zweryfikowanych danych zawodników.')+'</div>';return;
+    stableMarkup(rows,'<div class="hzm-no-players">'+esc(players.error||'Brak zweryfikowanych danych zawodników.')+'</div>');return;
   }
   const visible=state.expanded?players.players:players.players.slice(0,4);
-  rows.innerHTML=visible.map(item=>{
+  stableMarkup(rows,visible.map(item=>{
     const initials=String(item.name||'').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
     const status=withMinutes?String(item.availability||''):'';
     const atRisk=["Questionable","Doubtful","Day-to-day"].includes(status);
@@ -168,7 +171,7 @@ function showPlayers(premium,players){
       '<div class="hzm-player-stats'+(withMinutes?' with-min':'')+'">'+
       (withMinutes?'<span title="Szacowane minuty z '+esc(item.minutes_sample||0)+' występów">'+fmt(item.minutes)+'</span>':'')+
       '<span>'+fmt(item.pts)+'</span><span>'+fmt(item.reb)+'</span><span>'+fmt(item.ast)+'</span></div></div>';
-  }).join("");
+  }).join(""));
   if(!state.expanded&&players.players.length>4){button.textContent='Pokaż wszystkich zawodników ('+players.players.length+') ▾'}
 }
 function maybeLoadPaid(game,premium,sim,players){

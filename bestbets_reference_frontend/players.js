@@ -7,6 +7,10 @@ let callbacks={},catalog=null,averages=null,role="guest",page=0,query="",team=""
 const requestedIds=new Set();
 const norm=name=>String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
   .toLowerCase().replace(/[^a-z0-9]/g,"");
+const FEATURED=["jaysontatum","stephencurry","nikolajokic","lukadoncic",
+                "shaigilgeousalexander","anthonyedwards"];
+const featuredRanks=new Map(FEATURED.map((name,index)=>[name,index]));
+let indexedSource=null,indexedPlayers=[],filteredKey=null,filteredResult=[];
 const entitled=()=>role==="premium"||role==="admin";
 const safeNumber=(value,percent)=>{
   if(typeof value!=="number"||!Number.isFinite(value))return "—";
@@ -29,16 +33,27 @@ function make(tag,cls,text){
 }
 function filteredPlayers(){
   const players=Array.isArray(catalog?.players)?catalog.players:[];
-  const found=players.filter(p=>(!query||norm(p.name).includes(norm(query)))&&
-    (!team||p.team===team)&&(!position||String(p.position||"").split("-").includes(position)));
+  // Streamlit rerenders and typing should not normalize/sort the entire NBA
+  // roster on every frame. Rebuild only when the verified catalog changes.
+  if(indexedSource!==players){
+    indexedSource=players;
+    indexedPlayers=players.map(player=>{
+      const nameKey=norm(player.name);
+      return {player,nameKey,rank:featuredRanks.get(nameKey)??999,
+              positions:String(player.position||"").split("-")};
+    });
+    filteredKey=null;
+  }
+  const search=norm(query);
+  const key=search+"\u0000"+team+"\u0000"+position;
+  if(filteredKey===key)return filteredResult;
+  const found=indexedPlayers.filter(item=>(!search||item.nameKey.includes(search))&&
+    (!team||item.player.team===team)&&(!position||item.positions.includes(position)));
   // Featured players are only a visual default ordering, never fabricated.
-  const featured=["jaysontatum","stephencurry","nikolajokic","lukadoncic",
-                  "shaigilgeousalexander","anthonyedwards"];
-  return found.sort((a,b)=>{
-    const i=featured.indexOf(norm(a.name)),j=featured.indexOf(norm(b.name));
-    if(i!==j)return (i<0?999:i)-(j<0?999:j);
-    return String(a.name).localeCompare(String(b.name),"pl");
-  });
+  found.sort((a,b)=>a.rank-b.rank||String(a.player.name).localeCompare(String(b.player.name),"pl"));
+  filteredResult=found.map(item=>item.player);
+  filteredKey=key;
+  return filteredResult;
 }
 function playerRow(player){
   const row=make("div","hzp-player-row"),name=make("div","hzp-player-name");

@@ -111,18 +111,20 @@ function renderPremium(){
  $("hzt-analytics-source").textContent=analytics.error||
    (first?`L10: ${first.sample} mecz. · Dom ${fmt(first.home)} / wyjazd ${fmt(first.away)}`:
     "Brak potwierdzonych występów tej drużyny");
- $("hzt-premium-metrics").innerHTML=[metric("PTS / mecz L10","points"),
+ setStableMarkup($("hzt-premium-metrics"),[metric("PTS / mecz L10","points"),
   metric("Stracone L10","allowed"),metric("OFF RATING","off"),
-  metric("DEF RATING","def"),metric("PACE","pace")].join("");
+  metric("DEF RATING","def"),metric("PACE","pace")].join(""));
 }
+// Visible team cards are expensive to recreate after every Streamlit event.
+function setStableMarkup(node,markup){if(node.innerHTML!==markup)node.innerHTML=markup}
 function render(nextHome,nextAnalytics,nextRole){
  home=nextHome&&typeof nextHome==="object"?nextHome:null;
  analytics=nextAnalytics&&typeof nextAnalytics==="object"?nextAnalytics:null;
  role=String(nextRole||"guest");
  const rows=candidates(),pages=Math.max(1,Math.ceil(rows.length/PAGE_SIZE));page=Math.min(page,pages-1);
  const visible=rows.slice(page*PAGE_SIZE,(page+1)*PAGE_SIZE);
- $("hzt-team-grid").innerHTML=visible.length?visible.map(markup).join(""):
-   '<div class="hzt-no-data">Nie znaleziono drużyny. Zmień filtr lub wyszukiwane hasło.</div>';
+ setStableMarkup($("hzt-team-grid"),visible.length?visible.map(markup).join(""):
+   '<div class="hzt-no-data">Nie znaleziono drużyny. Zmień filtr lub wyszukiwane hasło.</div>');
  $("hzt-page").textContent=`${page+1} / ${pages}`;
  $("hzt-prev").disabled=page===0;$("hzt-next").disabled=page+1>=pages;
  $("hzt-team-summary").textContent=`${rows.length} zespołów · ★ ${favorites().length}/2 ulubione`;
