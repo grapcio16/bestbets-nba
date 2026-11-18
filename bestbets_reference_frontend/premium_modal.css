@@ -1,0 +1,63 @@
+/* Premium conversion dialog uses the same full-viewport, unscaled layer as the NBA glossary. */
+.hz-paywall-backdrop[hidden],.hz-paywall-backdrop [hidden]{display:none!important}
+.hz-paywall-backdrop{z-index:2147483647}
+.hz-paywall-backdrop .hz-paywall-dialog{
+  width:min(1000px,calc(100vw - 40px));min-height:0;
+  padding:38px 42px 28px;
+  background:radial-gradient(ellipse at 92% 4%,rgba(123,43,209,.30),transparent 54%),
+    linear-gradient(130deg,#26144c,#081b3a 83%)
+}
+.hz-paywall-backdrop .bc-free-info-heading{margin-bottom:25px}
+.hz-paywall-backdrop .bc-free-info-heading strong em{
+  font-style:normal;color:#24e4ff;text-shadow:0 0 22px rgba(0,220,255,.25)
+}
+.hz-paywall-main{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.hz-paywall-price-card{
+  display:flex;flex-direction:column;align-items:flex-start;
+  min-height:320px;padding:30px 28px;border:1px solid rgba(54,237,254,.8);border-radius:20px;
+  background:linear-gradient(150deg,rgba(0,111,143,.20),rgba(19,20,64,.63));
+  box-shadow:inset 0 1px rgba(255,255,255,.13),0 0 28px rgba(0,220,255,.11)
+}
+.hz-paywall-price-eyebrow{color:#35f1cd;letter-spacing:.15em;font-size:14px;font-weight:900}
+.hz-paywall-price{margin:8px 0 4px;color:#fff;font-size:60px;font-weight:950;letter-spacing:-.05em;line-height:1.1}
+.hz-paywall-price>span{color:#3cf5ce;font-size:33px;vertical-align:top;letter-spacing:0}
+.hz-paywall-price small{display:block;font-size:17px;font-weight:650;color:#c8daf3;letter-spacing:0;margin-top:4px}
+.hz-paywall-price-card>p{color:#b8cae6;font-size:16px;line-height:1.5;margin:17px 0 0}
+.hz-paywall-price-card>.hz-paywall-buy{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;
+  width:100%;min-height:53px;margin-top:auto;padding:12px 19px;border:1px solid #0ef6de;border-radius:12px;
+  color:#021a25;background:linear-gradient(110deg,#22ecff,#24ffb9);font:850 17px Inter,Arial,sans-serif;
+  text-decoration:none;cursor:pointer;box-shadow:0 0 22px rgba(20,255,217,.26)
+}
+.hz-paywall-price-card>.hz-paywall-buy:hover,.hz-paywall-price-card>.hz-paywall-buy:focus-visible{
+  filter:brightness(1.1);outline:2px solid #f3edff;outline-offset:2px
+}
+.hz-paywall-price-card>.hz-paywall-payment-note{font-size:12px;line-height:1.35;color:#a6bedc;margin-top:14px}
+.hz-paywall-benefits{display:flex;flex-direction:column;gap:12px}
+.hz-paywall-benefit{
+  display:flex;align-items:center;gap:17px;flex:1;min-height:99px;padding:19px 21px;
+  background:linear-gradient(135deg,rgba(22,62,95,.75),rgba(17,17,57,.75));
+  border:1px solid #496d9d;border-radius:17px
+}
+.hz-paywall-symbol{display:grid;place-items:center;flex:0 0 56px;width:56px;height:56px;border:1px solid #57bffa;border-radius:16px;color:#34e7ff;font-size:33px;background:rgba(6,51,93,.65)}
+.hz-paywall-benefit:nth-child(2) .hz-paywall-symbol{border-color:#c276ff;color:#c276ff}
+.hz-paywall-benefit:nth-child(3) .hz-paywall-symbol{border-color:#32f4be;color:#32f4be}
+.hz-paywall-benefit strong{color:#fff;font-size:19px;font-weight:850}
+.hz-paywall-benefit p{color:#bad0ea;font-size:15px;line-height:1.4;margin:6px 0 0}
+.hz-paywall-backdrop .bc-free-info-foot{margin-top:25px;padding-top:17px;font-size:13px}
+@media(max-width:700px){
+  .hz-paywall-backdrop .hz-paywall-dialog{width:100%;max-height:calc(100dvh - 24px);padding:24px 19px}
+  .hz-paywall-backdrop .bc-free-info-heading{margin-bottom:19px}
+  .hz-paywall-backdrop .bc-free-info-heading strong{font-size:27px}
+  .hz-paywall-backdrop .bc-free-info-heading p{font-size:14px}
+  .hz-paywall-main{grid-template-columns:1fr;gap:12px}
+  .hz-paywall-price-card{min-height:0;padding:22px 20px}
+  .hz-paywall-price{font-size:45px}
+  .hz-paywall-price-card>.hz-paywall-buy{margin-top:20px}
+  .hz-paywall-benefits{gap:9px}
+  .hz-paywall-benefit{min-height:0;padding:12px 14px}
+  .hz-paywall-symbol{flex-basis:39px;width:39px;height:39px;font-size:24px}
+  .hz-paywall-benefit strong{font-size:15px}
+  .hz-paywall-benefit p{font-size:12px;margin-top:2px}
+  .hz-paywall-backdrop .bc-free-info-foot{font-size:11px;gap:10px}
+}

@@ -197,6 +197,8 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="hoopzaro.css">
 <link rel="stylesheet" href="schedule.css">
 <link rel="stylesheet" href="simulations.css">
+<link rel="stylesheet" href="premium_modal.css">
+<link rel="stylesheet" href="admin_model_performance.css">
 </head>
 <body>
 <div id="app-shell"><div id="stage">
@@ -210,6 +212,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <button class="nav-btn" data-page="simulations"><span class="ic">◈</span><span>Symulacje</span></button>
     <button class="nav-btn" data-page="players"><span class="ic">♧</span><span>Zawodnicy</span></button>
     <button class="nav-btn" data-page="teams"><span class="ic">⬡</span><span>Drużyny</span></button>
+    <button class="nav-btn hz-admin-nav" id="hz-admin-nav" data-page="admin" hidden><span class="ic">▤</span><span>Model Performance</span></button>
   </nav>
   <nav class="settings"><button class="nav-btn" data-page="settings"><span class="ic">⚙</span><span>Ustawienia</span></button></nav>
   <button class="sidebar-premium hz-premium-cta" id="hz-premium" type="button" aria-label="Otwórz Premium"><span class="hz-premium-gem" aria-hidden="true"></span><span class="hz-premium-text">PREMIUM</span><span class="hz-premium-arrow" aria-hidden="true">›</span></button>
@@ -385,6 +388,10 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <div class="hzm-insights"><div class="hzm-insight-title">DANE MODELU <span>I OGRANICZENIA</span></div><div><span class="hzm-insight-icon">↗</span><strong>Forma drużyn</strong><small id="hzm-evidence-form">Ostatnie potwierdzone mecze</small></div><div><span class="hzm-insight-icon">◷</span><strong>Tempo i zmienność</strong><small id="hzm-evidence-pace">Heurystyczna zmienność punktów</small></div><div><span class="hzm-insight-icon">▣</span><strong>Odpoczynek i składy</strong><small id="hzm-evidence-rest">Kontuzje wymagają potwierdzenia</small></div></div>
     <div class="hzm-footer"><span>Źródło: NBA / ESPN · model eksperymentalny, nieskalibrowane prawdopodobieństwa</span><button type="button" id="hzm-premium-link">Sprawdź Premium ›</button></div>
   </section>
+  <section id="hz-admin-pane" class="hz-admin-pane" hidden aria-label="Administrator: skuteczność modeli">
+    <div class="hz-admin-head"><div><span class="hz-admin-kicker">HOOPZARO · TYLKO ADMINISTRATOR</span><h1>Model <em>Performance</em></h1><p>Ocena prognoz zapisanych przed meczem. Wyniki wyłącznie po oficjalnym zakończeniu spotkań.</p></div><button type="button" id="hz-admin-refresh">↻ Odśwież</button></div>
+    <div id="hz-admin-dashboard" class="hz-admin-dashboard" aria-live="polite"><div class="hz-admin-empty">Otwórz raport, aby pobrać dane z PostgreSQL…</div></div>
+  </section>
 </div>
 <footer id="footer">
  <div class="footer-tiles">
@@ -399,20 +406,79 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 </footer>
 <div id="attribution">HOOPZARO · Statystyki historyczne NBA / ESPN · nie są gwarancją przyszłego wyniku.</div>
 </div></div>
+<!-- Keep this modal outside the scaled dashboard: it fills the actual viewport. -->
+<div id="hz-paywall-backdrop" class="bc-free-info-backdrop hz-paywall-backdrop" hidden>
+  <section id="hz-paywall-dialog" class="bc-free-info-popup hz-paywall-dialog" role="dialog" aria-modal="true" aria-labelledby="hz-paywall-title" aria-describedby="hz-paywall-description" tabindex="-1">
+    <div class="bc-free-info-heading">
+      <div>
+        <span class="bc-free-info-kicker">HOOPZARO · ODBLOKUJ PEŁNE ANALIZY</span>
+        <strong id="hz-paywall-title">Przejdź na <em>Premium</em></strong>
+        <p id="hz-paywall-description">Odkryj zaawansowaną analizę zawodników i symulacje NBA.</p>
+      </div>
+      <button type="button" id="hz-paywall-close" aria-label="Zamknij okno Premium">×</button>
+    </div>
+    <div class="hz-paywall-main">
+      <div class="hz-paywall-price-card">
+        <div class="hz-paywall-price-eyebrow">PLAN PREMIUM</div>
+        <div class="hz-paywall-price"><span>$</span>9.99 <small>USD / miesiąc</small></div>
+        <p>Zaawansowane narzędzia koszykarskie w jednym miejscu.</p>
+        <a id="hz-paywall-checkout" class="hz-paywall-buy" href="#" target="_blank" rel="noopener noreferrer" hidden>Przejdź do zakupu Premium <span aria-hidden="true">↗</span></a>
+        <button id="hz-paywall-settings" class="hz-paywall-buy" type="button">Przejdź do Ustawień <span aria-hidden="true">›</span></button>
+        <p id="hz-paywall-payment-note" class="hz-paywall-payment-note">Płatności są w przygotowaniu. Zaloguj się w Ustawieniach, aby sprawdzić dostęp.</p>
+      </div>
+      <div class="hz-paywall-benefits">
+        <div class="hz-paywall-benefit"><span class="hz-paywall-symbol">▥</span><div><strong>Player Props</strong><p>Analizy statystyk, linii i historycznej skuteczności.</p></div></div>
+        <div class="hz-paywall-benefit"><span class="hz-paywall-symbol">◈</span><div><strong>Symulacje meczów</strong><p>Projekcje wyników oraz scenariusze meczowe.</p></div></div>
+        <div class="hz-paywall-benefit"><span class="hz-paywall-symbol">✧</span><div><strong>Pełen dostęp</strong><p>Więcej danych i narzędzi analitycznych HOOPZARO.</p></div></div>
+      </div>
+    </div>
+    <div class="bc-free-info-foot"><span>Subskrypcja $9.99 USD miesięcznie · brak gwarancji wyników sportowych.</span><span class="bc-free-info-foot-badge">✦ HOOPZARO PREMIUM</span></div>
+  </section>
+</div>
 <script src="nba_player_ids.js"></script>
 <script src="portraits.js"></script>
 <script src="centrum.js"></script>
 <script src="player_picker.js"></script>
 <script src="schedule.js"></script>
 <script src="simulations.js"></script>
+<script src="admin_model_performance.js"></script>
 <script>
 (function(){
 "use strict";
 const $=function(id){return document.getElementById(id)};
 const root=$("stage"),shell=$("app-shell");
 const marketNames={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PTS + REB + AST"};
-const pages={home:"Centrum",props:"Player Props",games:"Terminarz",simulations:"Symulacje",players:"Zawodnicy",teams:"Drużyny",settings:"Ustawienia",shortcuts:"Skrót wpisywania"};
-const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",loading:false,lastIdentity:"",homeRequested:false,homeRequestAt:0,homeLastAttempt:0,homeRetryCount:0,homeTimedOut:false};
+const pages={home:"Centrum",props:"Player Props",games:"Terminarz",simulations:"Symulacje",players:"Zawodnicy",teams:"Drużyny",settings:"Ustawienia",shortcuts:"Skrót wpisywania",admin:"Model Performance"};
+const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",loading:false,lastIdentity:"",homeRequested:false,homeRequestAt:0,homeLastAttempt:0,homeRetryCount:0,homeTimedOut:false,paywallOpen:false,paywallServerErrorSeen:"",adminLoading:false,adminLastRequest:0};
+function premiumRequired(){
+  const role=state.payload.auth?.role||"guest";
+  return role!=="admin"&&role!=="premium";
+}
+function showPremiumPaywall(){
+  if(!premiumRequired())return;
+  state.paywallOpen=true;
+  const url=String(state.payload.premium_checkout_url||"");
+  const checkout=$("hz-paywall-checkout"),settings=$("hz-paywall-settings");
+  const validCheckout=/^https:\/\/(buy|checkout)\.stripe\.com\/[a-zA-Z0-9/_?=&%.-]+$/.test(url);
+  const testCheckout=/^https:\/\/(?:buy|checkout)\.stripe\.com\/(?:test_|c\/pay\/cs_test_)/.test(url);
+  checkout.hidden=!validCheckout;
+  checkout.href=validCheckout?url:"#";
+  checkout.firstChild.textContent=testCheckout?"Przetestuj zakup Premium ":"Przejdź do zakupu Premium ";
+  settings.hidden=validCheckout;
+  $("hz-paywall-payment-note").textContent=validCheckout
+    ?(testCheckout
+      ?"Tryb testowy Stripe — to nie jest prawdziwy zakup. Cena i warunki subskrypcji są prezentowane przed potwierdzeniem."
+      :"Bezpieczne przekierowanie do Stripe. Finalną cenę i warunki potwierdzisz przed płatnością.")
+    :"Płatności są w przygotowaniu. Zaloguj się w Ustawieniach, aby sprawdzić dostęp.";
+  $("hz-paywall-backdrop").hidden=false;
+  $("hz-paywall-close").focus();
+}
+function closePremiumPaywall(){
+  if(!state.paywallOpen)return;
+  state.paywallOpen=false;
+  $("hz-paywall-backdrop").hidden=true;
+  $("query").focus();
+}
 function notify(type,extra){
   window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},extra||{}),"*");
 }
@@ -576,8 +642,13 @@ function renderPlayer(){
       " osiągnął wskazaną stronę w "+m.season.wins+" z "+m.season.n+" występów ("+m.season.label+
       "). To częstotliwość historyczna, nie skalibrowana prognoza.";
   }else take.textContent="Brak występów dla tego rynku i linii.";
-  text("notice",state.payload.error||"");
-  $("notice").style.display=state.payload.error?"block":"none";
+  const premiumError=String(state.payload.error||"").startsWith("Player Props wymaga konta Premium");
+  text("notice",premiumError?"":state.payload.error||"");
+  $("notice").style.display=state.payload.error&&!premiumError?"block":"none";
+  if(premiumError&&premiumRequired()&&state.paywallServerErrorSeen!==state.payload.error){
+    state.paywallServerErrorSeen=state.payload.error;
+    showPremiumPaywall();
+  }
   $("loader").style.display=state.loading?"block":"none";
   $("market").value=state.market;$("line").value=String(state.line);
   document.querySelectorAll("[data-market]").forEach(function(el){el.classList.toggle("on",el.dataset.market===state.market)});
@@ -599,6 +670,9 @@ function requestHomeData(){
 function render(){
   const active=state.page==="props",home=state.page==="home";
   const role=state.payload.auth?.role||"guest";
+  if(state.page==="admin"&&role!=="admin")state.page="home";
+  const admin=state.page==="admin";
+  $("hz-admin-nav").hidden=role!=="admin";
   const sidebarRole=$("hz-premium")?.querySelector(".hz-premium-text");
   if(sidebarRole)sidebarRole.textContent=role==="admin"?"ADMIN":"PREMIUM";
   const propsHelp=$("props-heading")?.querySelector("p");
@@ -609,12 +683,13 @@ function render(){
   $("props-pane").style.display=active?"block":"none";
   const schedule=state.page==="games";
   const simulations=state.page==="simulations";
-  $("blank-pane").style.display=!active&&!home&&!schedule&&!simulations?"block":"none";
+  $("blank-pane").style.display=!active&&!home&&!schedule&&!simulations&&!admin?"block":"none";
   $("schedule-pane").hidden=!schedule;
   $("simulations-pane").hidden=!simulations;
+  $("hz-admin-pane").hidden=!admin;
   $("bestbets-centre").hidden=!home;
-  $("footer").style.display=home||simulations?"none":"block";
-  $("attribution").style.display=home||simulations?"none":"block";
+  $("footer").style.display=home||simulations||admin?"none":"block";
+  $("attribution").style.display=home||simulations||admin?"none":"block";
   text("blank-title",pages[state.page]||"HOOPZARO");
   renderAccount();
   $("props-heading").style.display=active?"flex":"none";
@@ -636,6 +711,7 @@ function render(){
   }
   if(schedule && window.HoopzaroSchedule)window.HoopzaroSchedule.render(state.payload.home||null);
   if(simulations && window.HoopzaroSimulations)window.HoopzaroSimulations.render(state.payload.home||null,state.payload.premium_simulation||null);
+  if(admin&&window.HoopzaroAdmin)window.HoopzaroAdmin.render(state.payload.admin_report||null,state.adminLoading);
   if(active)renderPlayer();
   resize();
 }
@@ -661,12 +737,27 @@ function sendAuth(action){
     type:action,id:String(Date.now())+"-auth-"+Math.random().toString(36).slice(2)
   }});
 }
+function requestAdminReport(){
+  if(state.page!=="admin"||state.payload.auth?.role!=="admin")return;
+  const now=Date.now();
+  if(now-state.adminLastRequest<30000)return;
+  state.adminLastRequest=now;
+  state.adminLoading=true;
+  render();
+  notify("streamlit:setComponentValue",{dataType:"json",value:{
+    type:"admin_report",id:String(now)+"-admin-report"
+  }});
+}
 function search(query){
   query=String(query||"").trim();
   if(!query){state.payload.error="Wpisz imię i nazwisko, linię oraz rynek.";render();return}
   // Top search from the free homepage opens the existing Props analysis.
   if(state.page==="home")state.page="props";
   state.query=query;$("query").value=query;
+  if(premiumRequired()){
+    state.payload.error="";state.loading=false;
+    render();showPremiumPaywall();return;
+  }
   state.payload.error="";state.loading=true;render();
   notify("streamlit:setComponentValue",{dataType:"json",value:{type:"search",query:query,id:String(Date.now())+"-"+String(Math.random()).slice(2)}});
 }
@@ -745,11 +836,29 @@ $("hz-account-login").addEventListener("click",function(){sendAuth("auth_login")
 $("hz-account-logout").addEventListener("click",function(){sendAuth("auth_logout")});
 $("search-form").addEventListener("submit",function(e){e.preventDefault();search($("query").value)});
 document.querySelectorAll("[data-query]").forEach(function(b){b.addEventListener("click",function(){state.page="props";search(b.dataset.query)})});
-document.querySelectorAll("[data-page]").forEach(function(el){el.addEventListener("click",function(){state.page=el.dataset.page;state.payload.error="";render()})});
+document.querySelectorAll("[data-page]").forEach(function(el){el.addEventListener("click",function(){
+  state.page=el.dataset.page;state.payload.error="";render();
+  if(state.page==="admin"&&!state.payload.admin_report)requestAdminReport();
+})});
+$("hz-admin-refresh").addEventListener("click",requestAdminReport);
 $("hz-premium").addEventListener("click",function(){
   const role=state.payload.auth?.role||"guest";
-  state.page=role==="admin"||role==="premium"?"simulations":"settings";
+  if(role!=="admin"&&role!=="premium"){showPremiumPaywall();return}
+  state.page="simulations";
   render();
+});
+$("hz-paywall-close").addEventListener("click",closePremiumPaywall);
+$("hz-paywall-backdrop").addEventListener("click",function(e){if(e.target===this)closePremiumPaywall()});
+$("hz-paywall-settings").addEventListener("click",function(){closePremiumPaywall();state.page="settings";render()});
+document.addEventListener("keydown",function(e){
+  if(!state.paywallOpen)return;
+  if(e.key==="Escape"){e.preventDefault();closePremiumPaywall();return}
+  if(e.key!=="Tab")return;
+  const items=Array.from($("hz-paywall-dialog").querySelectorAll("button:not([hidden]),a:not([hidden])"));
+  if(!items.length)return;
+  const first=items[0],last=items[items.length-1];
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
 });
 document.querySelectorAll("[data-market]").forEach(function(el){el.addEventListener("click",function(){state.market=el.dataset.market;render()})});
 $("market").addEventListener("change",function(){state.market=this.value;render()});
@@ -789,6 +898,7 @@ window.addEventListener("message",function(event){
   const packet=event.data||{};
   if(packet.type!=="streamlit:render"||!packet.args)return;
   state.payload=packet.args.payload||{player:null,error:"",brand:""};
+  state.adminLoading=false;
   if(state.payload.home){
     state.homeTimedOut=false;
     state.homeRequestAt=0;

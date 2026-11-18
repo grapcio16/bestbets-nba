@@ -1,0 +1,50 @@
+/* Admin-only report. Never changes the approved public Home/Player Props layout. */
+#hz-admin-nav[hidden],#hz-admin-pane[hidden]{display:none!important}
+#hz-admin-nav{border-color:rgba(50,234,214,.35);font-size:10px}
+#hz-admin-nav .ic{color:#24e4ff}
+.hz-admin-pane{
+  position:absolute;top:20px;left:18px;width:1020px;height:642px;
+  padding:24px 28px;overflow-y:auto;color:#e8f2ff;
+  border:1px solid #5c69a7;border-radius:18px;
+  background:radial-gradient(ellipse 60% 38% at 90% 0%,rgba(108,41,191,.30),transparent),
+    linear-gradient(125deg,#0b1230,#070f24 85%);
+  box-shadow:0 0 24px rgba(100,60,235,.18)
+}
+.hz-admin-head{display:flex;justify-content:space-between;align-items:center;gap:20px}
+.hz-admin-kicker{font-size:11px;letter-spacing:.19em;color:#36e6ff;font-weight:900}
+.hz-admin-head h1{font-size:36px;margin:7px 0 4px;letter-spacing:-.04em}
+.hz-admin-head h1 em{font-style:normal;color:#1ce5ed}
+.hz-admin-head p{font-size:12px;color:#b6c9e5;margin:0}
+#hz-admin-refresh{white-space:nowrap;padding:12px 18px;border:1px solid #48dafa;border-radius:12px;background:linear-gradient(120deg,#13274c,#1d1b55);color:#e8fdff;font-weight:800}
+.hz-admin-dashboard{margin-top:22px}
+.hz-admin-empty{margin:22px auto;padding:34px 22px;text-align:center;color:#a9c2e3;border:1px solid #48628f;border-radius:14px;background:#101b3a}
+.hz-admin-error{border-color:#fb7c86;color:#ffc5cd}
+.hz-admin-meta{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:15px;color:#b9d5ef;font-size:11px}
+.hz-admin-meta span:first-child{font-weight:850;color:#38e0d5}
+.hz-admin-models{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.hz-admin-model{padding:18px;border:1px solid #476da1;border-radius:16px;background:linear-gradient(140deg,rgba(18,52,87,.92),rgba(22,21,60,.86));box-shadow:inset 0 1px rgba(255,255,255,.06)}
+.hz-admin-model-top{display:flex;align-items:center;justify-content:space-between;gap:5px}
+.hz-admin-model-top span:first-child{color:#7cdaf0;font-size:10px;font-weight:850;letter-spacing:.08em}
+.hz-admin-model-top h2{font-size:18px;color:#f4f4ff;margin:5px 0 16px;overflow-wrap:anywhere}
+.hz-admin-counter{color:#30f4bc;font-size:12px;white-space:nowrap}
+.hz-admin-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hz-admin-stat{display:flex;flex-direction:column;gap:5px;padding:12px 13px;border:1px solid #45618e;border-radius:10px;background:#0a1b38}
+.hz-admin-stat span{color:#c0cfe4;font-size:11px}
+.hz-admin-stat b{color:#30f8c0;font-size:27px}
+.hz-admin-stat:nth-child(2) b{color:#3edcfe}
+.hz-admin-stat:nth-child(4) b{color:#d28cff}
+.hz-admin-stat small{color:#92a8cb;font-size:10px}
+.hz-admin-model-foot{display:flex;justify-content:space-between;gap:10px;margin-top:15px;color:#a8bddc;font-size:11px}
+.hz-admin-model-foot b{color:#fff}
+.hz-admin-pending{margin-top:10px;color:#ebc99a;font-size:11px}
+.hz-admin-history{margin-top:17px;border:1px solid #496ca0;border-radius:15px;padding:18px;background:#0a1a33}
+.hz-admin-history header{display:flex;justify-content:space-between;align-items:center}
+.hz-admin-history h2{font-size:18px;margin:0 0 15px}
+.hz-admin-history label{font-size:12px;color:#aac9df}
+.hz-admin-history select{background:#16284b;color:white;border:1px solid #36badc;border-radius:8px;padding:6px}
+.hz-admin-table-scroll{max-height:185px;overflow:auto}
+.hz-admin-history table{border-collapse:collapse;width:100%;font-size:11px}
+.hz-admin-history th,.hz-admin-history td{padding:9px;text-align:left;border-bottom:1px solid #28476d}
+.hz-admin-history th{position:sticky;top:0;color:#42e6e5;background:#0b1c39}
+.hz-admin-wait{color:#e4bd6f}
+.hz-admin-history p{color:#93acd0;font-size:10px;margin:12px 0 0}
