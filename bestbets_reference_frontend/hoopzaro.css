@@ -345,12 +345,12 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
 .hero-name h1{font-size:32px}
 .hero-kpis>div{width:88px;border-left-color:#435c8e}
 .grade{height:81px;border-color:#427cb9;background:linear-gradient(120deg,#101a3d,#0c1835)}
-.controls{top:271px;left:17px;width:1027px;height:45px;gap:11px}
+.controls{top:271px;left:17px;width:1027px;height:45px;gap:11px;z-index:30}
 .control-box{border-color:#4b5d97;background:linear-gradient(#0e2243,#09162e);box-shadow:inset 0 1px rgba(137,179,255,.13)}
 .control-group label{color:#b8c6e6}
-/* Player Props market picker: use the same neon glass finish as our other
-   controls, without the grey native Windows combobox drawn inside the pill.
-   Keep a real <select> for keyboard, screen-reader and form compatibility. */
+/* This is an actual themed popup, not a native select with an unstyleable
+   Windows/OS options menu. The native select remains a hidden state bridge. */
+#market-group{position:relative;z-index:31}
 #market-group .control-box{
   position:relative;padding:0;overflow:visible;
   border:1px solid #3c8ac3;border-radius:10px;
@@ -371,22 +371,61 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
   border-radius:2px;background:linear-gradient(#0cdef5,#a85af3);
   pointer-events:none;
 }
-#market-group .control-box::after{
-  content:"";position:absolute;right:13px;top:8px;width:8px;height:8px;
+#market-group .market-chevron{
+  position:absolute;right:13px;top:8px;width:8px;height:8px;
   border-right:2px solid #41e8fa;border-bottom:2px solid #41e8fa;
   transform:rotate(45deg);pointer-events:none;
   filter:drop-shadow(0 0 4px rgba(20,221,252,.45));
+  transition:transform .16s ease,top .16s ease;
 }
-#market-group select{
-  appearance:none;-webkit-appearance:none;
-  display:block;width:100%;height:100%;min-width:0;margin:0;
+#market-group.market-open .market-chevron{top:12px;transform:rotate(225deg)}
+#market-group #market{
+  position:absolute;width:1px;height:1px;padding:0;margin:0;
+  clip-path:inset(50%);overflow:hidden;pointer-events:none;opacity:0;
+}
+#market-trigger{
+  display:flex;align-items:center;width:100%;height:100%;min-width:0;
   padding:0 31px 0 17px;border:0;border-radius:10px;
-  background:transparent;color:#eef9ff;font-size:13px;font-weight:850;
-  letter-spacing:.12px;cursor:pointer;outline:none;
-  text-overflow:ellipsis;white-space:nowrap;color-scheme:dark;
+  background:transparent;color:#eef9ff;font-family:inherit;
+  font-size:13px;font-weight:850;letter-spacing:.12px;text-align:left;
+  cursor:pointer;outline:none;
 }
-#market-group select:focus-visible{outline:none}
-#market-group select option{background:#0d1b39;color:#ecf8ff;font-weight:650}
+#market-selected-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#market-trigger:focus-visible{outline:2px solid #22e5fb;outline-offset:2px}
+#market-group .market-options{
+  position:absolute;z-index:60;top:46px;left:0;width:238px;
+  display:flex;flex-direction:column;gap:3px;padding:7px;
+  border:1px solid rgba(34,225,250,.76);border-radius:13px;
+  background:linear-gradient(148deg,rgba(14,37,74,.99),rgba(8,18,43,.99) 62%,rgba(31,19,64,.99));
+  box-shadow:0 17px 34px rgba(0,0,0,.68),0 0 18px rgba(14,206,249,.25),inset 0 1px rgba(188,234,255,.19);
+  backdrop-filter:blur(14px);
+}
+#market-group .market-options[hidden]{display:none!important}
+#market-group [data-market-choice]{
+  position:relative;display:flex;align-items:center;gap:10px;
+  min-height:37px;padding:4px 9px;border:1px solid transparent;
+  border-radius:9px;color:#d6e5ff;font-size:12px;font-weight:750;
+  cursor:pointer;outline:0;transition:background .13s ease,border-color .13s ease,color .13s ease;
+}
+#market-group [data-market-choice]:hover,
+#market-group [data-market-choice]:focus-visible{
+  color:#fff;border-color:rgba(34,220,255,.64);
+  background:linear-gradient(100deg,rgba(0,183,239,.23),rgba(133,56,219,.20));
+  box-shadow:inset 2px 0 #23ebff,0 0 10px rgba(12,187,255,.13);
+}
+#market-group [data-market-choice].selected{
+  color:#f4ffff;border-color:rgba(30,238,249,.45);
+  background:linear-gradient(105deg,rgba(0,198,220,.28),rgba(74,47,164,.22));
+}
+#market-group .market-short{
+  width:35px;flex:none;padding:5px 0;border:1px solid #346b9f;
+  border-radius:6px;background:rgba(20,66,111,.55);color:#52edfa;
+  font-size:10px;font-weight:900;text-align:center;letter-spacing:.25px;
+}
+#market-group [data-market-choice].selected .market-short{border-color:#19e4ed;box-shadow:0 0 8px rgba(8,219,252,.28)}
+#market-group .market-option-name{flex:1;white-space:nowrap}
+#market-group .market-check{visibility:hidden;color:#29f3a8;font-size:15px;font-weight:950}
+#market-group [data-market-choice].selected .market-check{visibility:visible}
 .tab-control button.on,.period-control button.on{border-color:#1ee5f8;background:linear-gradient(#0d6898,#072959);box-shadow:0 0 12px rgba(2,215,255,.51)}
 #chart-panel{
   left:17px;top:328px;width:598px;height:235px;

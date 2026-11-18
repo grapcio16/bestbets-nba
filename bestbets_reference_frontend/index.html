@@ -238,7 +238,21 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <div class="grade"><small>MATCHUP GRADE</small><div class="grade-arc" id="hero-grade">—</div></div>
   </section>
   <section class="controls">
-    <div class="control-group" id="market-group"><label>Rynek</label><div class="control-box"><select id="market" aria-label="Rynek"><option value="PTS">Points</option><option value="REB">Rebounds</option><option value="AST">Assists</option><option value="FG3M">3-Point Made</option><option value="PRA">PTS + REB + AST</option></select></div></div>
+    <div class="control-group" id="market-group"><label>Rynek</label>
+      <div class="control-box market-control">
+        <select id="market" aria-hidden="true" tabindex="-1"><option value="PTS">Points</option><option value="REB">Rebounds</option><option value="AST">Assists</option><option value="FG3M">3-Point Made</option><option value="PRA">PTS + REB + AST</option></select>
+        <button id="market-trigger" type="button" aria-label="Wybierz rynek" aria-haspopup="listbox" aria-controls="market-options" aria-expanded="false">
+          <span id="market-selected-label">Points</span><span class="market-chevron" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div id="market-options" class="market-options" role="listbox" aria-label="Rynek statystyczny" hidden>
+        <div role="option" tabindex="-1" data-market-choice="PTS" aria-selected="true"><span class="market-short">PTS</span><span class="market-option-name">Points</span><span class="market-check">✓</span></div>
+        <div role="option" tabindex="-1" data-market-choice="REB" aria-selected="false"><span class="market-short">REB</span><span class="market-option-name">Rebounds</span><span class="market-check">✓</span></div>
+        <div role="option" tabindex="-1" data-market-choice="AST" aria-selected="false"><span class="market-short">AST</span><span class="market-option-name">Assists</span><span class="market-check">✓</span></div>
+        <div role="option" tabindex="-1" data-market-choice="FG3M" aria-selected="false"><span class="market-short">3PM</span><span class="market-option-name">3-Point Made</span><span class="market-check">✓</span></div>
+        <div role="option" tabindex="-1" data-market-choice="PRA" aria-selected="false"><span class="market-short">PRA</span><span class="market-option-name">PTS + REB + AST</span><span class="market-check">✓</span></div>
+      </div>
+    </div>
     <div class="control-group" id="line-group"><label>Linia</label><div class="control-box line-control"><button id="line-minus" type="button" aria-label="Zmniejsz linię">−</button><input id="line" aria-label="Linia" inputmode="decimal" type="number" min=".5" max="150" step=".5" value="25.5"><button id="line-plus" type="button" aria-label="Zwiększ linię">+</button></div></div>
     <div class="control-group" id="side-group"><label>Strona</label><div class="control-box side-control"><button class="on over" data-side="OVER">Over ✓</button><button class="under" data-side="UNDER">Under</button></div></div>
     <div class="control-group" id="tabs-group"><label>&nbsp;</label><div class="control-box tab-control"><button data-market="PTS" class="on">PTS</button><button data-market="REB">REB</button><button data-market="AST">AST</button><button data-market="FG3M">3PM</button><button data-market="PRA">PRA</button></div></div>
@@ -496,6 +510,33 @@ const root=$("stage"),shell=$("app-shell");
 const marketNames={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PTS + REB + AST"};
 const pages={home:"Centrum",props:"Player Props",games:"Terminarz",simulations:"Symulacje",players:"Zawodnicy",teams:"Drużyny",settings:"Ustawienia",shortcuts:"Skrót wpisywania",admin:"Model Performance"};
 const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",loading:false,lastIdentity:"",homeRequested:false,homeRequestAt:0,homeLastAttempt:0,homeRetryCount:0,homeTimedOut:false,paywallOpen:false,paywallServerErrorSeen:"",adminLoading:false,adminLastRequest:0,playerCatalogRequested:false,playerAveragesRequested:false,teamAnalyticsRequested:false,playerIdentity:""};
+const marketLabels={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PTS + REB + AST"};
+function syncMarketPicker(){
+  $("market").value=state.market;
+  text("market-selected-label",marketLabels[state.market]||"Points");
+  $("market-trigger").setAttribute("aria-label","Rynek: "+(marketLabels[state.market]||"Points"));
+  document.querySelectorAll("[data-market-choice]").forEach(function(option){
+    const active=option.dataset.marketChoice===state.market;
+    option.classList.toggle("selected",active);
+    option.setAttribute("aria-selected",String(active));
+  });
+}
+function setMarketMenuOpen(open,focusSelected){
+  $("market-options").hidden=!open;
+  $("market-trigger").setAttribute("aria-expanded",String(open));
+  $("market-group").classList.toggle("market-open",open);
+  if(open&&focusSelected){
+    const selected=$("market-options").querySelector('[data-market-choice="'+state.market+'"]');
+    if(selected)selected.focus({preventScroll:true});
+  }
+}
+function chooseMarket(value){
+  if(!Object.prototype.hasOwnProperty.call(marketLabels,value))return;
+  setMarketMenuOpen(false);
+  $("market").value=value;
+  $("market").dispatchEvent(new Event("change",{bubbles:true}));
+  $("market-trigger").focus({preventScroll:true});
+}
 function premiumRequired(){
   const role=state.payload.auth?.role||"guest";
   return role!=="admin"&&role!=="premium";
@@ -696,7 +737,7 @@ function renderPlayer(){
     showPremiumPaywall();
   }
   $("loader").style.display=state.loading?"block":"none";
-  $("market").value=state.market;$("line").value=String(state.line);
+  syncMarketPicker();$("line").value=String(state.line);
   document.querySelectorAll("[data-market]").forEach(function(el){el.classList.toggle("on",el.dataset.market===state.market)});
   document.querySelectorAll("[data-side]").forEach(function(el){el.classList.toggle("on",el.dataset.side===state.side)});
   document.querySelectorAll("[data-period]").forEach(function(el){el.classList.toggle("on",el.dataset.period===state.period)});
@@ -715,6 +756,7 @@ function requestHomeData(){
 }
 function render(){
   const active=state.page==="props",home=state.page==="home";
+  if(!active)setMarketMenuOpen(false);
   const role=state.payload.auth?.role||"guest";
   if(state.page==="admin"&&role!=="admin")state.page="home";
   const admin=state.page==="admin";
@@ -957,8 +999,36 @@ document.addEventListener("keydown",function(e){
   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
 });
-document.querySelectorAll("[data-market]").forEach(function(el){el.addEventListener("click",function(){state.market=el.dataset.market;render()})});
+document.querySelectorAll("[data-market]").forEach(function(el){el.addEventListener("click",function(){setMarketMenuOpen(false);state.market=el.dataset.market;render()})});
 $("market").addEventListener("change",function(){state.market=this.value;render()});
+$("market-trigger").addEventListener("click",function(){setMarketMenuOpen($("market-options").hidden,true)});
+$("market-trigger").addEventListener("keydown",function(e){
+  if(["ArrowDown","ArrowUp","Enter"," "].includes(e.key)){
+    e.preventDefault();setMarketMenuOpen(true,true);
+  }else if(e.key==="Escape")setMarketMenuOpen(false);
+});
+$("market-options").addEventListener("click",function(e){
+  const option=e.target.closest("[data-market-choice]");
+  if(option)chooseMarket(option.dataset.marketChoice);
+});
+$("market-options").addEventListener("keydown",function(e){
+  const options=Array.from(this.querySelectorAll("[data-market-choice]"));
+  const index=options.indexOf(document.activeElement);
+  if(["ArrowDown","ArrowUp","Home","End"].includes(e.key)){
+    e.preventDefault();
+    const next=e.key==="Home"?0:e.key==="End"?options.length-1:
+      (index+(e.key==="ArrowDown"?1:-1)+options.length)%options.length;
+    options[next].focus({preventScroll:true});
+  }else if(e.key==="Enter"||e.key===" "){
+    e.preventDefault();
+    if(index>=0)chooseMarket(options[index].dataset.marketChoice);
+  }else if(e.key==="Escape"){
+    e.preventDefault();setMarketMenuOpen(false);$("market-trigger").focus({preventScroll:true});
+  }else if(e.key==="Tab")setMarketMenuOpen(false);
+});
+document.addEventListener("pointerdown",function(e){
+  if(!$("market-group").contains(e.target))setMarketMenuOpen(false);
+});
 document.querySelectorAll("[data-side]").forEach(function(el){el.addEventListener("click",function(){state.side=el.dataset.side;render()})});
 document.querySelectorAll("[data-period]").forEach(function(el){el.addEventListener("click",function(){state.period=el.dataset.period;render()})});
 $("line-minus").addEventListener("click",function(){state.line=Math.max(.5,state.line-.5);render()});
