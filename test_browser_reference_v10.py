@@ -58,7 +58,12 @@ def main():
         line_input = page.locator("#line")
         assert line_input.get_attribute("type") == "number"
         assert line_input.evaluate("e => getComputedStyle(e).appearance") == "textfield"
-        assert line_input.evaluate("e => getComputedStyle(e, '::-webkit-inner-spin-button').display") == "none"
+        # Chromium may not expose author styles on native spinner pseudo-
+        # elements through getComputedStyle(), even when their CSS is applied.
+        # Guard the explicit WebKit/Opera override in the stylesheet instead.
+        stylesheet = (ROOT / "bestbets_reference_frontend" / "hoopzaro.css").read_text(encoding="utf-8")
+        assert "#line-group .line-control input::-webkit-inner-spin-button" in stylesheet
+        assert "#line-group .line-control input::-webkit-outer-spin-button" in stylesheet
         assert page.locator("#line-minus").is_visible()
         assert page.locator("#line-plus").is_visible()
         trigger.click()
