@@ -21,7 +21,7 @@ class GlobalCatalogTests(unittest.TestCase):
                     "TEAM_ABBREVIATION":"DEN","POSITION":"PF","ROSTER_STATUS":"?"
                 }]),{"stale":False}
             return pd.DataFrame([{
-                "PLAYER_ID":str(10000 + sum(ord(ch) for ch in team)),"PLAYER_NAME":"Test "+team,
+                "PLAYER_ID":str(10000+ESPN_TEAM_IDS[team]),"PLAYER_NAME":"Test "+team,
                 "TEAM_ABBREVIATION":team,"POSITION":"?", "ROSTER_STATUS":"?"
             }]),{"stale":False}
         catalog,coverage=build_global_catalog(fake_team)
@@ -37,7 +37,7 @@ class GlobalCatalogTests(unittest.TestCase):
             if team=="DEN":
                 raise RuntimeError("ESPN error")
             return pd.DataFrame([{
-                "PLAYER_ID":str(10000 + sum(ord(ch) for ch in team)),"PLAYER_NAME":team,"TEAM_ABBREVIATION":team,
+                "PLAYER_ID":str(10000+ESPN_TEAM_IDS[team]),"PLAYER_NAME":team,"TEAM_ABBREVIATION":team,
                 "POSITION":"?","ROSTER_STATUS":"?"
             }]),{"stale":False}
         catalog,coverage=build_global_catalog(fake_team)
@@ -52,7 +52,7 @@ class GlobalCatalogTests(unittest.TestCase):
             if team=="DEN" and attempts[team]==1:
                 raise TimeoutError("Temporary ESPN failure")
             return pd.DataFrame([{
-                "PLAYER_ID":str(20000+sum(ord(c) for c in team)),
+                "PLAYER_ID":str(20000+ESPN_TEAM_IDS[team]),
                 "PLAYER_NAME":"Player "+team,
                 "TEAM_ABBREVIATION":team,
                 "POSITION":"G","ROSTER_STATUS":"Active"
