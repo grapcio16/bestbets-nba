@@ -13,7 +13,7 @@ import pandas as pd
 import streamlit as st
 from access_control import premium_entitled as _verified_entitlement
 
-SIMULATION_MODELS = {"legacy_v72", "research_form_v74"}
+SIMULATION_MODELS = {"legacy_v72", "research_form_v74", "research_context_v75"}
 
 
 def premium_entitled() -> bool:
@@ -90,6 +90,7 @@ def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"
     from simulation_engine import (advanced_ratings, completed_team_scores,
                                    legacy_matchup_means, simulate_game)
     from simulation_context_v2 import simulation_inputs
+    from simulation_context_v75 import simulation_inputs_v75
     from simulation_data_audit import verified_history
 
     event = _day_for_simulations(day)
@@ -111,10 +112,11 @@ def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"
     # historical final. Using it here would leak future information.
     advanced = (_advanced_from_verified_cache(season)
                 if match.get("state") == "scheduled" else pd.DataFrame())
-    context = simulation_inputs(historical, game, advanced)
-    # Both modes use identical verified pregame evidence. The legacy baseline
-    # retains its original fixed variance; the research variant additionally
-    # uses observed, shrunk team scoring variance.
+    context = (simulation_inputs_v75(historical, game, advanced)
+               if model_id == "research_context_v75" else
+               simulation_inputs(historical, game, advanced))
+    # All modes use verified pregame evidence. The legacy baseline retains its
+    # fixed variance; both research variants use shrunk observed scoring SD.
     means = (legacy_matchup_means(
         home, away, advanced_ratings(advanced),
         completed_team_scores(verified_history(historical, tipoff)))
@@ -130,7 +132,7 @@ def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"
         pass
     summary, _, home_scores, away_scores = simulate_game(
         game, means, score_noise=(context["score_noise"]
-                                 if model_id == "research_form_v74" else None))
+                                 if model_id != "legacy_v72" else None))
     return {
         "game_id": game_id, "model_id": model_id, "away": away, "home": home,
         "away_win_pct": summary["away_win_pct"],
@@ -172,7 +174,7 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
                 if match.get("state") == "scheduled" else pd.DataFrame())
     table, _ = matchup_players_cached(season, game, historical,
                                       advanced, 0,
-                                      research_mode=model_id == "research_form_v74")
+                                      research_mode=model_id != "legacy_v72")
     if table is None or table.empty:
         return {"players": [], "error": "ESPN nie dostarczył projekcji graczy dla tego spotkania."}
     required = {"Zawodnik", "Drużyna", "PTS", "REB", "AST"}

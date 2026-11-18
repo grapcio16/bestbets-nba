@@ -8,6 +8,7 @@ from __future__ import annotations
 import pandas as pd
 from simulation_engine import completed_team_scores, matchup_means, simulate_game
 from simulation_context_v2 import simulation_inputs
+from simulation_context_v75 import simulation_inputs_v75
 
 
 def old_baseline(home,away,history):
@@ -59,15 +60,20 @@ def walk_forward_comparison(completed: pd.DataFrame, max_games=140):
             enriched=simulation_inputs(before,game)
             if enriched["means"] is None:
                 continue
+            v75 = simulation_inputs_v75(before, game)
+            if v75["means"] is None:
+                continue
             old_sim,*_=simulate_game(game,old)
             new_sim,*_=simulate_game(game,new)
             enriched_sim,*_=simulate_game(
                 game,enriched["means"],score_noise=enriched["score_noise"])
+            v75_sim,*_=simulate_game(
+                game,v75["means"],score_noise=v75["score_noise"])
             record={"game_id":str(g["game_id"]),"date":stamp,
                     "actual_total":true_home+true_away,
                     "actual_home":true_home,"actual_away":true_away}
             for prefix,sim in (("old",old_sim),("new",new_sim),
-                               ("enriched",enriched_sim)):
+                               ("enriched",enriched_sim),("v75",v75_sim)):
                 record[prefix+"_total"]=sim["total_points"]
                 record[prefix+"_home"]=sim["home_points"]
                 record[prefix+"_away"]=sim["away_points"]
@@ -86,7 +92,7 @@ def walk_forward_comparison(completed: pd.DataFrame, max_games=140):
     if frame.empty:
         return frame,{}
     result={"games":len(frame)}
-    for prefix in ("old","new","enriched"):
+    for prefix in ("old","new","enriched","v75"):
         result[prefix+"_total_mae"]=round(
             float((frame[prefix+"_total"]-frame["actual_total"]).abs().mean()),2)
         result[prefix+"_winner_accuracy"]=round(

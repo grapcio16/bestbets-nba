@@ -15,10 +15,10 @@ import bestbets_simulations_canvas as canvas
 
 
 class ModelChoiceTests(unittest.TestCase):
-    def test_two_modes_are_accepted_and_passed_to_model(self):
+    def test_three_modes_are_accepted_and_passed_to_model(self):
         with patch.object(canvas, "premium_entitled", return_value=True), \
              patch.object(canvas, "_game_simulation", return_value={"home_points": 111}) as calculate:
-            for model_id in ("legacy_v72", "research_form_v74"):
+            for model_id in ("legacy_v72", "research_form_v74", "research_context_v75"):
                 result = canvas.simulation_for_entitled_user(
                     "2026-11-19", "401123456", model_id=model_id)
                 self.assertEqual(result["home_points"], 111)
@@ -36,7 +36,7 @@ class ModelChoiceTests(unittest.TestCase):
         with patch.object(canvas, "premium_entitled", return_value=False), \
              patch.object(canvas, "_game_simulation") as calculate, \
              patch.object(canvas, "_game_players") as player_calculation:
-            for model_id in ("legacy_v72", "research_form_v74"):
+            for model_id in ("legacy_v72", "research_form_v74", "research_context_v75"):
                 for players in (True, False):
                     result = canvas.simulation_for_entitled_user(
                         "2026-11-19", "401123456", players=players, model_id=model_id)
