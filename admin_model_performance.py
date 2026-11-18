@@ -10,6 +10,13 @@ import pandas as pd
 
 from performance_tracker import performance_metrics
 
+MODEL_LABELS = {
+    "auto_legacy_v72": "V7.2 · Model bazowy",
+    "auto_research_form_v74": "V7.4 · Forma drużyn",
+    "auto_context_venue_rest_v75": "V7.5 · Dom, wyjazd i odpoczynek",
+    "auto_context_injury_minutes_v75": "V7.5 · Minuty i kontuzje",
+}
+
 
 def build_model_report(frame: pd.DataFrame | None, *, season: str) -> dict:
     """Compare forecasts by model, never treating unsettled games as outcomes."""
@@ -44,6 +51,7 @@ def build_model_report(frame: pd.DataFrame | None, *, season: str) -> dict:
             })
         models.append({
             "id": str(name)[:65],
+            "label": MODEL_LABELS.get(str(name), str(name))[:80],
             "snapshots": int(len(group)),
             "settled": int(settled.sum()),
             "evaluated": metrics["games"],

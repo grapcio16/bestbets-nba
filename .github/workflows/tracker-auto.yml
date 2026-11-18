@@ -3,7 +3,8 @@ name: BestBets — automatic pregame tracking and results
 on:
   # GitHub cron executes in UTC, not the visitor's timezone. Delays are possible.
   schedule:
-    - cron: '25 7,12,18,23 * * *'
+    # 03:25 UTC also covers late West Coast games within the 6-hour evidence window.
+    - cron: '25 3,7,12,18,23 * * *'
   # Owner can run the same idempotent job on demand.
   workflow_dispatch:
 

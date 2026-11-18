@@ -18,6 +18,10 @@ from simulation_context_v75 import simulation_inputs_v75
 from simulation_engine import (
     completed_team_scores, legacy_matchup_means, matchup_means, simulate_game,
 )
+from tracker_pregame_availability import (
+    INJURY_AWARE_MODEL_ID, MIN_MINUTE_COVERAGE,
+    PregameAvailabilityFeed, near_tipoff,
+)
 
 AUTO_MODELS = (
     ("auto_legacy_v72", legacy_matchup_means),
@@ -55,12 +59,13 @@ def upcoming_events(schedule, now, horizon_hours=36, min_lead_minutes=15):
     return df.sort_values(["start_utc", "game_id"]).reset_index(drop=True)
 
 
-def build_automatic_forecasts(upcoming, completed, now):
+def build_automatic_forecasts(upcoming, completed, now, *, availability_provider=None):
     """Forecast only on verified results known strictly before job timestamp.
 
-    Models share the exact same clean historical dataset, but have distinct
-    identifiers and results. Neither injuries nor missing advanced metrics
-    are replaced with guessed modifiers.
+    The three existing team-only models retain their previous semantics.
+    The *fourth* version is created only near tipoff, when an injected data
+    source proves recent ESPN injuries + actual minutes for BOTH teams.
+    No available evidence means no fourth forecast, not a fabricated one.
     """
     history = verified_history(completed, now)
     grouped = completed_team_scores(history)
@@ -93,11 +98,41 @@ def build_automatic_forecasts(upcoming, completed, now):
                 continue
             outcome["model_id"] = model_id
             stored.append(outcome)
+        if availability_provider is None or not near_tipoff(g, now):
+            continue
+        try:
+            evidence = availability_provider(g, history, now)
+            if not evidence or not evidence.get("report_fresh"):
+                skipped += 1
+                continue
+            covered = evidence.get("minute_coverage") or {}
+            if min(covered.get("home", 0), covered.get("away", 0)) < MIN_MINUTE_COVERAGE:
+                skipped += 1
+                continue
+            enriched = simulation_inputs_v75(history, g, availability=evidence)
+            if enriched["means"] is None:
+                skipped += 1
+                continue
+            outcome, _, _, _ = simulate_game(
+                g, enriched["means"], score_noise=enriched["score_noise"])
+            impact = enriched["context"]["v75_factors"]
+            provenance = (
+                f"ESPN OUT A/H: {impact['injury_out_away']}/{impact['injury_out_home']}; "
+                f"korekta A/H: {impact['injury_away_pts']}/{impact['injury_home_pts']} pkt; "
+                f"minuty (>=3 mecze) A/H: {covered['away']}/{covered['home']}; "
+                f"raport: {str(evidence.get('snapshot_utc') or '')[:25]}; "
+                + ("boxscore częściowe; " if evidence.get("boxscores_partial") else "")
+                + "nieoficjalne, niekalibrowane")
+            outcome["model_id"] = INJURY_AWARE_MODEL_ID
+            outcome["warning"] = provenance
+            stored.append(outcome)
+        except (KeyError, TypeError, ValueError, RuntimeError, OSError):
+            skipped += 1
     return stored, skipped
 
 
 def run_cycle(schedule, history, now, save_forecasts, settle_results,
-              season=None, horizon_hours=36):
+              season=None, horizon_hours=36, availability_provider=None):
     """One idempotent worker cycle; persistence is dependency-injected."""
     stamp = pd.to_datetime(now, utc=True, errors="coerce")
     if pd.isna(stamp):
@@ -107,7 +142,9 @@ def run_cycle(schedule, history, now, save_forecasts, settle_results,
     # Settle first: a partial ESPN schedule failure must not block settlement.
     settled = int(settle_results(completed))
     upcoming = upcoming_events(schedule, stamp, horizon_hours=horizon_hours)
-    candidates, skipped = build_automatic_forecasts(upcoming, completed, stamp)
+    candidates, skipped = build_automatic_forecasts(
+        upcoming, completed, stamp,
+        availability_provider=availability_provider)
     saved_result = (save_forecasts(candidates, season)
                     if candidates else {"saved": 0, "duplicates_or_rejected": 0})
     return {
@@ -127,15 +164,14 @@ def run_cycle(schedule, history, now, save_forecasts, settle_results,
 def run_scheduled_job():
     """No silent SQLite fallback for unattended jobs: disk is ephemeral."""
     from tracker_storage import tracker_backend, save, settle
-    from simulation_sources import historical_espn_results
-    from sources import espn_schedule
-
     cfg = tracker_backend()
     if not cfg["remote"]:
         raise RuntimeError(
             "Automatyczny Tracker wymaga TRACKER_DATABASE_URL (GitHub Actions Secret): "
             "bez trwałej bazy prognozy nie przetrwają restartu serwera."
         )
+    from simulation_sources import historical_espn_results
+    from sources import espn_schedule
     now = pd.Timestamp.now(tz="UTC")
     season = active_nba_season(now)
     # ESPN data is intentionally refreshed: do not settle against stale cached
@@ -153,6 +189,9 @@ def run_scheduled_job():
             "Niepełny lub nieaktualny terminarz ESPN. "
             "Ponowne wykonanie nastąpi przy następnym harmonogramie."
         )
+    # Refresh the decision clock after the external fetches: a slow schedule
+    # must not turn an already started game into a new pregame prediction.
+    now = pd.Timestamp.now(tz="UTC")
     # No DB URL/credentials in printed summaries, logs, or thrown errors.
     return run_cycle(
         upcoming, finals, now,
@@ -160,6 +199,7 @@ def run_scheduled_job():
             snapshots, target_season, config=cfg),
         settle_results=lambda completed: settle(completed, config=cfg),
         season=season,
+        availability_provider=PregameAvailabilityFeed(),
     )
 
 
