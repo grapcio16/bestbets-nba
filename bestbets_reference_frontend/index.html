@@ -200,6 +200,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="premium_modal.css">
 <link rel="stylesheet" href="admin_model_performance.css">
 <link rel="stylesheet" href="players.css">
+<link rel="stylesheet" href="teams.css">
 </head>
 <body>
 <div id="app-shell"><div id="stage">
@@ -408,6 +409,28 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <div class="hzp-footnote"><span id="hzp-source">Dane historyczne NBA / ESPN, bez prognoz.</span><span>3P% = celne trójki / próby za trzy punkty</span></div>
     <section class="hzp-bottom-card"><div class="hzp-bottom-icon" aria-hidden="true">✧</div><div><strong id="hzp-cta-title">Chcesz przeanalizować kolejny mecz?</strong><p id="hzp-cta-text">Prognozy, linie OVER/UNDER i symulacje znajdziesz w Player Props.</p></div><button id="hzp-cta" type="button">Przejdź do Player Props <span aria-hidden="true">›</span></button></section>
   </section>
+  <section id="hzt-teams-pane" class="hzt" hidden aria-label="Drużyny NBA — przegląd i analizy Premium">
+    <header class="hzt-header">
+      <div class="hzt-heading"><span class="hzt-slash" aria-hidden="true"></span><h1>Drużyny <em>NBA</em></h1><p>Poznaj wszystkie 30 zespołów</p><span class="hzt-tier">FREE <b>+ PREMIUM</b></span></div>
+      <div class="hzt-spotlight" aria-live="polite">
+        <div class="hzt-spotlight-logo" id="hzt-feature-mark" aria-hidden="true">B</div>
+        <div class="hzt-spotlight-main"><small>✦ WYRÓŻNIONA DRUŻYNA</small><strong id="hzt-feature-name">Boston Celtics</strong></div>
+        <div class="hzt-feature-stats"><span>Konferencja: <b id="hzt-feature-conference">Wschód</b></span><span>Bilans: <b id="hzt-feature-record">—</b></span><span id="hzt-feature-status">Sezon 2026/27</span></div>
+      </div>
+    </header>
+    <div class="hzt-toolbar">
+      <label class="hzt-search"><span aria-hidden="true">⌕</span><input type="search" id="hzt-search" placeholder="Wyszukaj drużynę…" autocomplete="off" aria-label="Wyszukaj drużynę NBA"></label>
+      <div class="hzt-filter" role="group" aria-label="Konferencja"><button class="active" type="button" data-hzt-conference="all" aria-pressed="true">Wszystkie</button><button type="button" data-hzt-conference="east" aria-pressed="false">Wschód</button><button type="button" data-hzt-conference="west" aria-pressed="false">Zachód</button></div>
+    </div>
+    <div id="hzt-team-grid" class="hzt-team-grid" aria-live="polite"><div class="hzt-no-data">Ładowanie katalogu NBA…</div></div>
+    <div class="hzt-pagination"><span id="hzt-team-summary">30 zespołów · ★ maks. 2 ulubione</span><span id="hzt-team-message" role="status"></span><div><button type="button" id="hzt-prev" aria-label="Poprzednie drużyny">‹</button><span id="hzt-page">1 / 5</span><button type="button" id="hzt-next" aria-label="Następne drużyny">›</button></div></div>
+    <section class="hzt-premium-panel" aria-label="Zaawansowane statystyki drużyn Premium">
+      <div class="hzt-premium-heading"><small>♛ PREMIUM</small><strong>Zaawansowane analizy drużyn</strong><p id="hzt-premium-intro">Odblokuj statystyki i metryki zespołowe</p></div>
+      <div id="hzt-premium-locked" class="hzt-locked-metrics"><span>♙ Offensive<br>Rating</span><span>♙ Defensive<br>Rating</span><span>♙ Pace</span><span>♙ Home /<br>Away</span><span>♙ Trendy</span></div>
+      <div id="hzt-premium-unlocked" class="hzt-unlocked" hidden><div class="hzt-unlocked-top"><label>Porównaj z <select id="hzt-compare" aria-label="Porównaj drużyny"><option value="">Wybierz drużynę</option></select></label><span id="hzt-analytics-source">Zakończone mecze · ESPN</span></div><div id="hzt-premium-metrics" class="hzt-premium-metrics">Pobieranie zweryfikowanych danych…</div></div>
+      <button id="hzt-premium-cta" type="button">♙ Odblokuj Premium · $9.99/mies.</button>
+    </section>
+  </section>
   <section id="hz-admin-pane" class="hz-admin-pane" hidden aria-label="Administrator: skuteczność modeli">
     <div class="hz-admin-head"><div><span class="hz-admin-kicker">HOOPZARO · TYLKO ADMINISTRATOR</span><h1>Model <em>Performance</em></h1><p>Ocena prognoz zapisanych przed meczem. Wyniki wyłącznie po oficjalnym zakończeniu spotkań.</p></div><button type="button" id="hz-admin-refresh">↻ Odśwież</button></div>
     <div id="hz-admin-dashboard" class="hz-admin-dashboard" aria-live="polite"><div class="hz-admin-empty">Otwórz raport, aby pobrać dane z PostgreSQL…</div></div>
@@ -463,6 +486,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <script src="simulations.js"></script>
 <script src="admin_model_performance.js"></script>
 <script src="players.js"></script>
+<script src="teams.js"></script>
 <script>
 (function(){
 "use strict";
@@ -470,7 +494,7 @@ const $=function(id){return document.getElementById(id)};
 const root=$("stage"),shell=$("app-shell");
 const marketNames={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PTS + REB + AST"};
 const pages={home:"Centrum",props:"Player Props",games:"Terminarz",simulations:"Symulacje",players:"Zawodnicy",teams:"Drużyny",settings:"Ustawienia",shortcuts:"Skrót wpisywania",admin:"Model Performance"};
-const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",loading:false,lastIdentity:"",homeRequested:false,homeRequestAt:0,homeLastAttempt:0,homeRetryCount:0,homeTimedOut:false,paywallOpen:false,paywallServerErrorSeen:"",adminLoading:false,adminLastRequest:0,playerCatalogRequested:false,playerAveragesRequested:false,playerIdentity:""};
+const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",loading:false,lastIdentity:"",homeRequested:false,homeRequestAt:0,homeLastAttempt:0,homeRetryCount:0,homeTimedOut:false,paywallOpen:false,paywallServerErrorSeen:"",adminLoading:false,adminLastRequest:0,playerCatalogRequested:false,playerAveragesRequested:false,teamAnalyticsRequested:false,playerIdentity:""};
 function premiumRequired(){
   const role=state.payload.auth?.role||"guest";
   return role!=="admin"&&role!=="premium";
@@ -705,14 +729,16 @@ function render(){
   const schedule=state.page==="games";
   const simulations=state.page==="simulations";
   const players=state.page==="players";
-  $("blank-pane").style.display=!active&&!home&&!schedule&&!simulations&&!players&&!admin?"block":"none";
+  const teams=state.page==="teams";
+  $("blank-pane").style.display=!active&&!home&&!schedule&&!simulations&&!players&&!teams&&!admin?"block":"none";
   $("schedule-pane").hidden=!schedule;
   $("simulations-pane").hidden=!simulations;
   $("hzp-players-pane").hidden=!players;
+  $("hzt-teams-pane").hidden=!teams;
   $("hz-admin-pane").hidden=!admin;
   $("bestbets-centre").hidden=!home;
-  $("footer").style.display=home||simulations||players||admin?"none":"block";
-  $("attribution").style.display=home||simulations||players||admin?"none":"block";
+  $("footer").style.display=home||simulations||players||teams||admin?"none":"block";
+  $("attribution").style.display=home||simulations||players||teams||admin?"none":"block";
   text("blank-title",pages[state.page]||"HOOPZARO");
   renderAccount();
   $("props-heading").style.display=active?"flex":"none";
@@ -735,6 +761,7 @@ function render(){
   if(schedule && window.HoopzaroSchedule)window.HoopzaroSchedule.render(state.payload.home||null);
   if(simulations && window.HoopzaroSimulations)window.HoopzaroSimulations.render(state.payload.home||null,state.payload.premium_simulation||null);
   if(players&&window.HoopzaroPlayers)window.HoopzaroPlayers.render(state.payload.player_catalog||null,state.payload.premium_player_averages||null,role);
+  if(teams&&window.HoopzaroTeams)window.HoopzaroTeams.render(state.payload.home||null,state.payload.premium_team_analytics||null,role);
   if(admin&&window.HoopzaroAdmin)window.HoopzaroAdmin.render(state.payload.admin_report||null,state.adminLoading);
   if(active)renderPlayer();
   resize();
@@ -802,6 +829,17 @@ function requestPlayersData(){
     }});
   }
 }
+function requestTeamsData(){
+  if(state.page!=="teams"||premiumRequired()||
+     state.payload.premium_team_analytics||state.teamAnalyticsRequested)return;
+  state.teamAnalyticsRequested=true;
+  notify("streamlit:setComponentValue",{dataType:"json",value:{
+    type:"premium_team_analytics",id:String(Date.now())+"-team-analytics"
+  }});
+}
+if(window.HoopzaroTeams){
+  window.HoopzaroTeams.init({openPremium:showPremiumPaywall});
+}
 if(window.HoopzaroPlayers){
   window.HoopzaroPlayers.init({
     refresh:function(){
@@ -816,7 +854,7 @@ if(window.HoopzaroPlayers){
 }
 if(window.BestBetsCentre){
   window.BestBetsCentre.init({
-    go:function(page){state.page=page;render();if(page==="players")requestPlayersData()},
+    go:function(page){state.page=page;render();if(page==="players")requestPlayersData();if(page==="teams")requestTeamsData()},
     leaderDetails:function(key){
       if(state.page!=="home"||!(/^[0-9a-f]{64}$/).test(key))return;
       notify("streamlit:setComponentValue",{dataType:"json",value:{
@@ -893,6 +931,7 @@ document.querySelectorAll("[data-page]").forEach(function(el){el.addEventListene
   state.page=el.dataset.page;state.payload.error="";render();
   if(state.page==="admin"&&!state.payload.admin_report)requestAdminReport();
   if(state.page==="players")requestPlayersData();
+  if(state.page==="teams")requestTeamsData();
 })});
 $("hz-admin-refresh").addEventListener("click",requestAdminReport);
 $("hz-premium").addEventListener("click",function(){
@@ -953,9 +992,10 @@ window.addEventListener("message",function(event){
   if(packet.type!=="streamlit:render"||!packet.args)return;
   state.payload=packet.args.payload||{player:null,error:"",brand:""};
   const currentIdentity=String(state.payload.auth?.subject||state.payload.auth?.email||state.payload.auth?.role||"guest");
-  if(state.playerIdentity!==currentIdentity){state.playerIdentity=currentIdentity;state.playerAveragesRequested=false;}
+  if(state.playerIdentity!==currentIdentity){state.playerIdentity=currentIdentity;state.playerAveragesRequested=false;state.teamAnalyticsRequested=false;}
   if(state.payload.player_catalog)state.playerCatalogRequested=false;
   if(state.payload.premium_player_averages)state.playerAveragesRequested=false;
+  if(state.payload.premium_team_analytics)state.teamAnalyticsRequested=false;
   state.adminLoading=false;
   if(state.payload.home){
     state.homeTimedOut=false;
@@ -974,6 +1014,7 @@ window.addEventListener("message",function(event){
   }
   render();
   if(state.page==="players")requestPlayersData();
+  if(state.page==="teams")requestTeamsData();
   window.BestBetsCentre?.recordFreePropsResult?.(p,state.payload.error,state.query);
 });
 render();
