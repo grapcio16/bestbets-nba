@@ -53,6 +53,19 @@ def main():
         menu = page.locator("#market-options")
         assert market.evaluate("e => getComputedStyle(e).opacity") == "0"
         assert menu.is_hidden()
+        # Browser/Opera must not draw native grey up/down spinners over the
+        # custom neon minus/plus controls around the line threshold.
+        line_input = page.locator("#line")
+        assert line_input.get_attribute("type") == "number"
+        assert line_input.evaluate("e => getComputedStyle(e).appearance") == "textfield"
+        # Chromium may not expose author styles on native spinner pseudo-
+        # elements through getComputedStyle(), even when their CSS is applied.
+        # Guard the explicit WebKit/Opera override in the stylesheet instead.
+        stylesheet = (ROOT / "bestbets_reference_frontend" / "hoopzaro.css").read_text(encoding="utf-8")
+        assert "#line-group .line-control input::-webkit-inner-spin-button" in stylesheet
+        assert "#line-group .line-control input::-webkit-outer-spin-button" in stylesheet
+        assert page.locator("#line-minus").is_visible()
+        assert page.locator("#line-plus").is_visible()
         trigger.click()
         assert menu.is_visible()
         assert trigger.get_attribute("aria-expanded") == "true"
@@ -150,6 +163,10 @@ def main():
         page.locator("#line-plus").click()
         assert page.locator("#line").input_value() == "26"
         assert page.locator("#query").input_value() == "Test Athlete over 26.0 rebounds"
+        page.locator("#line-minus").click()
+        assert page.locator("#line").input_value() == "25.5"
+        page.locator("#line-plus").click()
+        assert page.locator("#line").input_value() == "26"
         page.locator('[data-side="UNDER"]').click()
         assert "UNDER" in page.locator("#take-text").inner_text()
         assert page.locator("#query").input_value() == "Test Athlete under 26.0 rebounds"

@@ -426,6 +426,46 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
 #market-group .market-option-name{flex:1;white-space:nowrap}
 #market-group .market-check{visibility:hidden;color:#29f3a8;font-size:15px;font-weight:950}
 #market-group [data-market-choice].selected .market-check{visibility:visible}
+/* Line threshold: suppress the OS-native number spinner. Opera/Chrome paint
+   their small grey up/down arrows on top of our existing minus/plus controls. */
+#line-group .line-control{
+  gap:3px;padding:2px;border:1px solid #427fb8;border-radius:10px;
+  background:linear-gradient(110deg,#11294c,#091a35 66%,#1b1c48);
+  box-shadow:inset 0 1px rgba(188,233,255,.17),0 0 9px rgba(0,192,241,.12);
+  transition:border-color .17s ease,box-shadow .17s ease;
+}
+#line-group .line-control:focus-within{
+  border-color:#24dfef;
+  box-shadow:0 0 0 2px rgba(0,211,249,.16),0 0 12px rgba(7,208,249,.27);
+}
+#line-group .line-control input{
+  appearance:textfield;-moz-appearance:textfield;
+  min-width:0;width:0;flex:1;height:24px;margin:0;padding:0 2px;
+  border:0;border-left:1px solid #2f5689;border-right:1px solid #2f5689;
+  border-radius:0;background:rgba(3,16,40,.24);color:#f3faff;
+  font-size:14px;font-weight:850;font-variant-numeric:tabular-nums;
+  text-align:center;outline:none;
+}
+#line-group .line-control input::-webkit-inner-spin-button,
+#line-group .line-control input::-webkit-outer-spin-button{
+  -webkit-appearance:none;appearance:none;display:none;margin:0;
+}
+#line-group .line-control button{
+  flex:0 0 26px;width:26px;height:24px;padding:0;
+  border:1px solid rgba(37,151,203,.2);border-radius:7px;
+  background:linear-gradient(135deg,rgba(24,69,116,.64),rgba(10,32,70,.85));
+  color:#8eefff;font-size:19px;font-weight:900;line-height:20px;
+  cursor:pointer;transition:background .14s ease,border-color .14s ease,box-shadow .14s ease,color .14s ease;
+}
+#line-group .line-control button:hover{
+  border-color:#25e0fa;color:#fff;
+  background:linear-gradient(135deg,rgba(0,164,220,.49),rgba(55,48,132,.67));
+  box-shadow:0 0 11px rgba(0,211,249,.35);
+}
+#line-group .line-control button:focus-visible{
+  border-color:#20ecf6;outline:2px solid rgba(22,227,249,.55);outline-offset:1px;
+}
+#line-group .line-control button:active{background:#126e9a;transform:translateY(1px)}
 .tab-control button.on,.period-control button.on{border-color:#1ee5f8;background:linear-gradient(#0d6898,#072959);box-shadow:0 0 12px rgba(2,215,255,.51)}
 #chart-panel{
   left:17px;top:328px;width:598px;height:235px;
