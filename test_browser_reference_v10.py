@@ -230,7 +230,7 @@ def main():
         assert page.locator("#hzs-board .hzs-game").count() == 4
         feature_box = page.locator("#hzs-board .hzs-featured").bounding_box()
         compact_box = page.locator("#hzs-board .hzs-rows .hzs-game").first.bounding_box()
-        assert feature_box and feature_box["height"] <= 122, feature_box
+        assert feature_box and feature_box["height"] <= 107, feature_box
         assert compact_box and compact_box["height"] <= 70, compact_box
         page.locator('[data-page="props"].nav-btn').click()
         assert page.locator("#hero").is_visible()
