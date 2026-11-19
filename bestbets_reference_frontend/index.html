@@ -756,7 +756,16 @@ function syncSearchWithAnalysis(p){
   state.query=updated;
   if($("query").value!==updated)$("query").value=updated;
 }
+let lastPlayerRenderSignature=null;
 function renderPlayer(){
+  // An unrelated Streamlit refresh (scores, account panel, team data) must
+  // not rebuild the Props SVG or restart its visual transitions.
+  const signature=JSON.stringify([
+    state.payload.player||null,state.payload.error||"",state.market,
+    state.line,state.side,state.period,state.loading,state.payload.auth?.role||"guest"
+  ]);
+  if(signature===lastPlayerRenderSignature)return;
+  lastPlayerRenderSignature=signature;
   const p=state.payload.player,m=p?measures(p):null;
   syncSearchWithAnalysis(p);
   text("player-name",p?p.name:"Wyszukaj zawodnika");
@@ -1190,8 +1199,19 @@ window.addEventListener("message",function(event){
   const packet=event.data||{};
   if(packet.type!=="streamlit:render"||!packet.args)return;
   state.payload=packet.args.payload||{player:null,error:"",brand:""};
-  const currentIdentity=String(state.payload.auth?.subject||state.payload.auth?.email||state.payload.auth?.role||"guest");
-  if(state.playerIdentity!==currentIdentity){state.playerIdentity=currentIdentity;state.playerAveragesRequested=false;state.teamAnalyticsRequested=false;}
+  // This counter is local to the Streamlit session, not an OIDC identifier.
+  // Unlike role alone it detects Premium-account A -> Premium-account B.
+  const currentIdentity=state.payload.auth?.session_epoch!=null
+    ?"session:"+String(state.payload.auth.session_epoch)
+    :String(state.payload.auth?.subject||state.payload.auth?.email||state.payload.auth?.role||"guest");
+  if(state.playerIdentity!==currentIdentity){
+    if(state.playerIdentity!==""){
+      state.query="";$('query').value="";
+      state.lastIdentity="";state.paywallServerErrorSeen="";
+    }
+    state.playerIdentity=currentIdentity;
+    state.playerAveragesRequested=false;state.teamAnalyticsRequested=false;
+  }
   if(state.payload.player_catalog)state.playerCatalogRequested=false;
   if(state.payload.premium_player_averages)state.playerAveragesRequested=false;
   if(state.payload.premium_team_analytics)state.teamAnalyticsRequested=false;

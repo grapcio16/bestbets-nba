@@ -352,6 +352,9 @@ def main() -> None:
     # previous account's cached paid results to a different authenticated user.
     principal = current_principal()
     if st.session_state.get("bb10_premium_principal") != principal:
+        # Player Props is paid output too. It must not survive logout or a
+        # switch between two accounts that both happen to have Premium.
+        st.session_state["bb10_payload"] = {"player": None, "error": ""}
         st.session_state.pop("bb10_premium_game", None)
         st.session_state.pop("bb10_premium_players", None)
         st.session_state.pop("bb10_premium_player_averages", None)
@@ -361,6 +364,9 @@ def main() -> None:
         st.session_state.pop("bb10_admin_report", None)
         st.session_state.pop("bb10_admin_report_at", None)
         st.session_state["bb10_premium_principal"] = principal
+        # A session-local counter lets the iframe discard an old search when
+        # identity changes, without exposing the OIDC subject to JavaScript.
+        st.session_state["bb10_identity_epoch"] = st.session_state.get("bb10_identity_epoch", 0) + 1
     # CRITICAL: preload data BEFORE mounting the v1 iframe. Production
     # sometimes discards the initial setComponentValue/home_data message,
     # leaving the dashboard spinning indefinitely. The home snapshot is
@@ -379,11 +385,14 @@ def main() -> None:
         }
     has_premium = premium_entitled()
     is_admin = current_role() == "admin"
+    if not has_premium and st.session_state["bb10_payload"].get("player") is not None:
+        # Also discard paid output if an unchanged account loses entitlement.
+        st.session_state["bb10_payload"] = {"player": None, "error": ""}
     payload = {
         "brand": _cached_brand(),
-        "auth": auth_context(),
+        "auth": {**auth_context(), "session_epoch": st.session_state.get("bb10_identity_epoch", 0)},
         "premium_checkout_url": premium_checkout_url(),
-        "player": st.session_state["bb10_payload"].get("player"),
+        "player": st.session_state["bb10_payload"].get("player") if has_premium else None,
         "error": st.session_state["bb10_payload"].get("error", ""),
         "home": home_data,
         "player_catalog": st.session_state.get("bb10_player_catalog"),
