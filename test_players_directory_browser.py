@@ -104,7 +104,7 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
                              "attempted_ids": ["0"], "unavailable_ids": []}})
             page.wait_for_function("document.querySelector('#hzp-table-rows').textContent.includes('22,2')")
             self.assertEqual(page.locator(".hzp-player-row").first.locator(".hzp-games").inner_text(), "3")
-            self.assertEqual(page.locator(".hzp-player-row").first.locator(".hzp-player-identity small").inner_text(), "SF")
+            self.assertEqual(page.locator(".hzp-player-row").first.locator(".hzp-player-identity small").inner_text(), "C")
             self.assertNotIn("99,9", page.locator("#hzp-table-rows").inner_text())
             page.locator("#hzp-search").fill("Tatum")
             self.assertEqual(page.locator(".hzp-player-row").count(), 1)
