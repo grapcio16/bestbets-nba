@@ -8,6 +8,9 @@ const path=require("node:path");
 const elements={};
 const ids=[
   "simulations-pane","hzm-matches","hzm-day-title","hzm-day-input","hzm-model-select",
+  "hzm-model-trigger","hzm-model-current","hzm-model-options",
+  "hzm-model-option-research_context_v75","hzm-model-option-research_form_v74",
+  "hzm-model-option-legacy_v72",
   "hzm-match-label","hzm-away-code","hzm-home-code","hzm-score",
   "hzm-away-win","hzm-home-win","hzm-donut","hzm-simulation-message",
   "hzm-away-average-label","hzm-home-average-label","hzm-away-average",
@@ -18,8 +21,10 @@ const ids=[
 for(const id of ids){
   elements[id]={innerHTML:"",textContent:"",value:"",style:{},dataset:{},attributes:{},
     classList:{toggle(){},add(){},remove(){}},
-    setAttribute(k,v){this.attributes[k]=v},addEventListener(type,fn){this["on_"+type]=fn}};
+    setAttribute(k,v){this.attributes[k]=v},addEventListener(type,fn){this["on_"+type]=fn},
+    focus(){this.focused=true}};
 }
+elements["hzm-model-options"].hidden=true;
 const tabs=["match","away","home"].map(chart=>({dataset:{hzmChart:chart},textContent:"",attributes:{},
   classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v}}));
 elements["hzm-chart-tabs"]={querySelectorAll(){return tabs}};
@@ -97,4 +102,18 @@ assert.match(elements["hzm-player-rows"].innerHTML,/Questionable/);
 app.render(home,{entitled:false,game:fakeGame,players:fakePlayers});
 assert.equal(elements["hzm-score"].textContent,"— : —","Premium expiry instantly hides figures");
 assert.doesNotMatch(elements["hzm-player-rows"].innerHTML,/Test Athlete/);
+// The custom Premium dropdown must preserve the existing model-selection flow.
+elements["simulations-pane"].on_click({target:{closest(selector){
+  return selector==="#hzm-model-trigger"?{}:null;
+}}});
+assert.equal(elements["hzm-model-options"].hidden,false);
+assert.equal(elements["hzm-model-trigger"].attributes["aria-expanded"],"true");
+elements["simulations-pane"].on_click({target:{closest(selector){
+  return selector==="[data-hzm-model]"?{dataset:{hzmModel:"research_form_v74"}}:null;
+}}});
+assert.equal(elements["hzm-model-options"].hidden,true);
+assert.equal(elements["hzm-model-trigger"].attributes["aria-expanded"],"false");
+assert.equal(elements["hzm-model-select"].value,"research_form_v74");
+assert.equal(elements["hzm-model-current"].textContent,"V7.4 · FORMA + KONTEKST");
+assert.equal(elements["hzm-model-option-research_form_v74"].attributes["aria-selected"],"true");
 console.log("Premium canvas: tabs, verified data, expandable 14-player list, guest gate OK");

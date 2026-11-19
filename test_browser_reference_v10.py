@@ -248,6 +248,28 @@ def main():
         assert premium_gem.evaluate(
             "e => getComputedStyle(e).backgroundImage.includes('conic-gradient')"
         ), "Premium diamond needs its gold/cyan facets"
+        model_trigger = page.locator("#hzm-model-trigger")
+        model_trigger.click()
+        model_options = page.locator("#hzm-model-options")
+        assert model_options.is_visible()
+        assert model_trigger.get_attribute("aria-expanded") == "true"
+        assert model_options.locator('[role="option"]').count() == 3
+        assert model_options.evaluate(
+            "e => getComputedStyle(e).backgroundImage.includes('gradient')"
+        ), "Model options must use the HOOPZARO neon panel, not the OS menu"
+        options_box = model_options.bounding_box()
+        assert options_box and options_box["x"] >= pane_box["x"]
+        assert options_box["x"] + options_box["width"] <= pane_box["x"] + pane_box["width"] + 1
+        model_options.locator('[data-hzm-model="research_context_v75"]').click()
+        assert not model_options.is_visible()
+        assert page.locator("#hzm-model-select").input_value() == "research_context_v75"
+        assert "V7.5" in model_trigger.inner_text()
+        model_trigger.click()
+        model_options.locator('[data-hzm-model="research_form_v74"]').click()
+        assert page.locator("#hzm-model-select").input_value() == "research_form_v74"
+        model_trigger.click()
+        model_trigger.press("Escape")
+        assert not model_options.is_visible()
         assert 38 <= date_box["height"] <= 41, date_box
         assert model_box["x"] + model_box["width"] + 6 < date_box["x"]
         assert date_box["x"] + date_box["width"] <= pane_box["x"] + pane_box["width"] + 1

@@ -35,6 +35,36 @@ function withinRange(day){
 }
 const state={day:"",gameId:"",model:"research_form_v74",chart:"match",expanded:false,requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
+const MODEL_CHOICES=[
+  {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
+  {id:"research_form_v74",label:"V7.4 · FORMA + KONTEKST"},
+  {id:"legacy_v72",label:"V7.2 · PODSTAWOWY"},
+];
+function syncModelDropdown(){
+  $("hzm-model-select").value=state.model;
+  const current=$("hzm-model-current");
+  if(current)current.textContent=MODEL_CHOICES.find(item=>item.id===state.model)?.label||"";
+  MODEL_CHOICES.forEach(item=>{
+    const option=$("hzm-model-option-"+item.id);
+    if(!option)return;
+    const active=item.id===state.model;
+    option.setAttribute("aria-selected",String(active));
+    option.classList.toggle("selected",active);
+  });
+}
+function toggleModelDropdown(open,restoreFocus=false){
+  const menu=$("hzm-model-options"),trigger=$("hzm-model-trigger");
+  if(!menu||!trigger)return;
+  menu.hidden=!open;
+  trigger.setAttribute("aria-expanded",String(open));
+  if(open)$("hzm-model-option-"+state.model)?.focus();
+  else if(restoreFocus)trigger.focus();
+}
+function chooseModel(model){
+  if(!MODEL_CHOICES.some(item=>item.id===model)||model===state.model)return;
+  state.model=model;state.gamePending="";state.playersPending="";
+  render(state.lastHome,state.lastPremium);
+}
 function fixtures(home){
   const extra=home?.calendar_extras?.[state.day];
   if(extra&&typeof extra==="object")return {known:true,rows:Array.isArray(extra.games)?extra.games:[]};
@@ -179,7 +209,7 @@ function maybeLoadPaid(game,premium,sim,players){
 }
 function render(home,premium){
   state.lastHome=home;state.lastPremium=premium;
-  $("hzm-model-select").value=state.model;
+  syncModelDropdown();
   if(!state.day)state.day=safeDate(home?.calendar_today)?home.calendar_today:localDay(new Date().toISOString());
   const data=gamesForDay(home);
   if(!data.known&&home&&state.requestedDay!==state.day){state.requestedDay=state.day;callbacks?.selectDay?.(state.day)}
@@ -237,13 +267,13 @@ function navigate(day){
 }
 function init(api){
   callbacks=api;
-  $("hzm-model-select").addEventListener("change",event=>{
-    const model=event.target.value;
-    if(!["legacy_v72","research_form_v74","research_context_v75"].includes(model)||model===state.model)return;
-    state.model=model;state.gamePending="";state.playersPending="";
-    render(state.lastHome,state.lastPremium);
-  });
+  $("hzm-model-select").addEventListener("change",event=>chooseModel(event.target.value));
   $("simulations-pane").addEventListener("click",event=>{
+    if(event.target.closest("#hzm-model-trigger")){
+      toggleModelDropdown($("hzm-model-options").hidden);return;
+    }
+    const modelOption=event.target.closest("[data-hzm-model]");
+    if(modelOption){toggleModelDropdown(false,true);chooseModel(modelOption.dataset.hzmModel);return}
     const arrow=event.target.closest("[data-hzm-shift]");
     if(arrow){navigate(dayShift(state.day,Number(arrow.dataset.hzmShift)));return}
     const gameButton=event.target.closest("[data-hzm-game]");
@@ -252,6 +282,26 @@ function init(api){
     if(metric){state.chart=metric.dataset.hzmChart;render(state.lastHome,state.lastPremium);return}
     if(event.target.closest("#hzm-expand-players")){state.expanded=!state.expanded;render(state.lastHome,state.lastPremium);return}
     if(event.target.closest("#hzm-premium-link")){callbacks?.premium?.()}
+  });
+  $("simulations-pane").addEventListener("keydown",event=>{
+    const trigger=event.target.closest("#hzm-model-trigger");
+    const option=event.target.closest("[data-hzm-model]");
+    if(!trigger&&!option)return;
+    if(event.key==="Escape"){
+      if(!$("hzm-model-options").hidden){event.preventDefault();toggleModelDropdown(false,true)}
+      return;
+    }
+    if(event.key==="Tab"){toggleModelDropdown(false);return}
+    if(!["ArrowDown","ArrowUp","Home","End"].includes(event.key))return;
+    event.preventDefault();
+    const index=MODEL_CHOICES.findIndex(item=>item.id===(option?.dataset.hzmModel||state.model));
+    const next=event.key==="Home"?0:event.key==="End"?MODEL_CHOICES.length-1:
+      (index+(event.key==="ArrowDown"?1:-1)+MODEL_CHOICES.length)%MODEL_CHOICES.length;
+    toggleModelDropdown(true);
+    $("hzm-model-option-"+MODEL_CHOICES[next].id)?.focus();
+  });
+  document.addEventListener?.("pointerdown",event=>{
+    if(!event.target.closest(".hzm-model-choice"))toggleModelDropdown(false);
   });
   $("hzm-day-input").addEventListener("change",event=>navigate(event.target.value));
 }
