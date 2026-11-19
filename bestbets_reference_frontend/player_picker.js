@@ -38,7 +38,8 @@ function teamBadge(code){
 function avatar(p,cls){
  const abbrev=String(p.name||"").trim().split(/\s+/).slice(0,2).map(s=>s[0]||"").join("").toUpperCase();
  const id=String(p.id||"");
- return '<span class="bc-player-circle bc-free-avatar '+cls+'" data-hoop-player="'+escape(p.name)+
+ return '<span class="bc-player-circle bc-free-avatar '+cls+(cls==="bc-watch-avatar"?' bc-identity-avatar':'')+
+  '" data-hoop-player="'+escape(p.name)+'" data-hoop-team="'+escape(p.team||'')+
   '" data-hoop-id="'+(/^\d{1,20}$/.test(id)?escape(id):'')+'"><span>'+escape(abbrev)+'</span></span>';
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(favorites));}catch(_){}}
@@ -75,10 +76,8 @@ function watch(){
     position:b.querySelector(".bc-watch-position")?.textContent||""}));
  }
  node.innerHTML=rows.join("");
- // Rebuilding the watch list replaces the original avatar nodes. Apply
- // openly licensed Commons portraits to these new nodes as well, even when
- // the operator has enabled studio headshots elsewhere in the application.
- window.HoopzaroPortraits?.observeOpenLicensed?.(node);
+ // Keep the free watch avatars as consistent HOOPZARO identity badges;
+ // the original mixed-context Commons photos are not used in this panel.
 }
 function options(){
  const node=$("bc-players-picker"),toggle=$("bc-players-toggle");
