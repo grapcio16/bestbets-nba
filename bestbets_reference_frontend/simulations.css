@@ -9,16 +9,20 @@
 .hzm-header{height:58px;display:flex;align-items:flex-start;justify-content:space-between;padding:0 1px 7px 3px}
 .hzm-title{display:flex;align-items:center;gap:20px}
 .hzm-title h1{font-size:27px;letter-spacing:-.9px;line-height:39px;margin:0;font-weight:900}
-.hzm-premium{font-size:10px;letter-spacing:1.2px;font-weight:900;color:#ffe7a0;background:linear-gradient(140deg,#070b1c,#1e1930);border:1px solid #d7a95d;border-radius:10px;box-shadow:0 0 10px rgba(222,180,96,.23);padding:7px 12px;display:inline-flex;align-items:center;gap:9px;height:31px}
-.hzm-premium .hz-premium-gem{position:relative;display:inline-block;flex:0 0 18px;width:18px;height:18px;transform:scale(.75);margin-right:0}
+.hzm-premium{position:relative;isolation:isolate;overflow:hidden;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px 0 11px;font-size:10px;letter-spacing:1.6px;font-weight:950;white-space:nowrap;color:#ffe9ad;border:1px solid #e7bc6a;border-radius:12px;background:radial-gradient(ellipse at 0 0,rgba(250,195,108,.23),transparent 56%),linear-gradient(125deg,#1c1733,#211735 65%,#10182e);box-shadow:inset 0 1px rgba(255,239,188,.32),0 0 0 1px rgba(166,107,50,.15),0 4px 17px rgba(194,121,41,.18),0 0 16px rgba(160,69,233,.12)}
+.hzm-premium::after{content:"";position:absolute;left:16px;right:16px;bottom:0;height:1px;background:linear-gradient(90deg,transparent,#ffdc8c,transparent);pointer-events:none}
+.hzm-premium .hz-premium-gem{position:relative;display:inline-block;flex:0 0 18px;width:18px;height:18px;transform:scale(.9);margin-right:0}
 .hzm-model-choice{display:flex;flex-direction:column;justify-content:center;gap:3px;align-self:flex-start;color:#81ddeb;font-size:9px;letter-spacing:1.4px;font-weight:900;white-space:nowrap}
 .hzm-model-choice select{height:28px;width:205px;padding:3px 8px;color:#ecfaff;background:#101d3f;border:1px solid #3cb5d8;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:0;cursor:pointer;box-shadow:0 0 9px rgba(0,200,240,.12)}
 .hzm-model-choice select:focus-visible{outline:2px solid #28f0fd;outline-offset:2px}
-.hzm-day-control{display:flex;gap:10px;align-items:center;padding-top:3px}
-.hzm-day-control button{width:29px;height:29px;background:linear-gradient(#111a3b,#0b102d);border:1px solid #6273b6;border-radius:7px;color:#eff7ff;font-size:23px;line-height:18px}
-.hzm-day-control button:hover{background:#1e3764;border-color:#38e5ff}
-.hzm-day-control label{display:flex;align-items:center;gap:6px;color:#e6edff;font-size:11px;font-weight:900;letter-spacing:1px;cursor:pointer}
-.hzm-day-control input{height:25px;max-width:108px;cursor:pointer;font-size:10px;font-weight:700;background:#0c1833;color:#c9e4ff;border:1px solid #334e7a;border-radius:6px;padding:2px}
+.hzm-day-control{display:flex;align-items:center;gap:2px;align-self:flex-start;height:39px;margin-top:0;padding:3px;border:1px solid #5f6ba9;border-radius:13px;background:radial-gradient(ellipse at 100% 0,rgba(118,62,194,.19),transparent 65%),linear-gradient(125deg,#111d3c,#191831 63%,#10203d);box-shadow:inset 0 1px rgba(174,207,255,.19),0 0 0 1px rgba(38,131,203,.12),0 5px 18px rgba(93,45,166,.16)}
+.hzm-day-control button{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;background:linear-gradient(145deg,#112f50,#0c1a39);border:1px solid rgba(102,165,220,.44);border-radius:9px;color:#b2f5ff;font-size:23px;line-height:1;transition:border-color .18s,background-color .18s,color .18s}
+.hzm-day-control button:hover{background:#1a3c64;border-color:#39e4ff;color:#fff}
+.hzm-day-control button:focus-visible{outline:2px solid #4defff;outline-offset:2px}
+.hzm-day-control label{display:flex;align-items:center;gap:8px;height:30px;padding:0 8px;color:#e9efff;font-size:10px;font-weight:900;letter-spacing:.75px;white-space:nowrap;cursor:pointer}
+.hzm-day-control input{height:26px;width:102px;max-width:102px;cursor:pointer;font-size:9.5px;font-weight:800;background:rgba(21,39,76,.8);color:#f1ebff;border:1px solid #516b9d;border-radius:7px;padding:2px 5px}
+.hzm-day-control input:focus-visible{outline:2px solid #42e7fd;outline-offset:1px}
+.hzm-day-control input::-webkit-calendar-picker-indicator{cursor:pointer;filter:invert(.83) sepia(.2) saturate(2) hue-rotate(155deg)}
 .hzm-content{display:grid;grid-template-columns:190px minmax(0,1fr);gap:8px;height:457px}
 .hzm-match-list,.hzm-hero,.hzm-chart-card,.hzm-players-panel,.hzm-insights{
   border:1px solid #305e91;border-radius:12px;

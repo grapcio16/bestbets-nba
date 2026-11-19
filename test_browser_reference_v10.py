@@ -237,6 +237,16 @@ def main():
         page.locator('.nav-btn[data-page="simulations"]').click()
         assert page.locator("#simulations-pane").is_visible()
         pane_box = page.locator("#simulations-pane").bounding_box()
+        premium_box = page.locator(".hzm-premium").bounding_box()
+        date_box = page.locator(".hzm-day-control").bounding_box()
+        model_box = page.locator(".hzm-model-choice").bounding_box()
+        assert pane_box and premium_box and date_box and model_box
+        assert 35 <= premium_box["height"] <= 38, premium_box
+        assert 38 <= date_box["height"] <= 41, date_box
+        assert model_box["x"] + model_box["width"] + 6 < date_box["x"]
+        assert date_box["x"] + date_box["width"] <= pane_box["x"] + pane_box["width"] + 1
+        assert page.locator(".hzm-day-control button[data-hzm-shift]").count() == 2
+        assert page.locator("#hzm-day-input").get_attribute("type") == "date"
         insights_box = page.locator(".hzm-insights").bounding_box()
         footer_box = page.locator(".hzm-footer").bounding_box()
         assert pane_box and insights_box and footer_box
