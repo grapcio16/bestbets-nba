@@ -29,8 +29,10 @@ class TeamsDirectoryBrowserTests(unittest.TestCase):
             page.locator('.nav-btn[data-page="teams"]').click()
             self.assertTrue(page.locator("#hzt-teams-pane").is_visible())
             self.assertTrue(page.locator("#blank-pane").is_hidden())
-            self.assertEqual(page.locator(".hzt-team-card").count(), 6)
+            # Three rows fit the space freed by moving Premium details into a dialog.
+            self.assertEqual(page.locator(".hzt-team-card").count(), 9)
             self.assertEqual(page.locator("#hzt-team-grid img").count(), 0)
+            self.assertTrue(page.locator("#hzt-modal-backdrop").is_hidden())
             payload = {"auth": {"role": "free"}, "home": {"form_period": "2026/27",
                 "form_available": True, "form_options": [
                     {"team": "BOS", "wins": 11, "losses": 4, "record_verified": True},
@@ -39,6 +41,7 @@ class TeamsDirectoryBrowserTests(unittest.TestCase):
             self.assertIn("11–4", page.locator('[data-hzt-team="BOS"]').inner_text())
             self.assertNotIn("14–2", page.locator('[data-hzt-team="GSW"]').inner_text())
             page.locator('[data-hzt-team="BOS"] [data-hzt-fav]').click()
+            self.assertTrue(page.locator("#hzt-modal-backdrop").is_hidden())
             self.assertEqual(page.locator('[data-hzt-team="BOS"] [data-hzt-fav]').get_attribute("aria-pressed"), "true")
             page.locator('[data-hzt-team="GSW"] [data-hzt-fav]').click()
             page.locator('[data-hzt-team="NYK"] [data-hzt-fav]').click()
@@ -50,19 +53,51 @@ class TeamsDirectoryBrowserTests(unittest.TestCase):
             page.locator("#hzt-search").fill("Denver")
             self.assertEqual(page.locator(".hzt-team-card").count(), 1)
             page.locator("#hzt-search").fill("")
+            page.locator('[data-hzt-conference="all"]').click()
+            page.locator('[data-hzt-team="BOS"]').click()
+            self.assertTrue(page.locator("#hzt-team-dialog").is_visible())
+            self.assertEqual(page.locator("#hzt-modal-name").inner_text(), "Boston Celtics")
+            self.assertEqual(page.locator("#hzt-modal-record").inner_text(), "11–4")
+            self.assertTrue(page.locator("#hzt-premium-locked").is_visible())
+            self.assertTrue(page.locator("#hzt-premium-unlocked").is_hidden())
+            self.assertIn("blur(", page.locator("#hzt-modal-backdrop").evaluate(
+                "element => getComputedStyle(element).backdropFilter"))
             page.locator("#hzt-premium-cta").click()
             self.assertTrue(page.locator("#hz-paywall-dialog").is_visible())
             page.locator("#hz-paywall-close").click()
+            self.assertTrue(page.locator("#hzt-team-dialog").is_visible())
+            self.assertEqual(page.evaluate("document.activeElement.id"), "hzt-modal-close")
+            page.keyboard.press("Escape")
+            self.assertTrue(page.locator("#hzt-modal-backdrop").is_hidden())
+            self.assertEqual(page.evaluate("document.activeElement.dataset.hztTeam"), "BOS")
+            page.locator('[data-hzt-team="GSW"]').focus()
+            page.keyboard.press("Enter")
+            self.assertEqual(page.locator("#hzt-modal-name").inner_text(), "Golden State Warriors")
+            page.locator("#hzt-modal-backdrop").click(position={"x": 6, "y": 6})
+            self.assertTrue(page.locator("#hzt-modal-backdrop").is_hidden())
             premium_payload = {**payload, "auth": {"role": "premium"},
                 "premium_team_analytics": {"teams": {"BOS": {"sample": 10, "points": 113.3,
                     "allowed": 107.4, "off": 115.2, "def": 108.9, "pace": 100.3,
-                    "home": 116.5, "away": 109.2}}}}
+                    "home": 116.5, "away": 109.2}, "GSW": {"sample": 10,
+                    "points": 119.8, "allowed": 110.1, "off": 120.9,
+                    "def": 111.5, "pace": 102.5, "home": 123.1, "away": 116.6}}}}
             page.evaluate("payload => window.postMessage({type:'streamlit:render',args:{payload}}, '*')",
                           premium_payload)
+            self.assertTrue(page.locator("#hzt-modal-backdrop").is_hidden())
+            page.locator('[data-hzt-team="BOS"]').click()
             page.locator("#hzt-premium-unlocked").wait_for(state="visible", timeout=10000)
             self.assertTrue(page.locator("#hzt-premium-unlocked").is_visible())
             self.assertTrue(page.locator("#hzt-premium-cta").is_hidden())
             self.assertEqual(page.locator(".hzt-metric").count(), 5)
+            self.assertIn("113,3", page.locator("#hzt-premium-metrics").inner_text())
+            page.locator("#hzt-compare").select_option("GSW")
+            self.assertIn("119,8", page.locator("#hzt-premium-metrics").inner_text())
+            page.locator("#hzt-modal-close").click()
+            self.assertTrue(page.locator("#hzt-modal-backdrop").is_hidden())
+            page.locator('[data-hzt-team="GSW"]').click()
+            self.assertEqual(page.locator("#hzt-modal-name").inner_text(), "Golden State Warriors")
+            self.assertIn("119,8", page.locator("#hzt-premium-metrics").inner_text())
+            page.locator("#hzt-modal-close").click()
             self.assertFalse(errors, errors)
             browser.close()
 
