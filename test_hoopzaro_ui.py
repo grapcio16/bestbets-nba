@@ -146,6 +146,64 @@ def main() -> None:
                           "role": "admin", "name": "Test Admin", "session_epoch": 4}},
             )
             expect(page.locator("#hz-premium .hz-premium-text")).to_have_text("ADMIN")
+            if width == 1800:
+                # Administrator can inspect tracker health and filter the
+                # saved player-versus-actual audit without changing the model.
+                page.locator("#hz-admin-nav").click()
+                admin_report = {
+                    "season": "2026-27", "models": [{
+                        "id": "auto_legacy_v72", "label": "V7.2", "snapshots": 1,
+                        "settled": 1, "metrics": {"games": 1}, "recent": [],
+                    }],
+                    "tracker_monitor": {
+                        "last_run_utc": "2026-11-19 16:00", "last_run_age_hours": 1,
+                        "stale": False, "last_player_status": "ok",
+                        "last_cycle": {"team_new": 2, "team_settled": 4,
+                                       "player_new": 20, "player_settled": 10,
+                                       "player_games_checked": 1,
+                                       "player_games_projected": 1},
+                        "team": {"saved": 120, "settled": 90, "pending": 30},
+                        "players": {"saved": 44, "settled": 22, "pending": 22},
+                    },
+                    "player_tracking": {"models": [{
+                        "id": "auto_player_form_v74", "saved": 2,
+                        "evaluated_players": 1, "games_with_results": 1,
+                        "metrics": {
+                            "pra": {"n": 1, "mae": 10, "within_pct": 0,
+                                    "tolerance": 7},
+                            "minutes": {"n": 1, "mae": 3,
+                                        "within_pct": 1, "tolerance": 5},
+                        },
+                        "recent": [
+                            {"game_id": "401001234", "date": "2026-11-19 01:00",
+                             "player": "Example Starter", "team": "BOS",
+                             "opponent": "NYK", "pred": {"pts": 20, "pra": 30,
+                                                         "minutes": 30},
+                             "actual": {"pts": 25, "pra": 40, "minutes": 33}},
+                            {"game_id": "401001234", "date": "2026-11-19 01:00",
+                             "player": "Other Guard", "team": "NYK",
+                             "opponent": "BOS", "pred": {"pts": 15, "pra": 20},
+                             "actual": {"pts": None, "pra": None}},
+                        ],
+                    }]},
+                }
+                page.evaluate(
+                    "payload => window.postMessage({type:'streamlit:render',args:{payload}},'*')",
+                    {"player": None, "home": None, "brand": BRAND, "error": "",
+                     "auth": {"role": "admin", "logged_in": True,
+                              "session_epoch": 4},
+                     "admin_report": admin_report},
+                )
+                expect(page.locator(".hz-admin-monitor-state")).to_have_text("AKTYWNY")
+                expect(page.locator("#hz-admin-player-market option[value='pra']")).to_have_count(1)
+                page.locator("#hz-admin-player-market").select_option("pra")
+                page.locator("#hz-admin-player-search").fill("Example")
+                expect(page.locator("#hz-admin-player-history-rows tr")).to_have_count(1)
+                expect(page.locator("#hz-admin-player-history-rows")).to_contain_text("+10,00")
+                page.locator("#hz-admin-player-market").select_option("minutes")
+                expect(page.locator("#hz-admin-player-history-rows")).to_contain_text("+3,00")
+                page.locator("#hz-admin-player-search").fill("Missing athlete")
+                expect(page.locator("#hz-admin-player-history-rows")).to_contain_text("Brak zapisów")
             premium_tab = ('#hz-mobile-nav [data-page="simulations"]' if width < 768
                            else '#hz-premium')
             page.locator(premium_tab).click()

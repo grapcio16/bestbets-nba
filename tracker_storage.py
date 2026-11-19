@@ -81,3 +81,19 @@ def read_players(season=None,config=None):
         raise RuntimeError("Raport zawodników wymaga trwałego PostgreSQL")
     from tracker_postgres import remote_read_players
     return remote_read_players(cfg["url"],season)
+
+
+def record_tracker_run(summary,config=None):
+    cfg=config or tracker_backend()
+    if not cfg["remote"]:
+        raise RuntimeError("Monitoring trackera wymaga trwałego PostgreSQL")
+    from tracker_postgres import remote_record_tracker_run
+    return remote_record_tracker_run(cfg["url"],summary)
+
+
+def tracker_status(season,config=None):
+    cfg=config or tracker_backend()
+    if not cfg["remote"]:
+        raise RuntimeError("Monitoring trackera wymaga trwałego PostgreSQL")
+    from tracker_postgres import remote_tracker_status
+    return remote_tracker_status(cfg["url"],season)

@@ -438,7 +438,8 @@ def main() -> None:
         if now - st.session_state.get("bb10_admin_report_at", 0.0) < 30:
             return
         try:
-            from tracker_storage import tracker_backend, read, read_players
+            from tracker_storage import (tracker_backend, read, read_players,
+                                         tracker_status)
             from admin_model_performance import build_model_report
             from player_simulation_tracker import player_model_report
             backend = tracker_backend()
@@ -448,16 +449,24 @@ def main() -> None:
                 # banner; no ephemeral SQLite data is passed off as history.
                 result = {"season": SEASON, "models": [], "status": "setup_required"}
             else:
-                result = build_model_report(read(season=SEASON, config=backend), season=SEASON)
+                games_archive = read(season=SEASON, config=backend)
+                result = build_model_report(games_archive, season=SEASON)
                 try:
                     result["player_tracking"] = player_model_report(
-                        read_players(season=SEASON, config=backend), season=SEASON)
+                        read_players(season=SEASON, config=backend),
+                        season=SEASON, game_forecasts=games_archive)
                 except (ValueError, TypeError, KeyError, RuntimeError, OSError,
                         ConnectionError, TimeoutError):
                     # The new player archive may be temporarily unavailable;
                     # the existing team-model report remains fully usable.
                     result["player_tracking"] = {
                         "models": [], "error": "Nie udało się odczytać archiwum zawodników."}
+                try:
+                    result["tracker_monitor"] = tracker_status(season=SEASON, config=backend)
+                except (ValueError, TypeError, KeyError, RuntimeError, OSError,
+                        ConnectionError, TimeoutError):
+                    result["tracker_monitor"] = {
+                        "error": "Status automatycznego trackera jest chwilowo niedostępny."}
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning(

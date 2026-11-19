@@ -114,7 +114,8 @@ class PerformanceMetricsTest(unittest.TestCase):
              "model_id": MODEL_ID, "forecast_time_utc": NOW-pd.Timedelta(hours=2),
              "start_utc": NOW, "pts_pred": 20, "pts_actual": 25,
              "reb_pred": 7, "reb_actual": 4, "ast_pred": 4, "ast_actual": 6,
-             "fg3m_pred": 2, "fg3m_actual": None},
+             "fg3m_pred": 2, "fg3m_actual": None,
+             "minutes_pred": 30, "minutes_actual": 33, "sample_games": 7},
             {"game_id": "1", "player_id": "11", "player_name": "B", "team": "NYK",
              "model_id": MODEL_ID, "forecast_time_utc": NOW-pd.Timedelta(hours=2),
              "start_utc": NOW, "pts_pred": 12, "pts_actual": None,
@@ -133,6 +134,32 @@ class PerformanceMetricsTest(unittest.TestCase):
             "n": 1, "mae": 5.0, "bias": 5.0,
             "within_pct": 1.0, "tolerance": 5.0})
         self.assertEqual(report["metrics"]["fg3m"]["n"], 0)
+        self.assertEqual(report["metrics"]["pra"], {
+            "n": 1, "mae": 4.0, "bias": 4.0,
+            "within_pct": 1.0, "tolerance": 7.0})
+        self.assertEqual(report["metrics"]["minutes"], {
+            "n": 1, "mae": 3.0, "bias": 3.0,
+            "within_pct": 1.0, "tolerance": 5.0})
+        current = next(r for r in report["recent"] if r["player"] == "A")
+        self.assertEqual(current["pred"]["pra"], 31.0)
+        self.assertEqual(current["actual"]["pra"], 35.0)
+        self.assertIsNone(current["actual"]["fg3m"])
+
+    def test_pra_requires_all_three_observed_stats_and_history_shows_opponent(self):
+        rows = pd.DataFrame([{
+            "game_id": "401001234", "player_id": "123",
+            "player_name": "Example Starter", "team": "BOS",
+            "model_id": MODEL_ID,
+            "forecast_time_utc": NOW-pd.Timedelta(hours=1), "start_utc": NOW,
+            "pts_pred": 20, "reb_pred": 5, "ast_pred": 4,
+            "pts_actual": 21, "reb_actual": None, "ast_actual": 6,
+        }])
+        matchups = pd.DataFrame([{"game_id": "401001234", "home": "BOS", "away": "NYK"}])
+        model = player_model_report(rows, season="2026-27",
+                                    game_forecasts=matchups)["models"][0]
+        self.assertEqual(model["metrics"]["pra"]["n"], 0)
+        self.assertIsNone(model["recent"][0]["actual"]["pra"])
+        self.assertEqual(model["recent"][0]["opponent"], "NYK")
 
 
 class PlayerDatabaseTest(unittest.TestCase):
@@ -178,6 +205,49 @@ class PlayerDatabaseTest(unittest.TestCase):
         self.assertEqual(len(updates), 1)
         self.assertEqual(updates[0].args[1][3], None)
         self.assertIn("forecast_time_utc < start_utc", updates[0].args[0])
+
+
+class TrackerMonitoringTest(unittest.TestCase):
+    def test_heartbeat_records_only_aggregate_progress(self):
+        conn = MagicMock()
+        conn.__enter__.return_value = conn
+        summary = {
+            "season": "2026-27", "new_pregame_snapshots": 4,
+            "matched_forecast_rows_settled": 9,
+            "player_tracking": {
+                "new_player_snapshots": 22, "player_rows_settled": 7,
+                "pregame_games_checked": 3, "games_with_player_projections": 2,
+            },
+        }
+        with patch.object(tracker_postgres, "connect", return_value=conn), \
+             patch.object(tracker_postgres, "init_remote"):
+            result = tracker_postgres.remote_record_tracker_run("ignored", summary)
+        self.assertEqual(result, {"recorded": True})
+        sql, values = conn.execute.call_args.args
+        self.assertIn("INSERT INTO bestbets_tracker_runs", sql)
+        self.assertEqual(values[1:], ("2026-27", 4, 9, 22, 7, 3, 2, "ok"))
+        self.assertNotIn("secret", str(values).lower())
+
+    def test_status_counts_saved_settled_and_reports_heartbeat_age(self):
+        for hours, expected_stale in ((1, False), (16, True)):
+            with self.subTest(hours=hours):
+                conn = MagicMock()
+                conn.__enter__.return_value = conn
+                cursors = [MagicMock() for _ in range(3)]
+                cursors[0].fetchone.return_value = (
+                    pd.Timestamp.now(tz="UTC")-pd.Timedelta(hours=hours),
+                    2, 4, 6, 8, 5, 3, "temporarily_unavailable")
+                cursors[1].fetchone.return_value = (100, 82)
+                cursors[2].fetchone.return_value = (125, 41)
+                conn.execute.side_effect = cursors
+                with patch.object(tracker_postgres, "connect", return_value=conn), \
+                     patch.object(tracker_postgres, "init_remote"):
+                    status = tracker_postgres.remote_tracker_status("ignored", "2026-27")
+                self.assertEqual(status["team"], {"saved": 100, "settled": 82, "pending": 18})
+                self.assertEqual(status["players"], {"saved": 125, "settled": 41, "pending": 84})
+                self.assertEqual(status["last_cycle"]["player_new"], 6)
+                self.assertEqual(status["last_player_status"], "temporarily_unavailable")
+                self.assertEqual(status["stale"], expected_stale)
 
 
 class PipelineTest(unittest.TestCase):
