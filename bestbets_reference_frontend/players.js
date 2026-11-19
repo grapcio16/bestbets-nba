@@ -56,15 +56,27 @@ function playerRow(player){
   // The ESPN ID is the authority for identity. Names can collide and a
   // player's roster team can differ from the team in historical game logs.
   const data=entitled()?(averages?.id_rows?averages.id_rows[id]:averages?.rows?.[norm(player.name)]):null;
-  const gameCount=Number(data?.games)||0;
-  identity.append(make("strong","",player.name),make("small","",
-    (player.position||"NBA")+(entitled()&&gameCount?" · "+gameCount+" mecz.":"")));
+  const reportedGames=Number(data?.games);
+  const gameCount=Number.isInteger(reportedGames)&&reportedGames>0?reportedGames:0;
+  identity.append(make("strong","",player.name),make("small","",player.position||"NBA"));
   name.append(identity);row.append(name);
   const teamCell=make("div");teamCell.append(make("span","hzp-team-tag",player.team||"NBA"));
   row.append(teamCell);
-  const figures=[data?.pts,data?.reb,data?.ast,data?.three_pm,data?.three_pa,data?.three_pct];
   const waiting=entitled()&&!data&&!((averages?.attempted_ids||[]).includes(id));
   const unavailable=(averages?.unavailable_ids||[]).includes(id);
+  const gpCell=make("span","hzp-games"+(!entitled()?" is-locked":waiting?" is-loading":!gameCount?" is-missing":""),
+    !entitled()?"♢":waiting?"…":gameCount?String(gameCount):"—");
+  if(!entitled()){
+    gpCell.title="Liczba rozegranych meczów dostępna w Hoopzaro Premium";
+    gpCell.setAttribute("aria-label","Liczba meczów Premium");
+  }else if(waiting)gpCell.title="Pobieranie potwierdzonej liczby rozegranych spotkań…";
+  else if(unavailable)gpCell.title="ESPN nie udostępnia teraz historii zawodnika. Spróbuj odświeżyć.";
+  else gpCell.title=gameCount?
+    "GP · potwierdzone występy w dostępnej historii: "+gameCount+
+    (data?.partial?" · historia może być niepełna":""):
+    "Brak zweryfikowanych spotkań";
+  row.append(gpCell);
+  const figures=[data?.pts,data?.reb,data?.ast,data?.three_pm,data?.three_pa,data?.three_pct];
   const fieldCounts=[gameCount,gameCount,gameCount,data?.three_pm_games,
     data?.three_pa_games,data?.three_pct_games];
   figures.forEach((number,index)=>{
