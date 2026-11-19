@@ -336,6 +336,13 @@ def main() -> None:
             height:max(calc(100dvh - 4px), 56.1332vw)!important;
             min-height:0!important;
         }
+        /* A phone held horizontally must keep its iframe within the visible
+           viewport so the fixed mobile tab bar remains reachable. */
+        @media (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+            [data-testid="stMain"] iframe{
+                height:calc(100dvh - 4px)!important;
+            }
+        }
         .stApp{background:#020713!important}
         </style>""", unsafe_allow_html=True
     )

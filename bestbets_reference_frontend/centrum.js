@@ -57,7 +57,9 @@ const escapeHtml=raw=>String(raw==null?"":raw).replace(/[&<>"']/g,ch=>({
 function logo(code,uri) {
  if(typeof uri==="string" && uri.startsWith("data:image/png;base64,"))
    return '<img alt="" src="'+uri+'" loading="lazy">';
- return '<span>'+escapeHtml(code||"NBA")+'</span>';
+ // Deliberate brand-neutral monogram if an image is missing or delayed.
+ return '<span class="bc-team-monogram" aria-hidden="true">'+
+   escapeHtml(String(code||"NBA").slice(0,2))+'</span>';
 }
 function teamLogoUri(code){
  const list=Array.isArray(homeData?.form_options)?homeData.form_options:[];
@@ -159,6 +161,12 @@ function renderGames(data){
  if(dateLabel){
   dateLabel.textContent=displayDay(selectedDay);
   dateLabel.title=selectedDay+(selectedDay===today?" — dzisiaj":"");
+ }
+ const mobileDateLabel=$("hz-mobile-day-label");
+ if(mobileDateLabel){
+  mobileDateLabel.textContent=new Intl.DateTimeFormat("pl-PL",{
+   weekday:"long",day:"numeric",month:"long",timeZone:"UTC"
+  }).format(new Date(selectedDay+"T12:00:00Z"));
  }
  const day=loadedGames(data,selectedDay);
  if(day.known && pendingDay===selectedDay)pendingDay="";

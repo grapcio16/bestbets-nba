@@ -201,6 +201,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="admin_model_performance.css">
 <link rel="stylesheet" href="players.css">
 <link rel="stylesheet" href="teams.css">
+<link rel="stylesheet" href="mobile.css">
 </head>
 <body>
 <div id="app-shell"><div id="stage">
@@ -292,12 +293,21 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
   <section id="take"><div class="take-title"><span class="target-icon">▥</span>HOOP<span>ZARO</span> Insight</div><div class="take-text" id="take-text">Wyszukaj zawodnika i linię, aby zobaczyć analizę.</div></section>
   </div>
   <section id="bestbets-centre" class="bc" aria-label="Centrum NBA" hidden>
+  <div class="hz-mobile-topbar">
+    <div class="hz-mobile-brand"><img src="hoopzaro.svg" alt=""><span>HOOP<em>ZARO</em><small>NBA ANALYTICS</small></span></div>
+    <button class="hz-mobile-premium" type="button" data-centre-premium aria-label="Otwórz Premium"><span class="hz-premium-gem" aria-hidden="true"></span><span id="hz-mobile-premium-text">PREMIUM</span><span aria-hidden="true">›</span></button>
+  </div>
   <div class="bc-hero">
     <div class="bc-hero-logo"><span class="bc-ball">◉</span><small>NBA</small></div>
     <div class="bc-hero-title"><h1>Centrum <em>NBA</em></h1><p>Wszystko, co ważne dzisiaj</p></div>
     <button class="bc-premium-top hz-premium-cta" type="button" data-centre-premium aria-label="Otwórz Premium"><span class="hz-premium-gem" aria-hidden="true"></span><span class="hz-premium-text">PREMIUM</span><span class="hz-premium-arrow" aria-hidden="true">›</span></button>
     <div class="bc-hero-benefits"><span>✓ &nbsp;Pełne symulacje i projekcje</span><span>✓ &nbsp;Więcej analiz i kontekstu</span><span>✓ &nbsp;Zaawansowane trendy</span></div>
     <div class="bc-hero-art" aria-hidden="true"><div class="bc-art-ball"></div><div class="bc-art-glow"></div></div>
+  </div>
+  <div class="hz-mobile-date" role="group" aria-label="Wybierz dzień meczów NBA">
+    <button type="button" data-centre-day-dir="-1" aria-label="Poprzedni dzień">‹</button>
+    <span aria-hidden="true">▣</span><strong id="hz-mobile-day-label">Dzisiaj</strong>
+    <button type="button" data-centre-day-dir="1" aria-label="Następny dzień">›</button>
   </div>
   <div class="bc-ticker">
     <div class="bc-ticker-head">
@@ -489,6 +499,20 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 </footer>
 <div id="attribution">HOOPZARO · Statystyki historyczne NBA / ESPN · nie są gwarancją przyszłego wyniku.</div>
 </div></div>
+<nav id="hz-mobile-nav" class="hz-mobile-nav" aria-label="Nawigacja mobilna">
+  <button type="button" data-page="home" class="selected" aria-label="Centrum"><span aria-hidden="true">⌂</span><small>Centrum</small></button>
+  <button type="button" data-page="props" aria-label="Player Props"><span aria-hidden="true">▥</span><small>Props</small></button>
+  <button type="button" data-page="games" aria-label="Terminarz NBA"><span aria-hidden="true">◉</span><small>Mecze</small></button>
+  <button type="button" data-page="simulations" aria-label="Symulacje"><span aria-hidden="true">◇</span><small>Symulacje</small></button>
+  <button type="button" id="hz-mobile-more-trigger" aria-expanded="false" aria-controls="hz-mobile-more-panel" aria-label="Więcej zakładek"><span aria-hidden="true">•••</span><small>Więcej</small></button>
+</nav>
+<div id="hz-mobile-more-panel" class="hz-mobile-more-panel" hidden>
+  <div class="hz-mobile-more-title">HOOPZARO · WIĘCEJ</div>
+  <button type="button" data-page="players">♙ &nbsp; Zawodnicy <span>›</span></button>
+  <button type="button" data-page="teams">⬡ &nbsp; Drużyny <span>›</span></button>
+  <button type="button" data-page="settings">⚙ &nbsp; Ustawienia <span>›</span></button>
+  <button type="button" data-page="admin" class="hz-admin-nav" id="hz-mobile-admin" hidden>▤ &nbsp; Model Performance <span>›</span></button>
+</div>
 <!-- Keep this modal outside the scaled dashboard: it fills the actual viewport. -->
 <div id="hz-paywall-backdrop" class="bc-free-info-backdrop hz-paywall-backdrop" hidden>
   <section id="hz-paywall-dialog" class="bc-free-info-popup hz-paywall-dialog" role="dialog" aria-modal="true" aria-labelledby="hz-paywall-title" aria-describedby="hz-paywall-description" tabindex="-1">
@@ -606,6 +630,20 @@ function resize(){
   // Its extra height can scroll inside the frame on wide/short screens.
   // Do not switch iframe to height:auto/aspect-ratio: that broke production.
   const viewportWidth=Math.max(320,document.documentElement.clientWidth||window.innerWidth||1231);
+  const mobileHome=(viewportWidth<=767 ||
+    (viewportWidth<=1200 && window.innerHeight<=500 &&
+     viewportWidth>window.innerHeight)) && state.page==="home";
+  shell.classList.toggle("hz-mobile-centre",mobileHome);
+  if(mobileHome){
+    // The approved desktop drawing is not scaled on mobile Centrum: its
+    // existing live components flow naturally and scroll inside the iframe.
+    // Keep the Streamlit iframe viewport-sized for a truly fixed bottom nav.
+    root.style.transform="none";
+    shell.style.width="100%";
+    shell.style.height="auto";
+    notify("streamlit:setFrameHeight",{height:Math.max(500,window.innerHeight||700)});
+    return;
+  }
   const scale=viewportWidth/1231;
   root.style.transform="scale("+scale+")";
   shell.style.width=Math.round(1231*scale)+"px";
@@ -793,8 +831,10 @@ function render(){
   if(state.page==="admin"&&role!=="admin")state.page="home";
   const admin=state.page==="admin";
   $("hz-admin-nav").hidden=role!=="admin";
+  $("hz-mobile-admin").hidden=role!=="admin";
   const sidebarRole=$("hz-premium")?.querySelector(".hz-premium-text");
   if(sidebarRole)sidebarRole.textContent=role==="admin"?"ADMIN":"PREMIUM";
+  text("hz-mobile-premium-text",role==="admin"?"ADMIN":"PREMIUM");
   const propsHelp=$("props-heading")?.querySelector("p");
   if(propsHelp)propsHelp.textContent=role==="admin"||role==="premium"
     ?"Player prop analysis, stats & context"
@@ -818,6 +858,14 @@ function render(){
   renderAccount();
   $("props-heading").style.display=active?"flex":"none";
   document.querySelectorAll(".nav-btn[data-page]").forEach(function(el){el.classList.toggle("selected",el.dataset.page===state.page)});
+  document.querySelectorAll("#hz-mobile-nav [data-page]").forEach(function(el){
+    const selected=el.dataset.page===state.page;
+    el.classList.toggle("selected",selected);
+    if(selected)el.setAttribute("aria-current","page");
+    else el.removeAttribute("aria-current");
+  });
+  $("hz-mobile-more-trigger").classList.toggle("selected",["players","teams","settings","admin"].includes(state.page));
+  closeMobileMore();
   // The free Centrum has its own dashboard; the entire Props search/header
   // stays available ONLY on the dedicated Player Props route.
   $("search-form").style.display=active?"flex":"none";
@@ -1024,6 +1072,20 @@ document.querySelectorAll("[data-page]").forEach(function(el){el.addEventListene
   if(state.page==="players")requestPlayersData();
   if(state.page==="teams")requestTeamsData();
 })});
+function closeMobileMore(){
+  $("hz-mobile-more-panel").hidden=true;
+  $("hz-mobile-more-trigger").setAttribute("aria-expanded","false");
+}
+$("hz-mobile-more-trigger").addEventListener("click",function(){
+  const isOpen=!$("hz-mobile-more-panel").hidden;
+  $("hz-mobile-more-panel").hidden=isOpen;
+  this.setAttribute("aria-expanded",String(!isOpen));
+});
+document.addEventListener("pointerdown",function(e){
+  if(!$("hz-mobile-more-panel").hidden && !$("hz-mobile-more-panel").contains(e.target) &&
+      !$("hz-mobile-more-trigger").contains(e.target))closeMobileMore();
+});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeMobileMore()});
 $("hz-admin-refresh").addEventListener("click",requestAdminReport);
 $("hz-premium").addEventListener("click",function(){
   const role=state.payload.auth?.role||"guest";
