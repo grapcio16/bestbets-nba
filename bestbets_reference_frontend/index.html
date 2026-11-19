@@ -217,24 +217,53 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="mobile.css">
 </head>
 <body>
+<!-- Original, reusable HOOPZARO icons: one visual language on desktop and mobile. -->
+<svg class="hz-icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="hz-icon-centre" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-4.4 4.5-4.4 13.5 0 18M12 3c4.4 4.5 4.4 13.5 0 18"/>
+    </symbol>
+    <symbol id="hz-icon-props" viewBox="0 0 24 24">
+      <path d="M3 4v16h18M6.5 14.5l4-4 3 2.5L19 6"/><path d="M15.5 6H19v3.5"/>
+    </symbol>
+    <symbol id="hz-icon-games" viewBox="0 0 24 24">
+      <rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M7.5 2.5v4M16.5 2.5v4M3 9h18M7.5 13h3M13.5 13h3M7.5 17h3"/>
+    </symbol>
+    <symbol id="hz-icon-simulations" viewBox="0 0 24 24">
+      <path d="M12 2.5 21 7.5v9L12 21.5l-9-5v-9L12 2.5Z"/><path d="M6.5 13h3l2-4 2.5 7 1.5-3h2"/>
+    </symbol>
+    <symbol id="hz-icon-players" viewBox="0 0 24 24">
+      <circle cx="12" cy="7.5" r="3.5"/><path d="M5 21v-2.3a7 7 0 0 1 14 0V21H5Z"/>
+    </symbol>
+    <symbol id="hz-icon-teams" viewBox="0 0 24 24">
+      <circle cx="9" cy="8" r="3"/><path d="M2.5 20v-2a6.5 6.5 0 0 1 13 0v2h-13ZM16 5.2a3 3 0 0 1 0 5.6M17.5 13a5.5 5.5 0 0 1 4 5.3V20h-3"/>
+    </symbol>
+    <symbol id="hz-icon-settings" viewBox="0 0 24 24">
+      <path d="M10 2.5h4l.6 2.3 1.8 1 2.3-.7 2 3.4-1.7 1.7v2l1.7 1.7-2 3.4-2.3-.7-1.8 1-.6 2.3h-4l-.6-2.3-1.8-1-2.3.7-2-3.4L5 12.2v-2L3.3 8.5l2-3.4 2.3.7 1.8-1L10 2.5Z" transform="translate(0 1)"/><circle cx="12" cy="12" r="3"/>
+    </symbol>
+    <symbol id="hz-icon-performance" viewBox="0 0 24 24">
+      <rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M7 16v-3M12 16V9M17 16V6M6 18h12"/>
+    </symbol>
+  </defs>
+</svg>
 <div id="app-shell"><div id="stage">
 <div class="top-orange"></div>
 <aside>
   <div class="brand"><img id="brand-img" alt="Logo HOOPZARO" src="hoopzaro.svg"><div class="wordmark">HOOP<span>ZARO</span><small>NBA ANALYTICS</small></div></div>
   <nav class="left-menu">
-    <button class="nav-btn selected" data-page="home"><span class="ic">⌂</span><span>Centrum</span></button>
-    <button class="nav-btn" data-page="props"><span class="ic">▥</span><span>Player Props</span></button>
-    <button class="nav-btn" data-page="games"><span class="ic">▣</span><span>Terminarz</span></button>
-    <button class="nav-btn" data-page="simulations"><span class="ic">◈</span><span>Symulacje</span></button>
-    <button class="nav-btn" data-page="players"><span class="ic">♧</span><span>Zawodnicy</span></button>
-    <button class="nav-btn" data-page="teams"><span class="ic">⬡</span><span>Drużyny</span></button>
-    <button class="nav-btn hz-admin-nav" id="hz-admin-nav" data-page="admin" hidden><span class="ic">▤</span><span>Model Performance</span></button>
+    <button class="nav-btn selected" data-page="home"><span class="ic"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-centre"/></svg></span><span>Centrum</span></button>
+    <button class="nav-btn" data-page="props"><span class="ic"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-props"/></svg></span><span>Player Props</span></button>
+    <button class="nav-btn" data-page="games"><span class="ic"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-games"/></svg></span><span>Terminarz</span></button>
+    <button class="nav-btn" data-page="simulations"><span class="ic"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-simulations"/></svg></span><span>Symulacje</span></button>
+    <button class="nav-btn" data-page="players"><span class="ic"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-players"/></svg></span><span>Zawodnicy</span></button>
+    <button class="nav-btn" data-page="teams"><span class="ic"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-teams"/></svg></span><span>Drużyny</span></button>
+    <button class="nav-btn hz-admin-nav" id="hz-admin-nav" data-page="admin" hidden><span class="ic"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-performance"/></svg></span><span>Model Performance</span></button>
   </nav>
-  <nav class="settings"><button class="nav-btn" data-page="settings"><span class="ic">⚙</span><span>Ustawienia</span></button></nav>
+  <nav class="settings"><button class="nav-btn" data-page="settings"><span class="ic"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-settings"/></svg></span><span>Ustawienia</span></button></nav>
   <button class="sidebar-premium hz-premium-cta" id="hz-premium" type="button" aria-label="Otwórz Premium"><span class="hz-premium-gem" aria-hidden="true"></span><span class="hz-premium-text">PREMIUM</span><span class="hz-premium-arrow" aria-hidden="true">›</span></button>
 </aside>
 <div id="work">
-  <header class="props-heading" id="props-heading"><div class="props-heading-icon" aria-hidden="true">◈</div><div><h1>Player <em>Props</em></h1><p>Player prop analysis, stats &amp; context</p></div><div class="props-orbit" aria-hidden="true"></div></header>
+  <header class="props-heading" id="props-heading"><div class="props-heading-icon" aria-hidden="true"><svg class="hz-ui-icon"><use href="#hz-icon-props"/></svg></div><div><h1>Player <em>Props</em></h1><p>Player prop analysis, stats &amp; context</p></div><div class="props-orbit" aria-hidden="true"></div></header>
   <form class="topsearch" id="search-form"><span class="glass">⌕</span><input id="query" autocomplete="off" placeholder="Jayson Tatum over 25.5 points" aria-label="Wyszukaj zawodnika, linię i rynek"><button id="props-help-trigger" type="button" aria-label="Jak korzystać z wyszukiwarki Player Props" aria-controls="props-help-panel" aria-haspopup="dialog" aria-expanded="false" title="Jak wyszukiwać?">i</button><button id="search-btn" type="submit" aria-label="Wyszukaj">⌕</button></form>
   <section id="props-help-panel" class="props-help-panel" role="dialog" aria-labelledby="props-help-title" aria-modal="false" hidden>
     <div class="props-help-heading">
@@ -380,11 +409,11 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     </section>
   </div>
   <div class="bc-bottom">
-    <button type="button" class="bc-bottom-item bc-current" data-centre-nav="home"><strong>◈ &nbsp; HOOP<span>ZARO</span></strong><small>Najważniejsze dziś<br>Mecze • Statystyki • Analizy</small></button>
-    <button type="button" class="bc-bottom-item" data-centre-nav="simulations"><strong>▥ &nbsp; Symulacje</strong><small>Podgląd (FREE)<br><em>◈ &nbsp; Modele w Premium</em></small></button>
-    <button type="button" class="bc-bottom-item" data-centre-nav="games"><strong>▣ &nbsp; Terminarz</strong><small>Wyniki i mecze<br><em>Pełny widok wkrótce</em></small></button>
-    <button type="button" class="bc-bottom-item" data-centre-nav="players"><strong>♙ &nbsp; Zawodnicy</strong><small>Profile zawodników<br><em>Średnie w Premium</em></small></button>
-    <button type="button" class="bc-bottom-item" data-centre-nav="teams"><strong>⬡ &nbsp; Drużyny</strong><small>Forma i terminarz<br><em>Analiza matchup wkrótce</em></small></button>
+    <button type="button" class="bc-bottom-item bc-current" data-centre-nav="home"><strong><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-centre"/></svg><span class="hz-bottom-label">HOOP<em>ZARO</em></span></strong><small>Najważniejsze dziś<br>Mecze • Statystyki • Analizy</small></button>
+    <button type="button" class="bc-bottom-item" data-centre-nav="simulations"><strong><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-simulations"/></svg><span class="hz-bottom-label">Symulacje</span></strong><small>Podgląd (FREE)<br><em>Modele w Premium</em></small></button>
+    <button type="button" class="bc-bottom-item" data-centre-nav="games"><strong><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-games"/></svg><span class="hz-bottom-label">Terminarz</span></strong><small>Wyniki i mecze<br><em>Pełny widok wkrótce</em></small></button>
+    <button type="button" class="bc-bottom-item" data-centre-nav="players"><strong><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-players"/></svg><span class="hz-bottom-label">Zawodnicy</span></strong><small>Profile zawodników<br><em>Średnie w Premium</em></small></button>
+    <button type="button" class="bc-bottom-item" data-centre-nav="teams"><strong><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-teams"/></svg><span class="hz-bottom-label">Drużyny</span></strong><small>Forma i terminarz<br><em>Analiza matchup wkrótce</em></small></button>
     <button type="button" class="bc-bottom-item bc-premium-item hz-premium-cta" data-centre-premium aria-label="Otwórz Premium"><strong><span class="hz-premium-gem" aria-hidden="true"></span><span class="hz-premium-text">PREMIUM</span><span class="hz-premium-arrow" aria-hidden="true">›</span></strong><small>Przyszłe funkcje analityczne</small></button>
   </div>
   <div class="bc-disclaimer"><span id="bc-data-meta">Dane terminarza NBA / ESPN. Brak fikcyjnych typów i prognoz.</span><button type="button" class="bc-photo-credits-trigger" data-centre-photo-credits title="Autorzy, źródła i licencje fotografii zawodników" hidden>© Zdjęcia</button></div>
@@ -475,7 +504,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
   </section>
   <section id="hzp-players-pane" class="hzp" hidden aria-label="Zawodnicy NBA — statystyki Premium">
     <header class="hzp-head">
-      <div class="hzp-head-title"><div class="hzp-head-mark" aria-hidden="true">♙</div><div><h1>Zawodnicy <span>NBA</span></h1><p>Statystyki zawodników · sezon 2026/27</p></div></div>
+      <div class="hzp-head-title"><div class="hzp-head-mark" aria-hidden="true"><svg class="hz-ui-icon"><use href="#hz-icon-players"/></svg></div><div><h1>Zawodnicy <span>NBA</span></h1><p>Statystyki zawodników · sezon 2026/27</p></div></div>
       <span class="hzp-premium-tag">✦ PREMIUM</span>
     </header>
     <div class="hzp-toolbar">
@@ -528,23 +557,23 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
   <div class="preview" id="card-teams" data-page="teams"><div class="mini-head">Drużyny</div><div class="mini-input">⌕ Szukaj drużyny...</div><div class="mini-row"><span class="mini-ball">◉</span><span class="mini-name">Boston Celtics</span><span class="mini-code">BOS</span></div><div class="mini-row"><span class="mini-ball">◉</span><span class="mini-name">New York Knicks</span><span class="mini-code">NYK</span></div><div class="mini-row"><span class="mini-ball">◉</span><span class="mini-name">Philadelphia 76ers</span><span class="mini-code">PHI</span></div></div>
   <div class="preview" id="card-shortcuts" data-page="shortcuts"><div class="mini-head orange">⌨ Skrót wpisywania (Player Props)</div><div class="short-row"><b>PTS</b><span>punkty</span><small>np. Tatum over 25.5 pts</small></div><div class="short-row"><b>REB</b><span>zbiórki</span><small>np. Tatum over 8.5 reb</small></div><div class="short-row"><b>AST</b><span>asysty</span><small>np. Tatum under 5.5 ast</small></div><div class="short-row"><b>3PM</b><span>trójki celne</span><small>np. Tatum over 2.5 3pm</small></div><div class="short-row"><b>PRA</b><span>punkty+zbiórki+asysty</span><small>np. Tatum over 35.5 pra</small></div></div>
  </div>
- <nav class="footer-links"><button data-page="home"><span class="icon">⌂</span>Centrum (Home)</button><button data-page="simulations"><span class="icon">◈</span>Symulacje</button><button data-page="games"><span class="icon">▣</span>Terminarz</button><button data-page="players"><span class="icon">♧</span>Zawodnicy</button><button data-page="teams"><span class="icon">⬡</span>Drużyny</button><button data-page="shortcuts"><span class="icon">⌨</span>Skrót wpisywania</button></nav>
+ <nav class="footer-links"><button data-page="home"><span class="icon"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-centre"/></svg></span>Centrum (Home)</button><button data-page="simulations"><span class="icon"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-simulations"/></svg></span>Symulacje</button><button data-page="games"><span class="icon"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-games"/></svg></span>Terminarz</button><button data-page="players"><span class="icon"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-players"/></svg></span>Zawodnicy</button><button data-page="teams"><span class="icon"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-teams"/></svg></span>Drużyny</button><button data-page="shortcuts"><span class="icon">⌨</span>Skrót wpisywania</button></nav>
 </footer>
 <div id="attribution">HOOPZARO · Statystyki historyczne NBA / ESPN · nie są gwarancją przyszłego wyniku.</div>
 </div></div>
 <nav id="hz-mobile-nav" class="hz-mobile-nav" aria-label="Nawigacja mobilna">
-  <button type="button" data-page="home" class="selected" aria-label="Centrum"><span aria-hidden="true">⌂</span><small>Centrum</small></button>
-  <button type="button" data-page="props" aria-label="Player Props"><span aria-hidden="true">▥</span><small>Props</small></button>
-  <button type="button" data-page="games" aria-label="Terminarz NBA"><span aria-hidden="true">◉</span><small>Mecze</small></button>
-  <button type="button" data-page="simulations" aria-label="Symulacje"><span aria-hidden="true">◇</span><small>Symulacje</small></button>
+  <button type="button" data-page="home" class="selected" aria-label="Centrum"><span aria-hidden="true"><svg class="hz-ui-icon"><use href="#hz-icon-centre"/></svg></span><small>Centrum</small></button>
+  <button type="button" data-page="props" aria-label="Player Props"><span aria-hidden="true"><svg class="hz-ui-icon"><use href="#hz-icon-props"/></svg></span><small>Props</small></button>
+  <button type="button" data-page="games" aria-label="Terminarz NBA"><span aria-hidden="true"><svg class="hz-ui-icon"><use href="#hz-icon-games"/></svg></span><small>Mecze</small></button>
+  <button type="button" data-page="simulations" aria-label="Symulacje"><span aria-hidden="true"><svg class="hz-ui-icon"><use href="#hz-icon-simulations"/></svg></span><small>Symulacje</small></button>
   <button type="button" id="hz-mobile-more-trigger" aria-expanded="false" aria-controls="hz-mobile-more-panel" aria-label="Więcej zakładek"><span aria-hidden="true">•••</span><small>Więcej</small></button>
 </nav>
 <div id="hz-mobile-more-panel" class="hz-mobile-more-panel" hidden>
   <div class="hz-mobile-more-title">HOOPZARO · WIĘCEJ</div>
-  <button type="button" data-page="players">♙ &nbsp; Zawodnicy <span>›</span></button>
-  <button type="button" data-page="teams">⬡ &nbsp; Drużyny <span>›</span></button>
-  <button type="button" data-page="settings">⚙ &nbsp; Ustawienia <span>›</span></button>
-  <button type="button" data-page="admin" class="hz-admin-nav" id="hz-mobile-admin" hidden>▤ &nbsp; Model Performance <span>›</span></button>
+  <button type="button" data-page="players"><span class="hz-more-copy"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-players"/></svg>Zawodnicy</span><span>›</span></button>
+  <button type="button" data-page="teams"><span class="hz-more-copy"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-teams"/></svg>Drużyny</span><span>›</span></button>
+  <button type="button" data-page="settings"><span class="hz-more-copy"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-settings"/></svg>Ustawienia</span><span>›</span></button>
+  <button type="button" data-page="admin" class="hz-admin-nav" id="hz-mobile-admin" hidden><span class="hz-more-copy"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-performance"/></svg>Model Performance</span><span>›</span></button>
 </div>
 <!-- Keep this modal outside the scaled dashboard: it fills the actual viewport. -->
 <div id="hz-paywall-backdrop" class="bc-free-info-backdrop hz-paywall-backdrop" hidden>
