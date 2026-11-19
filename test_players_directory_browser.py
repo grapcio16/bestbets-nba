@@ -4,12 +4,25 @@ All numerical fixtures stay in this test; production never fabricates stats.
 """
 from pathlib import Path
 from shutil import which
+import struct
 import unittest
+import zlib
 
 from playwright.sync_api import Error as PlaywrightError, sync_playwright
 
 
 PAGE = (Path(__file__).resolve().parent / "bestbets_reference_frontend" / "index.html").as_uri()
+
+
+def portrait_fixture_png():
+    """Offline 64px test portrait; production never serves synthetic images."""
+    def chunk(kind, payload):
+        return (struct.pack("!I", len(payload)) + kind + payload
+                + struct.pack("!I", zlib.crc32(kind + payload) & 0xffffffff))
+    row = b"\x00" + b"\x18\x5b\x8c\xff" * 64
+    return (b"\x89PNG\r\n\x1a\n"
+            + chunk(b"IHDR", struct.pack("!2I5B", 64, 64, 8, 6, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(row * 64)) + chunk(b"IEND", b""))
 
 
 class PlayersDirectoryBrowserTests(unittest.TestCase):
@@ -28,6 +41,9 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
             page = browser.new_page(viewport={"width": 1231, "height": 691})
             errors = []
             page.on("pageerror", lambda error: errors.append(str(error)))
+            page.route("https://a.espncdn.com/i/headshots/nba/players/full/*",
+                       lambda route: route.fulfill(status=200, content_type="image/png",
+                                                   body=portrait_fixture_png()))
             page.goto(PAGE, wait_until="load")
             page.evaluate("""() => {
               window.__premiumRequests = [];
@@ -50,6 +66,13 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
             page.evaluate("payload => window.postMessage({type:'streamlit:render',args:{payload}}, '*')",
                           {"auth": {"role": "free"}, "player_catalog": {"players": rows}})
             page.wait_for_function("document.querySelectorAll('.hzp-player-row').length===7")
+            page.wait_for_function("document.querySelectorAll('.hzp-player-avatar img').length===7")
+            self.assertEqual(page.locator(".hzp-player-avatar img").count(), 7)
+            first_avatar = page.locator(".hzp-player-avatar").first
+            self.assertGreaterEqual(first_avatar.bounding_box()["width"], 43)
+            self.assertEqual(first_avatar.locator("img").evaluate(
+                "img => getComputedStyle(img).objectFit"), "cover")
+            self.assertIn("/0.png", first_avatar.locator("img").get_attribute("src"))
             self.assertEqual(page.locator(".hzp-stat.is-locked").count(), 42)
             self.assertNotIn("28,1", page.locator("#hzp-table-rows").inner_text())
             page.locator("#hzp-cta").click()
