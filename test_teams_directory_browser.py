@@ -75,6 +75,30 @@ class TeamsDirectoryBrowserTests(unittest.TestCase):
             self.assertEqual(page.locator("#hzt-modal-name").inner_text(), "Golden State Warriors")
             page.locator("#hzt-modal-backdrop").click(position={"x": 6, "y": 6})
             self.assertTrue(page.locator("#hzt-modal-backdrop").is_hidden())
+            # NBA Advanced often rejects cloud hosting. Historical ESPN data
+            # must fill the cards under honestly relabeled statistics.
+            fallback_payload = {**payload, "auth": {"role": "premium"},
+                "premium_team_analytics": {"teams": {"BOS": {"sample": 10,
+                    "points": 110.4, "allowed": 99.3, "home": 121.6,
+                    "away": 112.1, "last5": "WWLWL", "off": None,
+                    "def": None, "pace": None}, "GSW": {"sample": 10,
+                    "points": 116.5, "allowed": 111.0, "home": 120.1,
+                    "away": 113.3, "last5": "WLWWW"}}}}
+            page.evaluate("payload => window.postMessage({type:'streamlit:render',args:{payload}}, '*')",
+                          fallback_payload)
+            page.locator('[data-hzt-team="BOS"]').click()
+            metrics = page.locator("#hzt-premium-metrics")
+            self.assertEqual(page.locator(".hzt-metric").count(), 5)
+            self.assertIn("DOM · PPG", metrics.inner_text())
+            self.assertIn("WYJAZD · PPG", metrics.inner_text())
+            self.assertIn("FORMA L5", metrics.inner_text())
+            self.assertIn("121,6", metrics.inner_text())
+            self.assertIn("112,1", metrics.inner_text())
+            self.assertIn("3–2", metrics.inner_text())
+            self.assertNotIn("Brak danych", metrics.inner_text())
+            page.locator("#hzt-compare").select_option("GSW")
+            self.assertIn("120,1", metrics.inner_text())
+            page.locator("#hzt-modal-close").click()
             premium_payload = {**payload, "auth": {"role": "premium"},
                 "premium_team_analytics": {"teams": {"BOS": {"sample": 10, "points": 113.3,
                     "allowed": 107.4, "off": 115.2, "def": 108.9, "pace": 100.3,
@@ -89,6 +113,10 @@ class TeamsDirectoryBrowserTests(unittest.TestCase):
             self.assertTrue(page.locator("#hzt-premium-unlocked").is_visible())
             self.assertTrue(page.locator("#hzt-premium-cta").is_hidden())
             self.assertEqual(page.locator(".hzt-metric").count(), 5)
+            self.assertIn("OFF RATING", page.locator("#hzt-premium-metrics").inner_text())
+            self.assertIn("DEF RATING", page.locator("#hzt-premium-metrics").inner_text())
+            self.assertIn("PACE", page.locator("#hzt-premium-metrics").inner_text())
+            self.assertIn("115,2", page.locator("#hzt-premium-metrics").inner_text())
             self.assertIn("113,3", page.locator("#hzt-premium-metrics").inner_text())
             page.locator("#hzt-compare").select_option("GSW")
             self.assertIn("119,8", page.locator("#hzt-premium-metrics").inner_text())
