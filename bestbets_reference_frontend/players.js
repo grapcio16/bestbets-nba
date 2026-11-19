@@ -47,6 +47,7 @@ function playerRow(player){
   const avatar=make("span","hzp-player-avatar");
   avatar.setAttribute("aria-hidden","true");
   avatar.dataset.hoopPlayer=String(player.name||"");
+  avatar.dataset.hoopTeam=String(player.team||"");
   if(/^\d{1,20}$/.test(String(player.id||"")))avatar.dataset.hoopId=String(player.id);
   avatar.append(make("span","hzp-avatar-fallback",initials));
   name.append(avatar);
@@ -101,9 +102,8 @@ function render(nextCatalog,nextAverages,nextRole){
   }else if(!matches.length){rows.append(make("div","hzp-empty","Nie znaleziono zawodnika dla wybranych filtrów."));}
   else{
     visible.forEach(p=>rows.append(playerRow(p)));
-    // Reuse the shared, lazy ESPN/credited-Commons portrait pipeline. Only
-    // seven rows are rendered per page; no 500-player image burst on startup.
-    global.HoopzaroPortraits?.observe?.(rows);
+    // Original HOOPZARO identity badges are shown instead of unlicensed
+    // ESPN/NBA photographs, for both free and premium visitors.
   }
   $("hzp-page").textContent=(page+1)+" / "+totalPages;
   $("hzp-prev").disabled=page===0;$("hzp-next").disabled=page+1>=totalPages;

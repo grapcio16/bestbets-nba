@@ -52,6 +52,19 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 .hero-photo>img{position:absolute;z-index:1;left:14px;bottom:-19px;width:126px;height:123px;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 4px 6px rgba(0,0,0,.4))}
 .hero-photo.empty .hero-team-halo{border-style:dashed;opacity:.40}
 .hero-photo.empty:after{content:"⌕";position:absolute;z-index:2;left:57px;top:31px;font-size:29px;color:#abffe0}
+#hero .hz-hero-avatar{position:absolute;z-index:2;left:41px;top:10px;display:grid;place-items:center;
+  width:69px;height:69px;border-radius:50%;border:2px solid rgba(72,239,255,.94);
+  background:radial-gradient(circle at 28% 18%,rgba(178,245,255,.3),transparent 40%),
+    radial-gradient(circle at 77% 84%,rgba(164,93,255,.27),transparent 47%),
+    linear-gradient(145deg,#164b78,#0a213e 46%,#1d1644);
+  box-shadow:inset 0 0 0 2px rgba(205,247,255,.15),inset 0 -13px 22px rgba(5,10,37,.65),
+    0 0 18px rgba(41,229,255,.29)}
+#hero .hz-hero-avatar[hidden]{display:none}
+#hero .hz-hero-avatar::before{content:"";position:absolute;inset:5px;border-radius:50%;
+  border:1px solid rgba(65,230,255,.3);border-top-color:rgba(220,252,255,.76);
+  background:radial-gradient(ellipse 50% 100% at 50% 50%,transparent 70%,rgba(65,229,255,.17) 73%,transparent 77%)}
+#hero .hz-hero-avatar>span{position:relative;z-index:2;color:#fff;font-weight:1000;font-size:24px;
+  letter-spacing:-.7px;text-shadow:0 1px 4px #05091e,0 0 10px rgba(41,229,255,.5)}
 .hero-name{flex:1;min-width:212px;padding:0 9px 0 6px}
 .hero-name h1{font-size:31px;line-height:1;margin:0 0 10px;letter-spacing:-1.2px;color:#f6f9ff;text-shadow:0 1px 9px rgba(0,0,0,.5);white-space:nowrap}
 .hero-meta{display:flex;align-items:center;gap:10px;color:#d7e5f3;font-size:11px;white-space:nowrap}
@@ -258,7 +271,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
   <div id="notice"></div><div id="loader"></div>
   <div id="props-pane">
   <section id="hero">
-    <div class="hero-photo empty" id="portrait"><div class="hero-team-halo" id="team-halo">♧</div><img id="player-img" alt="" hidden></div>
+    <div class="hero-photo empty" id="portrait"><div class="hero-team-halo" id="team-halo">♧</div><span class="hz-hero-avatar" id="hz-hero-avatar" aria-hidden="true" hidden><span id="hz-hero-initials"></span></span></div>
     <div class="hero-name"><h1 id="player-name">Wyszukaj zawodnika</h1><div class="hero-meta"><span class="team-pill" id="team">NBA</span><span id="position"></span><span id="matchup">Wpisz zdarzenie w wyszukiwarce</span></div><div class="hero-sub" id="hero-sub">Prawdziwe dane NBA / ESPN · bez przykładowych statystyk</div></div>
     <div class="hero-kpis"><div><small>AVG</small><strong id="hero-avg">—</strong><em>sezon</em></div><div><small>LINE</small><strong id="hero-line">—</strong><em>Twój próg</em></div><div><small>HIT RATE</small><strong class="green" id="hero-rate">—</strong><em id="hero-rate-sample">L10</em></div><div><small>OPP DEF</small><strong id="hero-defense">—</strong><em>pkt tracone</em></div></div>
     <div class="grade"><small>MATCHUP GRADE</small><div class="grade-arc" id="hero-grade">—</div></div>
@@ -374,7 +387,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <button type="button" class="bc-bottom-item" data-centre-nav="teams"><strong>⬡ &nbsp; Drużyny</strong><small>Forma i terminarz<br><em>Analiza matchup wkrótce</em></small></button>
     <button type="button" class="bc-bottom-item bc-premium-item hz-premium-cta" data-centre-premium aria-label="Otwórz Premium"><strong><span class="hz-premium-gem" aria-hidden="true"></span><span class="hz-premium-text">PREMIUM</span><span class="hz-premium-arrow" aria-hidden="true">›</span></strong><small>Przyszłe funkcje analityczne</small></button>
   </div>
-  <div class="bc-disclaimer"><span id="bc-data-meta">Dane terminarza NBA / ESPN. Brak fikcyjnych typów i prognoz.</span><button type="button" class="bc-photo-credits-trigger" data-centre-photo-credits title="Autorzy, źródła i licencje fotografii zawodników">© Zdjęcia</button></div>
+  <div class="bc-disclaimer"><span id="bc-data-meta">Dane terminarza NBA / ESPN. Brak fikcyjnych typów i prognoz.</span><button type="button" class="bc-photo-credits-trigger" data-centre-photo-credits title="Autorzy, źródła i licencje fotografii zawodników" hidden>© Zdjęcia</button></div>
   <div class="bc-dialog-backdrop" id="bc-dialog" hidden>
     <div class="bc-dialog" role="dialog" aria-modal="true" aria-labelledby="bc-dialog-title">
       <button type="button" class="bc-dialog-close" data-centre-close aria-label="Zamknij">×</button>
@@ -794,7 +807,8 @@ function renderPlayer(){
   text("matchup",p?(p.opponent?(p.position?" | ":"")+"vs "+p.opponent:" | Rywal do potwierdzenia"):"Wpisz zdarzenie w wyszukiwarce");
   text("hero-sub",p?("NBA "+p.season+" · "+p.games.length+" zweryfikowanych występów"+(p.next_game?" · "+p.next_game:"")):"Prawdziwe dane NBA / ESPN · bez przykładowych statystyk");
   $("portrait").classList.toggle("empty",!p);
-  setImage("player-img",p?p.photo:"",p?p.name:"");
+  $("hz-hero-avatar").hidden=!p;
+  text("hz-hero-initials",p?String(p.name||"").trim().split(/\s+/).slice(0,2).map(part=>part[0]||"").join("").toUpperCase():"");
   $("team-halo").innerHTML="";
   if(p&&p.logo){
     const img=document.createElement("img");

@@ -725,6 +725,9 @@
 #bestbets-centre .bc-free-heading>.bc-identity-avatar>span{font-size:21px;letter-spacing:0}
 #bestbets-centre .bc-identity-avatar:hover{box-shadow:inset 0 0 0 1px rgba(205,247,255,.25),0 0 16px rgba(var(--hz-identity-accent),.42)}
 #bestbets-centre .bc-catalog-athlete .bc-catalog-avatar{border-color:#29d4f4}
+#bestbets-centre .bc-catalog-athlete .bc-catalog-avatar.bc-identity-avatar{
+  border-radius:50%;border-color:rgba(var(--hz-identity-accent),.9)
+}
 #bestbets-centre .bc-photo-credits-trigger{
   float:right;padding:0 3px;background:none;border:0;color:#95d7ef;font-size:8px;
   text-decoration:underline;cursor:pointer

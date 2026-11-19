@@ -127,11 +127,16 @@ def _team_logo_html(team,size=48):
 
 def _headline_html(name,team,position,opponent,headshot,season,
                    observed,line,l10,opp_defense=None):
+    initials="".join(part[0] for part in str(name).split()[:2]).upper()
     img=(
         f'<img src="{escape(headshot,quote=True)}" '
         f'alt="Zdjęcie: {escape(name,quote=True)}" loading="lazy">'
         if headshot else
-        '<span style="font-size:58px;color:#0dd99b">♙</span>'
+        '<span aria-hidden="true" style="display:grid;place-items:center;'
+        'width:84px;height:84px;border:2px solid #38e8ff;border-radius:50%;'
+        'background:radial-gradient(circle at 25% 15%,#286797,#101d3e 65%,#25134b);'
+        'box-shadow:inset 0 0 0 3px #1a456e,0 0 15px #198bbb;'
+        'color:#fff;font-weight:900;font-size:27px">'+escape(initials)+'</span>'
     )
     pos=str(position or "—")
     if pos.lower() in ("nan","none","null"):pos="—"
@@ -314,8 +319,8 @@ def render_player_card(row,logs,season,asof,slug="bb_mvp_prop"):
         return
     all_=rates["season"]
     l10=rates["last10"]
-    photo=(f"https://a.espncdn.com/i/headshots/nba/players/full/{person_id}.png"
-           if str(person_id or "").isdigit() else "")
+    # ESPN/NBA portrait distribution is disabled pending written usage rights.
+    photo=""
     opp_def=row.get("Obrona: stracone pkt/mecz")
     if pd.isna(opp_def):opp_def=None
     hero.markdown(

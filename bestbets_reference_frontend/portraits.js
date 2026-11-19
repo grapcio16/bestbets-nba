@@ -1,8 +1,9 @@
-/* HOOPZARO: use official-style studio headshots by ESPN athlete ID.
-   A missing image falls back to credited Wikimedia Commons photographs, then
-   to the player's initials. Remote image terms remain the operator's concern. */
+/* HOOPZARO: portrait providers are retained for a future licensed release.
+   Public builds must never fetch or render third-party player photographs
+   until usage rights and attribution have been verified. */
 (function(){
 "use strict";
+const LICENSED_PORTRAITS_APPROVED=false;
 const COMMONS="https://commons.wikimedia.org/wiki/File:";
 const LICENSE_BY="https://creativecommons.org/licenses/by/2.0/";
 const LICENSE_BY4="https://creativecommons.org/licenses/by/4.0/";
@@ -208,6 +209,9 @@ const observer=typeof IntersectionObserver==="function"?new IntersectionObserver
  pump();
 },{rootMargin:"140px"}):null;
 function observe(container,{commonsOnly=false}={}){
+ // Global safety gate: even a stale caller or a mistakenly enabled backend
+ // setting cannot trigger ESPN, NBA or Commons image requests on the public site.
+ if(!LICENSED_PORTRAITS_APPROVED)return;
  if(!container)return;
  // The six visible Centrum avatars must not depend on the observer's timing.
  // Keep the 500+ player picker lazy so opening it never downloads every photo.
