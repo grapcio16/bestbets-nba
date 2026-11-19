@@ -405,6 +405,15 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       <div id="hzs-date-strip" class="hzs-date-strip" role="group" aria-label="Daty spotkań NBA"></div>
       <button type="button" class="hzs-day-arrow" data-hzs-direction="1" aria-label="Następny dzień">›</button>
     </div>
+    <div class="hzs-toolbar">
+      <div class="hzs-filters" role="group" aria-label="Filtruj mecze według statusu">
+        <button type="button" class="hzs-filter selected" data-hzs-filter="all" aria-pressed="true"><span aria-hidden="true">◇</span> Wszystkie</button>
+        <button type="button" class="hzs-filter" data-hzs-filter="live" aria-pressed="false"><span class="hzs-live-dot" aria-hidden="true"></span> Na żywo</button>
+        <button type="button" class="hzs-filter" data-hzs-filter="scheduled" aria-pressed="false"><span aria-hidden="true">◷</span> Nadchodzące</button>
+        <button type="button" class="hzs-filter" data-hzs-filter="final" aria-pressed="false"><span aria-hidden="true">✓</span> Zakończone</button>
+      </div>
+      <div class="hzs-match-count" id="hzs-match-count" aria-live="polite">— meczów</div>
+    </div>
     <div class="hzs-board" id="hzs-board" aria-live="polite"><div class="hzs-empty">Wczytywanie terminarza NBA…</div></div>
     <div class="hzs-footnote"><span id="hzs-source-note">Rzeczywiste mecze NBA / ESPN</span><span>Przewiń, aby zobaczyć wszystkie spotkania ↓</span></div>
   </section>

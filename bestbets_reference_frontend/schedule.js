@@ -1,7 +1,7 @@
 /* Free HOOPZARO Terminarz: confirmed ESPN games and verified season stats only. */
 (function(){
 "use strict";
-let callback=null,selectedDay="",requestedDay="",lastData=null;
+let callback=null,selectedDay="",requestedDay="",selectedFilter="all",lastData=null;
 const $=id=>document.getElementById(id);
 const escapeHtml=value=>String(value==null?"":value).replace(/[&<>"']/g,ch=>({
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -73,6 +73,31 @@ function currentStats(data,code){
       ?row.wins+"–"+row.losses:"—"
   };
 }
+function verifiedStats(data,code){
+  if(!seasonMatches(selectedDay))return null;
+  const row=(data?.form_options||[]).find(entry=>entry.team===code);
+  const ppg=Number(row?.ppg),wins=row?.wins,losses=row?.losses;
+  if(row?.record_verified!==true||row?.ppg==null||!Number.isFinite(ppg)||
+     ppg<50||ppg>160||!Number.isInteger(wins)||!Number.isInteger(losses)||
+     wins<0||losses<0||wins+losses===0)return null;
+  return {ppg,winRate:wins/(wins+losses)};
+}
+const clamp01=n=>Math.max(0,Math.min(1,n));
+function gameOfDay(games,data){
+  // FREE editorial selection: public, verified W/L and season PPG only.
+  // Never read projections, Premium state, model probabilities or game scores.
+  let best=null,bestScore=-1;
+  games.forEach(game=>{
+    const away=verifiedStats(data,game.away),home=verifiedStats(data,game.home);
+    if(!away||!home)return;
+    const quality=(away.winRate+home.winRate)/2;
+    const parity=1-Math.abs(away.winRate-home.winRate);
+    const scoring=clamp01(((away.ppg+home.ppg)/2-90)/40);
+    const rating=.4*quality+.3*parity+.3*scoring;
+    if(rating>bestScore){best=game;bestScore=rating;}
+  });
+  return best;
+}
 function teamMark(code,url){
   const safe=typeof url==="string"&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(url);
   return '<span class="hzs-team-mark">'+(safe
@@ -95,25 +120,39 @@ function liveLabel(raw){
   const match=text.match(/\bQ([1-4])\b/i)||text.match(/\b([1-4])(?:st|nd|rd|th)\b/i);
   return match?"NA ŻYWO · "+match[1]+". KWARTA":"NA ŻYWO";
 }
-function gameMarkup(game,data){
+function gameMarkup(game,data,featured=false){
   const away=String(game.away||"NBA").toUpperCase(),home=String(game.home||"NBA").toUpperCase();
   const badge=game.state==="live"?liveLabel(game.status):game.state==="final"?"KONIEC":"NADCHODZĄCE";
   const kind=game.state==="live"?"live":game.state==="final"?"final":"upcoming";
-  return '<article class="hzs-game hzs-'+kind+'" aria-label="'+escapeHtml(away+' – '+home+', '+badge)+'">'+
+  return '<article class="hzs-game hzs-'+kind+(featured?' hzs-featured':'')+'" aria-label="'+escapeHtml(away+' – '+home+', '+badge)+'">'+
+    (featured?'<div class="hzs-feature-ribbon" title="Wybór według zweryfikowanych bilansów i średnich punktów"><span aria-hidden="true">✦</span> MECZ DNIA <span aria-hidden="true">✦</span></div>':'')+
     '<div class="hzs-team away">'+teamMark(away,game.away_logo)+teamText(away,data)+'</div>'+
     '<div class="hzs-score"><strong>'+escapeHtml(score(game))+'</strong><span class="hzs-status">'+escapeHtml(badge)+'</span></div>'+
     '<div class="hzs-team home">'+teamText(home,data)+teamMark(home,game.home_logo)+'</div></article>';
+}
+function syncFilters(){
+  document.querySelectorAll("[data-hzs-filter]").forEach(button=>{
+    const active=button.dataset.hzsFilter===selectedFilter;
+    button.classList.toggle("selected",active);
+    button.setAttribute("aria-pressed",String(active));
+  });
 }
 function render(data){
   lastData=data;
   if(!selectedDay)selectedDay=safeDay(data?.calendar_today)?data.calendar_today:today();
   dateNavigation();
+  syncFilters();
   const host=$("hzs-board");if(!host)return;
   const footnote=$("hzs-source-note");
+  const counter=$("hzs-match-count");
   if(footnote)footnote.textContent="ESPN · rzeczywiste mecze · statystyki sezonu 2026/27 (stan bieżący)";
-  if(!data){host.innerHTML='<div class="hzs-empty">Wczytywanie potwierdzonych spotkań NBA…</div>';return}
+  if(!data){
+    if(counter)counter.textContent="— meczów";
+    host.innerHTML='<div class="hzs-empty">Wczytywanie potwierdzonych spotkań NBA…</div>';return;
+  }
   const day=selectedGames(data);
   if(!day.known){
+    if(counter)counter.textContent="— meczów";
     host.innerHTML='<div class="hzs-empty">'+(requestedDay===selectedDay
       ?'Pobieranie spotkań NBA z '+escapeHtml(selectedDay)+'…'
       :'Wybierz dzień, aby pobrać jego terminarz NBA.')+'</div>';
@@ -129,16 +168,27 @@ function render(data){
     unique.set(String(key),game);
   });
   const games=[...unique.values()].sort((a,b)=>String(a.start||"").localeCompare(String(b.start||"")));
+  if(counter)counter.textContent=games.length+" "+(games.length===1?"mecz":games.length>=2&&games.length<=4?"mecze":"meczów");
   const alert=day.error?'<div class="hzs-alert">'+escapeHtml(day.error.slice(0,180))+'</div>':"";
   if(!games.length){
     host.innerHTML=alert+'<div class="hzs-empty">Brak potwierdzonych meczów NBA '+escapeHtml(selectedDay)+'.</div>';
     return;
   }
-  // One chronological full-width list. Each card carries its own current
-  // LIVE / FINAL / UPCOMING status; no empty column when a day has one state.
+  const filtered=selectedFilter==="all"?games:
+    games.filter(game=>game.state===selectedFilter);
+  if(!filtered.length){
+    const empty={live:"Brak trwających meczów.",scheduled:"Brak nadchodzących meczów.",final:"Brak zakończonych meczów."};
+    host.innerHTML=alert+'<div class="hzs-empty">'+(empty[selectedFilter]||"Brak meczów.")+'</div>';
+    return;
+  }
+  const featured=selectedFilter==="all"?gameOfDay(games,data):null;
+  const remaining=featured?filtered.filter(game=>game!==featured):filtered;
+  const title=featured?"POZOSTAŁE MECZE":selectedFilter==="all"?"WSZYSTKIE MECZE":"MECZE";
   host.innerHTML=alert+'<section class="hzs-section" aria-label="Mecze NBA">'+
-    '<div class="hzs-section-title"><span class="hzs-section-dot" aria-hidden="true"></span>MECZE · '+games.length+'</div>'+
-    '<div class="hzs-rows">'+games.map(game=>gameMarkup(game,data)).join("")+'</div></section>';
+    (featured?gameMarkup(featured,data,true):'')+
+    (remaining.length?'<div class="hzs-section-title"><span class="hzs-section-dot" aria-hidden="true"></span>'+title+' · '+remaining.length+'</div>'+
+      '<div class="hzs-rows">'+remaining.map(game=>gameMarkup(game,data)).join("")+'</div>':'')+
+    '</section>';
 }
 function requestDay(day){
   if(!callback?.selectDay||!safeDay(day)||!withinRange(day))return;
@@ -146,11 +196,17 @@ function requestDay(day){
 }
 function selectDay(day){
   if(!safeDay(day)||!withinRange(day)||day===selectedDay)return;
-  selectedDay=day;requestedDay="";
+  selectedDay=day;requestedDay="";selectedFilter="all";
   render(lastData);
 }
 function init(api){
   callback=api;
+  document.querySelector(".hzs-filters")?.addEventListener("click",event=>{
+    const button=event.target.closest("[data-hzs-filter]");
+    if(!button||selectedFilter===button.dataset.hzsFilter)return;
+    selectedFilter=button.dataset.hzsFilter;
+    render(lastData);
+  });
   $("hzs-date-strip")?.addEventListener("click",event=>{
     const button=event.target.closest("[data-hzs-day]");
     if(button&&!button.disabled)selectDay(button.dataset.hzsDay);

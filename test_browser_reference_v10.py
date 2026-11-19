@@ -151,18 +151,51 @@ def main():
             {"calendar_today": selected_day, "calendar_loaded_days": [selected_day],
              "calendar_games": schedule_games,
              "form_options": [{"team": "DEN", "wins": 6, "losses": 4,
-                               "ppg": 114.5, "record_verified": True}]},
+                               "ppg": 114.5, "record_verified": True},
+                              {"team": "NOP", "wins": 5, "losses": 5,
+                               "ppg": 112.3, "record_verified": True}]},
         )
         page.wait_for_function("document.querySelectorAll('#hzs-board .hzs-game').length===3")
         assert page.locator("#hzs-board .hzs-game").count() == 3
         assert page.locator("#hzs-board .hzs-rows").count() == 1
-        assert page.locator("#hzs-board .hzs-columns").count() == 0
+        assert page.locator("#hzs-board .hzs-featured").count() == 1
+        assert page.locator("#hzs-board .hzs-rows .hzs-game").count() == 2
+        assert page.locator("#hzs-board .hzs-feature-ribbon").inner_text().strip().find("MECZ DNIA") >= 0
+        assert page.locator("#hzs-match-count").inner_text() == "3 mecze"
+        assert len(page.locator("#hzs-board .hzs-rows").evaluate(
+            "e => getComputedStyle(e).gridTemplateColumns.split(' ').filter(Boolean)")) == 2
         assert "NA ŻYWO · 3. KWARTA" in page.locator("#hzs-board").inner_text()
         assert "114,5 PPG" in page.locator("#hzs-board").inner_text()
         board_box = page.locator("#hzs-board").bounding_box()
-        game_box = page.locator("#hzs-board .hzs-game").first.bounding_box()
+        game_box = page.locator("#hzs-board .hzs-featured").bounding_box()
         assert board_box and game_box
         assert game_box["width"] >= board_box["width"] - 16, (board_box, game_box)
+        # The showcase and filters are FREE: no model scores or Premium
+        # predictions may be exposed by the schedule renderer.
+        assert "PRZEWIDYWANY" not in page.locator("#schedule-pane").inner_text()
+        assert "SYMU" not in page.locator("#schedule-pane").inner_text()
+        page.locator('[data-hzs-filter="live"]').click()
+        assert page.locator("#hzs-board .hzs-game").count() == 1
+        assert page.locator("#hzs-board .hzs-featured").count() == 0
+        assert page.locator('[data-hzs-filter="live"]').get_attribute("aria-pressed") == "true"
+        page.locator('[data-hzs-filter="final"]').click()
+        assert page.locator("#hzs-board .hzs-game").count() == 1
+        page.locator('[data-hzs-filter="scheduled"]').click()
+        assert page.locator("#hzs-board .hzs-game").count() == 1
+        assert "NADCHODZĄCE" in page.locator("#hzs-board").inner_text()
+        page.locator('[data-hzs-filter="all"]').click()
+        assert page.locator("#hzs-board .hzs-game").count() == 3
+        assert page.locator("#hzs-board .hzs-featured").count() == 1
+        # Unverified standings must not create a fake 'game of the day'.
+        page.evaluate(
+            "home => window.postMessage({type:'streamlit:render',args:{payload:{home}}}, '*')",
+            {"calendar_today": selected_day, "calendar_loaded_days": [selected_day],
+             "calendar_games": schedule_games,
+             "form_options": [{"team": "DEN", "wins": 6, "losses": 4,
+                               "ppg": 114.5, "record_verified": True}]},
+        )
+        assert page.locator("#hzs-board .hzs-featured").count() == 0
+        assert page.locator("#hzs-board .hzs-game").count() == 3
         page.locator('[data-page="props"].nav-btn').click()
         assert page.locator("#hero").is_visible()
 
