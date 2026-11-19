@@ -214,7 +214,12 @@ function observe(container){
   const name=node.dataset.hoopPlayer;
   if(!name)continue;
   node.dataset.hoopPhotoState="queued";
-  if(immediate){
+  if(container.id==="hzp-table-rows"){
+   // Exactly seven rows are mounted per directory page. Preload that page
+   // (including rows just below the fold), with pump() capped at three images.
+   queue.push({node,name,id:node.dataset.hoopId,nbaId:node.dataset.hoopNbaId,
+    studioOnly:node.dataset.hoopStudioOnly==="true"});pump();
+  }else if(immediate){
    loadPreferredHeadshot(node,node.dataset.hoopId,node.dataset.hoopNbaId).then(async loaded=>{
     if(!loaded&&node.dataset.hoopStudioOnly!=="true"){
      const photo=await get(name);if(photo)apply(node,photo);
