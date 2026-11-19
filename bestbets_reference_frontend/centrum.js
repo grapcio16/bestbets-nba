@@ -407,10 +407,9 @@ function renderPlayers(data){
  const safeQuery=p=>escapeHtml(query(p));
  watch.innerHTML=real.map(p=>
   '<button type="button" data-centre-query="'+safeQuery(p)+'" title="Przykładowy próg do analizy historii, nie typ bukmacherski">'+
-  freeAvatar(p).replace('bc-free-avatar','bc-free-avatar bc-watch-avatar')+
+  freeAvatar(p,false,true).replace('bc-free-avatar','bc-free-avatar bc-watch-avatar')+
   '<span class="bc-watch-name">'+escapeHtml(p.name)+'</span>'+positionBadge(p,'bc-watch-position')+teamBadge(p.team)+
   '<span class="bc-watch-chevron">›</span></button>').join("");
- window.HoopzaroPortraits?.observeOpenLicensed?.(watch);
 }
 let pendingFreeLeaderKey=null, freeRenderSignature="",freeInfoOpen=false,injuryInfoOpen=false,pendingFreeReferral=null;
 const freeLabels={PTS:"Lider punktów",REB:"Lider zbiórek",AST:"Lider asyst"};
@@ -464,10 +463,11 @@ function positionBadge(p,extraClass=""){
  const position=knownPositions.has(reported)?reported:(featuredPositions[String(p?.name||"")+"|"+String(p?.team||"")]||"");
  return knownPositions.has(position)?'<span class="bc-pos-badge '+extraClass+'" title="Pozycja zawodnika">'+escapeHtml(position)+'</span>':"";
 }
-function freeAvatar(p,studioOnly=false){
+function freeAvatar(p,studioOnly=false,identity=false){
  const id=/^\d{1,20}$/.test(String(p.athlete_id||""))?String(p.athlete_id):"";
  const nbaId=/^\d{1,20}$/.test(String(p.nba_id||""))?String(p.nba_id):"";
- return '<span class="bc-player-circle bc-free-avatar" data-hoop-player="'+escapeHtml(p.name||"")+
+ return '<span class="bc-player-circle bc-free-avatar'+(identity?' bc-identity-avatar':'')+'" data-hoop-player="'+escapeHtml(p.name||"")+
+  '" data-hoop-team="'+escapeHtml(p.team||'')+
   '" data-hoop-id="'+escapeHtml(id)+'" data-hoop-nba-id="'+escapeHtml(nbaId)+
   '"'+(studioOnly?' data-hoop-studio-only="true"':'')+'><span>'+escapeHtml(initials(p))+'</span></span>';
 }
@@ -487,17 +487,16 @@ function renderFreeLeaders(data){
     '</span><span>Brak pełnych danych '+market+' · '+escapeHtml(data.free_leader_day)+' NBA/ET</span></div>';
   return '<button class="bc-pick" type="button" data-centre-free-key="'+p.detail_key+
     '" title="'+escapeHtml(p.name)+' · '+escapeHtml(freeLabels[market])+
-    (p.tie_count>1?' (ex aequo)':'')+' — zakończone mecze NBA/ET">'+freeAvatar(p)+
+    (p.tie_count>1?' (ex aequo)':'')+' — zakończone mecze NBA/ET">'+freeAvatar(p,false,true)+
     '<span class="bc-pick-info"><span class="bc-name-line"><strong>'+escapeHtml(p.name)+'</strong>'+positionBadge(p)+'</span><small>'+escapeHtml(freeLabels[market])+
     ' · '+escapeHtml(p.value)+' '+market+(p.tie_count>1?' · ex aequo':'')+'</small></span>'+
     '<span class="bc-pick-tag">'+market+'</span><span class="bc-pick-explain">'+teamBadge(p.team)+' vs '+
     teamBadge(p.opponent)+'<br><i>'+escapeHtml(p.date)+' NBA/ET</i></span>'+
     '<span class="bc-mini-btn">Szczegóły ›</span></button>';
  }).join("");
- window.HoopzaroPortraits?.observeOpenLicensed?.(host);
 }
 function freeDetailsBody(p,stats,note,verified=false){
- return '<div class="bc-free-heading">'+freeAvatar(p)+'<div><strong>'+escapeHtml(p.name)+
+ return '<div class="bc-free-heading">'+freeAvatar(p,false,true)+'<div><strong>'+escapeHtml(p.name)+
   '</strong><div class="bc-free-match">'+teamBadge(p.team)+' vs '+teamBadge(p.opponent)+
   ' · '+escapeHtml(p.date)+' NBA/ET</div></div></div><div class="bc-free-stats">'+
   ["PTS","REB","AST","3PM"].map(key=>'<div class="bc-free-stat"><strong>'+escapeHtml(stats?.[key]??"—")+
@@ -509,7 +508,6 @@ function freeDetailsBody(p,stats,note,verified=false){
 function showFreeDetails(p,stats,note,verified=false){
  setText("bc-dialog-title",p.name+" — występ NBA");
  $("bc-dialog-body").innerHTML=freeDetailsBody(p,stats,note,verified);
- window.HoopzaroPortraits?.observeOpenLicensed?.($("bc-dialog-body"));
  $("bc-dialog").classList.add("bc-free-detail-dialog");
  $("bc-dialog").classList.remove("bc-injury-detail-dialog");
  $("bc-dialog").hidden=false;
