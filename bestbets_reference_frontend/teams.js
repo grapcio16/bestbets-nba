@@ -4,7 +4,7 @@
 (function(global){
 "use strict";
 const $=id=>document.getElementById(id);
-const FAV_KEY="bestbets.centrum.favoriteTeams.v1",PAGE_SIZE=6;
+const FAV_KEY="bestbets.centrum.favoriteTeams.v1",PAGE_SIZE=9;
 // Immutable team identities and conference membership, not sports results.
 const DATA=[
  ["ATL","Atlanta Hawks","east","255,91,85","#ff7364","A"],
@@ -91,6 +91,48 @@ function feature(){
  $("hzt-feature-status").textContent=home?.form_stale?"Dane ESPN opóźnione":
    home?.form_available?"Sezon "+(home.form_period||"2026/27"):"Bilans sezonu niedostępny";
 }
+function dialogOpen(){return !$("hzt-modal-backdrop").hidden}
+function updateDialog(){
+ const team=byCode.get(selected)||DATA[0],dialog=$("hzt-team-dialog");
+ dialog.style.setProperty("--hzt-accent",team.accent);
+ dialog.style.setProperty("--hzt-rgb",team.rgb);
+ $("hzt-modal-mark").textContent=team.mark;
+ $("hzt-modal-code").textContent=team.code;
+ $("hzt-modal-name").textContent=team.name;
+ $("hzt-modal-conference").textContent=team.conference==="east"?"Wschód":"Zachód";
+ $("hzt-modal-record").textContent=record(team);
+ $("hzt-modal-season").textContent=home?.form_period||"2026/27";
+}
+function openModal(code){
+ if(!byCode.has(code))return;
+ selected=code;render(home,analytics,role);updateDialog();
+ $("hzt-modal-backdrop").hidden=false;
+ $("hzt-modal-close").focus({preventScroll:true});
+}
+function closeModal(restoreFocus=true){
+ if(!dialogOpen())return;
+ $("hzt-modal-backdrop").hidden=true;
+ if(restoreFocus){
+   const card=$("hzt-team-grid").querySelector(`[data-hzt-team="${selected}"]`);
+   if(card)card.focus({preventScroll:true});
+ }
+}
+function onDialogKeydown(event){
+ if(!dialogOpen()||!$("hz-paywall-backdrop").hidden)return;
+ if(event.key==="Escape"){
+   event.preventDefault();closeModal();return;
+ }
+ if(event.key!=="Tab")return;
+ const controls=[...$("hzt-team-dialog").querySelectorAll("button,select,a[href]")]
+   .filter(el=>!el.hidden&&!el.disabled&&el.getClientRects().length);
+ if(!controls.length){event.preventDefault();$("hzt-team-dialog").focus();return}
+ const first=controls[0],last=controls[controls.length-1];
+ if(event.shiftKey&&(document.activeElement===first||!$("hzt-team-dialog").contains(document.activeElement))){
+   event.preventDefault();last.focus();
+ }else if(!event.shiftKey&&(document.activeElement===last||!$("hzt-team-dialog").contains(document.activeElement))){
+   event.preventDefault();first.focus();
+ }
+}
 function metric(label,key){
  const first=analytics?.teams?.[selected],second=compare?analytics?.teams?.[compare]:null;
  const a=fmt(first?.[key]),b=compare?fmt(second?.[key]):null;
@@ -100,7 +142,7 @@ function renderPremium(){
  const paid=entitled();$("hzt-premium-locked").hidden=paid;$("hzt-premium-unlocked").hidden=!paid;
  $("hzt-premium-cta").hidden=paid;
  $("hzt-premium-intro").textContent=paid?"Ostatnie mecze · dane historyczne":"Odblokuj statystyki i metryki zespołowe";
- if(!paid)return;
+ if(!paid){$("hzt-premium-metrics").replaceChildren();return}
  const select=$("hzt-compare");
  const options=DATA.filter(t=>t.code!==selected).sort((a,b)=>a.name.localeCompare(b.name));
  select.replaceChildren(new Option("Bez porównania",""));
@@ -132,6 +174,7 @@ function render(nextHome,nextAnalytics,nextRole){
    button.classList.toggle("active",active);button.setAttribute("aria-pressed",String(active));
  });
  feature();renderPremium();
+ if(dialogOpen())updateDialog();
 }
 function toggleFavorite(code){
  const current=favorites();message="";
@@ -150,14 +193,19 @@ function init(callbacks){
  $("hzt-team-grid").addEventListener("click",e=>{
    const star=e.target.closest("[data-hzt-fav]");
    if(star){e.stopPropagation();toggleFavorite(star.dataset.hztFav);return}
-   const card=e.target.closest("[data-hzt-team]");if(card){selected=card.dataset.hztTeam;render(home,analytics,role)}
+   const card=e.target.closest("[data-hzt-team]");if(card)openModal(card.dataset.hztTeam);
  });
  $("hzt-team-grid").addEventListener("keydown",e=>{
    const card=e.target.closest("[data-hzt-team]");
    if(card&&e.target===card&&(e.key==="Enter"||e.key===" ")){
-     e.preventDefault();selected=card.dataset.hztTeam;render(home,analytics,role)
+     e.preventDefault();openModal(card.dataset.hztTeam);
    }
  });
+ $("hzt-modal-close").addEventListener("click",()=>closeModal());
+ $("hzt-modal-backdrop").addEventListener("click",e=>{
+   if(e.target===$("hzt-modal-backdrop"))closeModal();
+ });
+ document.addEventListener("keydown",onDialogKeydown);
  $("hzt-prev").addEventListener("click",()=>{page=Math.max(0,page-1);render(home,analytics,role)});
  $("hzt-next").addEventListener("click",()=>{page++;render(home,analytics,role)});
  $("hzt-compare").addEventListener("change",e=>{compare=e.target.value;renderPremium()});
@@ -165,5 +213,5 @@ function init(callbacks){
  global.addEventListener("hoopzaro:favorites-changed",()=>render(home,analytics,role));
  global.addEventListener("storage",e=>{if(e.key===FAV_KEY)render(home,analytics,role)});
 }
-global.HoopzaroTeams={init,render};
+global.HoopzaroTeams={init,render,closeModal};
 })(window);

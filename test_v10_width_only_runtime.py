@@ -94,10 +94,17 @@ def smoke(browser, url, width, height, out):
         "Player directory bottom panel cannot be scrolled into view",player_cta)
     stage.locator('.nav-btn[data-page="teams"]').click()
     expect(frame.locator('#hzt-teams-pane')).to_be_visible()
+    # Team details were moved to a viewport-centered dialog: the directory
+    # remains visible and the Premium content opens only after selecting a team.
+    expect(frame.locator('#hzt-modal-backdrop')).to_be_hidden()
+    frame.locator('[data-hzt-team="BOS"]').click()
+    expect(frame.locator('#hzt-team-dialog')).to_be_visible()
     frame.locator('.hzt-premium-panel').scroll_into_view_if_needed(timeout=10000)
     team_cta=frame.locator('.hzt-premium-panel').bounding_box()
     assert team_cta and team_cta["y"]+team_cta["height"]<=height+6, (
-        "Teams Premium panel cannot be scrolled into view",team_cta)
+        "Teams Premium dialog cannot be scrolled into view",team_cta)
+    frame.locator('#hzt-modal-close').click()
+    expect(frame.locator('#hzt-modal-backdrop')).to_be_hidden()
     context.close()
     return dict(viewport=[width,height],stage=rect,iframe=fb,stable_frames=len(size))
 

@@ -543,12 +543,6 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     </div>
     <div id="hzt-team-grid" class="hzt-team-grid" aria-live="polite"><div class="hzt-no-data">Ładowanie katalogu NBA…</div></div>
     <div class="hzt-pagination"><span id="hzt-team-summary">30 zespołów · ★ maks. 2 ulubione</span><span id="hzt-team-message" role="status"></span><div><button type="button" id="hzt-prev" aria-label="Poprzednie drużyny">‹</button><span id="hzt-page">1 / 5</span><button type="button" id="hzt-next" aria-label="Następne drużyny">›</button></div></div>
-    <section class="hzt-premium-panel" aria-label="Zaawansowane statystyki drużyn Premium">
-      <div class="hzt-premium-heading"><small>♛ PREMIUM</small><strong>Zaawansowane analizy drużyn</strong><p id="hzt-premium-intro">Odblokuj statystyki i metryki zespołowe</p></div>
-      <div id="hzt-premium-locked" class="hzt-locked-metrics"><span>♙ Offensive<br>Rating</span><span>♙ Defensive<br>Rating</span><span>♙ Pace</span><span>♙ Home /<br>Away</span><span>♙ Trendy</span></div>
-      <div id="hzt-premium-unlocked" class="hzt-unlocked" hidden><div class="hzt-unlocked-top"><label>Porównaj z <select id="hzt-compare" aria-label="Porównaj drużyny"><option value="">Wybierz drużynę</option></select></label><span id="hzt-analytics-source">Zakończone mecze · ESPN</span></div><div id="hzt-premium-metrics" class="hzt-premium-metrics">Pobieranie zweryfikowanych danych…</div></div>
-      <button id="hzt-premium-cta" type="button">♙ Odblokuj Premium · $9.99/mies.</button>
-    </section>
   </section>
   <section id="hz-admin-pane" class="hz-admin-pane" hidden aria-label="Administrator: skuteczność modeli">
     <div class="hz-admin-head"><div><span class="hz-admin-kicker">HOOPZARO · TYLKO ADMINISTRATOR</span><h1>Model <em>Performance</em></h1><p>Ocena prognoz zapisanych przed meczem. Wyniki wyłącznie po oficjalnym zakończeniu spotkań.</p></div><button type="button" id="hz-admin-refresh">↻ Odśwież</button></div>
@@ -581,6 +575,24 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
   <button type="button" data-page="teams"><span class="hz-more-copy"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-teams"/></svg>Drużyny</span><span>›</span></button>
   <button type="button" data-page="settings"><span class="hz-more-copy"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-settings"/></svg>Ustawienia</span><span>›</span></button>
   <button type="button" data-page="admin" class="hz-admin-nav" id="hz-mobile-admin" hidden><span class="hz-more-copy"><svg class="hz-ui-icon" aria-hidden="true"><use href="#hz-icon-performance"/></svg>Model Performance</span><span>›</span></button>
+</div>
+<!-- Team analytics is outside the scaled app so the overlay covers the whole screen. -->
+<div id="hzt-modal-backdrop" class="hzt-modal-backdrop" hidden>
+  <section id="hzt-team-dialog" class="hzt-team-dialog" role="dialog" aria-modal="true" aria-labelledby="hzt-modal-name" aria-describedby="hzt-modal-description" tabindex="-1">
+    <div class="hzt-dialog-hero">
+      <div class="hzt-dialog-topline"><span class="hzt-dialog-eyebrow">HOOPZARO <span aria-hidden="true">✦</span> TEAM INTELLIGENCE</span><span class="hzt-dialog-season">NBA · <span id="hzt-modal-season">2026/27</span></span></div>
+      <button id="hzt-modal-close" class="hzt-dialog-close" type="button" aria-label="Zamknij analizy drużyny">×</button>
+      <div class="hzt-dialog-identity"><div id="hzt-modal-mark" class="hzt-dialog-mark" aria-hidden="true">B</div><div class="hzt-dialog-name"><span id="hzt-modal-code" class="hzt-dialog-code">BOS</span><h2 id="hzt-modal-name">Boston Celtics</h2><p id="hzt-modal-description">Profil drużyny i zaawansowane statystyki</p></div></div>
+      <div class="hzt-dialog-facts"><span>Konferencja <strong id="hzt-modal-conference">Wschód</strong></span><span>Bilans W–L <strong id="hzt-modal-record">—</strong></span><span class="hzt-dialog-tier">✦ ANALIZY PREMIUM</span></div>
+    </div>
+    <section class="hzt-premium-panel" aria-label="Zaawansowane statystyki drużyn Premium">
+      <div class="hzt-premium-heading"><small>✦ PREMIUM INSIGHTS</small><strong>Zaawansowane analizy drużyny</strong><p id="hzt-premium-intro">Odblokuj statystyki i metryki zespołowe</p></div>
+      <div id="hzt-premium-locked" class="hzt-locked-metrics"><span>OFF RATING <b>✦</b></span><span>DEF RATING <b>✦</b></span><span>PACE <b>✦</b></span><span>DOM / WYJAZD <b>✦</b></span><span>TRENDY <b>✦</b></span></div>
+      <div id="hzt-premium-unlocked" class="hzt-unlocked" hidden><div class="hzt-unlocked-top"><label>Porównaj z <select id="hzt-compare" aria-label="Porównaj drużyny"><option value="">Bez porównania</option></select></label><span id="hzt-analytics-source">Zakończone mecze · ESPN</span></div><div id="hzt-premium-metrics" class="hzt-premium-metrics">Pobieranie zweryfikowanych danych…</div></div>
+      <button id="hzt-premium-cta" type="button">✦ Odblokuj pełne analizy Premium</button>
+      <p class="hzt-dialog-source">Dane historyczne z potwierdzonych meczów NBA · nie są prognozą wyniku.</p>
+    </section>
+  </section>
 </div>
 <!-- Keep this modal outside the scaled dashboard: it fills the actual viewport. -->
 <div id="hz-paywall-backdrop" class="bc-free-info-backdrop hz-paywall-backdrop" hidden>
@@ -688,7 +700,8 @@ function closePremiumPaywall(){
   if(!state.paywallOpen)return;
   state.paywallOpen=false;
   $("hz-paywall-backdrop").hidden=true;
-  $("query").focus();
+  if(!$("hzt-modal-backdrop").hidden)$("hzt-modal-close").focus();
+  else $("query").focus();
 }
 function notify(type,extra){
   window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},extra||{}),"*");
@@ -933,6 +946,7 @@ function render(){
   $("simulations-pane").hidden=!simulations;
   $("hzp-players-pane").hidden=!players;
   $("hzt-teams-pane").hidden=!teams;
+  if(!teams&&window.HoopzaroTeams)window.HoopzaroTeams.closeModal(false);
   $("hz-admin-pane").hidden=!admin;
   $("bestbets-centre").hidden=!home;
   $("footer").style.display=home||simulations||players||teams||admin?"none":"block";
