@@ -4,7 +4,9 @@
 const $=id=>document.getElementById(id);
 const PAGE_SIZE=7;
 let callbacks={},catalog=null,averages=null,role="guest",page=0,query="",team="",position="";
+let selectedKey="",lastSelectedPlayer=null;
 const requestedIds=new Set();
+const DEFAULT_SPOTLIGHT={name:"Jayson Tatum",team:"BOS",position:"F",id:""};
 const norm=name=>String(name||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
   .toLowerCase().replace(/[^a-z0-9]/g,"");
 const entitled=()=>role==="premium"||role==="admin";
@@ -40,63 +42,131 @@ function filteredPlayers(){
     return String(a.name).localeCompare(String(b.name),"pl");
   });
 }
-function playerRow(player){
-  const row=make("div","hzp-player-row"),name=make("div","hzp-player-name");
+const keyFor=player=>String(player.id||"")||norm(player.name)+"@"+String(player.team||"");
+function avatarFor(player,spotlight=false){
   const initials=String(player.name||"").trim().split(/\s+/).filter(Boolean)
     .slice(0,2).map(part=>part[0]).join("").toUpperCase();
-  const avatar=make("span","hzp-player-avatar");
+  const avatar=make("span","hzp-player-avatar"+(spotlight?" hzp-spotlight-avatar":""));
   avatar.setAttribute("aria-hidden","true");
   avatar.dataset.hoopPlayer=String(player.name||"");
   avatar.dataset.hoopTeam=String(player.team||"");
   if(/^\d{1,20}$/.test(String(player.id||"")))avatar.dataset.hoopId=String(player.id);
   avatar.append(make("span","hzp-avatar-fallback",initials));
-  name.append(avatar);
-  const identity=make("div","hzp-player-identity");
+  return avatar;
+}
+function dataFor(player){
   const id=String(player.id||"");
   // The ESPN ID is the authority for identity. Names can collide and a
   // player's roster team can differ from the team in historical game logs.
   const data=entitled()?(averages?.id_rows?averages.id_rows[id]:averages?.rows?.[norm(player.name)]):null;
   const reportedGames=Number(data?.games);
   const gameCount=Number.isInteger(reportedGames)&&reportedGames>0?reportedGames:0;
-  identity.append(make("strong","",player.name),make("small","",player.position||"NBA"));
-  name.append(identity);row.append(name);
-  const teamCell=make("div");teamCell.append(make("span","hzp-team-tag",player.team||"NBA"));
-  row.append(teamCell);
   const waiting=entitled()&&!data&&!((averages?.attempted_ids||[]).includes(id));
   const unavailable=(averages?.unavailable_ids||[]).includes(id);
-  const gpCell=make("span","hzp-games"+(!entitled()?" is-locked":waiting?" is-loading":!gameCount?" is-missing":""),
-    !entitled()?"♢":waiting?"…":gameCount?String(gameCount):"—");
-  if(!entitled()){
-    gpCell.title="Liczba rozegranych meczów dostępna w Hoopzaro Premium";
-    gpCell.setAttribute("aria-label","Liczba meczów Premium");
-  }else if(waiting)gpCell.title="Pobieranie potwierdzonej liczby rozegranych spotkań…";
-  else if(unavailable)gpCell.title="ESPN nie udostępnia teraz historii zawodnika. Spróbuj odświeżyć.";
-  else gpCell.title=gameCount?
-    "GP · potwierdzone występy w dostępnej historii: "+gameCount+
-    (data?.partial?" · historia może być niepełna":""):
-    "Brak zweryfikowanych spotkań";
+  return {data,id,gameCount,waiting,unavailable};
+}
+const countFor=(info,field)=>({three_pm:info.data?.three_pm_games,
+  three_pa:info.data?.three_pa_games,three_pct:info.data?.three_pct_games})[field];
+function statFor(info,field,percent=false){
+  const {data,gameCount,waiting,unavailable}=info;
+  if(!entitled())return {text:"♢",status:"is-locked",title:"Dostępne w Hoopzaro Premium"};
+  if(waiting)return {text:"…",status:"is-loading",title:"Pobieranie zweryfikowanej historii zawodnika…"};
+  const value=field==="games"?gameCount:data?.[field];
+  const valid=field==="games"?gameCount>0:typeof value==="number"&&Number.isFinite(value);
+  if(!valid)return {text:"—",status:"is-missing",title:unavailable?
+    "ESPN nie udostępnia teraz potwierdzonej historii. Spróbuj odświeżyć.":"Brak zweryfikowanych występów"};
+  const sample=countFor(info,field);
+  const count=Number.isFinite(sample)?sample:gameCount;
+  return {text:field==="games"?String(gameCount):safeNumber(value,percent),status:"",title:
+    "Potwierdzone występy: "+count+"/"+gameCount+
+    (field!=="games"&&Number.isFinite(sample)&&count<gameCount?" · część meczów bez danych rzutowych":"")+
+    (data?.partial?" · historia może być niepełna":"")+
+    (data?.last_game?" · ostatni: "+data.last_game:"")+
+    (data?.sample_source?" · "+data.sample_source:"")};
+}
+function playerRow(player,active){
+  const row=make("button","hzp-player-row"+(active?" is-active":""));row.type="button";
+  row.dataset.playerKey=keyFor(player);
+  row.setAttribute("aria-pressed",String(active));
+  row.setAttribute("aria-label","Pokaż profil zawodnika: "+player.name);
+  const name=make("span","hzp-player-name");
+  name.append(avatarFor(player));
+  const identity=make("span","hzp-player-identity");
+  identity.append(make("strong","",player.name),make("small","",player.position||"NBA"));
+  name.append(identity);row.append(name);
+  const teamCell=make("span","hzp-player-team");teamCell.append(make("span","hzp-team-tag",player.team||"NBA"));
+  row.append(teamCell);
+  const info=dataFor(player),games=statFor(info,"games");
+  const gpCell=make("span","hzp-games "+games.status,games.text);
+  gpCell.title=games.title;
+  if(!entitled())gpCell.setAttribute("aria-label","Liczba meczów Premium");
   row.append(gpCell);
-  const figures=[data?.pts,data?.reb,data?.ast,data?.three_pm,data?.three_pa,data?.three_pct];
-  const fieldCounts=[gameCount,gameCount,gameCount,data?.three_pm_games,
-    data?.three_pa_games,data?.three_pct_games];
-  figures.forEach((number,index)=>{
-    const locked=!entitled();
-    const blank=number===null||number===undefined;
-    const cell=make("span","hzp-stat"+(locked?" is-locked":blank?" is-missing":index===5?" is-highlight":""),
-      locked?"♢":waiting?"…":safeNumber(number,index===5));
-    if(locked){cell.title="Dostępne w Hoopzaro Premium";cell.setAttribute("aria-label","Statystyka Premium");}
-    else if(unavailable)cell.title="ESPN nie udostępnia teraz potwierdzonej historii. Spróbuj ponownie przyciskiem Odśwież.";
-    else if(waiting)cell.title="Pobieranie zweryfikowanej historii zawodnika…";
-    else if(gameCount){
-      const count=Number.isFinite(fieldCounts[index])?fieldCounts[index]:gameCount;
-      cell.title="Potwierdzone występy: "+count+"/"+gameCount+
-        (index>=3&&count<gameCount?" · część meczów bez danych rzutowych":"")+
-        (data?.last_game?" · ostatni: "+data.last_game:"")+
-        (data?.sample_source?" · "+data.sample_source:"");
-    }else cell.title="Brak zweryfikowanych występów";
-    row.append(cell);
+  const pts=statFor(info,"pts");
+  const ptsCell=make("span","hzp-stat hzp-stat-primary "+pts.status,pts.text);
+  ptsCell.title=pts.title;row.append(ptsCell);
+  const extra=make("span","hzp-row-extra");
+  for(const [label,field] of [["REB","reb"],["AST","ast"]]){
+    const stat=statFor(info,field),line=make("span","hzp-extra-line");
+    line.append(make("span","",label));
+    const value=make("strong",stat.status,stat.text);value.title=stat.title;
+    line.append(value);extra.append(line);
+  }
+  row.append(extra);
+  row.addEventListener("click",()=>{
+    selectedKey=keyFor(player);lastSelectedPlayer=player;
+    $("hzp-table-rows").querySelectorAll(".hzp-player-row").forEach(button=>{
+      const selected=button.dataset.playerKey===selectedKey;
+      button.classList.toggle("is-active",selected);
+      button.setAttribute("aria-pressed",String(selected));
+    });
+    renderSpotlight(player,"");
   });
   return row;
+}
+function renderSpotlight(player,note){
+  const target=$("hzp-spotlight-body");target.replaceChildren();
+  const info=dataFor(player);
+  const hero=make("div","hzp-spotlight-hero");
+  hero.append(avatarFor(player,true));
+  const copy=make("div","hzp-spotlight-identity");
+  copy.append(make("h2","",player.name));
+  copy.append(make("p","",(player.team||"NBA")+" · "+(player.position||"NBA")));
+  hero.append(copy);target.append(hero);
+  const metrics=make("div","hzp-spotlight-metrics");
+  const main=make("div","hzp-spotlight-points");
+  const pts=statFor(info,"pts");
+  const big=make("strong",pts.status,pts.text);big.title=pts.title;
+  main.append(big,make("span","","PTS / MECZ"));metrics.append(main);
+  const secondary=make("div","hzp-spotlight-secondary");
+  for(const [label,field] of [["REB","reb"],["AST","ast"],["3PM","three_pm"],["3PA","three_pa"]]){
+    const stat=statFor(info,field),cell=make("div","hzp-spotlight-metric");
+    cell.append(make("span","",label));
+    const value=make("strong",stat.status,stat.text);value.title=stat.title;
+    cell.append(value);secondary.append(cell);
+  }
+  metrics.append(secondary);target.append(metrics);
+  const bottom=make("div","hzp-spotlight-bottom");
+  const accuracy=make("div","hzp-spotlight-accuracy");
+  const accuracyHead=make("div","hzp-spotlight-accuracy-head");
+  accuracyHead.append(make("span","","SKUTECZNOŚĆ ZA 3"));
+  const pct=statFor(info,"three_pct",true);
+  const pctValue=make("strong",pct.status,pct.text);pctValue.title=pct.title;
+  accuracyHead.append(pctValue);accuracy.append(accuracyHead);
+  const track=make("div","hzp-spotlight-meter");
+  const fill=make("span");
+  const percentage=info.data?.three_pct;
+  fill.style.width=entitled()&&Number.isFinite(percentage)?Math.max(0,Math.min(100,percentage))+"%":"0%";
+  track.append(fill);accuracy.append(track);bottom.append(accuracy);
+  const gp=statFor(info,"games"),games=make("div","hzp-spotlight-games");
+  const gpValue=make("strong",gp.status,gp.text);gpValue.title=gp.title;
+  games.append(gpValue,make("span","","ROZEGRANYCH\nMECZÓW"));bottom.append(games);
+  target.append(bottom);
+  const foot=make("div","hzp-spotlight-note");
+  foot.append(make("span","hzp-note-icon","ⓘ"));
+  foot.append(make("span","",note||(!entitled()?
+    "Statystyki tego zawodnika dostępne są w Premium.":
+    "Średnie z potwierdzonych występów · nie są prognozą.")));
+  target.append(foot);
 }
 function render(nextCatalog,nextAverages,nextRole){
   catalog=nextCatalog&&typeof nextCatalog==="object"?nextCatalog:null;
@@ -107,16 +177,23 @@ function render(nextCatalog,nextAverages,nextRole){
   const matches=filteredPlayers(),limit=entitled()?matches.length:Math.min(matches.length,7);
   const totalPages=Math.max(1,Math.ceil(limit/PAGE_SIZE));page=Math.min(page,totalPages-1);
   const visible=matches.slice(page*PAGE_SIZE,Math.min((page+1)*PAGE_SIZE,limit));
-  const rows=$("hzp-table-rows");rows.replaceChildren();
+  const chosen=visible.find(p=>keyFor(p)===selectedKey)||visible[0]||null;
+  if(chosen){selectedKey=keyFor(chosen);lastSelectedPlayer=chosen;}
+  renderSpotlight(chosen||lastSelectedPlayer||players[0]||DEFAULT_SPOTLIGHT,
+    !catalog?"Trwa pobieranie składów NBA / ESPN. Statystyki pojawią się po weryfikacji.":
+    catalog.error?"Nie udało się odświeżyć składów · ostatnio wybrany profil.":
+    !matches.length?"Brak zawodników dla wybranych filtrów · ostatnio wybrany profil.":"");
+  const rows=$("hzp-table-rows"),scroll=rows.scrollTop;rows.replaceChildren();
   if(!catalog){rows.append(make("div","hzp-empty","Pobieranie aktualnych składów NBA / ESPN…"));}
   else if(catalog.error||!players.length){
     rows.append(make("div","hzp-empty",catalog.error||"Brak potwierdzonych składów NBA. Spróbuj odświeżyć."));
   }else if(!matches.length){rows.append(make("div","hzp-empty","Nie znaleziono zawodnika dla wybranych filtrów."));}
   else{
-    visible.forEach(p=>rows.append(playerRow(p)));
+    visible.forEach(p=>rows.append(playerRow(p,keyFor(p)===selectedKey)));
     // Original HOOPZARO identity badges are shown instead of unlicensed
     // ESPN/NBA photographs, for both free and premium visitors.
   }
+  rows.scrollTop=scroll;
   $("hzp-page").textContent=(page+1)+" / "+totalPages;
   $("hzp-prev").disabled=page===0;$("hzp-next").disabled=page+1>=totalPages;
   $("hzp-table-count").textContent=!catalog?"Trwa pobieranie…":
@@ -145,11 +222,12 @@ function render(nextCatalog,nextAverages,nextRole){
 }
 function init(api){
   callbacks=api||{};
-  $("hzp-search").addEventListener("input",e=>{query=e.target.value;page=0;render(catalog,averages,role)});
-  $("hzp-team").addEventListener("change",e=>{team=e.target.value;page=0;render(catalog,averages,role)});
-  $("hzp-position").addEventListener("change",e=>{position=e.target.value;page=0;render(catalog,averages,role)});
-  $("hzp-prev").addEventListener("click",()=>{page=Math.max(0,page-1);render(catalog,averages,role)});
-  $("hzp-next").addEventListener("click",()=>{page++;render(catalog,averages,role)});
+  const resetListScroll=()=>{$("hzp-table-rows").scrollTop=0};
+  $("hzp-search").addEventListener("input",e=>{query=e.target.value;page=0;resetListScroll();render(catalog,averages,role)});
+  $("hzp-team").addEventListener("change",e=>{team=e.target.value;page=0;resetListScroll();render(catalog,averages,role)});
+  $("hzp-position").addEventListener("change",e=>{position=e.target.value;page=0;resetListScroll();render(catalog,averages,role)});
+  $("hzp-prev").addEventListener("click",()=>{page=Math.max(0,page-1);resetListScroll();render(catalog,averages,role)});
+  $("hzp-next").addEventListener("click",()=>{page++;resetListScroll();render(catalog,averages,role)});
   $("hzp-refresh").addEventListener("click",()=>callbacks.refresh?.());
   $("hzp-cta").addEventListener("click",()=>entitled()?callbacks.openProps?.():callbacks.openPremium?.());
 }
