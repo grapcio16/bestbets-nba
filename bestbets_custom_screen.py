@@ -178,22 +178,11 @@ def _cached_premium_team_analytics() -> dict:
     scores from being shown or fabricates possessions-based ratings.
     """
     from bestbets_simulations_canvas import _advanced_from_verified_cache, _history_for_simulations
-    from premium_team_stats import build_team_analytics
-    from simulation_engine import advanced_ratings
+    from premium_team_stats import build_team_analytics, load_verified_advanced
     from sources import extended_set
 
     games, warning = _history_for_simulations(SEASON)
-    verified = _advanced_from_verified_cache(SEASON)
-    if verified.empty:
-        try:
-            loaded, meta = extended_set("Drużyny • advanced (pace/def)", SEASON)
-            if not meta.get("stale"):
-                verified = loaded
-        except Exception:
-            # Stats.nba.com often times out from cloud hosting. Its adapter
-            # already bounds the request and caches errors for 20 minutes.
-            pass
-    advanced = advanced_ratings(verified)
+    advanced = load_verified_advanced(SEASON, _advanced_from_verified_cache, extended_set)
     report = build_team_analytics(games, advanced)
     if warning:
         report["notice"] = "Niektóre wyniki ESPN są tymczasowo niedostępne."
