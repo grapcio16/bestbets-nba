@@ -6,15 +6,32 @@
   color:#f2f7ff;font-family:Inter,Arial,sans-serif;text-align:left;
 }
 .hzm *{box-sizing:border-box}
-.hzm-header{height:58px;display:flex;align-items:flex-start;justify-content:space-between;padding:0 1px 7px 3px}
+.hzm-header{position:relative;z-index:20;height:58px;display:flex;align-items:flex-start;justify-content:space-between;padding:0 1px 7px 3px}
 .hzm-title{display:flex;align-items:center;gap:20px}
 .hzm-title h1{font-size:27px;letter-spacing:-.9px;line-height:39px;margin:0;font-weight:900}
 .hzm-premium{position:relative;isolation:isolate;overflow:hidden;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px 0 11px;font-size:10px;letter-spacing:1.6px;font-weight:950;white-space:nowrap;color:#ffe9ad;border:1px solid #e7bc6a;border-radius:12px;background:radial-gradient(ellipse at 0 0,rgba(250,195,108,.23),transparent 56%),linear-gradient(125deg,#1c1733,#211735 65%,#10182e);box-shadow:inset 0 1px rgba(255,239,188,.32),0 0 0 1px rgba(166,107,50,.15),0 4px 17px rgba(194,121,41,.18),0 0 16px rgba(160,69,233,.12)}
 .hzm-premium::after{content:"";position:absolute;left:16px;right:16px;bottom:0;height:1px;background:linear-gradient(90deg,transparent,#ffdc8c,transparent);pointer-events:none}
 .hzm-premium .hz-premium-gem{position:relative;display:inline-block;flex:0 0 18px;width:18px;height:18px;transform:scale(.9);margin-right:0}
-.hzm-model-choice{display:flex;flex-direction:column;justify-content:center;gap:3px;align-self:flex-start;color:#81ddeb;font-size:9px;letter-spacing:1.4px;font-weight:900;white-space:nowrap}
-.hzm-model-choice select{height:28px;width:205px;padding:3px 8px;color:#ecfaff;background:#101d3f;border:1px solid #3cb5d8;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:0;cursor:pointer;box-shadow:0 0 9px rgba(0,200,240,.12)}
-.hzm-model-choice select:focus-visible{outline:2px solid #28f0fd;outline-offset:2px}
+.hzm-model-choice{position:relative;z-index:21;display:flex;flex-direction:column;justify-content:center;gap:3px;align-self:flex-start;color:#81ddeb;font-size:9px;letter-spacing:1.4px;font-weight:900;white-space:nowrap}
+.hzm-model-dropdown{position:relative;width:205px}
+.hzm-model-trigger{display:flex;align-items:center;justify-content:space-between;gap:7px;width:100%;height:28px;padding:0 0 0 10px;border:1px solid #35bde1;border-radius:8px;background:linear-gradient(115deg,#122546,#171d41 74%,#1f1a43);color:#f1f9ff;font-size:10px;font-weight:850;letter-spacing:.05px;text-align:left;cursor:pointer;box-shadow:inset 0 1px rgba(177,229,255,.15),0 0 12px rgba(0,208,238,.15);transition:border-color .18s,box-shadow .18s}
+.hzm-model-trigger:hover,.hzm-model-trigger[aria-expanded="true"]{border-color:#24f4ff;box-shadow:0 0 0 1px rgba(29,238,255,.24),0 0 16px rgba(14,230,251,.3)}
+.hzm-model-trigger:focus-visible,.hzm-model-option:focus-visible{outline:2px solid #48edff;outline-offset:2px}
+.hzm-model-chevron{position:relative;display:grid;place-items:center;flex:0 0 28px;align-self:stretch;border-left:1px solid rgba(82,172,212,.24);border-radius:0 7px 7px 0;background:linear-gradient(125deg,rgba(34,80,126,.35),rgba(40,30,91,.35))}
+.hzm-model-chevron::after{content:"";width:6px;height:6px;border-right:2px solid #96f3ff;border-bottom:2px solid #96f3ff;transform:translateY(-2px) rotate(45deg);transition:transform .18s}
+.hzm-model-trigger[aria-expanded="true"] .hzm-model-chevron::after{transform:translateY(2px) rotate(225deg)}
+.hzm-model-options{position:absolute;top:calc(100% + 7px);left:0;z-index:50;display:flex;flex-direction:column;gap:5px;width:249px;padding:7px;border:1px solid #3b8bb9;border-radius:12px;background:radial-gradient(circle at 100% 0,rgba(124,57,217,.26),transparent 64%),linear-gradient(145deg,#0c2544,#101831 76%);box-shadow:inset 0 1px rgba(169,223,255,.2),0 12px 30px rgba(0,5,22,.65),0 0 18px rgba(32,181,238,.25)}
+.hzm-model-options[hidden]{display:none!important}
+.hzm-model-option{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;width:100%;padding:6px 8px 6px 10px;border:1px solid transparent;border-radius:8px;background:rgba(28,49,87,.48);color:#dcecff;font-family:inherit;text-align:left;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s}
+.hzm-model-option:hover,.hzm-model-option:focus-visible{background:rgba(35,92,138,.64);border-color:rgba(60,222,250,.65)}
+.hzm-model-option.selected{border-color:#20dcee;background:linear-gradient(100deg,rgba(9,167,209,.24),rgba(98,53,153,.25));box-shadow:inset 3px 0 #22e9fb,0 0 12px rgba(5,203,233,.12)}
+.hzm-model-option-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.hzm-model-option-copy strong{font-size:10px;line-height:12px;font-weight:900;letter-spacing:.2px}
+.hzm-model-option-copy small{color:#9aacc9;font-size:8px;line-height:11px;font-weight:600;letter-spacing:.1px}
+.hzm-model-option.selected .hzm-model-option-copy small{color:#a9e7f4}
+.hzm-model-check{flex:0 0 20px;display:grid;place-items:center;width:20px;height:20px;border:1px solid #36e4f2;border-radius:50%;color:#62f5ff;background:rgba(11,139,169,.22);font-size:12px;opacity:0}
+.hzm-model-option.selected .hzm-model-check{opacity:1}
+.hzm-model-choice select.hzm-model-native{position:absolute!important;left:0;top:0;width:1px!important;height:1px!important;padding:0!important;opacity:0;pointer-events:none;clip-path:inset(50%);overflow:hidden}
 .hzm-day-control{display:flex;align-items:center;gap:2px;align-self:flex-start;height:39px;margin-top:0;padding:3px;border:1px solid #5f6ba9;border-radius:13px;background:radial-gradient(ellipse at 100% 0,rgba(118,62,194,.19),transparent 65%),linear-gradient(125deg,#111d3c,#191831 63%,#10203d);box-shadow:inset 0 1px rgba(174,207,255,.19),0 0 0 1px rgba(38,131,203,.12),0 5px 18px rgba(93,45,166,.16)}
 .hzm-day-control button{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;background:linear-gradient(145deg,#112f50,#0c1a39);border:1px solid rgba(102,165,220,.44);border-radius:9px;color:#b2f5ff;font-size:23px;line-height:1;transition:border-color .18s,background-color .18s,color .18s}
 .hzm-day-control button:hover{background:#1a3c64;border-color:#39e4ff;color:#fff}
