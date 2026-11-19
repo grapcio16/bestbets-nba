@@ -172,13 +172,17 @@ def _cached_premium_player_history(player_id: str, name: str, team: str) -> dict
 
 @st.cache_data(ttl=3600, max_entries=2, show_spinner=False)
 def _cached_premium_team_analytics() -> dict:
-    """Use completed ESPN results; advanced ratings only when cached and verified."""
+    """Use ESPN results and try bounded, official NBA Advanced on Premium demand.
+
+    NBA Stats can reject cloud hosts. A failed request never blocks historical
+    scores from being shown or fabricates possessions-based ratings.
+    """
     from bestbets_simulations_canvas import _advanced_from_verified_cache, _history_for_simulations
-    from premium_team_stats import build_team_analytics
-    from simulation_engine import advanced_ratings
+    from premium_team_stats import build_team_analytics, load_verified_advanced
+    from sources import extended_set
 
     games, warning = _history_for_simulations(SEASON)
-    advanced = advanced_ratings(_advanced_from_verified_cache(SEASON))
+    advanced = load_verified_advanced(SEASON, _advanced_from_verified_cache, extended_set)
     report = build_team_analytics(games, advanced)
     if warning:
         report["notice"] = "Niektóre wyniki ESPN są tymczasowo niedostępne."

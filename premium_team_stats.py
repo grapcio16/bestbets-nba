@@ -24,6 +24,28 @@ def _average(values):
     return round(sum(values) / len(values), 1) if values else None
 
 
+def load_verified_advanced(season: str, read_verified_cache, fetch_official) -> dict:
+    """Try authentic NBA Advanced once; never infer ratings from game scores.
+
+    Data loaders are injected so validation can run without Streamlit or the
+    network. The official fetch adapter bounds its timeout and caches failures.
+    """
+    from simulation_engine import advanced_ratings
+
+    verified = read_verified_cache(season)
+    if not isinstance(verified, pd.DataFrame) or verified.empty:
+        verified = pd.DataFrame()
+        try:
+            loaded, meta = fetch_official("Drużyny • advanced (pace/def)", season)
+            if not meta.get("stale"):
+                verified = loaded
+        except Exception:
+            # Hosting may be blocked by stats.nba.com. Use verified ESPN
+            # history in the frontend, not approximate possession metrics.
+            pass
+    return advanced_ratings(verified)
+
+
 def build_team_analytics(games: pd.DataFrame | None, advanced: dict | None = None) -> dict:
     """Only paid, historical metrics from completed season games.
 

@@ -160,6 +160,7 @@
   min-width:0;min-height:112px;padding:13px 7px;border:1px solid #635b9f;border-radius:13px;
   background:linear-gradient(150deg,rgba(14,43,78,.9),rgba(32,23,71,.9));text-align:center}
 .hzt-metric strong{font-size:28px;font-weight:950;color:#24efea;font-variant-numeric:tabular-nums}
+.hzt-metric strong.hzt-metric-empty{font-size:14px;line-height:1.25;color:#aebbd6;white-space:normal}
 .hzt-metric small{color:#b6c7e7;font-size:11px;font-weight:900;letter-spacing:.5px}
 .hzt-metric em{font-size:11px;font-style:normal;color:#e1b4ff}
 .hzt-dialog-source{margin:0;padding-top:4px;color:#8faac9;font-size:11px;text-align:center}

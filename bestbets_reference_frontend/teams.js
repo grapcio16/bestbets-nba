@@ -42,6 +42,13 @@ const byCode=new Map(DATA.map(team=>[team.code,team]));
 const featured=["BOS","GSW","NYK","LAL","OKC","DEN"];
 const nf=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const fmt=n=>typeof n==="number"&&Number.isFinite(n)?n.toFixed(1).replace(".",","):"—";
+const observed=n=>typeof n==="number"&&Number.isFinite(n)?fmt(n):"Brak danych";
+function formL5(value){
+ const history=String(value||"");
+ if(!/^[WL]{1,5}$/.test(history))return "Brak danych";
+ const wins=(history.match(/W/g)||[]).length;
+ return `${wins}–${history.length-wins}`;
+}
 let api={},home=null,analytics=null,role="guest",conference="all",query="",page=0,selected="BOS",compare="",message="";
 const entitled=()=>role==="premium"||role==="admin";
 function favorites(){
@@ -133,10 +140,10 @@ function onDialogKeydown(event){
    event.preventDefault();first.focus();
  }
 }
-function metric(label,key){
+function metric(label,key,formatter=observed){
  const first=analytics?.teams?.[selected],second=compare?analytics?.teams?.[compare]:null;
- const a=fmt(first?.[key]),b=compare?fmt(second?.[key]):null;
- return `<div class="hzt-metric"><small>${label}</small><strong>${a}</strong>${compare?`<em>${compare}: ${b}</em>`:""}</div>`;
+ const a=formatter(first?.[key]),b=compare?formatter(second?.[key]):null;
+ return `<div class="hzt-metric"><small>${label}</small><strong${a==="Brak danych"?' class="hzt-metric-empty"':""}>${a}</strong>${compare?`<em>${compare}: ${b}</em>`:""}</div>`;
 }
 function renderPremium(){
  const paid=entitled();$("hzt-premium-locked").hidden=paid;$("hzt-premium-unlocked").hidden=!paid;
@@ -150,12 +157,20 @@ function renderPremium(){
  compare=options.some(t=>t.code===compare)?compare:"";select.value=compare;
  if(!analytics){$("hzt-premium-metrics").textContent="Ładowanie zweryfikowanych wyników ESPN…";return}
  const first=analytics.teams?.[selected];
+ const verifiedAdvanced=["off","def","pace"].every(key=>
+   typeof first?.[key]==="number"&&Number.isFinite(first[key]));
+ const details=first?`L10: ${first.sample} mecz. · Dom ${observed(first.home)} / wyjazd ${observed(first.away)}`:
+   "Brak potwierdzonych wyników tej drużyny";
  $("hzt-analytics-source").textContent=analytics.error||
-   (first?`L10: ${first.sample} mecz. · Dom ${fmt(first.home)} / wyjazd ${fmt(first.away)}`:
-    "Brak potwierdzonych występów tej drużyny");
+   (verifiedAdvanced?`NBA Advanced · ${details}`:`ESPN · ${details}`);
+ $("hzt-premium-intro").textContent=verifiedAdvanced?
+   "NBA Advanced + forma z rozegranych spotkań":
+   "Zweryfikowana forma · OFF/DEF/PACE tylko z NBA Stats";
+ const additional=verifiedAdvanced?
+   [metric("OFF RATING","off"),metric("DEF RATING","def"),metric("PACE","pace")]:
+   [metric("DOM · PPG","home"),metric("WYJAZD · PPG","away"),metric("FORMA L5 (W–L)","last5",formL5)];
  $("hzt-premium-metrics").innerHTML=[metric("PTS / mecz L10","points"),
-  metric("Stracone L10","allowed"),metric("OFF RATING","off"),
-  metric("DEF RATING","def"),metric("PACE","pace")].join("");
+  metric("Stracone L10","allowed"),...additional].join("");
 }
 function render(nextHome,nextAnalytics,nextRole){
  home=nextHome&&typeof nextHome==="object"?nextHome:null;

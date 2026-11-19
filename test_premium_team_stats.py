@@ -1,12 +1,47 @@
 """Team analytics never fabricate missing results or mix future games."""
 import unittest
+from unittest.mock import Mock
 
 import pandas as pd
 
-from premium_team_stats import build_team_analytics
+from premium_team_stats import build_team_analytics, load_verified_advanced
 
 
 class PremiumTeamStatsTests(unittest.TestCase):
+    @staticmethod
+    def sample_game():
+        return pd.DataFrame([{
+            "game_id": "season-test-one", "start_utc": "2026-11-08T01:00:00Z",
+            "status_code": 3, "home": "BOS", "away": "GSW",
+            "home_score": 111, "away_score": 104,
+        }])
+
+    def test_premium_loader_fetches_real_advanced_on_demand(self):
+        official = pd.DataFrame([{"TEAM_ABBREVIATION": "BOS",
+            "OFF_RATING": 119.7, "DEF_RATING": 108.3, "PACE": 99.5}])
+        fetch = Mock(return_value=(official, {"stale": False}))
+        verified = load_verified_advanced("2026-27", lambda _: pd.DataFrame(), fetch)
+        report = build_team_analytics(self.sample_game(), verified)
+        fetch.assert_called_once_with("Drużyny • advanced (pace/def)", "2026-27")
+        self.assertEqual(report["teams"]["BOS"]["off"], 119.7)
+        self.assertEqual(report["teams"]["BOS"]["def"], 108.3)
+        self.assertEqual(report["teams"]["BOS"]["pace"], 99.5)
+
+    def test_premium_loader_survives_blocked_advanced_source(self):
+        fetch = Mock(side_effect=RuntimeError("NBA Stats blocked"))
+        verified = load_verified_advanced("2026-27", lambda _: pd.DataFrame(), fetch)
+        report = build_team_analytics(self.sample_game(), verified)
+        self.assertEqual(report["teams"]["BOS"]["points"], 111.0)
+        self.assertIsNone(report["teams"]["BOS"]["off"])
+        self.assertEqual(report["teams"]["BOS"]["last5"], "W")
+
+    def test_premium_loader_rejects_stale_advanced_metrics(self):
+        official = pd.DataFrame([{"TEAM_ABBREVIATION": "BOS",
+            "OFF_RATING": 119.7, "DEF_RATING": 108.3, "PACE": 99.5}])
+        verified = load_verified_advanced("2026-27", lambda _: pd.DataFrame(),
+                                          Mock(return_value=(official, {"stale": True})))
+        self.assertEqual(verified, {})
+
     def test_completed_games_and_validated_advanced_only(self):
         rows = pd.DataFrame([
             {"game_id": "one", "start_utc": "2026-11-08T01:00:00Z", "status_code": 3,
