@@ -1053,7 +1053,16 @@ function requestTeamsData(){
   }});
 }
 if(window.HoopzaroTeams){
-  window.HoopzaroTeams.init({openPremium:showPremiumPaywall});
+  window.HoopzaroTeams.init({
+    openPremium:showPremiumPaywall,
+    requestAdvanced:function(team){
+      if(state.page!=="teams"||premiumRequired()||!String(team).match(/^[A-Z]{3}$/))return;
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"premium_team_detail",team:team,
+        id:String(Date.now())+"-team-detail-"+team+"-"+Math.random().toString(36).slice(2)
+      }});
+    }
+  });
 }
 if(window.HoopzaroPlayers){
   window.HoopzaroPlayers.init({
@@ -1295,6 +1304,7 @@ window.addEventListener("message",function(event){
     }
     state.playerIdentity=currentIdentity;
     state.playerAveragesRequested=false;state.teamAnalyticsRequested=false;
+    window.HoopzaroTeams?.resetRequests?.();
   }
   if(state.payload.player_catalog)state.playerCatalogRequested=false;
   if(state.payload.premium_player_averages)state.playerAveragesRequested=false;
