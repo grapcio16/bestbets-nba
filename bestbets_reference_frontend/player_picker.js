@@ -76,6 +76,10 @@ function watch(){
  }
  node.innerHTML=rows.join("");
  if(photosAllowed)window.HoopzaroPortraits?.observe(node);
+ // Rebuilding the watch list replaces the original avatar nodes. Apply
+ // openly licensed Commons portraits to these new nodes as well, even when
+ // proprietary ESPN/NBA headshots are disabled for the free Centrum.
+ window.HoopzaroPortraits?.observeOpenLicensed?.(node);
 }
 function options(){
  const node=$("bc-players-picker"),toggle=$("bc-players-toggle");
