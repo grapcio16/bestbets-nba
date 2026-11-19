@@ -77,7 +77,24 @@ def main() -> None:
             assert page.locator("#props-heading").is_visible()
             assert page.locator("#chart-svg .bb-plot-bar").count() == 10
             assert page.locator("#hero-rate").inner_text().endswith("%")
+            # A background payload refresh must leave the existing SVG bars
+            # intact instead of restarting every chart animation.
+            page.locator("#chart-svg .bb-plot-bar").first.evaluate(
+                "el => el.setAttribute('data-render-probe', 'preserved')"
+            )
+            page.evaluate(
+                "payload => window.postMessage({type:'streamlit:render',args:{payload}},'*')",
+                {"player": EXAMPLE_PLAYER, "home": {"games": [], "source": "refreshed"},
+                 "brand": BRAND, "error": ""},
+            )
+            expect(page.locator("#chart-svg .bb-plot-bar").first).to_have_attribute(
+                "data-render-probe", "preserved"
+            )
             page.locator('[data-market="PRA"]').click()
+            # Changing a Props control MUST invalidate the cached chart.
+            assert page.locator("#chart-svg .bb-plot-bar").first.get_attribute(
+                "data-render-probe"
+            ) is None
             # The chart now labels the combined market PRA directly.
             expect_heading = "PRA"
             actual_heading = page.locator("#chart-heading").inner_text()
@@ -99,7 +116,34 @@ def main() -> None:
                 "payload => window.postMessage({type:'streamlit:render',args:{payload}},'*')",
                 {"player": EXAMPLE_PLAYER, "home": None, "brand": BRAND, "error": "",
                  "auth": {"configured": True, "logged_in": True,
-                          "role": "admin", "name": "Test Admin"}},
+                          "role": "admin", "name": "Test Admin", "session_epoch": 1}},
+            )
+            expect(page.locator("#hz-premium .hz-premium-text")).to_have_text("ADMIN")
+            page.locator("#query").fill("Private search from account A")
+            # Even switching between two accounts of the SAME role must
+            # discard the previous account's paid chart and search draft.
+            page.evaluate(
+                "payload => window.postMessage({type:'streamlit:render',args:{payload}},'*')",
+                {"player": None, "home": None, "brand": BRAND, "error": "",
+                 "auth": {"configured": True, "logged_in": True,
+                          "role": "admin", "name": "Another Admin", "session_epoch": 2}},
+            )
+            expect(page.locator("#player-name")).to_have_text("Wyszukaj zawodnika")
+            expect(page.locator("#query")).to_have_value("")
+            assert page.locator("#chart-svg .bb-plot-bar").count() == 0
+            # Logout must keep the prior results hidden as well.
+            page.evaluate(
+                "payload => window.postMessage({type:'streamlit:render',args:{payload}},'*')",
+                {"player": None, "home": None, "brand": BRAND, "error": "",
+                 "auth": {"configured": True, "logged_in": False,
+                          "role": "guest", "session_epoch": 3}},
+            )
+            expect(page.locator("#query")).to_have_value("")
+            page.evaluate(
+                "payload => window.postMessage({type:'streamlit:render',args:{payload}},'*')",
+                {"player": EXAMPLE_PLAYER, "home": None, "brand": BRAND, "error": "",
+                 "auth": {"configured": True, "logged_in": True,
+                          "role": "admin", "name": "Test Admin", "session_epoch": 4}},
             )
             expect(page.locator("#hz-premium .hz-premium-text")).to_have_text("ADMIN")
             premium_tab = ('#hz-mobile-nav [data-page="simulations"]' if width < 768
