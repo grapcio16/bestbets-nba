@@ -85,7 +85,7 @@ def main():
             expect(page.locator('.bc-free-missing')).to_contain_text('Brak pełnych danych AST')
             # Public Centrum uses attribution-verified Commons photos even
             # while proprietary headshot licensing remains disabled.
-            open_photo_leaders=[{**p,name:'Jayson Tatum' if i==0 else p['name']}
+            open_photo_leaders=[{**p,'name':'Jayson Tatum' if i==0 else p['name']}
                 for i,p in enumerate(home['free_leaders'])]
             open_photo_home={**home,'free_leaders':open_photo_leaders,
                 'players':[{'name':'Shai Gilgeous-Alexander','team':'OKC',
