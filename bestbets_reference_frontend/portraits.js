@@ -185,8 +185,9 @@ function apply(node,photo){
  if(/^(?:center|\d{1,3}%)(?: (?:top|bottom|\d{1,3}%))?$/.test(photo.position||""))img.style.setProperty("--hoop-portrait-position",photo.position);
  img.title="Fot.: "+photo.artist+" · "+photo.license+" · źródło: Wikimedia Commons";
  img.addEventListener("load",()=>{
-  if(img.isConnected){credited.set(photo.source,photo);}
+  if(img.isConnected){img.hidden=false;credited.set(photo.source,photo);}
  },{once:true});
+ img.addEventListener("error",()=>img.remove(),{once:true});
  img.src=photo.url;node.appendChild(img);
 }
 const observer=typeof IntersectionObserver==="function"?new IntersectionObserver(entries=>{
@@ -204,7 +205,7 @@ function observe(container){
  // The six visible Centrum avatars must not depend on the observer's timing.
  // Keep the 500+ player picker lazy so opening it never downloads every photo.
  const avatars=container.matches?.("[data-hoop-player]")?[container]:
-  [...container.querySelectorAll(".bc-free-avatar[data-hoop-player]")];
+  [...container.querySelectorAll(".bc-free-avatar[data-hoop-player],.hzp-player-avatar[data-hoop-player]")];
  const immediate=container.matches?.(".bc-watch,.bc-pick-list")===true ||
    (container.id==="bc-dialog-body"&&avatars.length<=5);
  for(const node of avatars){
@@ -213,7 +214,12 @@ function observe(container){
   const name=node.dataset.hoopPlayer;
   if(!name)continue;
   node.dataset.hoopPhotoState="queued";
-  if(immediate){
+  if(container.id==="hzp-table-rows"){
+   // Exactly seven rows are mounted per directory page. Preload that page
+   // (including rows just below the fold), with pump() capped at three images.
+   queue.push({node,name,id:node.dataset.hoopId,nbaId:node.dataset.hoopNbaId,
+    studioOnly:node.dataset.hoopStudioOnly==="true"});pump();
+  }else if(immediate){
    loadPreferredHeadshot(node,node.dataset.hoopId,node.dataset.hoopNbaId).then(async loaded=>{
     if(!loaded&&node.dataset.hoopStudioOnly!=="true"){
      const photo=await get(name);if(photo)apply(node,photo);

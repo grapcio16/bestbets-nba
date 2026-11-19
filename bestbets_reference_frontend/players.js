@@ -44,7 +44,12 @@ function playerRow(player){
   const row=make("div","hzp-player-row"),name=make("div","hzp-player-name");
   const initials=String(player.name||"").trim().split(/\s+/).filter(Boolean)
     .slice(0,2).map(part=>part[0]).join("").toUpperCase();
-  name.append(make("span","hzp-player-avatar",initials));
+  const avatar=make("span","hzp-player-avatar");
+  avatar.setAttribute("aria-hidden","true");
+  avatar.dataset.hoopPlayer=String(player.name||"");
+  if(/^\d{1,20}$/.test(String(player.id||"")))avatar.dataset.hoopId=String(player.id);
+  avatar.append(make("span","hzp-avatar-fallback",initials));
+  name.append(avatar);
   const identity=make("div","hzp-player-identity");
   const id=String(player.id||"");
   // The ESPN ID is the authority for identity. Names can collide and a
@@ -94,7 +99,12 @@ function render(nextCatalog,nextAverages,nextRole){
   else if(catalog.error||!players.length){
     rows.append(make("div","hzp-empty",catalog.error||"Brak potwierdzonych składów NBA. Spróbuj odświeżyć."));
   }else if(!matches.length){rows.append(make("div","hzp-empty","Nie znaleziono zawodnika dla wybranych filtrów."));}
-  else{visible.forEach(p=>rows.append(playerRow(p)));}
+  else{
+    visible.forEach(p=>rows.append(playerRow(p)));
+    // Reuse the shared, lazy ESPN/credited-Commons portrait pipeline. Only
+    // seven rows are rendered per page; no 500-player image burst on startup.
+    global.HoopzaroPortraits?.observe?.(rows);
+  }
   $("hzp-page").textContent=(page+1)+" / "+totalPages;
   $("hzp-prev").disabled=page===0;$("hzp-next").disabled=page+1>=totalPages;
   $("hzp-table-count").textContent=!catalog?"Trwa pobieranie…":
