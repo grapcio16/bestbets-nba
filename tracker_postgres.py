@@ -86,6 +86,22 @@ CREATE TABLE IF NOT EXISTS bestbets_player_forecasts (
 CREATE INDEX IF NOT EXISTS bestbets_player_forecasts_start
  ON bestbets_player_forecasts(start_utc);
 """
+RUN_MONITOR_DDL = """
+CREATE TABLE IF NOT EXISTS bestbets_tracker_runs (
+ run_id BIGSERIAL PRIMARY KEY,
+ finished_at_utc TIMESTAMPTZ NOT NULL,
+ season TEXT NOT NULL,
+ team_new INTEGER NOT NULL,
+ team_settled INTEGER NOT NULL,
+ player_new INTEGER NOT NULL,
+ player_settled INTEGER NOT NULL,
+ player_games_checked INTEGER NOT NULL,
+ player_games_projected INTEGER NOT NULL,
+ player_status TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS bestbets_tracker_runs_latest
+ ON bestbets_tracker_runs(season, finished_at_utc DESC);
+"""
 
 
 def connect(url):
@@ -98,7 +114,7 @@ def connect(url):
 
 
 def init_remote(conn):
-    for ddl in (POSTGRES_DDL, MODEL_DDL, PLAYER_DDL):
+    for ddl in (POSTGRES_DDL, MODEL_DDL, PLAYER_DDL, RUN_MONITOR_DDL):
         for statement in ddl.split(";"):
             if statement.strip():
                 conn.execute(statement)
@@ -355,3 +371,77 @@ def remote_read_players(url, season=None):
                 cur.execute("SELECT * FROM bestbets_player_forecasts ORDER BY start_utc DESC")
             records = cur.fetchall()
     return pd.DataFrame(records)
+
+
+def remote_record_tracker_run(url, summary):
+    """Write a small, credential-free heartbeat after a completed worker cycle."""
+    player = summary.get("player_tracking") or {}
+    status = ("ok" if player.get("status", "ok") == "ok"
+              else "temporarily_unavailable")
+
+    def counter(value):
+        number = int(value or 0)
+        if not 0 <= number <= 100000:
+            raise ValueError("Niepoprawna liczba wyników trackera")
+        return number
+
+    stamp = datetime.now(timezone.utc)
+    with connect(url) as conn:
+        init_remote(conn)
+        conn.execute("""INSERT INTO bestbets_tracker_runs
+            (finished_at_utc,season,team_new,team_settled,player_new,
+             player_settled,player_games_checked,player_games_projected,player_status)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            (stamp, str(summary["season"]),
+             counter(summary.get("new_pregame_snapshots")),
+             counter(summary.get("matched_forecast_rows_settled")),
+             counter(player.get("new_player_snapshots")),
+             counter(player.get("player_rows_settled")),
+             counter(player.get("pregame_games_checked")),
+             counter(player.get("games_with_player_projections")), status))
+        conn.commit()
+    return {"recorded": True}
+
+
+def remote_tracker_status(url, season):
+    """Read-only summary for the admin panel; counts are forecast ROWS."""
+    with connect(url) as conn:
+        init_remote(conn)
+        last = conn.execute("""SELECT finished_at_utc,team_new,team_settled,
+            player_new,player_settled,player_games_checked,
+            player_games_projected,player_status
+            FROM bestbets_tracker_runs WHERE season=%s
+            ORDER BY finished_at_utc DESC LIMIT 1""", (str(season),)).fetchone()
+        team = conn.execute("""SELECT COUNT(*),
+            COUNT(*) FILTER (WHERE home_score IS NOT NULL AND away_score IS NOT NULL)
+            FROM bestbets_forecasts_by_model WHERE season=%s""", (str(season),)).fetchone()
+        players = conn.execute("""SELECT COUNT(*),
+            COUNT(*) FILTER (WHERE pts_actual IS NOT NULL)
+            FROM bestbets_player_forecasts WHERE season=%s""", (str(season),)).fetchone()
+    team_total, team_settled = map(int, team or (0, 0))
+    player_total, player_settled = map(int, players or (0, 0))
+    result = {
+        "season": str(season),
+        "team": {"saved": team_total, "settled": team_settled,
+                 "pending": team_total-team_settled},
+        "players": {"saved": player_total, "settled": player_settled,
+                    "pending": player_total-player_settled},
+        "last_run_utc": None, "last_run_age_hours": None,
+        "stale": None, "last_player_status": None, "last_cycle": None,
+    }
+    if last:
+        stamp = utc_timestamp(last[0])
+        age = max(0.0, (datetime.now(timezone.utc)-stamp.to_pydatetime()).total_seconds()/3600)
+        result.update({
+            "last_run_utc": stamp.strftime("%Y-%m-%d %H:%M"),
+            "last_run_age_hours": round(age, 1),
+            "stale": age > 10,
+            "last_player_status": str(last[7]),
+            "last_cycle": {
+                "team_new": int(last[1]), "team_settled": int(last[2]),
+                "player_new": int(last[3]), "player_settled": int(last[4]),
+                "player_games_checked": int(last[5]),
+                "player_games_projected": int(last[6]),
+            },
+        })
+    return result

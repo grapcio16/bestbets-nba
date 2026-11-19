@@ -106,3 +106,32 @@
 .hz-admin-player-table th{color:#41eadd;font-weight:900}
 .hz-admin-player-table td:nth-child(3){color:#31d9ff;font-weight:900}
 .hz-admin-players-note{color:#b6cddd;font-size:10px;line-height:1.6;margin:11px 0 0}
+.hz-admin-monitor{margin:0 0 17px;padding:18px;border:1px solid #3b7597;border-radius:16px;
+  background:radial-gradient(ellipse at top right,rgba(18,124,127,.18),transparent 60%),#0a2038}
+.hz-admin-monitor header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.hz-admin-monitor header span{color:#53dfe6;font-size:10px;letter-spacing:1.3px;font-weight:900}
+.hz-admin-monitor h2{margin:5px 0 9px;font-size:21px;color:#ecfbff}
+.hz-admin-monitor-state{padding:7px 12px;border-radius:999px;border:1px solid #4c7c91;
+  color:#d2ecfa;font-size:10px;white-space:nowrap;letter-spacing:.05em}
+.hz-admin-monitor-state.healthy{border-color:#30d4a6;color:#5df6bb;background:#073c34}
+.hz-admin-monitor-state.warn{border-color:#e8a044;color:#ffce81;background:#49301a}
+.hz-admin-monitor-state.idle{background:#243450}
+.hz-admin-monitor-time{margin:0 0 12px;font-size:11px;color:#9fc5dc}
+.hz-admin-monitor-time strong{color:#ecf9ff}
+.hz-admin-monitor-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.hz-admin-monitor-grid .hz-admin-stat{padding:11px 9px}
+.hz-admin-monitor-grid .hz-admin-stat span{font-size:10px}
+.hz-admin-monitor-grid .hz-admin-stat b{font-size:23px}
+.hz-admin-monitor-grid .hz-admin-stat small{font-size:9px}
+.hz-admin-player-filters{display:grid;grid-template-columns:minmax(0,1fr) 150px 155px;gap:9px;margin:13px 0 10px}
+.hz-admin-player-filters input,.hz-admin-player-filters select{height:36px;min-width:0;padding:6px 9px;
+  border-radius:9px;border:1px solid #358ca2;background:#0b2340;color:#e9f7ff;font-size:11px}
+.hz-admin-player-filters input::placeholder{color:#95b5c8}
+.hz-admin-player-history-count{color:#a9ccdc;font-size:10px;margin:5px 0 9px}
+.hz-admin-player-history-scroll{max-height:280px;overflow:auto;border:1px solid #335b74;border-radius:10px}
+.hz-admin-player-history-scroll table{width:100%;border-collapse:collapse;font-size:11px}
+.hz-admin-player-history-scroll th,.hz-admin-player-history-scroll td{padding:10px 9px;text-align:left;
+  white-space:nowrap;border-bottom:1px solid #22465f}
+.hz-admin-player-history-scroll th{position:sticky;top:0;background:#0b263d;color:#40ecdf;z-index:1}
+.hz-admin-player-history-scroll td b{color:#effbff}
+.hz-admin-player-history-scroll .hz-admin-high-error{color:#ffa46d}

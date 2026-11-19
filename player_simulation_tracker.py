@@ -14,6 +14,8 @@ MARKETS = {
     "reb": ("reb_pred", "reb_actual", 2.0),
     "ast": ("ast_pred", "ast_actual", 2.0),
     "fg3m": ("fg3m_pred", "fg3m_actual", 1.0),
+    "pra": ("pra_pred", "pra_actual", 7.0),
+    "minutes": ("minutes_pred", "minutes_actual", 5.0),
 }
 
 
@@ -123,7 +125,7 @@ def build_player_forecasts(upcoming, completed, now, *, fetch_logs=None):
     return rows, {"attempted_games": attempted, "projected_games": covered}
 
 
-def player_model_report(frame, *, season):
+def player_model_report(frame, *, season, game_forecasts=None):
     """MAE, signed bias and clearly defined tolerance on actual played games.
 
     These are NOT bookmaker line hit rates, betting returns, or calibrated
@@ -141,6 +143,21 @@ def player_model_report(frame, *, season):
     source["start_utc"] = pd.to_datetime(source["start_utc"], utc=True, errors="coerce")
     source = source[(source["forecast_time_utc"] < source["start_utc"]) &
                     source["forecast_time_utc"].notna()].copy()
+    # PRA is an exact sum of three independently frozen components; do not
+    # create a historical bookmaker line or count missing stats as zero.
+    for suffix in ("pred", "actual"):
+        columns = [f"{market}_{suffix}" for market in ("pts", "reb", "ast")]
+        if all(column in source for column in columns):
+            numeric = source[columns].apply(pd.to_numeric, errors="coerce")
+            source[f"pra_{suffix}"] = numeric.sum(axis=1, min_count=3)
+        else:
+            source[f"pra_{suffix}"] = float("nan")
+
+    opponents = {}
+    if (isinstance(game_forecasts, pd.DataFrame) and
+            {"game_id", "home", "away"}.issubset(game_forecasts.columns)):
+        for row in game_forecasts[["game_id", "home", "away"]].drop_duplicates("game_id").to_dict("records"):
+            opponents[str(row["game_id"])] = (str(row["home"]), str(row["away"]))
     for model_id, group in source.groupby("model_id"):
         metrics = {}
         for market, (pred, actual, tolerance) in MARKETS.items():
@@ -162,10 +179,29 @@ def player_model_report(frame, *, season):
         evaluated = pd.to_numeric(
             group.get("pts_actual", pd.Series(index=group.index, dtype=float)),
             errors="coerce").notna()
+        recent = []
+        for row in group.sort_values("start_utc", ascending=False).head(150).to_dict("records"):
+            fixture = opponents.get(str(row["game_id"]), ("", ""))
+            team = str(row["team"])
+            sample = pd.to_numeric(row.get("sample_games"), errors="coerce")
+            opponent = fixture[1] if team == fixture[0] else (
+                fixture[0] if team == fixture[1] else "")
+            recent.append({
+                "game_id": str(row["game_id"])[:25],
+                "date": row["start_utc"].strftime("%Y-%m-%d %H:%M"),
+                "player": str(row["player_name"])[:100],
+                "team": team[:4], "opponent": opponent[:4],
+                "sample_games": int(sample) if pd.notna(sample) else 0,
+                "pred": {market: _valid_float(row.get(fields[0]), 200)
+                         for market, fields in MARKETS.items()},
+                "actual": {market: _valid_float(row.get(fields[1]), 200)
+                           for market, fields in MARKETS.items()},
+            })
         result["models"].append({
             "id": str(model_id), "saved": int(len(group)),
             "evaluated_players": int(evaluated.sum()),
             "games_with_results": int(group.loc[evaluated, "game_id"].nunique()),
             "metrics": metrics,
+            "recent": recent,
         })
     return result

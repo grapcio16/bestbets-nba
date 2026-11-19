@@ -200,7 +200,7 @@ def run_player_cycle(schedule, history, now, save_player_forecasts,
 def run_scheduled_job():
     """No silent SQLite fallback for unattended jobs: disk is ephemeral."""
     from tracker_storage import (tracker_backend, save, settle,
-                                 save_players, settle_players)
+                                 save_players, settle_players, record_tracker_run)
     cfg = tracker_backend()
     if not cfg["remote"]:
         raise RuntimeError(
@@ -253,6 +253,14 @@ def run_scheduled_job():
         # outage visible in logs without printing credentials or user data.
         result["player_tracking"] = {
             "status": "temporarily_unavailable", "error_type": type(exc).__name__}
+    try:
+        result["monitoring"] = record_tracker_run(result, config=cfg)
+    except (ValueError, TypeError, KeyError, RuntimeError, OSError,
+            ConnectionError, TimeoutError) as exc:
+        # A heartbeat failure is visible in the worker summary, but must not
+        # roll back correctly frozen game/player predictions.
+        result["monitoring"] = {
+            "recorded": False, "error_type": type(exc).__name__}
     return result
 
 
