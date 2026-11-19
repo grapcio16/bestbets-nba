@@ -266,7 +266,8 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
   font:inherit;letter-spacing:inherit;overflow:visible;
 }
 #bestbets-centre .bc-premium-item.hz-premium-cta strong:after{content:none}
-.hz-premium-cta .hz-premium-gem{
+.hz-premium-cta .hz-premium-gem,
+.hzm-premium .hz-premium-gem{
   display:inline-block;position:relative;flex:0 0 19px;width:19px;height:19px;
   clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);
   background:conic-gradient(from 0deg at 50% 50%,#fff0bb 0deg,#d3ae66 90deg,
@@ -274,7 +275,8 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
     #e5b66a 270deg,#fff0bb 360deg);
   filter:drop-shadow(0 0 3px rgba(255,226,150,.35));
 }
-.hz-premium-cta .hz-premium-gem:after{
+.hz-premium-cta .hz-premium-gem:after,
+.hzm-premium .hz-premium-gem:after{
   content:"";position:absolute;inset:0;
   background:linear-gradient(90deg,transparent 48%,rgba(255,255,245,.65) 50%,transparent 52%),
              linear-gradient(0deg,transparent 48%,rgba(13,49,75,.24) 50%,transparent 52%);

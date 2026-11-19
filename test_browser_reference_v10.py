@@ -242,6 +242,12 @@ def main():
         model_box = page.locator(".hzm-model-choice").bounding_box()
         assert pane_box and premium_box and date_box and model_box
         assert 35 <= premium_box["height"] <= 38, premium_box
+        premium_gem = page.locator(".hzm-premium .hz-premium-gem")
+        gem_box = premium_gem.bounding_box()
+        assert gem_box and 16 <= gem_box["width"] <= 20, gem_box
+        assert premium_gem.evaluate(
+            "e => getComputedStyle(e).backgroundImage.includes('conic-gradient')"
+        ), "Premium diamond needs its gold/cyan facets"
         assert 38 <= date_box["height"] <= 41, date_box
         assert model_box["x"] + model_box["width"] + 6 < date_box["x"]
         assert date_box["x"] + date_box["width"] <= pane_box["x"] + pane_box["width"] + 1
