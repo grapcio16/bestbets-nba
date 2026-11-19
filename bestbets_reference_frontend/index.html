@@ -635,18 +635,17 @@ function resize(){
      viewportWidth>window.innerHeight)) && state.page==="home";
   shell.classList.toggle("hz-mobile-centre",mobileHome);
   if(mobileHome){
-    // Let the Streamlit host page scroll the complete mobile dashboard.
-    // A viewport-sized component iframe traps vertical swipes on some phones.
+    // On iPhone, a content-height iframe traps swipes because neither the
+    // iframe nor its document has a scrollable viewport. Keep the iframe at
+    // viewport height and let its document scroll natively on both axes.
     root.style.transform="none";
     shell.style.width="100%";
     shell.style.height="auto";
-    const pageHeight=Math.max(
-      window.innerHeight||700,
-      document.documentElement.scrollHeight||0,
-      document.body.scrollHeight||0,
-      root.scrollHeight||0
-    );
-    notify("streamlit:setFrameHeight",{height:Math.ceil(pageHeight)+2});
+    document.documentElement.style.overflowY="auto";
+    document.body.style.overflowY="auto";
+    document.documentElement.style.webkitOverflowScrolling="touch";
+    document.body.style.webkitOverflowScrolling="touch";
+    notify("streamlit:setFrameHeight",{height:Math.max(320,Math.ceil(window.innerHeight||700))});
     return;
   }
   const scale=viewportWidth/1231;
