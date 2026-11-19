@@ -518,7 +518,7 @@ def main() -> None:
             "rows": rows, "id_rows": id_rows, "attempted_ids": sorted(completed),
             "unavailable_ids": sorted(unavailable),
             "season": "2026/27", "source": "ESPN · sezonowe historie zawodników",
-            "scope": "zweryfikowane występy · liczba meczów przy zawodniku",
+            "scope": "zweryfikowane występy · kolumna MECZE (GP)",
             "partial": True,
         }
         st.rerun()

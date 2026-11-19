@@ -51,6 +51,8 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
             page.evaluate("payload => window.postMessage({type:'streamlit:render',args:{payload}}, '*')",
                           {"auth": {"role": "free"}, "player_catalog": {"players": rows}})
             page.wait_for_function("document.querySelectorAll('.hzp-player-row').length===7")
+            self.assertEqual(page.locator(".hzp-table-header span").count(), 9)
+            self.assertEqual(page.locator(".hzp-table-header span").nth(2).inner_text(), "MECZE")
             self.assertEqual(page.locator(".hzp-player-avatar img").count(), 0)
             first_avatar = page.locator(".hzp-player-avatar").first
             self.assertGreaterEqual(first_avatar.bounding_box()["width"], 43)
@@ -62,6 +64,8 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
             page.wait_for_timeout(150)
             self.assertEqual(page.locator(".hzp-player-avatar img").count(), 0)
             self.assertEqual(page.locator(".hzp-stat.is-locked").count(), 42)
+            self.assertEqual(page.locator(".hzp-games.is-locked").count(), 7)
+            self.assertTrue(all(text == "♢" for text in page.locator(".hzp-games").all_text_contents()))
             self.assertNotIn("28,1", page.locator("#hzp-table-rows").inner_text())
             page.locator("#hzp-cta").click()
             self.assertTrue(page.locator("#hz-paywall-dialog").is_visible())
@@ -82,6 +86,7 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
             self.assertEqual(page.locator("#hzp-team").evaluate(
                 "element => getComputedStyle(element).appearance"), "none")
             self.assertEqual(page.locator(".hzp-stat.is-locked").count(), 0)
+            self.assertEqual(page.locator(".hzp-games.is-locked").count(), 0)
             self.assertEqual(page.locator(".hzp-player-avatar img").count(), 0)
             self.assertIn("37,5%", page.locator("#hzp-table-rows").inner_text())
             self.assertIn("8,0", page.locator("#hzp-table-rows").inner_text())
@@ -98,6 +103,8 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
                                                 "three_pct_games": 1}},
                              "attempted_ids": ["0"], "unavailable_ids": []}})
             page.wait_for_function("document.querySelector('#hzp-table-rows').textContent.includes('22,2')")
+            self.assertEqual(page.locator(".hzp-player-row").first.locator(".hzp-games").inner_text(), "3")
+            self.assertEqual(page.locator(".hzp-player-row").first.locator(".hzp-player-identity small").inner_text(), "C")
             self.assertNotIn("99,9", page.locator("#hzp-table-rows").inner_text())
             page.locator("#hzp-search").fill("Tatum")
             self.assertEqual(page.locator(".hzp-player-row").count(), 1)
