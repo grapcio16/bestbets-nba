@@ -41,6 +41,34 @@ class MobileCentrumStaticTests(unittest.TestCase):
         self.assertIn('closeMobileMore()', HTML)
         self.assertIn("position:fixed", CSS)
 
+    def test_original_icons_match_routes_across_desktop_and_mobile(self):
+        icons = {
+            "home": "centre", "props": "props", "games": "games",
+            "simulations": "simulations", "players": "players", "teams": "teams",
+        }
+        for route, icon in icons.items():
+            with self.subTest(route=route):
+                self.assertEqual(HTML.count(f'id="hz-icon-{icon}"'), 1)
+                sidebar = re.search(
+                    rf'<button class="nav-btn[^\"]*" data-page="{route}">(.+?)</button>',
+                    HTML,
+                )
+                self.assertIsNotNone(sidebar)
+                self.assertIn(f'<use href="#hz-icon-{icon}"/>', sidebar.group(1))
+        bottom = HTML.split('<div class="bc-bottom">', 1)[1].split('</div>', 1)[0]
+        for route in ("home", "simulations", "games", "players", "teams"):
+            self.assertRegex(
+                bottom,
+                rf'data-centre-nav="{route}"[^>]*>.*?<use href="#hz-icon-{icons[route]}"/>',
+            )
+        mobile = HTML.split('id="hz-mobile-nav"', 1)[1].split('</nav>', 1)[0]
+        for route in ("home", "props", "games", "simulations"):
+            self.assertRegex(
+                mobile,
+                rf'data-page="{route}"[^>]*>.*?<use href="#hz-icon-{icons[route]}"/>',
+            )
+        self.assertIn('class="hz-premium-gem"', HTML)
+
     def test_live_centre_data_and_day_actions_are_reused(self):
         self.assertIn('id="bc-games-list"', HTML)
         self.assertIn('id="bc-ticker-games"', HTML)

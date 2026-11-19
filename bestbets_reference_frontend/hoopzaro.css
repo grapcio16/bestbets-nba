@@ -48,6 +48,15 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
   font-weight:800;margin-bottom:4px;color:#e9f2ff;padding:0 12px;
 }
 .nav-btn .ic{font-size:19px;color:#e8f2ff}
+/* Original vector icon set: crisp, balanced strokes at every dashboard scale. */
+.hz-icon-sprite{position:absolute!important;width:0!important;height:0!important;overflow:hidden!important;pointer-events:none!important}
+.hz-ui-icon{display:inline-block;flex:none;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
+.nav-btn .ic{display:inline-flex;align-items:center;justify-content:center;width:22px;flex:0 0 22px}
+.nav-btn .ic .hz-ui-icon{width:21px;height:21px;filter:drop-shadow(0 0 4px rgba(57,220,255,.12));transition:filter .18s ease,color .18s ease}
+.nav-btn.selected .ic .hz-ui-icon,.nav-btn:hover .ic .hz-ui-icon{filter:drop-shadow(0 0 5px rgba(57,220,255,.68))}
+.props-heading-icon .hz-ui-icon,.hzp-head-mark .hz-ui-icon{width:35px;height:35px;stroke-width:1.6;filter:drop-shadow(0 0 7px rgba(185,126,255,.55))}
+.footer-links .icon{display:inline-flex;align-items:center;justify-content:center}
+.footer-links .icon .hz-ui-icon{width:19px;height:19px}
 .nav-btn.selected{
   height:42px;background:linear-gradient(105deg,rgba(13,111,185,.48),rgba(34,37,97,.46) 63%,rgba(84,23,141,.31));
   border:1px solid #3178e6;box-shadow:inset 3px 0 var(--hz-cyan),0 0 13px rgba(49,181,248,.32),0 0 11px rgba(168,40,244,.15);
@@ -239,6 +248,11 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
 }
 #bestbets-centre .bc-bottom-item strong{font-size:13px}
 #bestbets-centre .bc-bottom-item strong span{color:#14eefa}
+#bestbets-centre .bc-bottom-item:not(.bc-premium-item) strong{display:flex;align-items:center;gap:9px;min-width:0}
+#bestbets-centre .bc-bottom-item:not(.bc-premium-item) .hz-ui-icon{width:20px;height:20px;stroke-width:1.9;color:#6af1ff;filter:drop-shadow(0 0 5px rgba(38,223,255,.33))}
+#bestbets-centre .bc-bottom-item:not(.bc-premium-item):hover .hz-ui-icon{filter:drop-shadow(0 0 7px rgba(38,223,255,.85))}
+#bestbets-centre .bc-bottom-item strong .hz-bottom-label{color:#f7fbff;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bestbets-centre .bc-bottom-item strong .hz-bottom-label em{font-style:normal;color:#14eefa}
 #bestbets-centre .bc-current{border-color:#00e1e6;background:linear-gradient(130deg,#0a3b52,#091b35 60%,#281244)}
 #bestbets-centre .bc-premium-item{
   border:1px solid #ff9b83;background:linear-gradient(105deg,#e56b65,#d54767 60%,#78284d);
