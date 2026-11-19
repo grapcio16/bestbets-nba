@@ -3,7 +3,12 @@
 .hz-mobile-topbar,.hz-mobile-date,.hz-mobile-nav,.hz-mobile-more-panel{display:none}
 
 @media (max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
-  html,body{background:#030817;overscroll-behavior-x:none}
+  /* Restore native two-axis touch scrolling inside the Streamlit iframe. */
+  html,body{
+    background:#030817;overflow-x:auto;overflow-y:auto;
+    overscroll-behavior-x:auto;overscroll-behavior-y:contain;
+    -webkit-overflow-scrolling:touch;touch-action:pan-x pan-y
+  }
   #app-shell.hz-mobile-centre{
     width:100%!important;height:auto!important;margin:0!important
   }
@@ -11,6 +16,7 @@
     position:relative!important;inset:auto!important;
     width:100%!important;height:auto!important;min-height:100dvh!important;
     overflow:visible!important;transform:none!important;
+    touch-action:pan-x pan-y;
     background:
       radial-gradient(ellipse 115% 21% at 93% 0%,rgba(83,26,149,.25),transparent 82%),
       radial-gradient(ellipse 110% 28% at 0% 65%,rgba(0,99,175,.11),transparent 80%),
@@ -31,7 +37,7 @@
     display:flex!important;flex-direction:column;gap:16px;
     width:100%!important;height:auto!important;min-height:100dvh;
     padding:12px 15px calc(108px + env(safe-area-inset-bottom))!important;
-    overflow:visible!important;color:#f4f8ff
+    overflow:visible!important;color:#f4f8ff;touch-action:pan-y
   }
   #stage.bb-home-active #bestbets-centre[hidden]{display:none!important}
   #bestbets-centre .hz-mobile-topbar{
@@ -123,10 +129,13 @@
   #bestbets-centre .bc-ticker-games{
     display:flex;flex-wrap:nowrap;gap:10px;flex:0 0 auto;min-height:104px;
     overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
-    scrollbar-width:none;overscroll-behavior-x:contain;
-    -webkit-overflow-scrolling:touch;padding:2px 3px 6px
+    scrollbar-width:thin;scrollbar-color:#22c9f2 #10243b;
+    overscroll-behavior-x:contain;touch-action:pan-x pan-y;
+    -webkit-overflow-scrolling:touch;padding:2px 3px 7px
   }
-  #bestbets-centre .bc-ticker-games::-webkit-scrollbar{display:none}
+  #bestbets-centre .bc-ticker-games::-webkit-scrollbar{height:4px}
+  #bestbets-centre .bc-ticker-games::-webkit-scrollbar-track{background:#10243b;border-radius:4px}
+  #bestbets-centre .bc-ticker-games::-webkit-scrollbar-thumb{background:#22c9f2;border-radius:4px}
   #bestbets-centre .bc-ticker-card{
     flex:0 0 74%;min-height:96px;padding:9px;
     scroll-snap-align:start;border-radius:13px
