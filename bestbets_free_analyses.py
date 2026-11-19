@@ -60,8 +60,9 @@ def detail_key(row):
 
 
 def photo_policy():
-    # Separate from Player Props. Absence of this explicit operator setting
-    # means NO headshot requests, even if a source supplies an image URL.
+    # Controls ESPN/NBA studio headshots in free Centrum, separately from
+    # Player Props. Without explicit operator approval these sources stay off.
+    # Independently verified, attributed Commons images use a separate path.
     return os.environ.get("BESTBETS_CENTRE_HEADSHOTS_LICENSED", "").lower() == "true"
 
 

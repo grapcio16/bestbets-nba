@@ -410,7 +410,7 @@ function renderPlayers(data){
   freeAvatar(p).replace('bc-free-avatar','bc-free-avatar bc-watch-avatar')+
   '<span class="bc-watch-name">'+escapeHtml(p.name)+'</span>'+positionBadge(p,'bc-watch-position')+teamBadge(p.team)+
   '<span class="bc-watch-chevron">›</span></button>').join("");
- if(data?.free_photos_enabled===true)window.HoopzaroPortraits?.observe(watch);
+ window.HoopzaroPortraits?.observeOpenLicensed?.(watch);
 }
 let pendingFreeLeaderKey=null, freeRenderSignature="",freeInfoOpen=false,injuryInfoOpen=false,pendingFreeReferral=null;
 const freeLabels={PTS:"Lider punktów",REB:"Lider zbiórek",AST:"Lider asyst"};
@@ -494,7 +494,7 @@ function renderFreeLeaders(data){
     teamBadge(p.opponent)+'<br><i>'+escapeHtml(p.date)+' NBA/ET</i></span>'+
     '<span class="bc-mini-btn">Szczegóły ›</span></button>';
  }).join("");
- if(data?.free_photos_enabled===true)window.HoopzaroPortraits?.observe(host);
+ window.HoopzaroPortraits?.observeOpenLicensed?.(host);
 }
 function freeDetailsBody(p,stats,note,verified=false){
  return '<div class="bc-free-heading">'+freeAvatar(p)+'<div><strong>'+escapeHtml(p.name)+
@@ -509,8 +509,7 @@ function freeDetailsBody(p,stats,note,verified=false){
 function showFreeDetails(p,stats,note,verified=false){
  setText("bc-dialog-title",p.name+" — występ NBA");
  $("bc-dialog-body").innerHTML=freeDetailsBody(p,stats,note,verified);
- if(homeData?.free_photos_enabled===true)
-  window.HoopzaroPortraits?.observe($("bc-dialog-body"));
+ window.HoopzaroPortraits?.observeOpenLicensed?.($("bc-dialog-body"));
  $("bc-dialog").classList.add("bc-free-detail-dialog");
  $("bc-dialog").classList.remove("bc-injury-detail-dialog");
  $("bc-dialog").hidden=false;
