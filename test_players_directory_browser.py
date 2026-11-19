@@ -1,28 +1,15 @@
-"""Headless browser checks for the new paid player directory.
+"""Headless browser checks for the paid player directory and licensed-safe avatars.
 
 All numerical fixtures stay in this test; production never fabricates stats.
 """
 from pathlib import Path
 from shutil import which
-import struct
 import unittest
-import zlib
 
 from playwright.sync_api import Error as PlaywrightError, sync_playwright
 
 
 PAGE = (Path(__file__).resolve().parent / "bestbets_reference_frontend" / "index.html").as_uri()
-
-
-def portrait_fixture_png():
-    """Offline 64px test portrait; production never serves synthetic images."""
-    def chunk(kind, payload):
-        return (struct.pack("!I", len(payload)) + kind + payload
-                + struct.pack("!I", zlib.crc32(kind + payload) & 0xffffffff))
-    row = b"\x00" + b"\x18\x5b\x8c\xff" * 64
-    return (b"\x89PNG\r\n\x1a\n"
-            + chunk(b"IHDR", struct.pack("!2I5B", 64, 64, 8, 6, 0, 0, 0))
-            + chunk(b"IDAT", zlib.compress(row * 64)) + chunk(b"IEND", b""))
 
 
 class PlayersDirectoryBrowserTests(unittest.TestCase):
@@ -39,11 +26,9 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
                     self.skipTest("Sandbox blocks Chromium sockets; browser QA requires CI")
                 raise
             page = browser.new_page(viewport={"width": 1231, "height": 691})
-            errors = []
+            errors, requests = [], []
             page.on("pageerror", lambda error: errors.append(str(error)))
-            page.route("https://a.espncdn.com/i/headshots/nba/players/full/*",
-                       lambda route: route.fulfill(status=200, content_type="image/png",
-                                                   body=portrait_fixture_png()))
+            page.on("request", lambda request: requests.append(request.url))
             page.goto(PAGE, wait_until="load")
             page.evaluate("""() => {
               window.__premiumRequests = [];
@@ -66,13 +51,16 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
             page.evaluate("payload => window.postMessage({type:'streamlit:render',args:{payload}}, '*')",
                           {"auth": {"role": "free"}, "player_catalog": {"players": rows}})
             page.wait_for_function("document.querySelectorAll('.hzp-player-row').length===7")
-            page.wait_for_function("document.querySelectorAll('.hzp-player-avatar img').length===7")
-            self.assertEqual(page.locator(".hzp-player-avatar img").count(), 7)
+            self.assertEqual(page.locator(".hzp-player-avatar img").count(), 0)
             first_avatar = page.locator(".hzp-player-avatar").first
             self.assertGreaterEqual(first_avatar.bounding_box()["width"], 43)
-            self.assertEqual(first_avatar.locator("img").evaluate(
-                "img => getComputedStyle(img).objectFit"), "cover")
-            self.assertIn("/0.png", first_avatar.locator("img").get_attribute("src"))
+            self.assertEqual(first_avatar.locator(".hzp-avatar-fallback").inner_text(), "JT")
+            self.assertEqual(first_avatar.evaluate("el => getComputedStyle(el).borderRadius"), "50%")
+            self.assertIn("gradient", first_avatar.evaluate("el => getComputedStyle(el).backgroundImage"))
+            # A stale caller must not be able to re-enable the old CDN path.
+            page.evaluate("() => window.HoopzaroPortraits.observe(document.querySelector('#hzp-table-rows'))")
+            page.wait_for_timeout(150)
+            self.assertEqual(page.locator(".hzp-player-avatar img").count(), 0)
             self.assertEqual(page.locator(".hzp-stat.is-locked").count(), 42)
             self.assertNotIn("28,1", page.locator("#hzp-table-rows").inner_text())
             page.locator("#hzp-cta").click()
@@ -94,6 +82,7 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
             self.assertEqual(page.locator("#hzp-team").evaluate(
                 "element => getComputedStyle(element).appearance"), "none")
             self.assertEqual(page.locator(".hzp-stat.is-locked").count(), 0)
+            self.assertEqual(page.locator(".hzp-player-avatar img").count(), 0)
             self.assertIn("37,5%", page.locator("#hzp-table-rows").inner_text())
             self.assertIn("8,0", page.locator("#hzp-table-rows").inner_text())
             # When verified ESPN IDs exist, never fall back to a conflicting
@@ -115,6 +104,8 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
             page.locator("#hzp-search").fill("")
             page.locator("#hzp-next").click()
             self.assertIn("2 / 2", page.locator("#hzp-page").inner_text())
+            self.assertFalse(any("/headshots/" in url or
+                                 "commons.wikimedia.org" in url for url in requests))
             self.assertFalse(errors, errors)
             browser.close()
 

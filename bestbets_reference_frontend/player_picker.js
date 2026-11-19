@@ -5,7 +5,6 @@
 const $=id=>document.getElementById(id);
 const KEY="bestbets.centrum.watchedPlayers.v1";
 let catalog=null,api=null,isOpen=false,filter="",nativeWatch="",refreshing=false;
-let photosAllowed=false;
 let teamLogos={};
 let favorites=[];
 try{
@@ -38,7 +37,8 @@ function teamBadge(code){
 function avatar(p,cls){
  const abbrev=String(p.name||"").trim().split(/\s+/).slice(0,2).map(s=>s[0]||"").join("").toUpperCase();
  const id=String(p.id||"");
- return '<span class="bc-player-circle bc-free-avatar '+cls+(cls==="bc-watch-avatar"?' bc-identity-avatar':'')+
+ return '<span class="bc-player-circle bc-free-avatar '+cls+
+  (cls==="bc-watch-avatar"||cls==="bc-catalog-avatar"?' bc-identity-avatar':'')+
   '" data-hoop-player="'+escape(p.name)+'" data-hoop-team="'+escape(p.team||'')+
   '" data-hoop-id="'+(/^\d{1,20}$/.test(id)?escape(id):'')+'"><span>'+escape(abbrev)+'</span></span>';
 }
@@ -68,9 +68,6 @@ function watch(){
   const avatarNode=b.querySelector("[data-hoop-player]");
   const name=avatarNode?.dataset.hoopPlayer||"";
   if(!name||selected.has(name.toLocaleLowerCase("pl-PL")))continue;
-  // Rows copied from the native watch panel are NEW DOM nodes. Reset the
-  // old node's pending-photo marker so its replacement can load a headshot.
-  b.querySelectorAll("[data-hoop-photo-state]").forEach(n=>n.removeAttribute("data-hoop-photo-state"));
   rows.push(watchRow(b.outerHTML,{id:avatarNode?.dataset.hoopId||"",name,
     team:b.querySelector(".bc-free-team strong")?.textContent||"",
     position:b.querySelector(".bc-watch-position")?.textContent||""}));
@@ -121,12 +118,10 @@ function options(){
   '<input id="bc-players-search" autocomplete="off" type="search" maxlength="70"'+
   ' placeholder="Znajdź zawodnika lub drużynę…" value="'+escape(filter)+'" aria-label="Wyszukaj gracza">'+
   '<div class="bc-catalog-help" id="bc-catalog-help">Kliknij ☆, aby obserwować. '+
-  (photosAllowed?'Zdjęcia portretowe: ESPN; gdy zdjęcie jest niedostępne, fotografia z Wikimedia Commons lub inicjały.':
-    'Wizerunki zawodników są wyłączone. Wyświetlane są inicjały.')+'</div>'+
+  'Wyświetlamy oryginalne awatary HOOPZARO — bez zdjęć wymagających licencji.</div>'+
   '<div class="bc-catalog-list">'+(rows||'<div class="bc-muted">'+info+'</div>')+'</div>';
  const list=node.querySelector(".bc-catalog-list");
  if(list)list.scrollTop=oldScroll;
- if(photosAllowed)window.HoopzaroPortraits?.observe(list);
 }
 function toggleFavorite(id,button){
  const fromVisible=button?.closest(".bc-watch-row")?{
@@ -192,7 +187,6 @@ window.BestBetsCentre.render=function(data,players,freeDetails){
  lastCatalogSignature=catalogSignature;
  originalRender(data,freeDetails);
  if(data&&homeChanged){
-  photosAllowed=data.free_photos_enabled===true;
   teamLogos=Object.fromEntries((Array.isArray(data.form_options)?data.form_options:[])
    .filter(t=>t&&typeof t.team==="string").map(t=>[t.team,t.logo]));
  }

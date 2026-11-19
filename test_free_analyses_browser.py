@@ -83,9 +83,8 @@ def main():
             expect(page.locator('.bc-watch .bc-identity-avatar')).to_be_visible()
             assert page.locator('.bc-watch .bc-identity-avatar img,.bc-pick .bc-identity-avatar img').count()==0
             render(page,identity_home)
-            page.locator('.bc-photo-credits-trigger').click()
-            expect(page.locator('#bc-dialog-body')).to_contain_text('Nie załadowano jeszcze zdjęć')
-            page.keyboard.press('Escape')
+            # Credits link is hidden while there are no licensed photographs.
+            assert page.locator('.bc-photo-credits-trigger').is_hidden()
             page.locator('.bc-pick').first.click();expect(page.locator('.bc-free-heading .bc-identity-avatar')).to_be_visible()
             page.keyboard.press('Escape')
             render(page,{**home,'free_leaders':[],'free_leader_day':''})
