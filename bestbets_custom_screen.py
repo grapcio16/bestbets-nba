@@ -438,8 +438,9 @@ def main() -> None:
         if now - st.session_state.get("bb10_admin_report_at", 0.0) < 30:
             return
         try:
-            from tracker_storage import tracker_backend, read
+            from tracker_storage import tracker_backend, read, read_players
             from admin_model_performance import build_model_report
+            from player_simulation_tracker import player_model_report
             backend = tracker_backend()
             if not backend["remote"]:
                 # Missing deployment configuration is not a broken model.
@@ -448,6 +449,15 @@ def main() -> None:
                 result = {"season": SEASON, "models": [], "status": "setup_required"}
             else:
                 result = build_model_report(read(season=SEASON, config=backend), season=SEASON)
+                try:
+                    result["player_tracking"] = player_model_report(
+                        read_players(season=SEASON, config=backend), season=SEASON)
+                except (ValueError, TypeError, KeyError, RuntimeError, OSError,
+                        ConnectionError, TimeoutError):
+                    # The new player archive may be temporarily unavailable;
+                    # the existing team-model report remains fully usable.
+                    result["player_tracking"] = {
+                        "models": [], "error": "Nie udało się odczytać archiwum zawodników."}
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning(

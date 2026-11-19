@@ -64,6 +64,22 @@ class ModelReportTests(unittest.TestCase):
         self.assertEqual(first["metrics"]["total_mae"], 7.0)
         self.assertEqual(second["metrics"]["total_mae"], 12.0)
 
+    def test_paired_comparison_uses_only_same_pregame_settled_games(self):
+        frame = pd.DataFrame([
+            forecast("first", "401000001", settled=True),
+            forecast("second", "401000001", settled=True),
+            forecast("first", "401000002", settled=True),
+            forecast("second", "401000003", settled=True, late=True),
+        ])
+        report = build_model_report(frame, season="2026-27")
+        paired = report["paired_comparison"]
+        self.assertEqual(paired["games"], 1)
+        by_name = {model["id"]: model["metrics"] for model in paired["models"]}
+        self.assertEqual(by_name["first"]["games"], 1)
+        self.assertEqual(by_name["second"]["games"], 1)
+        self.assertEqual(by_name["first"]["total_mae"], 7.0)
+        self.assertEqual(by_name["second"]["total_mae"], 12.0)
+
     def test_missing_expected_columns_is_handled(self):
         report = build_model_report(pd.DataFrame([{"model_id": "first"}]), season="2026-27")
         self.assertTrue(report["error"])

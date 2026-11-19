@@ -58,6 +58,34 @@ CREATE TABLE IF NOT EXISTS bestbets_forecasts_by_model (
 CREATE INDEX IF NOT EXISTS bestbets_model_forecasts_start
  ON bestbets_forecasts_by_model(start_utc);
 """
+PLAYER_DDL = """
+CREATE TABLE IF NOT EXISTS bestbets_player_forecasts (
+ game_id TEXT NOT NULL,
+ model_id TEXT NOT NULL,
+ player_id TEXT NOT NULL,
+ season TEXT NOT NULL,
+ forecast_time_utc TIMESTAMPTZ NOT NULL,
+ start_utc TIMESTAMPTZ NOT NULL,
+ team TEXT NOT NULL,
+ player_name TEXT NOT NULL,
+ pts_pred DOUBLE PRECISION NOT NULL,
+ reb_pred DOUBLE PRECISION NOT NULL,
+ ast_pred DOUBLE PRECISION NOT NULL,
+ fg3m_pred DOUBLE PRECISION NOT NULL,
+ minutes_pred DOUBLE PRECISION NOT NULL,
+ sample_games INTEGER NOT NULL,
+ source TEXT NOT NULL,
+ pts_actual DOUBLE PRECISION,
+ reb_actual DOUBLE PRECISION,
+ ast_actual DOUBLE PRECISION,
+ fg3m_actual DOUBLE PRECISION,
+ minutes_actual DOUBLE PRECISION,
+ settled_at_utc TIMESTAMPTZ,
+ PRIMARY KEY (game_id,model_id,player_id)
+);
+CREATE INDEX IF NOT EXISTS bestbets_player_forecasts_start
+ ON bestbets_player_forecasts(start_utc);
+"""
 
 
 def connect(url):
@@ -70,7 +98,7 @@ def connect(url):
 
 
 def init_remote(conn):
-    for ddl in (POSTGRES_DDL, MODEL_DDL):
+    for ddl in (POSTGRES_DDL, MODEL_DDL, PLAYER_DDL):
         for statement in ddl.split(";"):
             if statement.strip():
                 conn.execute(statement)
@@ -185,3 +213,145 @@ def remote_read(url,season=None):
                 cur.execute("SELECT * FROM bestbets_forecasts_by_model ORDER BY start_utc DESC")
             records=cur.fetchall()
     return _report_frame(records)
+
+
+def remote_store_players(url, season, forecasts, captured_at=None):
+    """Freeze one player/model/game prediction, strictly before tipoff."""
+    from math import isfinite
+    from player_simulation_tracker import MODEL_ID
+
+    stamp = utc_timestamp(captured_at if captured_at is not None
+                          else datetime.now(timezone.utc))
+    saved = 0
+    with connect(url) as conn:
+        init_remote(conn)
+        for row in forecasts:
+            try:
+                gid, pid = str(row["game_id"]), str(row["player_id"])
+                team = str(row["team"])
+                name = str(row["player_name"]).strip()
+                start = utc_timestamp(row["start_utc"])
+                sample = int(row["sample_games"])
+                vals = [float(row[key]) for key in (
+                    "pts_pred", "reb_pred", "ast_pred", "fg3m_pred", "minutes_pred")]
+                if (row.get("model_id") != MODEL_ID or not gid.isdecimal()
+                    or not pid.isdecimal() or max(len(gid), len(pid)) > 20
+                    or not team or len(team) > 4 or not name or len(name) > 100
+                    or start <= stamp or sample < 3 or sample > 100
+                    or not all(isfinite(v) for v in vals)
+                    or not all(0 <= v <= limit for v, limit in zip(vals, (80, 35, 30, 15, 50)))):
+                    continue
+                cur = conn.execute("""
+                    INSERT INTO bestbets_player_forecasts
+                    (game_id,model_id,player_id,season,forecast_time_utc,start_utc,
+                     team,player_name,pts_pred,reb_pred,ast_pred,fg3m_pred,
+                     minutes_pred,sample_games,source)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (game_id,model_id,player_id) DO NOTHING
+                """, (gid, MODEL_ID, pid, str(season), stamp.to_pydatetime(),
+                      start.to_pydatetime(), team, name, *vals, sample,
+                      str(row.get("source") or "ESPN")[:160]))
+                saved += cur.rowcount
+            except (KeyError, ValueError, TypeError, OverflowError):
+                continue
+        conn.commit()
+    return {"saved": saved, "duplicates_or_rejected": len(forecasts)-saved}
+
+
+def remote_settle_players(url, completed_games, *, fetch_boxscore=None, settled_at=None):
+    """Attach verified final boxscores by ESPN game AND athlete ID.
+
+    No match (including DNP) stays NULL. We do not assume missing=0.
+    Fetch only final games having still-unsettled player forecasts.
+    """
+    from espn_player_data import fetch_boxscore as official_boxscore
+
+    if completed_games is None or completed_games.empty:
+        return 0
+    stamp = utc_timestamp(settled_at if settled_at is not None
+                          else datetime.now(timezone.utc))
+    finals = {}
+    for game in completed_games.to_dict("records"):
+        try:
+            if int(game.get("status_code") or 0) != 3:
+                continue
+            gid = str(game["game_id"])
+            if (not gid.isdecimal() or not 55 <= int(game["home_score"]) <= 200
+                    or not 55 <= int(game["away_score"]) <= 200):
+                continue
+            if utc_timestamp(game["start_utc"]) > stamp:
+                continue
+            finals[gid] = game
+        except (KeyError, ValueError, TypeError, OverflowError):
+            continue
+    if not finals:
+        return 0
+    with connect(url) as conn:
+        init_remote(conn)
+        pending = {str(row[0]) for row in conn.execute("""
+            SELECT DISTINCT game_id FROM bestbets_player_forecasts
+            WHERE pts_actual IS NULL AND forecast_time_utc < start_utc
+              AND start_utc <= %s
+        """, (stamp.to_pydatetime(),)).fetchall()}
+    reader = fetch_boxscore or official_boxscore
+    updates = []
+    for gid in sorted(pending & finals.keys()):
+        try:
+            player_rows = reader(finals[gid])
+        except (KeyError, ValueError, TypeError, OverflowError, RuntimeError,
+                OSError, ConnectionError, TimeoutError):
+            continue
+        for row in player_rows:
+            try:
+                if str(row.get("GAME_ID")) != gid:
+                    continue
+                pid = str(row.get("PLAYER_ID") or "")
+                pts, reb, ast = (float(row[name]) for name in ("PTS", "REB", "AST"))
+                minutes = float(row["MIN"])
+                fg3m = row.get("FG3M")
+                fg3m = float(fg3m) if fg3m is not None else None
+                # Some verified ESPN boxscores publish PTS/REB/AST before the
+                # 3-point split. Keep the verified stats and leave 3PM NULL.
+                if fg3m is not None and not 0 <= fg3m <= 20:
+                    fg3m = None
+                if (not pid.isdecimal() or minutes <= 0 or minutes > 60
+                    or not all(0 <= val <= limit for val, limit in (
+                        (pts, 100), (reb, 50), (ast, 40)))):
+                    continue
+                updates.append((pts, reb, ast, fg3m, minutes, stamp.to_pydatetime(),
+                                gid, pid, str(row.get("TEAM_ABBREVIATION") or ""),
+                                stamp.to_pydatetime()))
+            except (KeyError, ValueError, TypeError, OverflowError):
+                continue
+    matched = 0
+    if updates:
+        with connect(url) as conn:
+            init_remote(conn)
+            for values in updates:
+                cursor = conn.execute("""
+                    UPDATE bestbets_player_forecasts SET
+                    pts_actual=%s,reb_actual=%s,ast_actual=%s,fg3m_actual=%s,
+                    minutes_actual=%s,settled_at_utc=%s
+                    WHERE game_id=%s AND player_id=%s AND team=%s
+                      AND pts_actual IS NULL AND forecast_time_utc < start_utc
+                      AND start_utc <= %s
+                """, values)
+                matched += cursor.rowcount
+            conn.commit()
+    return matched
+
+
+def remote_read_players(url, season=None):
+    """Read-only admin evaluation input; never exposed to public sessions."""
+    from psycopg.rows import dict_row
+
+    with connect(url) as conn:
+        init_remote(conn)
+        with conn.cursor(row_factory=dict_row) as cur:
+            if season:
+                cur.execute("""SELECT * FROM bestbets_player_forecasts
+                    WHERE season=%s ORDER BY start_utc DESC""", (str(season),))
+            else:
+                cur.execute("SELECT * FROM bestbets_player_forecasts ORDER BY start_utc DESC")
+            records = cur.fetchall()
+    return pd.DataFrame(records)
