@@ -11,6 +11,10 @@ const LICENSE_CC0="https://creativecommons.org/publicdomain/zero/1.0/";
 const CACHE_KEY="hoopzaro.commonsPortraits.v2";
 const DAY=86400000;
 const curated=[
+ {name:"Darius Acuff Jr.",file:"Darius Acuff 2025 (cropped).png",artist:"Inside Arkansas",license:"CC BY 4.0",licenseUrl:LICENSE_BY4,zoom:1.45,origin:"50% 20%",position:"center 18%"},
+ {name:"Isaiah Hartenstein",file:"Isaiah Hartenstein 2023 New York Knicks.jpg",artist:"Erik Drost",license:"CC BY 2.0",licenseUrl:LICENSE_BY,zoom:1.5,origin:"50% 16%",position:"center 20%"},
+ {name:"Jalen Johnson",file:"JalenJohnsonNicoletHighFeb2019.jpg",artist:"Royalbroil",license:"CC BY-SA 4.0",licenseUrl:"https://creativecommons.org/licenses/by-sa/4.0/",zoom:1.65,origin:"50% 20%",position:"center 20%"},
+ {name:"Shai Gilgeous-Alexander",file:"Shai Gilgeous-Alexander (51815871018) (cropped).jpg",artist:"All-Pro Reels",license:"CC BY-SA 2.0",licenseUrl:"https://creativecommons.org/licenses/by-sa/2.0/",zoom:1.5,origin:"50% 19%",position:"center 22%"},
  {name:"Alperen Şengün",file:"Alperen Şengün 23 Türkiye 20250823 (18).jpg",artist:"Zafer",license:"CC BY 4.0",licenseUrl:LICENSE_BY4,zoom:2,origin:"50% 15%",position:"center 17%"},
  {name:"Karl-Anthony Towns",file:"Karl-Anthony Towns (51914283512) (square).jpg",artist:"Erik Drost",license:"CC BY 2.0",licenseUrl:LICENSE_BY,zoom:2.15,origin:"50% 9%",position:"center top"},
  {name:"Jayson Tatum",file:"Jayson Tatum (51687926198) (cropped).jpg",artist:"Erik Drost",license:"CC BY-SA 2.0",licenseUrl:"https://creativecommons.org/licenses/by-sa/2.0/",zoom:1.85,origin:"56% 14%",position:"center 15%"},
@@ -24,7 +28,7 @@ const normalized=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,""
 const curatedMap=new Map(curated.map(p=>[normalized(p.name),filePortrait(p)]));
 function filePortrait(p){
  const encoded=encodeURIComponent(p.file);
- return {url:"https://commons.wikimedia.org/w/thumb.php?f="+encoded+"&w=160",
+ return {url:"https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/"+encoded+"&width=160",
   source:COMMONS+encoded,artist:p.artist,license:p.license,licenseUrl:p.licenseUrl,
   cropped:true,zoom:p.zoom,origin:p.origin,position:p.position};
 }
@@ -42,7 +46,8 @@ function validPortrait(p){
   return image.protocol==="https:"&&["upload.wikimedia.org","commons.wikimedia.org"].includes(image.hostname)&&
    source.hostname==="commons.wikimedia.org"&&lic.hostname==="creativecommons.org"&&
    /^(CC BY(?:-SA)? \d\.\d|CC0 1\.0|Public domain)$/i.test(p.license)&&
-   typeof p.artist==="string"&&p.artist.length<240;
+   typeof p.artist==="string"&&p.artist.trim().length>1&&p.artist.length<240&&
+   !/^unknown\b/i.test(p.artist.trim());
  }catch(_){return false;}
 }
 function persist(){
@@ -69,7 +74,7 @@ function htmlText(raw){
 function portraitFromPage(page){
  const image=page?.imageinfo?.[0],meta=image?.extmetadata||{};
  const file=String(page?.title||"").replace(/^File:/,"");
- const photo={url:image?.url?"https://commons.wikimedia.org/w/thumb.php?f="+encodeURIComponent(file)+"&w=160":"",
+ const photo={url:image?.url?"https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/"+encodeURIComponent(file)+"&width=160":"",
   source:COMMONS+encodeURIComponent(file),
   artist:htmlText(meta.Artist?.value||meta.Attribution?.value),
   license:htmlText(meta.LicenseShortName?.value),licenseUrl:meta.LicenseUrl?.value||"",cropped:true};
@@ -165,10 +170,12 @@ function pump(){
  while(running<3&&queue.length){
   const job=queue.shift();running++;
   if(!job.node.isConnected){running--;continue;}
-  loadPreferredHeadshot(job.node,job.id,job.nbaId).then(async loaded=>{
-   if(!loaded&&!job.studioOnly){const photo=await get(job.name);if(photo)apply(job.node,photo);}
-  })
-   .finally(()=>{running--;pump();});
+  const loading=job.commonsOnly?
+   get(job.name).then(photo=>{if(photo)apply(job.node,photo);}):
+   loadPreferredHeadshot(job.node,job.id,job.nbaId).then(async loaded=>{
+    if(!loaded&&!job.studioOnly){const photo=await get(job.name);if(photo)apply(job.node,photo);}
+   });
+  loading.catch(()=>{}).finally(()=>{running--;pump();});
  }
 }
 function apply(node,photo){
@@ -200,7 +207,7 @@ const observer=typeof IntersectionObserver==="function"?new IntersectionObserver
  }
  pump();
 },{rootMargin:"140px"}):null;
-function observe(container){
+function observe(container,{commonsOnly=false}={}){
  if(!container)return;
  // The six visible Centrum avatars must not depend on the observer's timing.
  // Keep the 500+ player picker lazy so opening it never downloads every photo.
@@ -214,7 +221,11 @@ function observe(container){
   const name=node.dataset.hoopPlayer;
   if(!name)continue;
   node.dataset.hoopPhotoState="queued";
-  if(container.id==="hzp-table-rows"){
+  if(commonsOnly){
+   // Free Centrum may use attributed Commons files but never bypasses the
+   // operator's separate ESPN/NBA headshot-licensing switch.
+   queue.push({node,name,commonsOnly:true});pump();
+  }else if(container.id==="hzp-table-rows"){
    // Exactly seven rows are mounted per directory page. Preload that page
    // (including rows just below the fold), with pump() capped at three images.
    queue.push({node,name,id:node.dataset.hoopId,nbaId:node.dataset.hoopNbaId,
@@ -231,5 +242,5 @@ function observe(container){
  }
 }
 function credits(){return [...credited.values()].sort((a,b)=>a.artist.localeCompare(b.artist));}
-window.HoopzaroPortraits={observe,credits,normaliseName:normalized};
+window.HoopzaroPortraits={observe,observeOpenLicensed:container=>observe(container,{commonsOnly:true}),credits,normaliseName:normalized};
 })();

@@ -75,7 +75,10 @@ function watch(){
     position:b.querySelector(".bc-watch-position")?.textContent||""}));
  }
  node.innerHTML=rows.join("");
- if(photosAllowed)window.HoopzaroPortraits?.observe(node);
+ // Rebuilding the watch list replaces the original avatar nodes. Apply
+ // openly licensed Commons portraits to these new nodes as well, even when
+ // the operator has enabled studio headshots elsewhere in the application.
+ window.HoopzaroPortraits?.observeOpenLicensed?.(node);
 }
 function options(){
  const node=$("bc-players-picker"),toggle=$("bc-players-toggle");
