@@ -136,6 +136,17 @@ def check_static(page,out):
     expect(page.locator(".bc-catalog-athlete")).to_have_count(4)
     page.locator("#bc-players-search").fill("Curry")
     expect(page.locator(".bc-catalog-athlete")).to_have_count(1)
+    # A Streamlit rerun with the same confirmed NBA data must not replace the
+    # dashboard DOM or steal focus from a desktop player's search field.
+    page.locator("#bc-players-search").focus()
+    page.locator(".bc-ticker-card").first.evaluate(
+        "el => el.dataset.renderProbe = 'preserved'")
+    page.evaluate("([home,catalog]) => window.postMessage({type:'streamlit:render',args:{payload:{player:null,error:'',brand:'',home:home,player_catalog:catalog}}},'*')",
+                  [fixture,test_catalog])
+    expect(page.locator("#bc-players-search")).to_be_focused()
+    expect(page.locator("#bc-players-search")).to_have_value("Curry")
+    expect(page.locator(".bc-catalog-athlete")).to_have_count(1)
+    assert page.locator(".bc-ticker-card").first.get_attribute("data-render-probe")=="preserved"
     page.locator("#bc-players-search").fill("")
     for pid in ("102","103","104"):
         page.locator(f'[data-bb-watch-id="{pid}"]').click()

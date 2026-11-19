@@ -116,11 +116,14 @@ def get_centre_live_data(now=None):
         successes=0
         succeeded_days=set()
         any_stale=False
-        # Bounded parallel requests; no session state or Streamlit APIs in
-        # worker threads. Each date has its own disk-cache key.
-        with ThreadPoolExecutor(max_workers=5) as pool:
+        # Six scoreboard requests can run alongside the two independent
+        # optional feeds. Previously those feeds occupied two of only five
+        # slots, making the 11 daily requests take up to three waves on a
+        # cold start. Keep the overall limit bounded (8), and don't use
+        # Streamlit/session state in worker threads.
+        with ThreadPoolExecutor(max_workers=8) as pool:
             # Season W-L is fetched independently from the short scoreboard.
-            # A standings timeout must not block games, results or player cards.
+            # Its timeout must not starve the game/leader requests.
             season_future=pool.submit(fetch_season_standings)
             injury_future=pool.submit(get_centre_injury_watch)
             futures={pool.submit(fetch_day,offset,day):day for offset,day in zip(offsets,dates)}

@@ -1,5 +1,7 @@
 """Offline regression suite for confirmed NBA scores and recent player leaders."""
 from unittest import TestCase, mock
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event, Lock
 import pandas as pd
 from bestbets_centre_live import extract_recent_leaders, get_centre_live_data, get_centre_day_data
 
@@ -28,6 +30,46 @@ RAW={"events":[
 
 
 class CentreLiveTest(TestCase):
+    def test_six_scoreboard_days_can_start_before_optional_feeds_finish(self):
+        """A slow injury/standings lookup must not starve the first NBA dates."""
+        release=Event()
+        six_days_started=Event()
+        mutex=Lock()
+        started=0
+
+        def held_scoreboard(*args, **kwargs):
+            nonlocal started
+            if "dates" in kwargs.get("params", {}):
+                with mutex:
+                    started+=1
+                    if started>=6:
+                        six_days_started.set()
+                release.wait(timeout=3)
+            return RAW, {"stale": False}
+
+        def held_standings():
+            release.wait(timeout=3)
+            return {}, {}
+
+        def held_injuries():
+            release.wait(timeout=3)
+            return {"rows": [], "available": False}
+
+        with mock.patch("sources.memoized_json", side_effect=held_scoreboard), \
+             mock.patch("bestbets_centre_standings.fetch_season_standings",
+                        side_effect=held_standings), \
+             mock.patch("bestbets_centre_injuries.get_centre_injury_watch",
+                        side_effect=held_injuries), \
+             mock.patch("team_logos.logo_data_uri", return_value=""):
+            with ThreadPoolExecutor(max_workers=1) as observer:
+                future=observer.submit(get_centre_live_data, NOW)
+                try:
+                    self.assertTrue(six_days_started.wait(timeout=1.5),
+                                    "Slow optional feeds blocked NBA game requests")
+                finally:
+                    release.set()
+                self.assertIn("games", future.result(timeout=10))
+
     def test_verified_leaders_from_final_only(self):
         rows=extract_recent_leaders(RAW,NOW,limit=3)
         self.assertEqual(len(rows),3)

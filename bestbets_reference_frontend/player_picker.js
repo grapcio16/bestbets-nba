@@ -179,15 +179,22 @@ function install(){
 }
 if(!window.BestBetsCentre)return;
 const originalInit=window.BestBetsCentre.init,originalRender=window.BestBetsCentre.render;
+let lastHomeSignature=null,lastCatalogSignature=null;
 window.BestBetsCentre.init=function(ctx){api=ctx;originalInit(ctx);install();};
 window.BestBetsCentre.render=function(data,players,freeDetails){
+ const homeSignature=JSON.stringify(data||null);
+ const catalogSignature=JSON.stringify(players||null);
+ const homeChanged=homeSignature!==lastHomeSignature;
+ const catalogChanged=catalogSignature!==lastCatalogSignature;
+ lastHomeSignature=homeSignature;
+ lastCatalogSignature=catalogSignature;
  originalRender(data,freeDetails);
- if(data){
+ if(data&&homeChanged){
   photosAllowed=data.free_photos_enabled===true;
   teamLogos=Object.fromEntries((Array.isArray(data.form_options)?data.form_options:[])
    .filter(t=>t&&typeof t.team==="string").map(t=>[t.team,t.logo]));
  }
- if(players&&typeof players==="object"){
+ if(catalogChanged&&players&&typeof players==="object"){
   catalog=players;refreshing=false;
   const known=new Map((Array.isArray(players.players)?players.players:[]).map(p=>[String(p.id),p]));
   let changed=false;
@@ -201,7 +208,10 @@ window.BestBetsCentre.render=function(data,players,freeDetails){
   if(changed)save();
  }
  const watchBox=$("bestbets-centre")?.querySelector(".bc-watch");
- if(watchBox){nativeWatch=watchBox.innerHTML;watch();}
- options();
+ // Without this guard, a harmless iframe re-render replaces the native
+ // watch fallback with our already-enhanced rows, and destroys the search
+ // field while the user types in the player picker.
+ if(watchBox&&homeChanged){nativeWatch=watchBox.innerHTML;watch();}
+ if(homeChanged||catalogChanged)options();
 };
 })();
