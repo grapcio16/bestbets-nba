@@ -60,6 +60,31 @@ def _report_groups(frame: pd.DataFrame):
         yield name, group.drop(columns=["_pregame", "_rank"])
 
 
+def _paired_comparison(groups):
+    """Compare only outcomes evaluated for EVERY included model.
+
+    V7.5 is captured closer to tipoff than V7.2/V7.4; their raw coverage
+    differs. Independent per-model accuracy percentages are not a fair
+    head-to-head unless restricted to identical matchups.
+    """
+    candidates = {}
+    for name, group in groups:
+        verified, _ = performance_metrics(group)
+        if not verified.empty:
+            candidates[str(name)] = (group, set(verified["game_id"].astype(str)))
+    if len(candidates) < 2:
+        return {"games": 0, "models": []}
+    common = set.intersection(*(value[1] for value in candidates.values()))
+    if not common:
+        return {"games": 0, "models": []}
+    models = []
+    for name, (group, _) in candidates.items():
+        _, metrics = performance_metrics(group[group["game_id"].astype(str).isin(common)])
+        models.append({"id": name, "label": MODEL_LABELS.get(name, name)[:80],
+                       "metrics": metrics})
+    return {"games": len(common), "models": sorted(models, key=lambda item: item["id"])}
+
+
 def build_model_report(frame: pd.DataFrame | None, *, season: str) -> dict:
     """Compare forecasts by model, never treating unsettled games as outcomes."""
     base = {"season": season, "as_of_utc": datetime.now(timezone.utc).isoformat(timespec="minutes"),
@@ -72,7 +97,8 @@ def build_model_report(frame: pd.DataFrame | None, *, season: str) -> dict:
     if not required.issubset(frame.columns):
         return {**base, "error": "Archiwum prognoz ma niepełny schemat."}
     models = []
-    for name, group in _report_groups(frame):
+    groups = list(_report_groups(frame))
+    for name, group in groups:
         if pd.isna(name) or not str(name).strip():
             continue
         settled = group["home_score"].notna() & group["away_score"].notna()
@@ -100,4 +126,5 @@ def build_model_report(frame: pd.DataFrame | None, *, season: str) -> dict:
             "metrics": metrics,
             "recent": recent,
         })
-    return {**base, "models": sorted(models, key=lambda item: item["id"])}
+    return {**base, "models": sorted(models, key=lambda item: item["id"]),
+            "paired_comparison": _paired_comparison(groups)}

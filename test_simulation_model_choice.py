@@ -56,8 +56,11 @@ class ModelChoiceTests(unittest.TestCase):
             ("BOS", "samplestarter"): {"status": "Out", "minutes": 0, "sample": 7},
             ("NYK", "sampleguard"): {"status": "Niezweryfikowany", "minutes": 28, "sample": 7},
         }, "warning": "Raport ESPN"}
+        # Keep the fixture genuinely upcoming. A fixed November date made
+        # this test fail every day after tipoff, despite correct OUT logic.
         game = {"id": "401123456", "home": "BOS", "away": "NYK",
-                "start": "2026-11-19T01:00:00Z", "state": "scheduled"}
+                "start": (pd.Timestamp.now(tz="UTC") + pd.Timedelta(days=2)).isoformat(),
+                "state": "scheduled"}
         dummy = types.ModuleType("simulation_view")
         dummy.matchup_players_cached = lambda *_a, **_kw: (table, {})
         with patch.dict(sys.modules, {"simulation_view": dummy}), \

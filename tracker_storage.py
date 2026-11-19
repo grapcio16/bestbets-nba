@@ -56,3 +56,28 @@ def read(season=None,config=None):
         return remote_read(cfg["url"],season)
     from performance_tracker import read_forecasts
     return read_forecasts(local_path(),season)
+
+
+def save_players(summaries,season,config=None):
+    """Automated player auditing requires the same durable PostgreSQL store."""
+    cfg=config or tracker_backend()
+    if not cfg["remote"]:
+        raise RuntimeError("Archiwum zawodników wymaga trwałego PostgreSQL")
+    from tracker_postgres import remote_store_players
+    return remote_store_players(cfg["url"],season,summaries)
+
+
+def settle_players(completed,config=None):
+    cfg=config or tracker_backend()
+    if not cfg["remote"]:
+        raise RuntimeError("Rozliczanie zawodników wymaga trwałego PostgreSQL")
+    from tracker_postgres import remote_settle_players
+    return remote_settle_players(cfg["url"],completed)
+
+
+def read_players(season=None,config=None):
+    cfg=config or tracker_backend()
+    if not cfg["remote"]:
+        raise RuntimeError("Raport zawodników wymaga trwałego PostgreSQL")
+    from tracker_postgres import remote_read_players
+    return remote_read_players(cfg["url"],season)

@@ -166,9 +166,41 @@ def run_cycle(schedule, history, now, save_forecasts, settle_results,
     }
 
 
+def run_player_cycle(schedule, history, now, save_player_forecasts,
+                     settle_player_results, season=None, fetch_logs=None):
+    """Independent prospective evaluation of the existing player projections.
+
+    Player tracking cannot overwrite or alter team-score forecasts. Missing
+    ESPN boxscores remain ungraded instead of being treated as zero points.
+    """
+    from player_simulation_tracker import build_player_forecasts
+
+    stamp = pd.to_datetime(now, utc=True, errors="coerce")
+    if pd.isna(stamp):
+        raise ValueError("Nieprawidłowa data UTC")
+    season = season or active_nba_season(stamp)
+    completed = verified_history(history, stamp)
+    matched = int(settle_player_results(completed))
+    upcoming = upcoming_events(schedule, stamp)
+    kwargs = {"fetch_logs": fetch_logs} if fetch_logs is not None else {}
+    forecasts, coverage = build_player_forecasts(upcoming, completed, stamp, **kwargs)
+    stored = (save_player_forecasts(forecasts, season) if forecasts
+              else {"saved": 0, "duplicates_or_rejected": 0})
+    return {
+        "model_id": "auto_player_form_v74",
+        "pregame_games_checked": coverage["attempted_games"],
+        "games_with_player_projections": coverage["projected_games"],
+        "candidate_player_rows": len(forecasts),
+        "new_player_snapshots": int(stored["saved"]),
+        "player_rows_settled": matched,
+        "duplicates_or_rejected": int(stored.get("duplicates_or_rejected", 0)),
+    }
+
+
 def run_scheduled_job():
     """No silent SQLite fallback for unattended jobs: disk is ephemeral."""
-    from tracker_storage import tracker_backend, save, settle
+    from tracker_storage import (tracker_backend, save, settle,
+                                 save_players, settle_players)
     cfg = tracker_backend()
     if not cfg["remote"]:
         raise RuntimeError(
@@ -198,7 +230,7 @@ def run_scheduled_job():
     # must not turn an already started game into a new pregame prediction.
     now = pd.Timestamp.now(tz="UTC")
     # No DB URL/credentials in printed summaries, logs, or thrown errors.
-    return run_cycle(
+    result = run_cycle(
         upcoming, finals, now,
         save_forecasts=lambda snapshots, target_season: save(
             snapshots, target_season, config=cfg),
@@ -206,6 +238,22 @@ def run_scheduled_job():
         season=season,
         availability_provider=PregameAvailabilityFeed(),
     )
+    try:
+        result["player_tracking"] = run_player_cycle(
+            upcoming, finals, pd.Timestamp.now(tz="UTC"),
+            save_player_forecasts=lambda records, target_season: save_players(
+                records, target_season, config=cfg),
+            settle_player_results=lambda completed: settle_players(
+                completed, config=cfg),
+            season=season,
+        )
+    except (ValueError, TypeError, KeyError, RuntimeError, OSError,
+            ConnectionError, TimeoutError) as exc:
+        # Preserve the finished team-tracker cycle, but make a player-side
+        # outage visible in logs without printing credentials or user data.
+        result["player_tracking"] = {
+            "status": "temporarily_unavailable", "error_type": type(exc).__name__}
+    return result
 
 
 if __name__ == "__main__":

@@ -92,3 +92,17 @@
 .hz-admin-history th{position:sticky;top:0;color:#42e6e5;background:#0b1c39}
 .hz-admin-wait{color:#e4bd6f}
 .hz-admin-history p{color:#93acd0;font-size:10px;margin:12px 0 0}
+.hz-admin-players-audit{margin-top:17px;border:1px solid #337c86;border-radius:15px;padding:18px;background:linear-gradient(135deg,#0a2635,#0b1835)}
+.hz-admin-players-head>span{font-size:10px;letter-spacing:.12em;font-weight:900;color:#31efce}
+.hz-admin-players-head h2{font-size:21px;margin:5px 0 7px;color:#e8fbff}
+.hz-admin-players-head p{font-size:11px;color:#a8cbdc;margin:0 0 12px}
+.hz-admin-player-model{margin:13px 0;padding:12px;border:1px solid #356686;border-radius:10px;background:#081a2e}
+.hz-admin-player-model h3{font-size:13px;color:#43efd7;margin:0 0 6px}
+.hz-admin-player-model>p{font-size:11px;color:#b4d1e2;margin:0 0 9px}
+.hz-admin-player-model>p b{color:#fff}
+.hz-admin-player-table{overflow-x:auto}
+.hz-admin-player-table table{width:100%;border-collapse:collapse;font-size:11px}
+.hz-admin-player-table th,.hz-admin-player-table td{text-align:left;padding:9px 7px;border-bottom:1px solid #255168}
+.hz-admin-player-table th{color:#41eadd;font-weight:900}
+.hz-admin-player-table td:nth-child(3){color:#31d9ff;font-weight:900}
+.hz-admin-players-note{color:#b6cddd;font-size:10px;line-height:1.6;margin:11px 0 0}

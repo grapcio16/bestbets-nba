@@ -39,6 +39,52 @@
      (!ready?'<div class="hz-admin-pending">Brak zakończonych i zweryfikowanych prognoz. Wyniki oceny pojawią się po meczach.</div>':'')+
      '</article>';
  }
+ function playerAudit(report){
+   const models=Array.isArray(report?.models)?report.models:[];
+   const error=report?.error||"";
+   const marketNames=[["pts","Punkty (PTS)"],["reb","Zbiórki (REB)"],
+     ["ast","Asysty (AST)"],["fg3m","Trójki (3PM)"]];
+   const cards=models.map(model=>{
+     const stats=model.metrics||{};
+     const cells=marketNames.map(([key,label])=>{
+       const m=stats[key]||{};
+       return '<tr><td>'+label+'</td><td>'+number(m.n)+'</td><td>'+signed(m.mae)+
+         '</td><td>'+percentage(m.within_pct)+'</td><td>±'+number(m.tolerance)+'</td></tr>';
+     }).join("");
+     const title=model.id==="auto_player_form_v74"
+       ?"V7.4 · Symulacje zawodników (ESPN)":model.id;
+     return '<div class="hz-admin-player-model"><h3>'+escapeHtml(title)+
+       '</h3><p>Prognozy zawodników: <b>'+number(model.saved)+
+       '</b> · ocenione występy: <b>'+number(model.evaluated_players)+
+       '</b> · mecze: <b>'+number(model.games_with_results)+'</b></p>'+
+       '<div class="hz-admin-player-table"><table><thead><tr><th>Statystyka</th><th>Próba</th><th>MAE</th><th>W progu</th><th>Próg</th></tr></thead><tbody>'+
+       cells+'</tbody></table></div></div>';
+   }).join("");
+   return '<section class="hz-admin-players-audit"><div class="hz-admin-players-head">'+
+     '<span>NOWY TRACKER · SYMULACJE ZAWODNIKÓW</span><h2>Jak trafnie prognozujemy graczy?</h2>'+
+     '<p>PTS, REB, AST i 3PM · zamrożone prognozy sprzed meczu, ocenione po oficjalnym box score.</p></div>'+
+     (error?'<p class="hz-admin-players-note">'+escapeHtml(error)+'</p>':
+      cards||'<p class="hz-admin-players-note">Zbieramy pierwsze prognozy. Wyniki pojawią się po zakończonych meczach.</p>')+
+     '<p class="hz-admin-players-note">MAE = średni błąd bezwzględny; „w progu” oznacza odchylenie nie większe niż podane ± punkty/zbiórki/asysty/trójki. '+
+     'To NIE jest skuteczność zakładów Over/Under. Brak występu lub danych nie jest liczony jako zero.</p></section>';
+ }
+ function pairedAudit(comparison){
+   const models=Array.isArray(comparison?.models)?comparison.models:[];
+   const n=Number(comparison?.games)||0;
+   const body=models.map(model=>{
+     const m=model.metrics||{};
+     return '<tr><td>'+escapeHtml(model.label||model.id)+'</td><td>'+percentage(m.winner_accuracy)+
+       '</td><td>'+signed(m.total_mae)+'</td><td>'+signed(m.team_mae)+
+       '</td><td>'+signed(m.brier)+'</td></tr>';
+   }).join("");
+   return '<section class="hz-admin-players-audit"><div class="hz-admin-players-head">'+
+     '<span>UCZCIWE PORÓWNANIE MODELI</span><h2>Te same zakończone mecze · '+number(n)+'</h2>'+
+     '<p>Każdy uwzględniony model oceniamy wyłącznie na wspólnych, zweryfikowanych spotkaniach.</p></div>'+
+     (n?'<div class="hz-admin-player-table"><table><thead><tr><th>Model</th><th>Zwycięzca</th><th>MAE sumy</th><th>MAE drużyn</th><th>Brier</th></tr></thead><tbody>'+body+'</tbody></table></div>':
+       '<p class="hz-admin-players-note">Za mało wspólnych, rozliczonych spotkań do porównania.</p>')+
+     '<p class="hz-admin-players-note">'+(n<30?'Mała próba: różnice nie oznaczają jeszcze przewagi modelu. ':'')+
+     'Wszystkie prognozy są historyczne i zapisane przed meczem; mniejszy MAE/Brier jest lepszy.</p></section>';
+ }
  function row(record){
    const final=record.home_actual!==null&&record.away_actual!==null;
    return '<tr><td>'+escapeHtml(record.date)+' UTC</td><td><b>'+escapeHtml(record.away)+' @ '+escapeHtml(record.home)+'</b></td>'+
@@ -71,6 +117,8 @@
    root.innerHTML='<div class="hz-admin-meta"><span>Sezon '+escapeHtml(report.season)+'</span><span>Aktualizacja '+escapeHtml(String(report.as_of_utc||"").slice(0,16).replace("T"," "))+' UTC</span>'+
      '<span>Dokładność liczona wyłącznie dla zapisów sprzed rozpoczęcia meczów.</span></div>'+
      '<div class="hz-admin-models">'+models.map(modelCard).join("")+'</div>'+
+     pairedAudit(report.paired_comparison)+
+     playerAudit(report.player_tracking)+
      '<section class="hz-admin-history"><header><h2>Historia prognoz</h2><label>Model <select id="hz-admin-history-model">'+options+'</select></label></header>'+
      '<div class="hz-admin-table-scroll"><table><thead><tr><th>Data</th><th>Mecz</th><th>Prognoza</th><th>Wynik</th></tr></thead>'+
      '<tbody id="hz-admin-history-rows"></tbody></table></div>'+
