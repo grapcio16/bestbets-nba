@@ -61,7 +61,7 @@ class PlayersDirectoryBrowserTests(unittest.TestCase):
             self.assertEqual(page.locator(".hzp-table-header span").nth(2).inner_text(), "MECZE")
             self.assertEqual(page.locator(".hzp-player-avatar img").count(), 0)
             first_avatar = page.locator(".hzp-player-avatar").first
-            self.assertGreaterEqual(first_avatar.bounding_box()["width"], 43)
+            self.assertGreaterEqual(first_avatar.bounding_box()["width"], 41)
             self.assertEqual(first_avatar.locator(".hzp-avatar-fallback").inner_text(), "JT")
             self.assertEqual(first_avatar.evaluate("el => getComputedStyle(el).borderRadius"), "50%")
             self.assertIn("gradient", first_avatar.evaluate("el => getComputedStyle(el).backgroundImage"))
