@@ -232,6 +232,23 @@ def main():
         compact_box = page.locator("#hzs-board .hzs-rows .hzs-game").first.bounding_box()
         assert feature_box and feature_box["height"] <= 107, feature_box
         assert compact_box and compact_box["height"] <= 70, compact_box
+        # Premium simulations: the final evidence strip must fit inside
+        # the canvas, with a two-line heading and no clipped insight cards.
+        page.locator('.nav-btn[data-page="simulations"]').click()
+        assert page.locator("#simulations-pane").is_visible()
+        pane_box = page.locator("#simulations-pane").bounding_box()
+        insights_box = page.locator(".hzm-insights").bounding_box()
+        footer_box = page.locator(".hzm-footer").bounding_box()
+        assert pane_box and insights_box and footer_box
+        assert insights_box["y"] + insights_box["height"] < footer_box["y"] + 1
+        assert footer_box["y"] + footer_box["height"] <= pane_box["y"] + pane_box["height"] - 2
+        title = page.locator(".hzm-insight-title")
+        assert title.evaluate("e => e.scrollWidth <= e.clientWidth + 2")
+        assert title.evaluate("e => e.scrollHeight <= e.clientHeight + 2")
+        for card in page.locator(".hzm-insights > div:not(:first-child)").all():
+            box = card.bounding_box()
+            assert box and box["y"] + box["height"] <= insights_box["y"] + insights_box["height"]
+            assert card.locator("small").evaluate("e => e.scrollHeight <= e.clientHeight + 2")
         page.locator('[data-page="props"].nav-btn').click()
         assert page.locator("#hero").is_visible()
 
