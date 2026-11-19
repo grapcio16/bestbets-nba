@@ -53,8 +53,14 @@ def main() -> None:
             assert page.locator("#bestbets-centre").is_visible()
             assert page.locator("#props-heading").is_hidden()
             assert page.locator(".brand .wordmark").inner_text().startswith("HOOPZARO")
-            home_rect = page.locator(".bc-bottom").bounding_box()
-            assert home_rect and home_rect["width"] > 100
+            if width < 768:
+                # The compact iPhone layout intentionally replaces the
+                # desktop bottom tiles with a fixed mobile tab bar.
+                assert page.locator(".bc-bottom").is_hidden()
+                expect(page.locator("#hz-mobile-nav")).to_be_visible()
+            else:
+                home_rect = page.locator(".bc-bottom").bounding_box()
+                assert home_rect and home_rect["width"] > 100
             if width >= 1300:
                 assert home_rect["y"] + home_rect["height"] < height, (width, home_rect)
             if width == 1800:

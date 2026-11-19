@@ -164,18 +164,18 @@ def check_static(page,out):
     page.locator("[data-centre-close]").first.click()
     # Date navigation is client-side for prefetched data, scores are visible
     # directly in the scheduled-games row without opening a modal.
-    page.locator('[data-centre-day-dir="-1"]').click()
+    page.locator('.bc-calendar-arrow[data-centre-day-dir="-1"]').click()
     expect(page.locator("#bc-selected-day")).to_contain_text("11")
     expect(page.locator(".bc-row-score")).to_contain_text("106 : 104")
     assert "Podgląd" not in page.locator(".bc-game-list").inner_text()
-    page.locator('[data-centre-day-dir="1"]').click()
+    page.locator('.bc-calendar-arrow[data-centre-day-dir="1"]').click()
     expect(page.locator(".bc-row-score.live")).to_contain_text("78 : 76")
-    page.locator('[data-centre-day-dir="1"]').click()
+    page.locator('.bc-calendar-arrow[data-centre-day-dir="1"]').click()
     assert page.locator(".bc-game-list").inner_text().find("Podgląd")>=0
     assert page.locator(".bc-row-score").count()==0
     page.screenshot(path=str(out/"centrum-date-nav-final-scores.png"),animations="disabled")
     # Return to today before other expected fixture interactions.
-    page.locator('[data-centre-day-dir="-1"]').click()
+    page.locator('.bc-calendar-arrow[data-centre-day-dir="-1"]').click()
     page.locator(".bc-premium-top").click()
     expect(page.locator("#bc-dialog")).to_be_visible()
     expect(page.locator("#bc-dialog-title")).to_have_text("HOOPZARO Premium — wkrótce")
@@ -249,12 +249,12 @@ def check_streamlit(browser,url,out):
             timeout=45000,
         )
         expect(frame.locator("#bc-refresh")).to_be_visible()
-        expect(frame.locator('[data-centre-day-dir="-1"]')).to_be_visible()
-        expect(frame.locator('[data-centre-day-dir="1"]')).to_be_visible()
+        expect(frame.locator('.bc-calendar-arrow[data-centre-day-dir="-1"]')).to_be_visible()
+        expect(frame.locator('.bc-calendar-arrow[data-centre-day-dir="1"]')).to_be_visible()
         first=frame.locator("#bc-selected-day").inner_text()
-        frame.locator('[data-centre-day-dir="-1"]').click()
+        frame.locator('.bc-calendar-arrow[data-centre-day-dir="-1"]').click()
         expect(frame.locator("#bc-selected-day")).not_to_have_text(first)
-        frame.locator('[data-centre-day-dir="1"]').click()
+        frame.locator('.bc-calendar-arrow[data-centre-day-dir="1"]').click()
         expect(frame.locator("#bc-selected-day")).to_have_text(first)
         # Previously CI accepted a backend success while the visible NBA
         # ticker and results remained stuck at their initial placeholders.
