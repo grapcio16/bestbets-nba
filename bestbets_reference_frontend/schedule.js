@@ -93,7 +93,9 @@ function gameOfDay(games,data){
     const quality=(away.winRate+home.winRate)/2;
     const parity=1-Math.abs(away.winRate-home.winRate);
     const scoring=clamp01(((away.ppg+home.ppg)/2-90)/40);
-    const rating=.4*quality+.3*parity+.3*scoring;
+    // The most compelling game is usually two strong, similarly matched
+    // teams; raw offensive pace must not dominate the spotlight.
+    const rating=.45*quality+.45*parity+.10*scoring;
     if(rating>bestScore){best=game;bestScore=rating;}
   });
   return best;
@@ -125,7 +127,7 @@ function gameMarkup(game,data,featured=false){
   const badge=game.state==="live"?liveLabel(game.status):game.state==="final"?"KONIEC":"NADCHODZĄCE";
   const kind=game.state==="live"?"live":game.state==="final"?"final":"upcoming";
   return '<article class="hzs-game hzs-'+kind+(featured?' hzs-featured':'')+'" aria-label="'+escapeHtml(away+' – '+home+', '+badge)+'">'+
-    (featured?'<div class="hzs-feature-ribbon" title="Wybór według zweryfikowanych bilansów i średnich punktów"><span aria-hidden="true">✦</span> MECZ DNIA <span aria-hidden="true">✦</span></div>':'')+
+    (featured?'<div class="hzs-feature-ribbon" title="Mecz dnia: 45% siła bilansów, 45% wyrównanie bilansów, 10% średnia punktów. Wyłącznie zweryfikowane dane sezonu, bez symulacji."><span aria-hidden="true">✦</span> MECZ DNIA <span aria-hidden="true">✦</span></div>':'')+
     '<div class="hzs-team away">'+teamMark(away,game.away_logo)+teamText(away,data)+'</div>'+
     '<div class="hzs-score"><strong>'+escapeHtml(score(game))+'</strong><span class="hzs-status">'+escapeHtml(badge)+'</span></div>'+
     '<div class="hzs-team home">'+teamText(home,data)+teamMark(home,game.home_logo)+'</div></article>';

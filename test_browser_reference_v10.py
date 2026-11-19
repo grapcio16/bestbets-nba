@@ -196,6 +196,42 @@ def main():
         )
         page.wait_for_function("document.querySelectorAll('#hzs-board .hzs-featured').length===0")
         assert page.locator("#hzs-board .hzs-game").count() == 3
+        # Four public matchups from the Nov 20 schedule: NYK–MIN is a
+        # stronger, more evenly matched pairing than GSW–MEM despite its
+        # lower PPG. Never hardcode the chosen teams in production code.
+        spotlight_pairs = [("GSW", "MEM"), ("LAC", "SAS"),
+                           ("NYK", "MIN"), ("POR", "MIL")]
+        public_stats = [
+            ("GSW", 8, 7, 113.7), ("MEM", 11, 4, 121.9),
+            ("LAC", 4, 9, 111.9), ("SAS", 12, 3, 117.1),
+            ("NYK", 8, 6, 110.0), ("MIN", 11, 4, 116.7),
+            ("POR", 9, 5, 117.0), ("MIL", 1, 14, 107.7),
+        ]
+        page.evaluate(
+            "home => window.postMessage({type:'streamlit:render',args:{payload:{home}}}, '*')",
+            {"calendar_today": selected_day, "calendar_loaded_days": [selected_day],
+             "calendar_games": [
+                 {"id": f"spotlight-{i}", "day": selected_day,
+                  "away": away, "home": home, "state": "scheduled",
+                  "start": f"{selected_day}T01:00:00Z"}
+                 for i, (away, home) in enumerate(spotlight_pairs)
+             ],
+             "form_options": [
+                 {"team": code, "wins": wins, "losses": losses,
+                  "ppg": ppg, "record_verified": True}
+                 for code, wins, losses, ppg in public_stats
+             ]},
+        )
+        page.wait_for_function(
+            "document.querySelector('#hzs-board .hzs-featured .hzs-team.away .hzs-team-info strong')?.textContent==='NYK'"
+        )
+        assert "MIN" in page.locator("#hzs-board .hzs-featured").inner_text()
+        assert "45%" in (page.locator(".hzs-feature-ribbon").get_attribute("title") or "")
+        assert page.locator("#hzs-board .hzs-game").count() == 4
+        feature_box = page.locator("#hzs-board .hzs-featured").bounding_box()
+        compact_box = page.locator("#hzs-board .hzs-rows .hzs-game").first.bounding_box()
+        assert feature_box and feature_box["height"] <= 122, feature_box
+        assert compact_box and compact_box["height"] <= 70, compact_box
         page.locator('[data-page="props"].nav-btn').click()
         assert page.locator("#hero").is_visible()
 
