@@ -194,7 +194,7 @@ def main():
              "form_options": [{"team": "DEN", "wins": 6, "losses": 4,
                                "ppg": 114.5, "record_verified": True}]},
         )
-        assert page.locator("#hzs-board .hzs-featured").count() == 0
+        page.wait_for_function("document.querySelectorAll('#hzs-board .hzs-featured').length===0")
         assert page.locator("#hzs-board .hzs-game").count() == 3
         page.locator('[data-page="props"].nav-btn').click()
         assert page.locator("#hero").is_visible()
