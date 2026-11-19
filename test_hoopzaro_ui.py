@@ -65,7 +65,9 @@ def main() -> None:
                 assert home_rect["y"] + home_rect["height"] < height, (width, home_rect)
             if width == 1800:
                 page.screenshot(path=str(ROOT / "hoopzaro_centre_smoke.png"))
-            page.locator('.nav-btn[data-page="props"]').click()
+            props_tab = ('#hz-mobile-nav [data-page="props"]' if width < 768
+                         else '.nav-btn[data-page="props"]')
+            page.locator(props_tab).click()
             page.evaluate(
                 "payload => window.postMessage({type:'streamlit:render',args:{payload}},'*')",
                 {"player": EXAMPLE_PLAYER, "home": None, "brand": BRAND, "error": ""},
@@ -100,7 +102,9 @@ def main() -> None:
                           "role": "admin", "name": "Test Admin"}},
             )
             expect(page.locator("#hz-premium .hz-premium-text")).to_have_text("ADMIN")
-            page.locator("#hz-premium").click()
+            premium_tab = ('#hz-mobile-nav [data-page="simulations"]' if width < 768
+                           else '#hz-premium')
+            page.locator(premium_tab).click()
             expect(page.locator("#simulations-pane")).to_be_visible()
             assert not errors, errors
             page.close()
