@@ -635,13 +635,18 @@ function resize(){
      viewportWidth>window.innerHeight)) && state.page==="home";
   shell.classList.toggle("hz-mobile-centre",mobileHome);
   if(mobileHome){
-    // The approved desktop drawing is not scaled on mobile Centrum: its
-    // existing live components flow naturally and scroll inside the iframe.
-    // Keep the Streamlit iframe viewport-sized for a truly fixed bottom nav.
+    // Let the Streamlit host page scroll the complete mobile dashboard.
+    // A viewport-sized component iframe traps vertical swipes on some phones.
     root.style.transform="none";
     shell.style.width="100%";
     shell.style.height="auto";
-    notify("streamlit:setFrameHeight",{height:Math.max(500,window.innerHeight||700)});
+    const pageHeight=Math.max(
+      window.innerHeight||700,
+      document.documentElement.scrollHeight||0,
+      document.body.scrollHeight||0,
+      root.scrollHeight||0
+    );
+    notify("streamlit:setFrameHeight",{height:Math.ceil(pageHeight)+2});
     return;
   }
   const scale=viewportWidth/1231;
@@ -1142,6 +1147,20 @@ $("line-minus").addEventListener("click",function(){state.line=Math.max(.5,state
 $("line-plus").addEventListener("click",function(){state.line=Math.min(150,state.line+.5);render()});
 $("line").addEventListener("change",function(){const value=Number(this.value);state.line=Number.isFinite(value)?Math.min(150,Math.max(.5,value)):state.line;render()});
 window.addEventListener("resize",resize);
+// Keep the iframe height in sync when live data or expanded panels change the
+// mobile dashboard height, so vertical swipes scroll the host page.
+const mobileCentre=$("bestbets-centre");
+if(window.ResizeObserver&&mobileCentre){
+  let mobileResizeFrame=0;
+  const mobileHeightObserver=new ResizeObserver(function(){
+    if(!shell.classList.contains("hz-mobile-centre")||mobileResizeFrame)return;
+    mobileResizeFrame=requestAnimationFrame(function(){
+      mobileResizeFrame=0;
+      resize();
+    });
+  });
+  mobileHeightObserver.observe(mobileCentre);
+}
 // In production a delayed Streamlit handshake can drop the first
 // setComponentValue. Recover on the current iframe rather than leaving
 // every panel stuck on "Wczytywanie..." forever. No page reload / resize.
