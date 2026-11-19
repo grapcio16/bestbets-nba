@@ -133,8 +133,8 @@
 .hzs-status{font-size:8.7px;letter-spacing:.25px;border-color:#08cfe9;background:rgba(3,35,58,.83);padding:1px 10px}
 .hzs-game.hzs-upcoming .hzs-status{border-color:#a153cf;color:#edd2ff}
 .hzs-featured{
-  height:118px;min-height:118px;grid-template-columns:minmax(0,1fr) 210px minmax(0,1fr);
-  gap:10px;padding:25px 22px 12px;border-radius:16px;
+  height:104px;min-height:104px;grid-template-columns:minmax(0,1fr) 188px minmax(0,1fr);
+  gap:9px;padding:22px 21px 10px;border-radius:15px;
   border:1px solid rgba(104,101,228,.8);
   background:radial-gradient(ellipse 40% 90% at 0% 100%,rgba(29,69,182,.3),transparent),
     radial-gradient(ellipse 46% 110% at 100% 40%,rgba(150,26,172,.32),transparent),
@@ -148,14 +148,14 @@
 .hzs-feature-ribbon::before,.hzs-feature-ribbon::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,#d1a457)}
 .hzs-feature-ribbon::after{transform:rotate(180deg)}
 .hzs-feature-ribbon span{font-size:14px;color:#f5c45e;letter-spacing:0}
-.hzs-featured .hzs-team{gap:12px}
-.hzs-featured .hzs-team-mark{width:52px;height:52px;flex-basis:52px;border-color:#648dcc;box-shadow:0 0 0 3px #235a9b44,0 0 18px rgba(25,125,242,.27)}
-.hzs-featured .hzs-team-mark img{width:50px;height:50px}
+.hzs-featured .hzs-team{gap:10px}
+.hzs-featured .hzs-team-mark{width:46px;height:46px;flex-basis:46px;border-color:#648dcc;box-shadow:0 0 0 3px #235a9b44,0 0 18px rgba(25,125,242,.27)}
+.hzs-featured .hzs-team-mark img{width:44px;height:44px}
 .hzs-featured .hzs-team-mark b{font-size:11px}
 .hzs-featured .hzs-team-info{gap:7px}
-.hzs-featured .hzs-team-info strong{font-size:23px;letter-spacing:.3px}
-.hzs-featured .hzs-team-info small,.hzs-featured .hzs-team-info small b{font-size:10.5px}
-.hzs-featured .hzs-score strong{font-size:34px;letter-spacing:-1px;white-space:nowrap;text-shadow:0 0 18px rgba(175,222,255,.17)}
+.hzs-featured .hzs-team-info strong{font-size:21px;letter-spacing:.3px}
+.hzs-featured .hzs-team-info small,.hzs-featured .hzs-team-info small b{font-size:10px}
+.hzs-featured .hzs-score strong{font-size:30px;letter-spacing:-1px;white-space:nowrap;text-shadow:0 0 18px rgba(175,222,255,.17)}
 .hzs-featured .hzs-status{font-size:10px;padding:2px 17px}
 .hzs-footnote{font-size:9px;border-top-color:rgba(77,107,153,.48)}
 @media(prefers-reduced-motion:reduce){.hzs-game,.hzs-filter,.hzs-date{transition:none}}
