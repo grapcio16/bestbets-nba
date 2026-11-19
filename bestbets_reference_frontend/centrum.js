@@ -548,8 +548,15 @@ function renderSimulationPreview(data){
  teams[1].textContent=g?g.home:"—";
 }
 function setText(id,v){const e=$(id);if(e)e.textContent=v}
+let lastHomeSignature=null;
 function renderHome(data,details){
  homeData=data;
+ // Streamlit sends the complete payload again for unrelated actions (login,
+ // catalog, Props, Premium). Preserve live-card DOM, desktop scroll position,
+ // and focus when the NBA snapshot itself has not changed.
+ const signature=JSON.stringify(data||null);
+ const snapshotChanged=signature!==lastHomeSignature;
+ lastHomeSignature=signature;
  if(data && !selectedDay){
    selectedDay=data.calendar_requested_day||data.calendar_today||
      (data.games?.[0]&&dayOfGame(data.games[0]))||
@@ -567,11 +574,17 @@ function renderHome(data,details){
    signal.textContent=data?(data.error?"● Problem":"● Dane NBA"):"● Ładowanie";
  }
  if(!data){
-  renderPlayers({players:[]});renderFreeLeaders(null);
+  if(snapshotChanged){renderPlayers({players:[]});renderFreeLeaders(null)}
   setText("bc-data-meta","Ładowanie potwierdzonych danych NBA / ESPN…");
   return;
  }
- renderTicker(data);renderGames(data);renderInjuryWatch(data);renderForm(data);renderPlayers(data);renderFreeLeaders(data);renderSimulationPreview(data);
+ if(snapshotChanged){
+  renderTicker(data);renderGames(data);renderInjuryWatch(data);
+  renderForm(data);renderPlayers(data);renderFreeLeaders(data);
+  renderSimulationPreview(data);
+ }
+ // Details are a separate, on-demand response: update the open modal even
+ // when the scoreboard has not changed.
  renderFreeLeaderDetails(details);
  const message=data.error
   ? "Aktualne dane chwilowo niedostępne: "+data.error

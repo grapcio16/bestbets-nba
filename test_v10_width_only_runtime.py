@@ -38,6 +38,10 @@ def smoke(browser, url, width, height, out):
     stage=frame.locator("#stage")
     expect(stage).to_be_visible(timeout=40000)
     expect(frame.locator("#player-name")).to_have_text("Wyszukaj zawodnika", timeout=8000)
+    # Streamlit exposes the iframe and its raw 1231px markup before the
+    # component script finishes the first width-only resize. Wait for that
+    # resize instead of measuring an intermediate, unscaled stage.
+    expect(stage).not_to_have_css("transform", "none", timeout=15000)
     rect=stage.bounding_box()
     fb=iframe.bounding_box()
     assert rect and fb, "Blank iframe or absent stage"

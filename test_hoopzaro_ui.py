@@ -53,13 +53,21 @@ def main() -> None:
             assert page.locator("#bestbets-centre").is_visible()
             assert page.locator("#props-heading").is_hidden()
             assert page.locator(".brand .wordmark").inner_text().startswith("HOOPZARO")
-            home_rect = page.locator(".bc-bottom").bounding_box()
-            assert home_rect and home_rect["width"] > 100
+            if width < 768:
+                # The compact iPhone layout intentionally replaces the
+                # desktop bottom tiles with a fixed mobile tab bar.
+                assert page.locator(".bc-bottom").is_hidden()
+                expect(page.locator("#hz-mobile-nav")).to_be_visible()
+            else:
+                home_rect = page.locator(".bc-bottom").bounding_box()
+                assert home_rect and home_rect["width"] > 100
             if width >= 1300:
                 assert home_rect["y"] + home_rect["height"] < height, (width, home_rect)
             if width == 1800:
                 page.screenshot(path=str(ROOT / "hoopzaro_centre_smoke.png"))
-            page.locator('.nav-btn[data-page="props"]').click()
+            props_tab = ('#hz-mobile-nav [data-page="props"]' if width < 768
+                         else '.nav-btn[data-page="props"]')
+            page.locator(props_tab).click()
             page.evaluate(
                 "payload => window.postMessage({type:'streamlit:render',args:{payload}},'*')",
                 {"player": EXAMPLE_PLAYER, "home": None, "brand": BRAND, "error": ""},
@@ -94,7 +102,9 @@ def main() -> None:
                           "role": "admin", "name": "Test Admin"}},
             )
             expect(page.locator("#hz-premium .hz-premium-text")).to_have_text("ADMIN")
-            page.locator("#hz-premium").click()
+            premium_tab = ('#hz-mobile-nav [data-page="simulations"]' if width < 768
+                           else '#hz-premium')
+            page.locator(premium_tab).click()
             expect(page.locator("#simulations-pane")).to_be_visible()
             assert not errors, errors
             page.close()
