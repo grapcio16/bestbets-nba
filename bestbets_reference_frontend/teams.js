@@ -43,14 +43,18 @@ const featured=["BOS","GSW","NYK","LAL","OKC","DEN"];
 const nf=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
 const fmt=n=>typeof n==="number"&&Number.isFinite(n)?n.toFixed(1).replace(".",","):"—";
 const observed=n=>typeof n==="number"&&Number.isFinite(n)?fmt(n):"Brak danych";
-function formL5(value){
- const history=String(value||"");
- if(!/^[WL]{1,5}$/.test(history))return "Brak danych";
- const wins=(history.match(/W/g)||[]).length;
- return `${wins}–${history.length-wins}`;
-}
 let api={},home=null,analytics=null,role="guest",conference="all",query="",page=0,selected="BOS",compare="",message="";
+const ratingPending=new Set();
 const entitled=()=>role==="premium"||role==="admin";
+const hasRatings=row=>["off","def","pace"].every(key=>typeof row?.[key]==="number"&&Number.isFinite(row[key]));
+const ratingValue=(value,row)=>typeof value==="number"&&Number.isFinite(value)?fmt(value):
+  row?.rating_attempted?"Brak danych":"Pobieranie…";
+function requestMissingRating(code){
+ if(!entitled()||!analytics?.teams||!byCode.has(code)||typeof api.requestAdvanced!=="function")return;
+ const row=analytics.teams[code];
+ if(hasRatings(row)||row?.rating_attempted||ratingPending.has(code))return;
+ ratingPending.add(code);api.requestAdvanced(code);
+}
 function favorites(){
  try{const raw=JSON.parse(localStorage.getItem(FAV_KEY)||"[]");
    return Array.isArray(raw)?[...new Set(raw.filter(code=>byCode.has(code)))].slice(0,2):[];
@@ -114,6 +118,7 @@ function openModal(code){
  if(!byCode.has(code))return;
  selected=code;render(home,analytics,role);updateDialog();
  $("hzt-modal-backdrop").hidden=false;
+ renderPremium();
  $("hzt-modal-close").focus({preventScroll:true});
 }
 function closeModal(restoreFocus=true){
@@ -142,8 +147,8 @@ function onDialogKeydown(event){
 }
 function metric(label,key,formatter=observed){
  const first=analytics?.teams?.[selected],second=compare?analytics?.teams?.[compare]:null;
- const a=formatter(first?.[key]),b=compare?formatter(second?.[key]):null;
- return `<div class="hzt-metric"><small>${label}</small><strong${a==="Brak danych"?' class="hzt-metric-empty"':""}>${a}</strong>${compare?`<em>${compare}: ${b}</em>`:""}</div>`;
+ const a=formatter(first?.[key],first),b=compare?formatter(second?.[key],second):null;
+ return `<div class="hzt-metric"><small>${label}</small><strong${a==="Brak danych"||a==="Pobieranie…"?' class="hzt-metric-empty"':""}>${a}</strong>${compare?`<em>${compare}: ${b}</em>`:""}</div>`;
 }
 function renderPremium(){
  const paid=entitled();$("hzt-premium-locked").hidden=paid;$("hzt-premium-unlocked").hidden=!paid;
@@ -157,22 +162,28 @@ function renderPremium(){
  compare=options.some(t=>t.code===compare)?compare:"";select.value=compare;
  if(!analytics){$("hzt-premium-metrics").textContent="Ładowanie zweryfikowanych wyników ESPN…";return}
  const first=analytics.teams?.[selected];
- const verifiedAdvanced=["off","def","pace"].every(key=>
-   typeof first?.[key]==="number"&&Number.isFinite(first[key]));
- const details=first?`L10: ${first.sample} mecz. · Dom ${observed(first.home)} / wyjazd ${observed(first.away)}`:
-   "Brak potwierdzonych wyników tej drużyny";
- $("hzt-analytics-source").textContent=analytics.error||
-   (verifiedAdvanced?`NBA Advanced · ${details}`:`ESPN · ${details}`);
- $("hzt-premium-intro").textContent=verifiedAdvanced?
-   "NBA Advanced + forma z rozegranych spotkań":
-   "Zweryfikowana forma · OFF/DEF/PACE tylko z NBA Stats";
- const additional=verifiedAdvanced?
-   [metric("OFF RATING","off"),metric("DEF RATING","def"),metric("PACE","pace")]:
-   [metric("DOM · PPG","home"),metric("WYJAZD · PPG","away"),metric("FORMA L5 (W–L)","last5",formL5)];
+ const official=hasRatings(first)&&first.rating_source==="NBA Stats — advanced";
+ const estimated=hasRatings(first)&&first.rating_estimated===true;
+ const details=first?`L10: ${first.sample} mecz.`:"Brak potwierdzonych wyników drużyny";
+ $("hzt-analytics-source").textContent=official?
+   `NBA Stats · oficjalne wskaźniki sezonu · ${details}`:estimated?
+   `ESPN · szacunek z ${first.rating_sample} boxscore · posiadania ≈ FGA + 0,44×FTA − OREB + TOV`:
+   analytics.error||`ESPN · ${details}`;
+ $("hzt-premium-intro").textContent=official?
+   "Oficjalne NBA Advanced + ostatnie mecze":estimated?
+   "OFF/DEF/PACE obliczone z rzeczywistych statystyk meczowych (szacunek)":
+   first?.rating_attempted?"Nie udało się pobrać kompletnych boxscore · spróbuj później":
+   "Pobieranie OFF/DEF/PACE z rozegranych spotkań…";
  $("hzt-premium-metrics").innerHTML=[metric("PTS / mecz L10","points"),
-  metric("Stracone L10","allowed"),...additional].join("");
+  metric("Stracone L10","allowed"),metric("OFF RATING","off",ratingValue),
+  metric("DEF RATING","def",ratingValue),metric("PACE","pace",ratingValue)].join("");
+ if(dialogOpen()){
+   requestMissingRating(selected);
+   if(compare)requestMissingRating(compare);
+ }
 }
 function render(nextHome,nextAnalytics,nextRole){
+ if(String(nextRole||"guest")!==role)ratingPending.clear();
  home=nextHome&&typeof nextHome==="object"?nextHome:null;
  analytics=nextAnalytics&&typeof nextAnalytics==="object"?nextAnalytics:null;
  role=String(nextRole||"guest");
@@ -228,5 +239,5 @@ function init(callbacks){
  global.addEventListener("hoopzaro:favorites-changed",()=>render(home,analytics,role));
  global.addEventListener("storage",e=>{if(e.key===FAV_KEY)render(home,analytics,role)});
 }
-global.HoopzaroTeams={init,render,closeModal};
+global.HoopzaroTeams={init,render,closeModal,resetRequests:()=>ratingPending.clear()};
 })(window);

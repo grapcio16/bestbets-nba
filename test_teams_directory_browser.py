@@ -75,8 +75,8 @@ class TeamsDirectoryBrowserTests(unittest.TestCase):
             self.assertEqual(page.locator("#hzt-modal-name").inner_text(), "Golden State Warriors")
             page.locator("#hzt-modal-backdrop").click(position={"x": 6, "y": 6})
             self.assertTrue(page.locator("#hzt-modal-backdrop").is_hidden())
-            # NBA Advanced often rejects cloud hosting. Historical ESPN data
-            # must fill the cards under honestly relabeled statistics.
+            # NBA Advanced can reject cloud hosting. The three requested
+            # ratings remain visible and load from finished-game boxscores.
             fallback_payload = {**payload, "auth": {"role": "premium"},
                 "premium_team_analytics": {"teams": {"BOS": {"sample": 10,
                     "points": 110.4, "allowed": 99.3, "home": 121.6,
@@ -89,22 +89,40 @@ class TeamsDirectoryBrowserTests(unittest.TestCase):
             page.locator('[data-hzt-team="BOS"]').click()
             metrics = page.locator("#hzt-premium-metrics")
             self.assertEqual(page.locator(".hzt-metric").count(), 5)
-            self.assertIn("DOM · PPG", metrics.inner_text())
-            self.assertIn("WYJAZD · PPG", metrics.inner_text())
-            self.assertIn("FORMA L5", metrics.inner_text())
-            self.assertIn("121,6", metrics.inner_text())
-            self.assertIn("112,1", metrics.inner_text())
-            self.assertIn("3–2", metrics.inner_text())
-            self.assertNotIn("Brak danych", metrics.inner_text())
+            self.assertIn("OFF RATING", metrics.inner_text())
+            self.assertIn("DEF RATING", metrics.inner_text())
+            self.assertIn("PACE", metrics.inner_text())
+            self.assertNotIn("FORMA L5", metrics.inner_text())
+            self.assertIn("Pobieranie", metrics.inner_text())
+            estimated_payload = {**payload, "auth": {"role": "premium"},
+                "premium_team_analytics": {"teams": {"BOS": {"sample": 10,
+                    "points": 110.4, "allowed": 99.3,
+                    "off": 116.9, "def": 105.1, "pace": 99.7,
+                    "rating_sample": 10, "rating_estimated": True,
+                    "rating_attempted": True,
+                    "rating_source": "ESPN — szacunek z boxscore"},
+                    "GSW": {"sample": 10, "points": 116.5, "allowed": 111.0,
+                    "off": 115.2, "def": 110.3, "pace": 101.4,
+                    "rating_sample": 10, "rating_estimated": True,
+                    "rating_attempted": True,
+                    "rating_source": "ESPN — szacunek z boxscore"}}}}
+            page.evaluate("payload => window.postMessage({type:'streamlit:render',args:{payload}}, '*')",
+                          estimated_payload)
+            self.assertIn("116,9", metrics.inner_text())
+            self.assertIn("105,1", metrics.inner_text())
+            self.assertIn("99,7", metrics.inner_text())
+            self.assertIn("szacunek", page.locator("#hzt-analytics-source").inner_text())
             page.locator("#hzt-compare").select_option("GSW")
-            self.assertIn("120,1", metrics.inner_text())
+            self.assertIn("115,2", metrics.inner_text())
             page.locator("#hzt-modal-close").click()
             premium_payload = {**payload, "auth": {"role": "premium"},
                 "premium_team_analytics": {"teams": {"BOS": {"sample": 10, "points": 113.3,
                     "allowed": 107.4, "off": 115.2, "def": 108.9, "pace": 100.3,
+                    "rating_source": "NBA Stats — advanced",
                     "home": 116.5, "away": 109.2}, "GSW": {"sample": 10,
                     "points": 119.8, "allowed": 110.1, "off": 120.9,
-                    "def": 111.5, "pace": 102.5, "home": 123.1, "away": 116.6}}}}
+                    "def": 111.5, "pace": 102.5, "rating_source": "NBA Stats — advanced",
+                    "home": 123.1, "away": 116.6}}}}
             page.evaluate("payload => window.postMessage({type:'streamlit:render',args:{payload}}, '*')",
                           premium_payload)
             self.assertTrue(page.locator("#hzt-modal-backdrop").is_hidden())

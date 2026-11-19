@@ -189,6 +189,36 @@ def _cached_premium_team_analytics() -> dict:
     return report
 
 
+@st.cache_data(ttl=30*60, max_entries=30, show_spinner=False)
+def _cached_premium_team_boxscore_rating(team_code: str) -> dict | None:
+    """Fetch final ESPN team boxscores only for a requested Premium team.
+
+    This path is used when the official NBA Stats Advanced feed is unavailable.
+    It uses observed possessions inputs, not points-per-game as a substitute.
+    """
+    from bestbets_simulations_canvas import _history_for_simulations
+    from premium_team_stats import estimate_team_ratings_from_boxscores
+    from sources import memoized_json
+
+    # ESPN summary event IDs are already provided by the season scoreboard.
+    from espn_player_data import ESPN_SUMMARY
+
+    games, _ = _history_for_simulations(SEASON)
+
+    def fetch(game: dict) -> dict:
+        event = str(game["game_id"])
+        payload, meta = memoized_json(
+            "espn-final-summary-" + event, ESPN_SUMMARY,
+            params={"event": event}, ttl_seconds=100*86400,
+            request_timeout=6,
+        )
+        if meta.get("stale"):
+            raise RuntimeError("Nieaktualny boxscore ESPN")
+        return payload
+
+    return estimate_team_ratings_from_boxscores(team_code, games, fetch)
+
+
 
 def _research(query: str) -> dict:
     """Run the existing strict athlete resolver and verified season analysis."""
@@ -364,6 +394,7 @@ def main() -> None:
         st.session_state.pop("bb10_premium_player_averages", None)
         st.session_state.pop("bb10_premium_team_analytics", None)
         st.session_state.pop("bb10_team_analytics_attempt_at", None)
+        st.session_state.pop("bb10_team_rating_attempts", None)
         st.session_state.pop("bb10_player_averages_attempt_at", None)
         st.session_state.pop("bb10_admin_report", None)
         st.session_state.pop("bb10_admin_report_at", None)
@@ -544,6 +575,37 @@ def main() -> None:
             result = {"teams": {}, "source": "ESPN / NBA Stats", "partial": True,
                       "error": "Zaawansowane statystyki drużyn są chwilowo niedostępne."}
         st.session_state["bb10_premium_team_analytics"] = result
+        st.rerun()
+        return
+    if event.get("type") == "premium_team_detail":
+        # Individual boxscore-based ratings only after server-side entitlement.
+        if not premium_entitled():
+            return
+        team_code = _plain(event.get("team")).upper()
+        if team_code not in TEAM_FULL:
+            return
+        timestamps = st.session_state.setdefault("bb10_team_rating_attempts", {})
+        now = time.monotonic()
+        if now - timestamps.get(team_code, 0.0) < 20:
+            return
+        timestamps[team_code] = now
+        current = st.session_state.get("bb10_premium_team_analytics")
+        if not isinstance(current, dict):
+            current = _cached_premium_team_analytics()
+        existing = (current.get("teams") or {}).get(team_code) or {}
+        if existing.get("rating_attempted") or all(
+                isinstance(existing.get(key), (int, float)) for key in ("off", "def", "pace")):
+            return
+        rating = None
+        try:
+            rating = _cached_premium_team_boxscore_rating(team_code)
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Team boxscore ratings unavailable (%s): %s", team_code, type(exc).__name__)
+        teams = dict(current.get("teams") or {})
+        teams[team_code] = {**existing, **(rating or {}), "rating_attempted": True}
+        st.session_state["bb10_premium_team_analytics"] = {**current, "teams": teams}
         st.rerun()
         return
     if event.get("type") in ("premium_sim_game", "premium_sim_players"):
