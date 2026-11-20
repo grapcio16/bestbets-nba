@@ -27,7 +27,8 @@ def _valid_float(value, maximum):
         return None
 
 
-def build_player_forecasts(upcoming, completed, now, *, fetch_logs=None):
+def build_player_forecasts(upcoming, completed, now, *, fetch_logs=None,
+                           shadow_v76=False):
     """Reproduce the ESPN-only V7.4 player simulation, without changing it.
 
     The public UI may additionally have NBA Advanced data cached. This
@@ -40,6 +41,9 @@ def build_player_forecasts(upcoming, completed, now, *, fetch_logs=None):
     from simulation_engine import (completed_team_scores, eligible_roster,
                                    matchup_means, simulate_game)
     from tracker_pregame_availability import near_tipoff
+    from simulation_shadow_v76 import (
+        SHADOW_PLAYER_MODEL_ID, shadow_roster_minutes,
+    )
 
     clock = pd.to_datetime(now, utc=True, errors="coerce")
     if pd.isna(clock):
@@ -89,35 +93,54 @@ def build_player_forecasts(upcoming, completed, now, *, fetch_logs=None):
             for row in logs.to_dict("records"):
                 key = (str(row["TEAM_ABBREVIATION"]), norm_name(str(row["PLAYER_NAME"])))
                 identities.setdefault(key, set()).add(str(row.get("PLAYER_ID") or ""))
-            selected = []
-            for player in projections.to_dict("records"):
-                team = str(player.get("Drużyna") or "")
-                name = str(player.get("Zawodnik") or "")
-                ids = identities.get((team, norm_name(name)), set())
-                if len(ids) != 1:
-                    continue
-                athlete_id = next(iter(ids))
-                if not athlete_id.isdigit() or len(athlete_id) > 20:
-                    continue
-                sample = int(player.get("Próba występów") or 0)
-                predicted = {"pts_pred": _valid_float(player.get("PTS"), 80),
-                             "reb_pred": _valid_float(player.get("REB"), 35),
-                             "ast_pred": _valid_float(player.get("AST"), 30),
-                             "fg3m_pred": _valid_float(player.get("3PM"), 15),
-                             "minutes_pred": _valid_float(player.get("Minuty"), 50)}
-                if sample < 3 or any(v is None for v in predicted.values()):
-                    continue
-                selected.append({
-                    "game_id": game["game_id"], "start_utc": game["start_utc"],
-                    "model_id": MODEL_ID, "player_id": athlete_id,
-                    "player_name": name[:100], "team": team,
-                    "sample_games": sample,
-                    "source": "ESPN · 5,000 symulacji · V7.4 (bez NBA Advanced)",
-                    **predicted,
-                })
+            def selected_rows(simulated, model_id, source):
+                selected = []
+                for player in simulated.to_dict("records"):
+                    team = str(player.get("Drużyna") or "")
+                    name = str(player.get("Zawodnik") or "")
+                    ids = identities.get((team, norm_name(name)), set())
+                    if len(ids) != 1:
+                        continue
+                    athlete_id = next(iter(ids))
+                    if not athlete_id.isdigit() or len(athlete_id) > 20:
+                        continue
+                    sample = int(player.get("Próba występów") or 0)
+                    predicted = {"pts_pred": _valid_float(player.get("PTS"), 80),
+                                 "reb_pred": _valid_float(player.get("REB"), 35),
+                                 "ast_pred": _valid_float(player.get("AST"), 30),
+                                 "fg3m_pred": _valid_float(player.get("3PM"), 15),
+                                 "minutes_pred": _valid_float(player.get("Minuty"), 50)}
+                    if sample < 3 or any(v is None for v in predicted.values()):
+                        continue
+                    selected.append({
+                        "game_id": game["game_id"], "start_utc": game["start_utc"],
+                        "model_id": model_id, "player_id": athlete_id,
+                        "player_name": name[:100], "team": team,
+                        "sample_games": sample, "source": source,
+                        **predicted,
+                    })
+                return selected
+
+            selected = selected_rows(
+                projections, MODEL_ID,
+                "ESPN · 5,000 symulacji · V7.4 (bez NBA Advanced)")
             if selected:
                 covered += 1
                 rows.extend(selected)
+                if shadow_v76:
+                    # Use the exact same identified athletes and ESPN logs.
+                    # Shadow projections cannot replace or suppress V7.4.
+                    try:
+                        variants = [shadow_roster_minutes(
+                            roster, logs, captured_at=clock,
+                            tipoff=game["start_utc"]) for roster in rosters]
+                        _, alternative, _, _ = simulate_game(
+                            game, mean, variants[0], variants[1])
+                        rows.extend(selected_rows(
+                            alternative, SHADOW_PLAYER_MODEL_ID,
+                            "ESPN · 5,000 symulacji · V7.6 shadow (trend minut)"))
+                    except (ValueError, KeyError, TypeError, RuntimeError, OSError):
+                        pass
         except (ValueError, KeyError, TypeError, RuntimeError, OSError,
                 ConnectionError, TimeoutError):
             # Missing ESPN evidence must never create synthetic player rows.

@@ -235,6 +235,8 @@ def remote_store_players(url, season, forecasts, captured_at=None):
     """Freeze one player/model/game prediction, strictly before tipoff."""
     from math import isfinite
     from player_simulation_tracker import MODEL_ID
+    from simulation_shadow_v76 import SHADOW_PLAYER_MODEL_ID
+    allowed_models = {MODEL_ID, SHADOW_PLAYER_MODEL_ID}
 
     stamp = utc_timestamp(captured_at if captured_at is not None
                           else datetime.now(timezone.utc))
@@ -244,13 +246,14 @@ def remote_store_players(url, season, forecasts, captured_at=None):
         for row in forecasts:
             try:
                 gid, pid = str(row["game_id"]), str(row["player_id"])
+                model_id = str(row["model_id"])
                 team = str(row["team"])
                 name = str(row["player_name"]).strip()
                 start = utc_timestamp(row["start_utc"])
                 sample = int(row["sample_games"])
                 vals = [float(row[key]) for key in (
                     "pts_pred", "reb_pred", "ast_pred", "fg3m_pred", "minutes_pred")]
-                if (row.get("model_id") != MODEL_ID or not gid.isdecimal()
+                if (model_id not in allowed_models or not gid.isdecimal()
                     or not pid.isdecimal() or max(len(gid), len(pid)) > 20
                     or not team or len(team) > 4 or not name or len(name) > 100
                     or start <= stamp or sample < 3 or sample > 100
@@ -264,7 +267,7 @@ def remote_store_players(url, season, forecasts, captured_at=None):
                      minutes_pred,sample_games,source)
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     ON CONFLICT (game_id,model_id,player_id) DO NOTHING
-                """, (gid, MODEL_ID, pid, str(season), stamp.to_pydatetime(),
+                """, (gid, model_id, pid, str(season), stamp.to_pydatetime(),
                       start.to_pydatetime(), team, name, *vals, sample,
                       str(row.get("source") or "ESPN")[:160]))
                 saved += cur.rowcount

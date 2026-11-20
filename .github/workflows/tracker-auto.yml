@@ -21,6 +21,8 @@ jobs:
     timeout-minutes: 10
     env:
       TRACKER_DATABASE_URL: ${{ secrets.TRACKER_DATABASE_URL }}
+      # Archive a separate V7.6 research model; public simulations stay V7.2/V7.4/V7.5.
+      HOOPZARO_V76_SHADOW_ENABLED: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
