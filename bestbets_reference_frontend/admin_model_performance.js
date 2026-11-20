@@ -54,7 +54,9 @@
          '</td><td>'+percentage(m.within_pct)+'</td><td>±'+number(m.tolerance)+'</td></tr>';
      }).join("");
      const title=model.id==="auto_player_form_v74"
-       ?"V7.4 · Symulacje zawodników (ESPN)":model.id;
+       ?"V7.4 · Symulacje zawodników (ESPN)"
+       :model.id==="auto_player_minutes_v76"
+       ?"V7.6 · Test trendu minut (ESPN)":model.id;
      return '<div class="hz-admin-player-model"><h3>'+escapeHtml(title)+
        '</h3><p>Prognozy zawodników: <b>'+number(model.saved)+
        '</b> · ocenione występy: <b>'+number(model.evaluated_players)+

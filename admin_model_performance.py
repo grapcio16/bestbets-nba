@@ -14,6 +14,7 @@ MODEL_LABELS = {
     "auto_legacy_v72": "V7.2 · Model bazowy",
     "auto_research_form_v74": "V7.4 · Forma drużyn",
     "auto_context_full_v75": "V7.5 · Pełny kontekst",
+    "auto_shadow_home_v76": "V7.6 · Test przewagi parkietu",
 }
 
 # These IDs represent successive versions of the SAME V7.5 hypothesis.

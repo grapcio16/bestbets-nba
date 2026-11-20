@@ -10,6 +10,7 @@ They NEVER overwrite forecasts captured in the interactive simulations page.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import os
 
 import pandas as pd
 
@@ -18,6 +19,7 @@ from simulation_context_v75 import simulation_inputs_v75
 from simulation_engine import (
     completed_team_scores, legacy_matchup_means, matchup_means, simulate_game,
 )
+from simulation_shadow_v76 import SHADOW_TEAM_MODEL_ID, shadow_home_means
 from tracker_pregame_availability import (
     MIN_MINUTE_COVERAGE, PregameAvailabilityFeed, near_tipoff,
 )
@@ -59,7 +61,8 @@ def upcoming_events(schedule, now, horizon_hours=36, min_lead_minutes=15):
     return df.sort_values(["start_utc", "game_id"]).reset_index(drop=True)
 
 
-def build_automatic_forecasts(upcoming, completed, now, *, availability_provider=None):
+def build_automatic_forecasts(upcoming, completed, now, *, availability_provider=None,
+                              include_shadow_v76=False):
     """Forecast only on verified pregame evidence, one V7.5 per match.
 
     V7.2 and V7.4 retain their independent snapshots. V7.5 is frozen near
@@ -131,13 +134,28 @@ def build_automatic_forecasts(upcoming, completed, now, *, availability_provider
             outcome["model_id"] = UNIFIED_V75_MODEL_ID
             outcome["warning"] = provenance
             stored.append(outcome)
+            if include_shadow_v76:
+                # Independent model ID and identical pregame evidence. Never
+                # overwrite the V7.5 snapshot or show shadow results publicly.
+                try:
+                    alternative, _, _, _ = simulate_game(
+                        g, shadow_home_means(enriched["means"]),
+                        score_noise=enriched["score_noise"])
+                    alternative["model_id"] = SHADOW_TEAM_MODEL_ID
+                    alternative["warning"] = (
+                        "V7.6 shadow: zmniejszona stała korekta parkietu; "
+                        "pozostałe dane identyczne jak w V7.5; niekalibrowane")
+                    stored.append(alternative)
+                except (KeyError, TypeError, ValueError, RuntimeError, OSError):
+                    skipped += 1
         except (KeyError, TypeError, ValueError, RuntimeError, OSError):
             skipped += 1
     return stored, skipped
 
 
 def run_cycle(schedule, history, now, save_forecasts, settle_results,
-              season=None, horizon_hours=36, availability_provider=None):
+              season=None, horizon_hours=36, availability_provider=None,
+              include_shadow_v76=False):
     """One idempotent worker cycle; persistence is dependency-injected."""
     stamp = pd.to_datetime(now, utc=True, errors="coerce")
     if pd.isna(stamp):
@@ -149,7 +167,8 @@ def run_cycle(schedule, history, now, save_forecasts, settle_results,
     upcoming = upcoming_events(schedule, stamp, horizon_hours=horizon_hours)
     candidates, skipped = build_automatic_forecasts(
         upcoming, completed, stamp,
-        availability_provider=availability_provider)
+        availability_provider=availability_provider,
+        include_shadow_v76=include_shadow_v76)
     saved_result = (save_forecasts(candidates, season)
                     if candidates else {"saved": 0, "duplicates_or_rejected": 0})
     return {
@@ -167,7 +186,8 @@ def run_cycle(schedule, history, now, save_forecasts, settle_results,
 
 
 def run_player_cycle(schedule, history, now, save_player_forecasts,
-                     settle_player_results, season=None, fetch_logs=None):
+                     settle_player_results, season=None, fetch_logs=None,
+                     include_shadow_v76=False):
     """Independent prospective evaluation of the existing player projections.
 
     Player tracking cannot overwrite or alter team-score forecasts. Missing
@@ -183,6 +203,8 @@ def run_player_cycle(schedule, history, now, save_player_forecasts,
     matched = int(settle_player_results(completed))
     upcoming = upcoming_events(schedule, stamp)
     kwargs = {"fetch_logs": fetch_logs} if fetch_logs is not None else {}
+    if include_shadow_v76:
+        kwargs["shadow_v76"] = True
     forecasts, coverage = build_player_forecasts(upcoming, completed, stamp, **kwargs)
     stored = (save_player_forecasts(forecasts, season) if forecasts
               else {"saved": 0, "duplicates_or_rejected": 0})
@@ -211,6 +233,8 @@ def run_scheduled_job():
     from sources import espn_schedule
     now = pd.Timestamp.now(tz="UTC")
     season = active_nba_season(now)
+    shadow_enabled = os.environ.get("HOOPZARO_V76_SHADOW_ENABLED", "").lower() in (
+        "1", "true", "yes")
     # ESPN data is intentionally refreshed: do not settle against stale cached
     # finals or archive future predictions from unavailable schedules.
     finals, notes = historical_espn_results(
@@ -237,6 +261,7 @@ def run_scheduled_job():
         settle_results=lambda completed: settle(completed, config=cfg),
         season=season,
         availability_provider=PregameAvailabilityFeed(),
+        include_shadow_v76=shadow_enabled,
     )
     try:
         result["player_tracking"] = run_player_cycle(
@@ -246,6 +271,7 @@ def run_scheduled_job():
             settle_player_results=lambda completed: settle_players(
                 completed, config=cfg),
             season=season,
+            include_shadow_v76=shadow_enabled,
         )
     except (ValueError, TypeError, KeyError, RuntimeError, OSError,
             ConnectionError, TimeoutError) as exc:
