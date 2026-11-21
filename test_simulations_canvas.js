@@ -163,6 +163,15 @@ elements["simulations-pane"].on_click({target:{closest(selector){
 }}});
 assert.equal(elements["hzm-match-list"].hidden,true);
 assert.equal(elements["hzm-match-picker"].attributes["aria-expanded"],"false");
+elements["simulations-pane"].on_click({target:{closest(selector){
+  return selector==="#hzm-match-picker"?{}:null;
+}}});
+assert.equal(elements["hzm-match-list"].hidden,false);
+elements["hzm-matches"].on_click({stopPropagation(){},target:{closest(selector){
+  return selector==="[data-hzm-game]"?{dataset:{hzmGame:game.id}}:null;
+}}});
+assert.equal(elements["hzm-match-list"].hidden,true,
+  "Direct fixture click must close the actual popup without relying on bubbling");
 app.render(home,{entitled:false,game:fakeGame,players:fakePlayers});
 assert.equal(elements["hzm-lab-range"].textContent,"Przedział 80%: —");
 assert.doesNotMatch(elements["hzm-player-rows"].innerHTML,/Test Athlete/);
