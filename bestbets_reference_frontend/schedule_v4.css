@@ -307,18 +307,123 @@
 #schedule-pane.hzv4 .hzv-quarter-row.hzv-quarter-head{color:#78c9e7;font-size:9px}
 #schedule-pane.hzv4 .hzv-quarter-row span:not(:first-child){text-align:center;font-variant-numeric:tabular-nums}
 #schedule-pane.hzv4 .hzv-gc-subheading{margin:12px 0 8px;font-size:14px;font-weight:950;color:#effaff}
-#schedule-pane.hzv4 .hzv-gc-stats{
- border:1px solid #366b95;border-radius:9px;padding:5px 9px;background:#091e36
+/* Premium visual language for FREE ESPN Team Comparison. */
+#schedule-pane.hzv4 .hzv-compare-panel{
+ min-width:0;margin-top:12px;padding:11px 12px 9px;
+ border:1px solid rgba(26,190,228,.72);border-radius:14px;
+ background:radial-gradient(ellipse at 88% 12%,rgba(132,50,208,.16),transparent 42%),
+            linear-gradient(147deg,#09223b,#081a34 74%,#101b40);
+ box-shadow:0 0 15px rgba(14,186,226,.14),inset 0 1px 0 rgba(150,229,255,.12)
 }
-#schedule-pane.hzv4 .hzv-gc-stat-row{
- display:grid;grid-template-columns:1fr minmax(92px,1.5fr) 1fr;gap:4px;
- min-height:25px;align-items:center;border-bottom:1px solid rgba(99,149,199,.22);
- font-size:10px
+#schedule-pane.hzv4 .hzv-compare-title{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ margin-bottom:9px
 }
-#schedule-pane.hzv4 .hzv-gc-stat-row:last-child{border:0}
-#schedule-pane.hzv4 .hzv-gc-stat-row strong:first-child{text-align:left}
-#schedule-pane.hzv4 .hzv-gc-stat-row strong:last-child{text-align:right}
-#schedule-pane.hzv4 .hzv-gc-stat-row span{text-align:center;color:#b3cfe8}
+#schedule-pane.hzv4 .hzv-compare-title h3{
+ margin:0;font-size:12px;font-weight:950;letter-spacing:.3px;color:#f0fdff
+}
+#schedule-pane.hzv4 .hzv-compare-title>span{
+ color:#91bbd6;font-size:8px;letter-spacing:.6px;font-weight:850;white-space:nowrap
+}
+#schedule-pane.hzv4 .hzv-compare-teams{
+ display:grid;grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr);
+ align-items:center;gap:3px;min-width:0;
+ padding:5px 7px 8px;margin-bottom:8px;
+ border-bottom:1px solid rgba(86,143,206,.35);
+ background:linear-gradient(90deg,rgba(7,224,240,.055),rgba(134,54,210,.085));
+ border-radius:9px 9px 0 0
+}
+#schedule-pane.hzv4 .hzv-compare-teams>b{
+ font-size:9px;text-align:center;font-weight:950;letter-spacing:1px;color:#88b3d1
+}
+#schedule-pane.hzv4 .hzv-compare-team{
+ min-width:0;display:flex;align-items:center;gap:7px
+}
+#schedule-pane.hzv4 .hzv-compare-team.hzv-compare-home{flex-direction:row-reverse;text-align:right}
+#schedule-pane.hzv4 .hzv-compare-team .hzs-team-mark{
+ width:34px;height:34px;flex:0 0 34px;
+ display:grid;place-items:center;border-radius:50%;
+ background:#09172f;border:1px solid #08eaf1;
+ box-shadow:0 0 8px rgba(20,226,239,.22)
+}
+#schedule-pane.hzv4 .hzv-compare-home .hzs-team-mark{
+ border-color:#c166f7;box-shadow:0 0 8px rgba(193,88,244,.25)
+}
+#schedule-pane.hzv4 .hzv-compare-team .hzs-team-mark img{
+ width:30px;height:30px;object-fit:contain
+}
+#schedule-pane.hzv4 .hzv-compare-team .hzs-team-mark b{
+ font-size:11px;color:#defcff
+}
+#schedule-pane.hzv4 .hzv-compare-team>span:last-child{
+ display:flex;flex-direction:column;gap:2px;min-width:0
+}
+#schedule-pane.hzv4 .hzv-compare-team strong{
+ font-size:12px;font-weight:950;color:#eafdff;line-height:1.1
+}
+#schedule-pane.hzv4 .hzv-compare-team small{
+ display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ font-size:9px;color:#8fb8d0;line-height:1.2
+}
+#schedule-pane.hzv4 .hzv-compare-stats{display:flex;flex-direction:column;gap:0}
+#schedule-pane.hzv4 .hzv-compare-row{
+ min-width:0;padding:3px 2px 5px;
+ border-bottom:1px solid rgba(76,121,159,.24)
+}
+#schedule-pane.hzv4 .hzv-compare-row:last-child{border-bottom:0}
+#schedule-pane.hzv4 .hzv-compare-values{
+ display:grid;grid-template-columns:minmax(42px,.63fr) minmax(78px,2fr) minmax(42px,.63fr);
+ gap:4px;align-items:center;min-width:0;
+ font-size:10px;color:#bcd6ea;text-align:center
+}
+#schedule-pane.hzv4 .hzv-compare-values>strong{
+ font-size:11px;font-weight:900;color:#f2f9ff;font-variant-numeric:tabular-nums
+}
+#schedule-pane.hzv4 .hzv-compare-values>strong:first-child{text-align:left}
+#schedule-pane.hzv4 .hzv-compare-values>strong:last-child{text-align:right}
+#schedule-pane.hzv4 .hzv-compare-row[data-hzv-advantage="away"] .hzv-compare-values>strong:first-child{
+ color:#6cffff;text-shadow:0 0 7px rgba(18,221,247,.4)
+}
+#schedule-pane.hzv4 .hzv-compare-row[data-hzv-advantage="home"] .hzv-compare-values>strong:last-child{
+ color:#e4a7ff;text-shadow:0 0 7px rgba(194,89,239,.43)
+}
+#schedule-pane.hzv4 .hzv-compare-bars{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:6px;
+ align-items:center;height:7px;margin-top:4px
+}
+#schedule-pane.hzv4 .hzv-compare-track{
+ display:flex;align-items:center;height:5px;min-width:0;width:100%;
+ background:rgba(56,94,135,.29);border-radius:9px;overflow:hidden
+}
+#schedule-pane.hzv4 .hzv-compare-track-away{justify-content:flex-end}
+#schedule-pane.hzv4 .hzv-compare-track-home{justify-content:flex-start}
+#schedule-pane.hzv4 .hzv-compare-fill{
+ display:block;height:100%;flex:0 0 auto;max-width:100%;border-radius:9px;
+ box-shadow:0 0 7px currentColor
+}
+#schedule-pane.hzv4 .hzv-compare-fill-away{
+ background:linear-gradient(90deg,#0876ae,#0ee8ef);color:#0ee8ef
+}
+#schedule-pane.hzv4 .hzv-compare-fill-home{
+ background:linear-gradient(90deg,#d76dfa,#7140cd);color:#af66eb
+}
+#schedule-pane.hzv4 .hzv-compare-legend{
+ display:flex;align-items:center;justify-content:space-between;gap:5px;
+ padding-top:8px;margin-top:5px;border-top:1px solid rgba(77,128,187,.23);
+ color:#b8d4e7
+}
+#schedule-pane.hzv4 .hzv-compare-legend span{
+ display:inline-flex;align-items:center;gap:5px;font-size:9px;
+ font-weight:850;white-space:nowrap
+}
+#schedule-pane.hzv4 .hzv-compare-legend i{
+ width:7px;height:7px;display:inline-block;border-radius:50%;flex:0 0 7px
+}
+#schedule-pane.hzv4 .hzv-dot-away{background:#17e7f1;box-shadow:0 0 6px #08d7e9}
+#schedule-pane.hzv4 .hzv-dot-home{background:#bb62ed;box-shadow:0 0 6px #ab50e5}
+#schedule-pane.hzv4 .hzv-compare-legend small{
+ min-width:0;text-align:center;color:#81a9c7;font-size:8px;line-height:1.2
+}
 #schedule-pane.hzv4 .hzv-gc-right{display:flex;flex-direction:column;gap:10px;min-width:0}
 #schedule-pane.hzv4 .hzv-xfactor-title{
  margin:0 0 12px;padding-bottom:9px;border-bottom:1px solid #235274;

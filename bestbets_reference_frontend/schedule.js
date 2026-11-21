@@ -276,6 +276,38 @@ function historyMarkup(data,game){
   '<div class="hzv-history-row"><span>'+esc(shortDate(g.day||localDay(g.start)))+'</span><span>'+esc(g.away)+' / '+esc(g.home)+'</span><strong>'+g.away_score+' : '+g.home_score+'</strong></div>'
  ).join("")+'</div>';
 }
+/* Verified ESPN data only. For turnovers and fouls fewer is favorable. */
+function teamComparisonMarkup(metrics,data,away,home,game){
+ const team=(code,side)=>'<div class="hzv-compare-team hzv-compare-'+side+'">'+
+  teamLogo(data,code,game,side)+'<span><strong>'+esc(code)+'</strong><small>'+esc(codeLabel(data,code))+'</small></span></div>';
+ const rows=metrics.map(item=>{
+  const label=String(item?.label??"").trim(),rawA=String(item?.away??"").trim(),rawH=String(item?.home??"").trim();
+  if(!label||!rawA||!rawH)return "";
+  const valid=/^\d+(?:[.,]\d+)?%?$/.test(rawA)&&/^\d+(?:[.,]\d+)?%?$/.test(rawH);
+  const a=valid?Number(rawA.replace("%","").replace(",",".")):NaN;
+  const h=valid?Number(rawH.replace("%","").replace(",",".")):NaN;
+  const good=Number.isFinite(a)&&Number.isFinite(h)&&a>=0&&h>=0;
+  const percent=label.includes("%")||rawA.endsWith("%")||rawH.endsWith("%");
+  const lowerBetter=/^(straty|faule)$/i.test(label);
+  const advantage=good&&a!==h?(lowerBetter?(a<h?"away":"home"):(a>h?"away":"home")):"tie";
+  const max=percent?100:Math.max(a||0,h||0,1);
+  const width=v=>good?Math.round(10*Math.min(100,Math.max(0,100*v/max)))/10:0;
+  return '<div class="hzv-compare-row" data-hzv-metric="'+esc(label)+'" data-hzv-advantage="'+advantage+'">'+
+   '<div class="hzv-compare-values"><strong'+(advantage==="away"?' class="is-leading"':'')+'>'+esc(rawA)+'</strong>'+
+   '<span>'+esc(label)+'</span><strong'+(advantage==="home"?' class="is-leading"':'')+'>'+esc(rawH)+'</strong></div>'+
+   '<div class="hzv-compare-bars" aria-label="'+esc(away+" "+rawA+", "+home+" "+rawH)+'">'+
+    '<span class="hzv-compare-track hzv-compare-track-away">'+(good?'<i class="hzv-compare-fill hzv-compare-fill-away" style="width:'+width(a)+'%"></i>':'')+'</span>'+
+    '<span class="hzv-compare-track hzv-compare-track-home">'+(good?'<i class="hzv-compare-fill hzv-compare-fill-home" style="width:'+width(h)+'%"></i>':'')+'</span>'+
+   '</div></div>';
+ }).filter(Boolean).join("");
+ return '<section class="hzv-compare-panel" aria-label="Porównanie drużyn NBA">'+
+ '<div class="hzv-compare-title"><h3>▥ STATYSTYKI DRUŻYN</h3><span>ESPN · BOX SCORE</span></div>'+
+ '<div class="hzv-compare-teams">'+team(away,"away")+'<b>VS</b>'+team(home,"home")+'</div>'+
+ '<div class="hzv-compare-stats">'+rows+'</div>'+
+ '<div class="hzv-compare-legend"><span><i class="hzv-dot-away"></i>'+esc(away)+'</span>'+
+ '<small>% do 100 · pozostałe: skala wiersza</small>'+
+ '<span><i class="hzv-dot-home"></i>'+esc(home)+'</span></div></section>';
+}
 function detailsMarkup(data,game,packet){
  const away=String(game.away||""),home=String(game.home||"");
  const statsAway=verified(data,away),statsHome=verified(data,home);
@@ -307,10 +339,7 @@ function detailsMarkup(data,game,packet){
  (quarters.length?'<div class="hzv-quarter-table"><h3>Przebieg meczu · kwarty</h3><div style="--quarter-count:'+Math.min(quarters.length+1,9)+'" class="hzv-quarter-row hzv-quarter-head"><span>Drużyna</span>'+quarters.map(q=>'<span>'+esc(q.period)+'</span>').join("")+'<span>SUMA</span></div>'+
  ['away','home'].map(side=>'<div style="--quarter-count:'+Math.min(quarters.length+1,9)+'" class="hzv-quarter-row"><strong>'+esc(game[side])+'</strong>'+quarters.map(q=>'<span>'+esc(q[side])+'</span>').join("")+
  '<span>'+quarters.reduce((sum,q)=>sum+q[side],0)+'</span></div>').join("")+'</div>':'')+
- '<h3 class="hzv-gc-subheading">▥ Statystyki drużyn</h3>'+
- (metrics.length?'<div class="hzv-gc-stats">'+metrics.map(q=>
- '<div class="hzv-gc-stat-row"><strong>'+esc(q.away)+'</strong><span>'+esc(q.label)+'</span><strong>'+esc(q.home)+'</strong></div>').join("")+'</div>':
- '<div class="hzv-history-empty">'+(game.state==="scheduled"?"Spotkanie jeszcze się nie rozpoczęło — statystyki będą dostępne po ich publikacji przez ESPN.":packetForGame?.error?esc(packetForGame.error):loading?"Pobieranie zweryfikowanego box score ESPN…":"Brak potwierdzonych statystyk drużyn.")+
+ (metrics.length?teamComparisonMarkup(metrics,data,away,home,game):'<div class="hzv-history-empty">'+(game.state==="scheduled"?"Spotkanie jeszcze się nie rozpoczęło — statystyki będą dostępne po ich publikacji przez ESPN.":packetForGame?.error?esc(packetForGame.error):loading?"Pobieranie zweryfikowanego box score ESPN…":"Brak potwierdzonych statystyk drużyn.")+
  (packetForGame?.error?'<div><button type="button" class="hzv-retry-button" data-hzv-retry-game="'+esc(game.id)+'">Ponów pobieranie statystyk</button></div>':"")+'</div>')+
  '<p class="hzv-game-source">Źródło: ESPN · statystyki historyczne, bez symulacji i prognoz'+(details?.stale?' · dane opóźnione':'')+'</p>'+
  '</section>';
