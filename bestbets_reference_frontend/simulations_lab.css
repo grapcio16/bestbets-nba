@@ -227,6 +227,7 @@
  margin:5px 2px 7px;font-size:9px;color:#a1c5e1;line-height:1.35
 }
 #simulations-pane[data-hzm-view="players"] .hzm-player-tools{
+ position:relative;z-index:6;isolation:isolate;
  display:flex;align-items:center;justify-content:space-between;gap:9px;
  margin-bottom:8px;min-height:34px
 }
@@ -266,6 +267,7 @@
  white-space:nowrap;font-variant-numeric:tabular-nums
 }
 #simulations-pane[data-hzm-view="players"] .hzm-player-lab-body{
+ position:relative;z-index:1;
  display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);
  gap:9px;height:280px;min-width:0
 }
