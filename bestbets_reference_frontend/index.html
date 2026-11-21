@@ -1322,6 +1322,21 @@ if(window.HoopzaroSimulations){
         id:String(Date.now())+"-premium-game-"+id+"-"+Math.random().toString(36).slice(2)
       }});
     },
+    openProps:function(details){
+      if(state.page!=="simulations"||premiumRequired())return;
+      if(!details||typeof details.name!=="string"||details.market!=="PTS"||
+         !Number.isFinite(details.line)||details.line<.5||details.line>150)return;
+      const name=details.name.trim().slice(0,80);
+      if(!name||/[<>]/.test(name))return;
+      const query=name+" over "+details.line.toFixed(1)+" points";
+      state.page="props";
+      state.market="PTS";state.line=details.line;state.side="OVER";state.period="L10";state.venue="ALL";
+      state.payload.player=null;state.payload.error="";state.lastIdentity="";state.query=query;
+      $("query").value=query;
+      render();
+      if(shell.classList.contains("hz-independent-scroll"))$("work").scrollTop=0;
+      search(query);
+    },
     loadPlayers:function(day,id,modelId){
       if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled)return;
       notify("streamlit:setComponentValue",{dataType:"json",value:{
