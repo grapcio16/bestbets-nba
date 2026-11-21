@@ -350,3 +350,7 @@
 #simulations-pane .hzm-open-player-props:focus-visible{outline:2px solid #21e9f3;outline-offset:2px}
 #simulations-pane .hzm-open-player-props:disabled{opacity:.45;cursor:not-allowed}
 #simulations-pane .hzm-inspector-link-note{display:block;margin-top:6px;color:#9ab8ce;font-size:10px;line-height:1.35}
+
+#simulations-pane .hzm-inspector-metric{cursor:pointer;font:inherit;text-align:left}
+#simulations-pane .hzm-inspector-metric[aria-pressed="true"]{border-color:#13d9eb;box-shadow:0 0 0 1px rgba(19,217,235,.38) inset;background:rgba(12,104,133,.22)}
+#simulations-pane .hzm-inspector-metric:focus-visible{outline:2px solid #25e4f4;outline-offset:2px}
