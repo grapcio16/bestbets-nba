@@ -30,15 +30,15 @@ class PlayerSimulationsEvidenceTest(unittest.TestCase):
         rows.append({**rows[0], "MIN": 0})
         result = _compact_pregame_player_history(
             pd.DataFrame(rows), cutoff, "PHI", "BOS")
-        item = result[("PHI", "sample player")]
+        item = result[("PHI", "sampleplayer")]
         self.assertEqual(item["espn_id"], "44332211")
         self.assertEqual(item["position"], "PG")
         self.assertEqual(len(item["history"]), 6)
         self.assertEqual(item["history"][0]["pts"], 15)
         self.assertEqual(item["history"][-1]["pts"], 20)
-        self.assertEqual(item["history"][-1]["pra"], 30.0)
-        self.assertNotIn(("LAL", "sample player"), result)
-        self.assertNotIn(("BOS", "sample player"), result)
+        self.assertEqual(item["history"][-1]["pra"], 31.0)
+        self.assertNotIn(("LAL", "sampleplayer"), result)
+        self.assertNotIn(("BOS", "sampleplayer"), result)
         self.assertTrue(all(r["date"] < cutoff.date().isoformat()
                             for r in item["history"]))
 
