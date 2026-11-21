@@ -316,7 +316,8 @@ function historyMarkup(data,game){
  // scoreboard selection as though it were complete historical coverage.
  if(active)return '<p class="hzv-history-empty">Pobieranie potwierdzonej historii ESPN…</p>';
  if(lastDetails?.id===String(game.id)&&lastDetails?.day===selectedDay&&lastDetails?.error){
-  return '<p class="hzv-history-empty">Historia ESPN jest chwilowo niedostępna. <button type="button" class="hzv-retry-button" data-hzv-retry-game="'+esc(game.id)+'">Ponów pobieranie historii</button></p>';
+  return '<p class="hzv-history-empty">Historia ESPN jest chwilowo niedostępna.'+
+   (game.state==="scheduled"?' <button type="button" class="hzv-retry-button" data-hzv-retry-game="'+esc(game.id)+'">Ponów pobieranie historii</button>':"")+'</p>';
  }
  return '<p class="hzv-history-empty">'+(game.state==="scheduled"?
   'Pobieranie Head to Head i ostatnich meczów z ESPN…':
