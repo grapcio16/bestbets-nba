@@ -1,376 +1,384 @@
-/* Free HOOPZARO Terminarz: confirmed ESPN games and verified season stats only. */
+/* HOOPZARO Terminarz v4: verified NBA, approved scoreboard and separate FREE Game Center. */
 (function(){
 "use strict";
-let callback=null,selectedDay="",requestedDay="",selectedFilter="all",lastData=null;
-let selectedGameId="",requestedDetailsId="",lastDetails=null;
-const FAV_KEY="hoopzaro.schedule.favoriteTeams.v1";
-const VALID_TEAMS=new Set("ATL BOS BKN CHA CHI CLE DAL DEN DET GSW HOU IND LAC LAL MEM MIA MIL MIN NOP NYK OKC ORL PHI PHX POR SAC SAS TOR UTA WAS".split(" "));
-function readFavorites(){
-  try{
-    const stored=JSON.parse(window.localStorage.getItem(FAV_KEY)||"[]");
-    return Array.isArray(stored)?stored.filter(code=>typeof code==="string"&&VALID_TEAMS.has(code)):[];
-  }catch(_){return []}
-}
-const favorites=new Set(readFavorites());
-function persistFavorites(){
-  try{window.localStorage.setItem(FAV_KEY,JSON.stringify([...favorites].sort()))}catch(_){
-    // Private browsing and restricted contexts still allow session favorites.
-  }
-}
-function isFavoriteGame(game){return favorites.has(game?.away)||favorites.has(game?.home)}
-function favoriteStar(code,gameId,side){
-  if(!VALID_TEAMS.has(code))return "";
-  const active=favorites.has(code),title=active?"Usuń z ulubionych: ":"Dodaj do ulubionych: ";
-  return '<button type="button" class="hzs-favorite-star hzs-favorite-'+side+
-    (active?' is-favorite':'')+'" data-hzs-star="'+escapeHtml(code)+
-    '" aria-label="'+title+escapeHtml(code)+'" aria-pressed="'+String(active)+
-    '" title="'+title+escapeHtml(code)+'"><span aria-hidden="true">'+(active?'★':'☆')+'</span></button>';
-}
 const $=id=>document.getElementById(id);
-const escapeHtml=value=>String(value==null?"":value).replace(/[&<>"']/g,ch=>({
-  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-})[ch]);
-const WARSAW="Europe/Warsaw";
-const safeDay=day=>/^\d{4}-\d{2}-\d{2}$/.test(String(day||""));
-function dateAtNoon(day){return new Date(day+"T12:00:00Z")}
-function shiftDay(day,offset){
-  const time=dateAtNoon(day);time.setUTCDate(time.getUTCDate()+offset);
-  return time.toISOString().slice(0,10);
-}
-function localDay(timestamp){
-  const date=new Date(timestamp);
-  if(!Number.isFinite(date.getTime()))return "";
-  const parts=new Intl.DateTimeFormat("en-GB",{timeZone:WARSAW,day:"2-digit",month:"2-digit",year:"numeric"}).formatToParts(date);
-  const get=type=>parts.find(part=>part.type===type)?.value||"";
-  return get("year")+"-"+get("month")+"-"+get("day");
+const esc=value=>String(value==null?"":value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const WARSAW="Europe/Warsaw",FAV_KEY="hoopzaro.schedule.favoriteTeams.v1";
+const VALID=new Set("ATL BOS BKN CHA CHI CLE DAL DEN DET GSW HOU IND LAC LAL MEM MIA MIL MIN NOP NYK OKC ORL PHI PHX POR SAC SAS TOR UTA WAS".split(" "));
+const EAST=new Set("ATL BOS BKN CHA CHI CLE DET IND MIA MIL NYK ORL PHI TOR WAS".split(" "));
+const WEST=new Set([...VALID].filter(t=>!EAST.has(t)));
+const MONTHS=["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","sierpnia","września","października","listopada","grudnia"];
+const MONTH_CAP=["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
+let callback=null,selectedDay="",selectedGameId="",selectedFilter="all",requestedDay="";
+let requestedDetailsId="",lastData=null,lastDetails=null,monthView="",searchText="",historyTab="h2h";
+const expandedTables=new Set();
+const readFavorites=()=>{try{const obj=JSON.parse(localStorage.getItem(FAV_KEY)||"[]");return Array.isArray(obj)?obj.filter(x=>VALID.has(x)):[];}catch(_){return [];}};
+const favorites=new Set(readFavorites());
+const safeDay=value=>/^\d{4}-\d{2}-\d{2}$/.test(String(value||""))&&!Number.isNaN(Date.parse(value+"T12:00:00Z"));
+const noon=day=>new Date(day+"T12:00:00Z");
+function shiftDay(day,offset){const d=noon(day);d.setUTCDate(d.getUTCDate()+offset);return d.toISOString().slice(0,10)}
+function localDay(value){const d=new Date(value);if(!Number.isFinite(d.getTime()))return "";
+ const parts=new Intl.DateTimeFormat("en-GB",{timeZone:WARSAW,year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(d);
+ const part=k=>parts.find(p=>p.type===k)?.value||"";return part("year")+"-"+part("month")+"-"+part("day");
 }
 function today(){return localDay(new Date().toISOString())}
-function localTime(timestamp){
-  const date=new Date(timestamp);
-  return Number.isFinite(date.getTime())
-    ?new Intl.DateTimeFormat("pl-PL",{timeZone:WARSAW,hour:"2-digit",minute:"2-digit",hour12:false}).format(date)
-    :"—";
-}
-function withinRange(day){return Math.abs(Math.round((dateAtNoon(day)-dateAtNoon(today()))/86400000))<=366}
-function dateNavigation(){
-  const host=$("hzs-date-strip");if(!host)return;
-  const weekdays=["NIE","PON","WTO","ŚRO","CZW","PIĄ","SOB"];
-  const months=["STY","LUT","MAR","KWI","MAJ","CZE","LIP","SIE","WRZ","PAŹ","LIS","GRU"];
-  host.innerHTML=Array.from({length:7},(_,index)=>{
-    const day=shiftDay(selectedDay,index-3),date=dateAtNoon(day);
-    const label=weekdays[date.getUTCDay()]+" "+date.getUTCDate()+" "+months[date.getUTCMonth()];
-    return '<button type="button" class="hzs-date'+(day===selectedDay?' selected':'')+'"'+
-      ' data-hzs-day="'+day+'"'+(withinRange(day)?'':' disabled')+
-      ' aria-label="Mecze NBA '+escapeHtml(day)+'" aria-pressed="'+(day===selectedDay?'true':'false')+'">'+
-      '<strong>'+weekdays[date.getUTCDay()]+'</strong><span>'+date.getUTCDate()+' '+months[date.getUTCMonth()]+'</span></button>';
-  }).join("");
-  document.querySelectorAll("[data-hzs-direction]").forEach(button=>{
-    const candidate=shiftDay(selectedDay,Number(button.dataset.hzsDirection));
-    button.disabled=!withinRange(candidate);
-  });
-  const datePicker=$("hzs-date-picker");
-  if(datePicker){
-    datePicker.value=selectedDay;
-    datePicker.min=shiftDay(today(),-366);
-    datePicker.max=shiftDay(today(),366);
-  }
-  if($("hzs-today"))$("hzs-today").disabled=selectedDay===today();
+function withinRange(day){return safeDay(day)&&Math.abs((noon(day)-noon(today()))/86400000)<=366}
+function shortDate(day){const d=noon(day);return d.getUTCDate()+" "+MONTHS[d.getUTCMonth()]}
+function localTime(value){const d=new Date(value);return Number.isFinite(d.getTime())?
+ new Intl.DateTimeFormat("pl-PL",{timeZone:WARSAW,hour:"2-digit",minute:"2-digit",hour12:false}).format(d):"—"}
+function displayDate(day){return day===today()?"Dzisiaj, "+shortDate(day):shortDate(day)+(noon(day).getUTCFullYear()===noon(today()).getUTCFullYear()?"":" "+noon(day).getUTCFullYear())}
+function persistFavorites(){try{localStorage.setItem(FAV_KEY,JSON.stringify([...favorites].sort()))}catch(_){}}
+function favGame(game){return favorites.has(game.away)||favorites.has(game.home)}
+function star(code,id,side){if(!VALID.has(code))return "";
+ const is=favorites.has(code),title=(is?"Usuń ":"Dodaj ")+"z ulubionych: "+code;
+ return '<button type="button" class="hzs-favorite-star hzs-favorite-'+side+(is?' is-favorite':'')+
+  '" data-hzs-star="'+esc(code)+'" data-hzs-star-game="'+esc(id)+'" aria-label="'+esc(title)+
+  '" aria-pressed="'+String(is)+'" title="'+esc(title)+'">'+(is?'★':'☆')+'</button>';
 }
 function selectedGames(data){
-  const extra=data?.calendar_extras?.[selectedDay];
-  if(extra && typeof extra==="object")return {
-    games:Array.isArray(extra.games)?extra.games:[],known:true,
-    error:String(extra.error||""),complete:extra.complete!==false
-  };
-  const all=Array.isArray(data?.calendar_games)?data.calendar_games:
-    Array.isArray(data?.games)?data.games:[];
-  const games=all.filter(game=>(game.day||localDay(game.start))===selectedDay);
-  const known=(data?.calendar_loaded_days||[]).includes(selectedDay)||games.length>0;
-  return {games:games,known:known,error:String(data?.error||""),complete:true};
+ const extra=data?.calendar_extras?.[selectedDay];
+ if(extra&&typeof extra==="object")return {games:Array.isArray(extra.games)?extra.games:[],known:true,error:String(extra.error||"")};
+ const all=Array.isArray(data?.calendar_games)?data.calendar_games:Array.isArray(data?.games)?data.games:[];
+ const games=all.filter(g=>(g.day||localDay(g.start))===selectedDay);
+ return {games,known:(data?.calendar_loaded_days||[]).includes(selectedDay)||games.length>0,error:String(data?.error||"")};
 }
-function seasonMatches(day){
-  // The verified 2026/27 standings must not be misrepresented as another season.
-  return day>="2026-10-01"&&day<="2027-09-30";
+function allKnownGames(data){
+ const list=[...(data?.calendar_games||[])];
+ for(const entry of Object.values(data?.calendar_extras||{}))if(entry&&Array.isArray(entry.games))list.push(...entry.games);
+ const unique=new Map();for(const g of list)if(g?.id)unique.set(String(g.id),g);
+ return [...unique.values()];
 }
-function currentStats(data,code){
-  if(!seasonMatches(selectedDay))return {ppg:"—",record:"—"};
-  const row=(data?.form_options||[]).find(entry=>entry.team===code);
-  const verified=row?.record_verified===true;
-  const points=Number(row?.ppg);
-  return {
-    ppg:verified&&row?.ppg!=null&&Number.isFinite(points)&&points>=50&&points<=160
-      ?points.toFixed(1).replace(".",","):"—",
-    record:verified&&Number.isInteger(row?.wins)&&Number.isInteger(row?.losses)
-      ?row.wins+"–"+row.losses:"—"
-  };
+function seasonMatches(day){return day>="2026-10-01"&&day<="2027-09-30"}
+function seasonRow(data,code){return (data?.form_options||[]).find(row=>row.team===code)||null}
+function verified(data,code){if(!seasonMatches(selectedDay))return null;
+ const row=seasonRow(data,code);return row?.record_verified===true&&Number.isInteger(row.wins)&&Number.isInteger(row.losses)&&row.wins+row.losses>0?row:null;
 }
-function verifiedStats(data,code){
-  if(!seasonMatches(selectedDay))return null;
-  const row=(data?.form_options||[]).find(entry=>entry.team===code);
-  const ppg=Number(row?.ppg),wins=row?.wins,losses=row?.losses;
-  if(row?.record_verified!==true||row?.ppg==null||!Number.isFinite(ppg)||
-     ppg<50||ppg>160||!Number.isInteger(wins)||!Number.isInteger(losses)||
-     wins<0||losses<0||wins+losses===0)return null;
-  return {ppg,winRate:wins/(wins+losses)};
+function gameOfDay(games,data){let winner=null,high=-Infinity;
+ for(const g of games){const a=verified(data,g.away),h=verified(data,g.home);if(!a||!h)continue;
+ const aw=a.wins/(a.wins+a.losses),hw=h.wins/(h.wins+h.losses);
+ const quality=(aw+hw)/2,parity=1-Math.abs(aw-hw);
+ const p=(Number(a.ppg)+Number(h.ppg))/2;
+ const pace=Number.isFinite(p)?Math.max(0,Math.min(1,(p-90)/40)):0;
+ const rating=.45*quality+.45*parity+.1*pace;
+ if(rating>high){high=rating;winner=g;}
+ }
+ return winner;
 }
-const clamp01=n=>Math.max(0,Math.min(1,n));
-function gameOfDay(games,data){
-  // FREE editorial selection: public, verified W/L and season PPG only.
-  // Never read projections, Premium state, model probabilities or game scores.
-  let best=null,bestScore=-1;
-  games.forEach(game=>{
-    const away=verifiedStats(data,game.away),home=verifiedStats(data,game.home);
-    if(!away||!home)return;
-    const quality=(away.winRate+home.winRate)/2;
-    const parity=1-Math.abs(away.winRate-home.winRate);
-    const scoring=clamp01(((away.ppg+home.ppg)/2-90)/40);
-    // The most compelling game is usually two strong, similarly matched
-    // teams; raw offensive pace must not dominate the spotlight.
-    const rating=.45*quality+.45*parity+.10*scoring;
-    if(rating>bestScore){best=game;bestScore=rating;}
-  });
-  return best;
+function logo(code,value){const url=window.hzResolveTeamLogo?.(value)||"";
+ const safe=typeof url==="string"&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(url);
+ return '<span class="hzs-team-mark">'+(safe?'<img src="'+url+'" alt="" loading="lazy">':'<b>'+esc(code)+'</b>')+'</span>';
 }
-function teamMark(code,url){
-  url=window.hzResolveTeamLogo?.(url)||"";
-  const safe=typeof url==="string"&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(url);
-  return '<span class="hzs-team-mark">'+(safe
-    ?'<img src="'+url+'" alt="" loading="lazy">'
-    :'<b>'+escapeHtml(code)+'</b>')+'</span>';
+function teamLogo(data,code,game,side){
+ return logo(code,game?.[side+"_logo"]||seasonRow(data,code)?.logo||"");
 }
-function teamText(code,data){
-  const stats=currentStats(data,code);
-  const team=(data?.form_options||[]).find(row=>row.team===code);
-  const name=String(team?.name||"").trim();
-  return '<span class="hzs-team-info"><strong>'+escapeHtml(code)+'</strong>'+
-    (name?'<small class="hzs-team-full" title="'+escapeHtml(name)+'">'+escapeHtml(name)+'</small>':'')+
-    '<small class="hzs-team-stat"><em>'+escapeHtml(stats.ppg)+' PPG</em> &nbsp;·&nbsp; <b>'+escapeHtml(stats.record)+'</b></small></span>';
+function codeLabel(data,code){const name=seasonRow(data,code)?.name||code;return String(name||code)}
+function score(g){if(g.state==="scheduled")return localTime(g.start);
+ return Number.isInteger(g.away_score)&&Number.isInteger(g.home_score)?g.away_score+" – "+g.home_score:"—"}
+function badge(g){return g.state==="live"?"NA ŻYWO":g.state==="final"?"KONIEC":"WKRÓTCE"}
+function isFinal(g){return g.state==="final"&&Number.isInteger(g.away_score)&&Number.isInteger(g.home_score)}
+function winner(g,side){return isFinal(g)&&g.away_score!==g.home_score&&g[side+"_score"]>g[(side==="home"?"away":"home")+"_score"]}
+function heroMarkup(game,data){
+ if(!game)return '<div class="hzv-skeleton">Brak zweryfikowanego meczu dnia dla wybranej daty</div>';
+ const away=String(game.away||""),home=String(game.home||"");
+ return '<button type="button" id="hzv-featured-button" class="hzv-featured-button" data-hzs-game="'+esc(game.id)+'" aria-label="Szczegóły meczu '+esc(away)+' – '+esc(home)+'">'+
+ '<span class="hzv-featured-team">'+teamLogo(data,away,game,"away")+'<strong>'+esc(away)+'</strong></span>'+
+ '<span class="hzv-featured-center"><span class="hzv-featured-label">♛ MECZ DNIA</span>'+
+ '<strong class="hzv-featured-score">'+esc(score(game))+'</strong><span class="hzv-featured-status">'+esc(badge(game))+'</span></span>'+
+ '<span class="hzv-featured-team">'+teamLogo(data,home,game,"home")+'<strong>'+esc(home)+'</strong></span>'+
+ '</button><div class="hzv-hero-foot" aria-hidden="true"><span></span><span></span><span></span><span></span></div>';
 }
-function score(game){
-  if(game.state==="scheduled")return localTime(game.start);
-  const away=game.away_score,home=game.home_score;
-  return Number.isInteger(away)&&away>=0&&Number.isInteger(home)&&home>=0
-    ?away+" : "+home:"—";
+function card(game,data){
+ const a=String(game.away||"NBA"),h=String(game.home||"NBA"),id=String(game.id||"");
+ return '<div class="hzs-game-shell'+(favGame(game)?' hzs-favorite-game':'')+'" data-hzs-shell-id="'+esc(id)+'">'+
+ '<button type="button" class="hzs-game hzs-'+esc(game.state||"scheduled")+'" data-hzs-game="'+esc(id)+
+ '" aria-label="'+esc("Otwórz Game Center: "+codeLabel(data,a)+" – "+codeLabel(data,h))+'">'+
+ '<span class="hzs-mini-top"><span>🏀 NBA</span><span class="hzs-status">'+esc(badge(game))+'</span></span>'+
+ '<span class="hzs-mini-middle"><span class="hzs-mini-team">'+teamLogo(data,a,game,"away")+
+ '<strong'+(winner(game,"away")?' style="color:#70ffd5"':'')+'>'+esc(a)+'</strong></span>'+
+ '<strong class="hzs-mini-score">'+esc(score(game))+'</strong>'+
+ '<span class="hzs-mini-team">'+teamLogo(data,h,game,"home")+
+ '<strong'+(winner(game,"home")?' style="color:#70ffd5"':'')+'>'+esc(h)+'</strong></span></span>'+
+ '<span class="hzs-mini-bottom">'+(game.state==="scheduled"?"Planowany początek: ":"Wynik meczu · ")+
+ esc(game.state==="scheduled"?localTime(game.start):shortDate(game.day||selectedDay))+'</span></button>'+
+ star(a,id,"away")+star(h,id,"home")+'</div>';
 }
-function liveLabel(raw){
-  const text=String(raw||"");
-  const match=text.match(/\bQ([1-4])\b/i)||text.match(/\b([1-4])(?:st|nd|rd|th)\b/i);
-  return match?"NA ŻYWO · "+match[1]+". KWARTA":"NA ŻYWO";
+function dateNavigation(){
+ const date=$("hzv-day-title");if(date)date.textContent=displayDate(selectedDay);
+ const strip=$("hzs-date-strip");if(strip){
+  const names=["Nd","Pn","Wt","Śr","Cz","Pt","Sb"];
+  strip.innerHTML=Array.from({length:7},(_,i)=>{
+   const day=shiftDay(selectedDay,i-3),d=noon(day);
+   const selected=day===selectedDay;
+   return '<button type="button" class="hzs-date'+(selected?' selected':'')+'" data-hzs-day="'+day+
+     '" aria-label="Pokaż mecze '+esc(day)+'" aria-pressed="'+String(selected)+'"'+(!withinRange(day)?' disabled':'')+
+     '><strong>'+names[d.getUTCDay()]+'</strong><span>'+d.getUTCDate()+'</span></button>';
+  }).join("");
+ }
+ document.querySelectorAll("#schedule-pane [data-hzs-direction]").forEach(b=>b.disabled=!withinRange(shiftDay(selectedDay,Number(b.dataset.hzsDirection))));
+ if($("hzs-today"))$("hzs-today").disabled=selectedDay===today();
 }
-function gameMarkup(game,data,featured=false){
-  const away=String(game.away||"NBA").toUpperCase(),home=String(game.home||"NBA").toUpperCase();
-  const badge=game.state==="live"?liveLabel(game.status):game.state==="final"?"KONIEC":"NADCHODZĄCE";
-  const kind=game.state==="live"?"live":game.state==="final"?"final":"upcoming";
-  const awayScore=game.away_score,homeScore=game.home_score;
-  const final=game.state==="final"&&Number.isInteger(awayScore)&&Number.isInteger(homeScore);
-  const winner=final&&awayScore!==homeScore?(awayScore>homeScore?"away":"home"):"";
-  const id=String(game.id||"");
-  const expanded=id!==""&&id===selectedGameId;
-  return '<div class="hzs-game-shell'+(featured?' hzs-featured-shell':'')+
-    (isFavoriteGame(game)?' hzs-favorite-game':'')+'" data-hzs-shell-id="'+escapeHtml(id)+'">'+
-    '<button type="button" class="hzs-game hzs-'+kind+(featured?' hzs-featured':'')+
-    '" data-hzs-game="'+escapeHtml(id)+'" aria-expanded="'+String(expanded)+
-    '" aria-label="'+escapeHtml(away+' – '+home+', '+badge+', pokaż szczegóły meczu')+'">'+
-    (featured?'<span class="hzs-feature-ribbon" title="Mecz dnia: 45% siła bilansów, 45% wyrównanie bilansów, 10% średnia punktów. Wyłącznie zweryfikowane dane sezonu, bez symulacji."><span aria-hidden="true">✦</span> MECZ DNIA <span aria-hidden="true">✦</span></span>':'')+
-    '<span class="hzs-team away'+(winner==="away"?' hzs-winner':'')+'">'+teamMark(away,game.away_logo)+teamText(away,data)+'</span>'+
-    '<span class="hzs-score"><strong>'+escapeHtml(score(game))+'</strong><span class="hzs-status">'+escapeHtml(badge)+'</span></span>'+
-    '<span class="hzs-team home'+(winner==="home"?' hzs-winner':'')+'">'+teamText(home,data)+teamMark(home,game.home_logo)+'</span>'+
-    '<span class="hzs-expand-mark" aria-hidden="true">'+(expanded?'⌃':'⌄')+'</span></button>'+
-    favoriteStar(away,id,"away")+favoriteStar(home,id,"home")+'</div>';
+function renderCalendar(){
+ const host=$("hzv-calendar-grid");if(!host)return;
+ const base=noon(monthView||selectedDay),year=base.getUTCFullYear(),month=base.getUTCMonth();
+ $("hzv-month-title").textContent=MONTH_CAP[month]+" "+year;
+ const first=new Date(Date.UTC(year,month,1,12)),days=new Date(Date.UTC(year,month+1,0,12)).getUTCDate();
+ const leading=(first.getUTCDay()+6)%7;
+ host.innerHTML=Array.from({length:leading},()=>'<span aria-hidden="true"></span>').join("")+
+ Array.from({length:days},(_,i)=>{
+  const day=year+"-"+String(month+1).padStart(2,"0")+"-"+String(i+1).padStart(2,"0");
+  return '<button type="button" data-hzv-calendar-day="'+day+'"'+(!withinRange(day)?' disabled':'')+
+   ' aria-pressed="'+String(day===selectedDay)+'" aria-label="Wybierz '+day+'">'+(i+1)+'</button>';
+ }).join("");
+ const monthFirst=year+"-"+String(month+1).padStart(2,"0")+"-01";
+ document.querySelectorAll("[data-hzv-month]").forEach(button=>{
+  const next=new Date(Date.UTC(year,month+Number(button.dataset.hzvMonth),1,12));
+  const nextDay=next.toISOString().slice(0,10);
+  button.disabled=!withinRange(nextDay)&&Math.abs((noon(nextDay)-noon(today()))/86400000)>397;
+ });
 }
-function detailMarkup(game,data){
-  const id=String(game.id||"");
-  if(!id||id!==selectedGameId)return "";
-  const away=String(game.away||""),home=String(game.home||"");
-  const awayStats=currentStats(data,away),homeStats=currentStats(data,home);
-  const season=seasonMatches(selectedDay);
-  const packet=lastDetails?.id===id&&lastDetails?.day===selectedDay?lastDetails:null;
-  const details=packet?.data&&packet.data.away===away&&packet.data.home===home?packet.data:null;
-  const noGameStats=game.state==="scheduled"
-    ?'<p class="hzs-detail-note">Spotkanie jeszcze się nie rozpoczęło. Wyniki kwart i box score pojawią się po ich opublikowaniu przez ESPN.</p>'
-    :packet?.error
-      ?'<p class="hzs-detail-note hzs-detail-error">'+escapeHtml(packet.error)+'</p>'
-      :!packet
-        ?'<p class="hzs-detail-note">Pobieranie potwierdzonego box score ESPN…</p>'
-        :'';
-  const columns=(rows,heading)=>
-    '<section class="hzs-detail-section"><h3>'+heading+'</h3><div class="hzs-detail-table">'+rows+'</div></section>';
-  let parts='';
-  if(details?.quarters?.length){
-    parts+=columns('<div class="hzs-detail-row hzs-detail-subhead"><span>KWARTA</span><span>'+escapeHtml(away)+'</span><span>'+escapeHtml(home)+'</span></div>'+
-      details.quarters.map(q=>'<div class="hzs-detail-row"><span>'+escapeHtml(q.period)+'</span><b>'+escapeHtml(q.away)+'</b><b>'+escapeHtml(q.home)+'</b></div>').join(""),
-      "Wyniki kwart");
-  }
-  if(details?.team_stats?.length){
-    parts+=columns('<div class="hzs-detail-row hzs-detail-subhead"><span>STATYSTYKA</span><span>'+escapeHtml(away)+'</span><span>'+escapeHtml(home)+'</span></div>'+
-      details.team_stats.map(q=>'<div class="hzs-detail-row"><span>'+escapeHtml(q.label)+'</span><b>'+escapeHtml(q.away)+'</b><b>'+escapeHtml(q.home)+'</b></div>').join(""),
-      "Statystyki drużyn");
-  }
-  const leaderGroups=details?.leaders||{};
-  if((leaderGroups.away||[]).length||(leaderGroups.home||[]).length){
-    const markup=(code,players)=>'<div class="hzs-leader-team"><h4>'+escapeHtml(code)+'</h4>'+
-      (players.length?players.map(player=>
-        '<div class="hzs-leader"><strong>'+escapeHtml(player.name)+'</strong><span>'+
-        escapeHtml(player.pts)+' PTS · '+escapeHtml(player.reb)+' REB · '+escapeHtml(player.ast)+' AST</span></div>').join("")
-        :'<span class="hzs-detail-muted">Brak potwierdzonych statystyk</span>')+'</div>';
-    parts+='<section class="hzs-detail-section hzs-detail-leaders"><h3>Liderzy meczu · PTS / REB / AST</h3>'+
-      '<div class="hzs-leader-grid">'+markup(away,leaderGroups.away||[])+markup(home,leaderGroups.home||[])+'</div></section>';
-  }
-  if(details&&!parts)parts='<p class="hzs-detail-note">ESPN nie opublikował jeszcze pełnych statystyk kwart, drużyn i zawodników.</p>';
-  const teams='<div class="hzs-detail-teams">'+
-    '<div><strong>'+escapeHtml(away)+'</strong><span>'+escapeHtml(awayStats.record)+' W–L · '+escapeHtml(awayStats.ppg)+' PPG</span></div>'+
-    '<div class="hzs-detail-vs">VS</div>'+
-    '<div><strong>'+escapeHtml(home)+'</strong><span>'+escapeHtml(homeStats.record)+' W–L · '+escapeHtml(homeStats.ppg)+' PPG</span></div></div>';
-  return '<div class="hzs-detail-panel" id="hzs-game-details" role="region" aria-label="Szczegóły meczu '+escapeHtml(away)+' i '+escapeHtml(home)+'">'+
-    '<div class="hzs-detail-header"><div><span class="hzs-detail-kicker">HOOPZARO · GAME CENTER · FREE</span>'+
-    '<h2>'+escapeHtml(away)+' <span>vs</span> '+escapeHtml(home)+'</h2></div>'+
-    '<span class="hzs-detail-state">'+escapeHtml(game.state==="scheduled"?localTime(game.start):score(game))+'</span></div>'+
-    teams+'<p class="hzs-detail-caption">'+(season?'Bilans i PPG: potwierdzone dane sezonu 2026/27 (stan bieżący).':'Statystyki sezonowe niedostępne dla wybranej daty.')+'</p>'+
-    noGameStats+(parts?'<div class="hzs-detail-grid">'+parts+'</div>':'')+
-    '<div class="hzs-detail-source">Źródło: ESPN · bez symulacji i prognoz'+(details?.stale?' · dane źródłowe mogą być opóźnione':'')+'</div>'+
-    '</div>';
+function toggleCalendar(open){
+ const el=$("hzv-calendar-popup");if(!el)return;
+ if(open){monthView=selectedDay.slice(0,7)+"-01";renderCalendar();}
+ el.hidden=!open;$("hzv-calendar-toggle").setAttribute("aria-expanded",String(open));
 }
-function syncFilters(){
-  document.querySelectorAll("[data-hzs-filter]").forEach(button=>{
-    const active=button.dataset.hzsFilter===selectedFilter;
-    button.classList.toggle("selected",active);
-    button.setAttribute("aria-pressed",String(active));
-  });
+function syncFilters(){document.querySelectorAll("#schedule-pane [data-hzs-filter]").forEach(b=>{
+ const active=b.dataset.hzsFilter===selectedFilter;b.classList.toggle("selected",active);b.setAttribute("aria-pressed",String(active));
+});}
+function standings(data,conference){
+ const host=$(conference==="east"?"hzv-east":"hzv-west");if(!host)return;
+ const pool=conference==="east"?EAST:WEST,all=(data?.form_options||[]).filter(row=>pool.has(row.team)&&row.record_verified===true&&Number.isInteger(row.wins)&&Number.isInteger(row.losses)&&row.wins+row.losses>0);
+ if(!all.length){host.innerHTML='<p>Brak potwierdzonej tabeli sezonu 2026/27.</p>';return;}
+ all.sort((a,b)=>b.wins/(b.wins+b.losses)-a.wins/(a.wins+a.losses)||b.wins-a.wins||a.team.localeCompare(b.team));
+ const shown=expandedTables.has(conference)?all:all.slice(0,5);
+ const head='<div class="hzv-stand-row hzv-stand-head"><span>#</span><span>Drużyna</span><span>W</span><span>P</span><span>%</span></div>';
+ host.innerHTML=head+shown.map((row,i)=>{
+  const pct=(row.wins/(row.wins+row.losses)).toFixed(3).replace(/^0/,"");
+  const name=String(row.name||row.team).replace(/^(?:Los Angeles|New York|Golden State|Oklahoma City|Portland|San Antonio|New Orleans|Minnesota|Philadelphia|Sacramento)\s+/,"");
+  return '<div class="hzv-stand-row"><span>'+(i+1)+'</span><span class="hzv-stand-team">'+logo(row.team,row.logo)+
+   '<b title="'+esc(row.name||row.team)+'">'+esc(name)+'</b></span><span>'+row.wins+'</span><span>'+row.losses+'</span><span>'+pct+'</span></div>';
+ }).join("")+'<p class="hzv-standing-foot">Kolejność wg % zwycięstw · ESPN'+(data?.form_stale?' · dane opóźnione':'')+'</p>';
+ document.querySelector('[data-hzv-table="'+conference+'"]')?.setAttribute("aria-expanded",String(expandedTables.has(conference)));
+ const control=document.querySelector('[data-hzv-table="'+conference+'"]');
+ if(control)control.textContent=expandedTables.has(conference)?"Pokaż mniej ↑":"Zobacz całość ›";
 }
-function render(data,details){
-  lastData=data;
-  lastDetails=details||null;
-  if(!selectedDay)selectedDay=safeDay(data?.calendar_today)?data.calendar_today:today();
-  dateNavigation();
-  syncFilters();
-  const host=$("hzs-board");if(!host)return;
-  const previousScroll=host.scrollTop;
-  const footnote=$("hzs-source-note");
-  const counter=$("hzs-match-count");
-  if(footnote)footnote.textContent="ESPN · rzeczywiste mecze · statystyki sezonu 2026/27 (stan bieżący)";
-  if(!data){
-    if(counter)counter.textContent="— meczów";
-    host.innerHTML='<div class="hzs-empty">Wczytywanie potwierdzonych spotkań NBA…</div>';return;
-  }
-  const day=selectedGames(data);
-  if(!day.known){
-    if(counter)counter.textContent="— meczów";
-    host.innerHTML='<div class="hzs-empty">'+(requestedDay===selectedDay
-      ?'Pobieranie spotkań NBA z '+escapeHtml(selectedDay)+'…'
-      :'Wybierz dzień, aby pobrać jego terminarz NBA.')+'</div>';
-    if(requestedDay!==selectedDay)requestDay(selectedDay);
-    return;
-  }
-  if(requestedDay===selectedDay)requestedDay="";
-  // Every unique confirmed event is shown; never slice to a decorative card count.
-  const unique=new Map();
-  day.games.forEach(game=>{
-    if(!game)return;
-    const key=game.id||[game.start,game.away,game.home].join("|");
-    unique.set(String(key),game);
-  });
-  const games=[...unique.values()].sort((a,b)=>String(a.start||"").localeCompare(String(b.start||"")));
-  if(counter)counter.textContent=games.length+" "+(games.length===1?"mecz":games.length>=2&&games.length<=4?"mecze":"meczów");
-  const alert=day.error?'<div class="hzs-alert">'+escapeHtml(day.error.slice(0,180))+'</div>':"";
-  if(!games.length){
-    host.innerHTML=alert+'<div class="hzs-empty">Brak potwierdzonych meczów NBA '+escapeHtml(selectedDay)+'.</div>';
-    return;
-  }
-  const filtered=selectedFilter==="all"?games:
-    selectedFilter==="favorites"?games.filter(isFavoriteGame):
-    games.filter(game=>game.state===selectedFilter);
-  if(!filtered.length){
-    const empty={live:"Brak trwających meczów.",scheduled:"Brak nadchodzących meczów.",
-      final:"Brak zakończonych meczów.",
-      favorites:favorites.size===0?"Oznacz drużynę gwiazdką ☆, aby zobaczyć jej mecze.":"Ulubione drużyny nie rozgrywają meczów w wybranym dniu."};
-    host.innerHTML=alert+'<div class="hzs-empty">'+(empty[selectedFilter]||"Brak meczów.")+'</div>';
-    return;
-  }
-  const featured=selectedFilter==="all"?gameOfDay(games,data):null;
-  const remaining=featured?filtered.filter(game=>game!==featured):filtered;
-  const favoriteRemaining=remaining.filter(isFavoriteGame);
-  const ordinaryRemaining=remaining.filter(game=>!isFavoriteGame(game));
-  const title=featured?"POZOSTAŁE MECZE":selectedFilter==="all"?"WSZYSTKIE MECZE":"MECZE";
-  const group=(heading,items,highlight)=>
-    items.length?'<div class="hzs-section-title'+(highlight?' hzs-favorite-section-title':'')+'"><span class="hzs-section-dot" aria-hidden="true"></span>'+
-      heading+' · '+items.length+'</div><div class="hzs-rows">'+
-      items.map(game=>gameMarkup(game,data)+detailMarkup(game,data)).join("")+'</div>':"";
-  const favoriteMarkup=group("★ ULUBIONE DRUŻYNY",favoriteRemaining,true);
-  const regularMarkup=group(title,ordinaryRemaining,false);
-  const featureMarkup=featured?gameMarkup(featured,data,true)+detailMarkup(featured,data):"";
-  const placeFavoritesFirst=Boolean(featured&&!isFavoriteGame(featured)&&favoriteRemaining.length);
-  host.innerHTML=alert+'<section class="hzs-section" aria-label="Mecze NBA">'+
-    (placeFavoritesFirst?favoriteMarkup:"")+featureMarkup+
-    (placeFavoritesFirst?"":favoriteMarkup)+regularMarkup+'</section>';
-  host.scrollTop=previousScroll;
+function renderBoard(data){
+ const host=$("hzs-board");if(!host)return;
+ const keepScroll=host.scrollTop;
+ const counter=$("hzs-match-count");
+ if(!data){host.innerHTML='<div class="hzs-empty">Wczytywanie terminarza NBA…</div>';return;}
+ const selected=selectedGames(data);
+ if(!selected.known){
+  if(counter)counter.textContent="— meczów";
+  $("hzv-hero").innerHTML='<p class="hzv-skeleton">Wybierz datę, aby zobaczyć mecz dnia.</p>';
+  host.innerHTML='<div class="hzs-empty">'+(requestedDay===selectedDay?'Pobieranie meczów NBA z '+esc(selectedDay)+'…':'Pobieranie terminarza NBA…')+'</div>';
+  if(requestedDay!==selectedDay)requestDay(selectedDay);
+  return;
+ }
+ if(requestedDay===selectedDay)requestedDay="";
+ const unique=new Map();for(const game of selected.games)if(game){const key=game.id||[game.start,game.away,game.home].join("|");unique.set(String(key),game);}
+ const games=[...unique.values()].sort((a,b)=>String(a.start||"").localeCompare(String(b.start||"")));
+ if(counter)counter.textContent=games.length+" "+(games.length===1?"mecz":games.length<5&&games.length>1?"mecze":"meczów");
+ const hero=gameOfDay(games,data);
+ $("hzv-hero").innerHTML=heroMarkup(hero,data);
+ const alert=selected.error?'<div class="hzs-alert">'+esc(selected.error.slice(0,150))+'</div>':"";
+ let filtered=selectedFilter==="all"?games:selectedFilter==="favorites"?games.filter(favGame):games.filter(g=>g.state===selectedFilter);
+ const query=searchText.trim().toLocaleLowerCase("pl");
+ if(query)filtered=filtered.filter(g=>[g.away,g.home,codeLabel(data,g.away),codeLabel(data,g.home)].some(v=>String(v).toLocaleLowerCase("pl").includes(query)));
+ if(!filtered.length){
+  const empty=selectedFilter==="favorites"?(favorites.size===0?"Oznacz gwiazdką ulubioną drużynę.":"Ulubione drużyny nie grają w wybranym dniu."):"Brak meczów spełniających filtry.";
+  host.innerHTML=alert+'<div class="hzs-empty">'+(games.length?empty:'Brak potwierdzonych spotkań NBA '+esc(selectedDay)+'.')+'</div>';return;
+ }
+ const favs=filtered.filter(favGame),others=filtered.filter(g=>!favGame(g));
+ const group=(label,items)=>items.length?'<div class="hzs-section-title"><span class="hzs-section-dot"></span>'+esc(label)+' · '+items.length+'</div><div class="hzs-rows">'+items.map(g=>card(g,data)).join("")+'</div>':"";
+ const showGroups=favs.length>0&&selectedFilter!=="favorites";
+ host.innerHTML=alert+'<section class="hzs-section" aria-label="Mecze NBA">'+
+  (showGroups?group("★ ULUBIONE",favs):"")+group(showGroups?"POZOSTAŁE MECZE":"MECZE",showGroups?others:filtered)+'</section>';
+ host.scrollTop=keepScroll;
 }
-function requestDay(day){
-  if(!callback?.selectDay||!safeDay(day)||!withinRange(day))return;
-  requestedDay=day;callback.selectDay(day);
-}
+function requestDay(day){if(!callback?.selectDay||!withinRange(day)||requestedDay===day)return;requestedDay=day;callback.selectDay(day);}
 function selectDay(day){
-  if(!safeDay(day)||!withinRange(day)||day===selectedDay)return;
-  selectedDay=day;requestedDay="";selectedFilter="all";
-  selectedGameId="";requestedDetailsId="";
-  render(lastData,lastDetails);
+ if(!withinRange(day))return;
+ toggleCalendar(false);
+ if(day===selectedDay)return;
+ selectedDay=day;selectedFilter="all";selectedGameId="";requestedDetailsId="";requestedDay="";searchText="";
+ if($("hzv-search"))$("hzv-search").value="";
+ $("hzv-game-page").hidden=true;$("schedule-pane").classList.remove("hzv-show-game");
+ render(lastData,lastDetails);
 }
+function gameFromSelected(data){
+ const games=selectedGames(data).games;
+ return games.find(g=>String(g.id||"")===selectedGameId)||null;
+}
+function initials(name){return String(name||"").split(/\s+/).map(part=>part[0]||"").slice(0,2).join("").toUpperCase()}
+function quarterGraph(quarters,away,home){
+ if(!quarters.length)return '<p class="hzv-history-empty">Brak potwierdzonych wyników kwart do wykresu.</p>';
+ let a=0,h=0;const av=[],hv=[];for(const q of quarters){a+=q.away;h+=q.home;av.push(a);hv.push(h)}
+ const high=Math.max(...av,...hv,1),W=265,H=122,left=18,right=245,top=11,bottom=100;
+ const x=i=>left+(right-left)*(i+1)/quarters.length,y=v=>bottom-(bottom-top)*v/high;
+ const path=arr=>"M"+arr.map((v,i)=>x(i).toFixed(1)+","+y(v).toFixed(1)).join(" L");
+ const grid=[0,.25,.5,.75,1].map(p=>'<line x1="18" x2="245" y1="'+y(high*p).toFixed(1)+'" y2="'+y(high*p).toFixed(1)+'" stroke="#285071" stroke-width=".7"/>').join("");
+ return '<svg viewBox="0 0 265 122" role="img" aria-label="Zweryfikowany przebieg punktów na koniec każdej kwarty">'+grid+
+ '<path d="'+path(av)+'" fill="none" stroke="#02e5ef" stroke-width="2.5"/>'+
+ '<path d="'+path(hv)+'" fill="none" stroke="#cb57ef" stroke-width="2.5"/>'+
+ quarters.map((q,i)=>'<text x="'+x(i)+'" y="115" fill="#84acc9" font-size="8" text-anchor="middle">'+esc(q.period)+'</text>').join("")+
+ '</svg><small style="color:#9fc2d9;font-size:9px">Cyan: '+esc(away)+' · Fiolet: '+esc(home)+' · końce kwart</small>';
+}
+function lastGamesForTeams(data,game){
+ const known=allKnownGames(data),t=String(game.start||"");
+ return known.filter(g=>g.state==="final"&&Number.isInteger(g.away_score)&&Number.isInteger(g.home_score)&&String(g.id)!==String(game.id)&&
+   String(g.start||"")<t&&(g.away===game.away||g.home===game.away||g.away===game.home||g.home===game.home))
+   .sort((a,b)=>String(b.start).localeCompare(String(a.start))).slice(0,5);
+}
+function recentMeetings(data,game){return lastGamesForTeams(data,game).filter(g=>
+ (g.away===game.away&&g.home===game.home)||(g.away===game.home&&g.home===game.away));}
+function historyMarkup(data,game){
+ const games=historyTab==="h2h"?recentMeetings(data,game):lastGamesForTeams(data,game);
+ if(!games.length)return '<div class="hzv-history-empty">'+(historyTab==="h2h"?
+  "Brak wcześniejszych, potwierdzonych meczów bezpośrednich w aktualnie pobranym zakresie ESPN.":
+  "Brak potwierdzonych ostatnich meczów w aktualnie pobranym zakresie ESPN.")+'</div>';
+ return '<div class="hzv-history-list">'+games.map(g=>
+  '<div class="hzv-history-row"><span>'+esc(shortDate(g.day||localDay(g.start)))+'</span><span>'+esc(g.away)+' / '+esc(g.home)+'</span><strong>'+g.away_score+' : '+g.home_score+'</strong></div>'
+ ).join("")+'</div>';
+}
+function detailsMarkup(data,game,packet){
+ const away=String(game.away||""),home=String(game.home||"");
+ const statsAway=verified(data,away),statsHome=verified(data,home);
+ const details=packet?.id===String(game.id)&&packet?.day===selectedDay&&packet.data?.away===away&&packet.data?.home===home?packet.data:null;
+ const loading=game.state!=="scheduled"&&!details&&!packet?.error;
+ const quarters=Array.isArray(details?.quarters)?details.quarters.filter(q=>Number.isInteger(q.away)&&Number.isInteger(q.home)):[];
+ const metrics=Array.isArray(details?.team_stats)?details.team_stats:[];
+ const leaderRows=[...(details?.leaders?.away||[]).map(p=>({...p,team:away})),...(details?.leaders?.home||[]).map(p=>({...p,team:home}))];
+ leaderRows.sort((a,b)=>b.pts-a.pts||b.reb-a.reb);
+ const leader=leaderRows[0]||null;
+ let periodChange="Kluczowe momenty wymagają potwierdzonych danych play-by-play.";
+ if(quarters.length>=2){
+  let prevDiff=0,maxChange=0,changedPeriod="";
+  let a=0,h=0;for(const q of quarters){a+=q.away;h+=q.home;const diff=h-a;const swing=Math.abs(diff-prevDiff);
+   if(swing>maxChange){maxChange=swing;changedPeriod=q.period;}prevDiff=diff;}
+  periodChange="Największa zmiana różnicy punktów między końcami kwart: "+maxChange+" pkt ("+changedPeriod+").";
+ }
+ const first='<section class="hzv-game-card hzv-game-summary">'+
+ '<div class="hzv-game-ribbon">✦ MECZ NBA ✦</div>'+
+ '<div class="hzv-game-scoreboard"><div class="hzv-gc-team">'+teamLogo(data,away,game,"away")+
+ '<strong>'+esc(away)+'</strong><small>'+esc(codeLabel(data,away))+'</small><span>'+esc(statsAway?statsAway.wins+"–"+statsAway.losses:"—")+' W–L</span></div>'+
+ '<div class="hzv-gc-score"><strong>'+esc(score(game))+'</strong><em>'+esc(badge(game))+'</em></div>'+
+ '<div class="hzv-gc-team">'+teamLogo(data,home,game,"home")+
+ '<strong>'+esc(home)+'</strong><small>'+esc(codeLabel(data,home))+'</small><span>'+esc(statsHome?statsHome.wins+"–"+statsHome.losses:"—")+' W–L</span></div></div>'+
+ '<div class="hzv-game-meta"><span>◷ '+esc(game.state==="scheduled"?"Rozpoczęcie "+localTime(game.start):"Czas "+localTime(game.start))+'</span>'+
+ '<span>▦ '+esc(shortDate(game.day||selectedDay))+'</span></div>'+
+ (quarters.length?'<div class="hzv-quarter-table"><h3>Przebieg meczu · kwarty</h3><div style="--quarter-count:'+Math.min(quarters.length+1,9)+'" class="hzv-quarter-row hzv-quarter-head"><span>Drużyna</span>'+quarters.map(q=>'<span>'+esc(q.period)+'</span>').join("")+'<span>SUMA</span></div>'+
+ ['away','home'].map(side=>'<div style="--quarter-count:'+Math.min(quarters.length+1,9)+'" class="hzv-quarter-row"><strong>'+esc(game[side])+'</strong>'+quarters.map(q=>'<span>'+esc(q[side])+'</span>').join("")+
+ '<span>'+quarters.reduce((sum,q)=>sum+q[side],0)+'</span></div>').join("")+'</div>':'')+
+ '<h3 class="hzv-gc-subheading">▥ Statystyki drużyn</h3>'+
+ (metrics.length?'<div class="hzv-gc-stats">'+metrics.map(q=>
+ '<div class="hzv-gc-stat-row"><strong>'+esc(q.away)+'</strong><span>'+esc(q.label)+'</span><strong>'+esc(q.home)+'</strong></div>').join("")+'</div>':
+ '<p class="hzv-history-empty">'+(game.state==="scheduled"?"Spotkanie jeszcze się nie rozpoczęło — statystyki będą dostępne po ich publikacji przez ESPN.":packet?.error?esc(packet.error):loading?"Pobieranie zweryfikowanego box score ESPN…":"Brak potwierdzonych statystyk drużyn.")+'</p>')+
+ '<p class="hzv-game-source">Źródło: ESPN · statystyki historyczne, bez symulacji i prognoz'+(details?.stale?' · dane opóźnione':'')+'</p>'+
+ '</section>';
+ const right='<div class="hzv-gc-right"><section class="hzv-game-card hzv-gc-xfactor">'+
+ '<h2 class="hzv-xfactor-title"><span>ϟ</span> X-FACTOR MECZU</h2>'+
+ '<div class="hzv-xfactor-body"><div class="hzv-xfactor-player">'+
+ (leader?'<span class="hzv-xfactor-avatar" aria-hidden="true">'+esc(initials(leader.name))+'</span>'+
+  '<strong>'+esc(leader.name)+'</strong><small>'+esc(leader.team)+' · lider punktowy</small>'+
+  '<small>'+leader.pts+' PTS · '+leader.reb+' REB · '+leader.ast+' AST</small>':
+  '<p class="hzv-history-empty">Brak potwierdzonego lidera punktowego.</p>')+
+ '</div><div class="hzv-xfactor-chart"><h3>Przebieg punktacji</h3>'+
+ quarterGraph(quarters,away,home)+'</div></div>'+
+ '<div class="hzv-gc-callout"><b>✦ KLUCZOWY MOMENT</b><span>'+esc(periodChange)+'</span></div>'+
+ '</section><section class="hzv-game-card hzv-gc-history">'+
+ '<div class="hzv-history-tabs" role="group" aria-label="Porównanie historyczne">'+
+ '<button type="button" data-hzv-history="h2h" class="'+(historyTab==="h2h"?"selected":"")+'">Head to Head</button>'+
+ '<button type="button" data-hzv-history="recent" class="'+(historyTab==="recent"?"selected":"")+'">Ostatnie mecze</button></div>'+
+ '<div id="hzv-history-results">'+historyMarkup(data,game)+'</div>'+
+ '</section></div>';
+ return first+right;
+}
+function renderGamePage(){
+ const pane=$("schedule-pane"),page=$("hzv-game-page"),content=$("hzv-game-content");
+ if(!pane||!page||!content)return;
+ const game=selectedGameId&&lastData?gameFromSelected(lastData):null;
+ const active=Boolean(game);
+ pane.classList.toggle("hzv-show-game",active);page.hidden=!active;
+ if(active){
+  content.innerHTML=detailsMarkup(lastData,game,lastDetails);
+  const container=$("hzv-game-page");if(container&&container.scrollTop>0)container.scrollTop=0;
+ }
+}
+function render(data,packet){
+ lastData=data;lastDetails=packet||null;
+ if(!selectedDay)selectedDay=safeDay(data?.calendar_today)?data.calendar_today:today();
+ dateNavigation();syncFilters();standings(data,"east");standings(data,"west");
+ const f=$("hzs-source-note");if(f)f.textContent="ESPN · potwierdzone wyniki i bilanse sezonu 2026/27";
+ if(selectedGameId)renderGamePage();else{
+  const pane=$("schedule-pane");pane?.classList.remove("hzv-show-game");
+  if($("hzv-game-page"))$("hzv-game-page").hidden=true;
+ }
+ renderBoard(data);
+}
+function openGame(id){
+ if(!lastData)return;const game=selectedGames(lastData).games.find(g=>String(g.id||"")===id);if(!game)return;
+ selectedGameId=id;historyTab="h2h";toggleCalendar(false);
+ if(game.state!=="scheduled"&&(!lastDetails||lastDetails.id!==id||lastDetails.day!==selectedDay)){
+  if(requestedDetailsId!==id){requestedDetailsId=id;callback?.gameDetails?.({game_id:id,date:selectedDay});}
+ }
+ renderGamePage();const page=$("hzv-game-page");if(page)page.scrollTop=0;
+}
+function closeGame(){selectedGameId="";requestedDetailsId="";$("schedule-pane")?.classList.remove("hzv-show-game");
+ $("hzv-game-page").hidden=true;renderBoard(lastData);$("hzv-featured-button")?.focus({preventScroll:true});}
 function init(api){
-  callback=api;
-  $("hzs-board")?.addEventListener("click",event=>{
-    const star=event.target.closest("[data-hzs-star]");
-    if(star){
-      event.preventDefault();
-      const code=star.dataset.hzsStar||"";
-      const gameId=star.closest("[data-hzs-shell-id]")?.dataset.hzsShellId||"";
-      if(!VALID_TEAMS.has(code))return;
-      if(favorites.has(code))favorites.delete(code);
-      else favorites.add(code);
-      persistFavorites();
-      render(lastData,lastDetails);
-      const replacement=[...$("hzs-board").querySelectorAll("[data-hzs-star]")].find(el=>
-        el.dataset.hzsStar===code&&el.closest("[data-hzs-shell-id]")?.dataset.hzsShellId===gameId);
-      replacement?.focus({preventScroll:true});
-      return;
-    }
-    const target=event.target.closest("[data-hzs-game]");
-    if(!target||!lastData)return;
-    const id=target.dataset.hzsGame||"";
-    const game=selectedGames(lastData).games.find(g=>String(g?.id||"")===id);
-    if(!id||!game)return;
-    selectedGameId=selectedGameId===id?"":id;
-    if(!selectedGameId){requestedDetailsId="";render(lastData,lastDetails);return}
-    if(game.state!=="scheduled"&&(!lastDetails||lastDetails.id!==id||lastDetails.day!==selectedDay)){
-      if(requestedDetailsId!==id){
-        requestedDetailsId=id;
-        callback?.gameDetails?.({game_id:id,date:selectedDay});
-      }
-    }
-    render(lastData,lastDetails);
-    requestAnimationFrame(()=>{
-      const section=$("hzs-game-details");
-      if(section)section.scrollIntoView({block:"nearest",behavior:"smooth"});
-    });
-  });
-  document.querySelector(".hzs-filters")?.addEventListener("click",event=>{
-    const button=event.target.closest("[data-hzs-filter]");
-    if(!button||selectedFilter===button.dataset.hzsFilter)return;
-    selectedFilter=button.dataset.hzsFilter;
-    selectedGameId="";requestedDetailsId="";
-    render(lastData,lastDetails);
-  });
-  $("hzs-date-strip")?.addEventListener("click",event=>{
-    const button=event.target.closest("[data-hzs-day]");
-    if(button&&!button.disabled)selectDay(button.dataset.hzsDay);
-  });
-  document.querySelectorAll("[data-hzs-direction]").forEach(button=>{
-    button.addEventListener("click",()=>selectDay(shiftDay(selectedDay,Number(button.dataset.hzsDirection))));
-  });
-  $("hzs-today")?.addEventListener("click",()=>selectDay(today()));
-  $("hzs-date-picker")?.addEventListener("change",event=>{
-    const value=event.target.value;
-    if(safeDay(value)&&withinRange(value))selectDay(value);
-    else event.target.value=selectedDay;
-  });
+ callback=api;
+ $("hzs-board")?.addEventListener("click",event=>{
+  const starBtn=event.target.closest("[data-hzs-star]");
+  if(starBtn){const code=starBtn.dataset.hzsStar;if(!VALID.has(code))return;
+   if(favorites.has(code))favorites.delete(code);else favorites.add(code);
+   persistFavorites();renderBoard(lastData);
+   const replacement=[...document.querySelectorAll("#hzs-board [data-hzs-star]")].find(el=>
+    el.dataset.hzsStar===code&&el.dataset.hzsStarGame===starBtn.dataset.hzsStarGame);
+   replacement?.focus({preventScroll:true});return;
+  }
+  const button=event.target.closest("[data-hzs-game]");if(button)openGame(button.dataset.hzsGame);
+ });
+ $("hzv-hero")?.addEventListener("click",event=>{const btn=event.target.closest("[data-hzs-game]");if(btn)openGame(btn.dataset.hzsGame)});
+ $("hzv-game-back")?.addEventListener("click",closeGame);
+ $("hzv-game-content")?.addEventListener("click",event=>{
+  const button=event.target.closest("[data-hzv-history]");if(!button)return;
+  if(!["h2h","recent"].includes(button.dataset.hzvHistory))return;
+  historyTab=button.dataset.hzvHistory;
+  document.querySelectorAll("[data-hzv-history]").forEach(b=>b.classList.toggle("selected",b.dataset.hzvHistory===historyTab));
+  const game=gameFromSelected(lastData);
+  if(game&&$("hzv-history-results"))$("hzv-history-results").innerHTML=historyMarkup(lastData,game);
+ });
+ document.querySelector(".hzs-filters")?.addEventListener("click",event=>{
+  const button=event.target.closest("[data-hzs-filter]");if(!button||selectedFilter===button.dataset.hzsFilter)return;
+  selectedFilter=button.dataset.hzsFilter;syncFilters();renderBoard(lastData);
+ });
+ $("hzs-date-strip")?.addEventListener("click",event=>{
+  const button=event.target.closest("[data-hzs-day]");if(button&&!button.disabled)selectDay(button.dataset.hzsDay);
+ });
+ document.querySelectorAll("#schedule-pane [data-hzs-direction]").forEach(b=>
+  b.addEventListener("click",()=>selectDay(shiftDay(selectedDay,Number(b.dataset.hzsDirection)))));
+ $("hzs-today")?.addEventListener("click",()=>selectDay(today()));
+ $("hzv-search")?.addEventListener("input",event=>{searchText=event.target.value.slice(0,100);renderBoard(lastData)});
+ $("hzv-calendar-toggle")?.addEventListener("click",()=>toggleCalendar($("hzv-calendar-popup").hidden));
+ $("hzv-calendar-popup")?.addEventListener("click",event=>{
+  const month=event.target.closest("[data-hzv-month]");
+  if(month){const d=noon(monthView);d.setUTCMonth(d.getUTCMonth()+Number(month.dataset.hzvMonth));monthView=d.toISOString().slice(0,7)+"-01";renderCalendar();return;}
+  const date=event.target.closest("[data-hzv-calendar-day]");
+  if(date&&!date.disabled)selectDay(date.dataset.hzvCalendarDay);
+ });
+ document.querySelectorAll("[data-hzv-table]").forEach(b=>b.addEventListener("click",()=>{
+  const which=b.dataset.hzvTable;
+  if(expandedTables.has(which))expandedTables.delete(which);else expandedTables.add(which);
+  b.closest(".hzv-standing-card")?.classList.toggle("hzv-expanded",expandedTables.has(which));
+  standings(lastData,which);
+ }));
+ document.addEventListener("click",event=>{
+  if(!$("hzv-calendar-popup")?.hidden&&!event.target.closest(".hzv-week-panel"))toggleCalendar(false);
+ });
+ document.addEventListener("keydown",event=>{
+  if(event.key==="Escape"&&!$("hzv-calendar-popup")?.hidden){toggleCalendar(false);$("hzv-calendar-toggle")?.focus();}
+  else if(event.key==="Escape"&&selectedGameId&&$("schedule-pane")&&!$("schedule-pane").hidden)closeGame();
+ });
 }
 window.HoopzaroSchedule={init,render};
 })();
