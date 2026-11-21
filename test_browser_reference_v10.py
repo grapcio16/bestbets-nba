@@ -268,6 +268,7 @@ def main():
             }},
         )
         retry_button = page.locator("[data-hzv-retry-game]")
+        retry_button.wait_for(state="visible",timeout=5000)
         assert retry_button.is_visible()
         retry_button.click()
         assert "Pobieranie zweryfikowanego" in page.locator("#hzv-game-content").inner_text()
