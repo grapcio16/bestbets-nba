@@ -104,7 +104,9 @@ def main():
         assert page.locator("#hzm-lab-range").inner_text()=="Przedział 80%: —"
         page.locator("#hzm-lab-tab-players").click()
         assert page.locator("#hzm-player-rows .hzm-player-row").count()==0
-        assert "dostępne w Premium" in page.locator("#hzm-player-rows").inner_text()
+        assert "Premium" in page.locator("#hzm-player-rows").inner_text()
+        assert "subskrypcji" in page.locator("#hzm-player-rows").inner_text()
+        assert "Test Player" not in page.locator("#hzm-player-rows").inner_text()
         page.locator("#hzm-lab-tab-results").click()
         assert page.locator("#hzm-score").inner_text()=="— : —"
         assert not errors, errors
