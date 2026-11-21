@@ -383,6 +383,15 @@ function showScenario(game,sim,premium){
  if(!baseline||!changed||!delta||!status)return;
  baseline.textContent=eligible?fmt(sim.total_points)+" pkt":"—";
  changed.textContent="—";delta.textContent="—";
+ const valid=v=>v!==null&&v!==undefined&&v!==""&&Number.isFinite(Number(v));
+ const points=v=>valid(v)?fmt(v)+" pkt":"—";
+ const wins=v=>valid(v)&&Number(v)>=0&&Number(v)<=100?fmt(v)+"%":"—";
+ for(const side of ["away","home"]){
+   const code=$("hzm-scenario-"+side+"-code"),pt=$("hzm-scenario-"+side+"-points"),win=$("hzm-scenario-"+side+"-win");
+   if(code)code.textContent=game?.[side]|| (side==="away"?"GOŚCIE":"GOSPODARZE");
+   if(pt)pt.textContent=eligible?points(sim[side+"_points"])+" → —":"—";
+   if(win)win.textContent=eligible?wins(sim[side+"_win_pct"])+" → —":"—";
+ }
  if(!paid){status.textContent="Wymagane aktywne Premium. Scenariusz nie ujawnia danych modelu.";return}
  if(!game){status.textContent="Wybierz mecz.";return}
  if(game.state!=="scheduled"||!(Date.parse(game.start||"")>Date.now())){
@@ -396,9 +405,18 @@ function showScenario(game,sim,premium){
  if(matched){
    if(data.error){status.textContent=String(data.error).slice(0,180);return}
    const total=data.scenario?.total_points,base=data.baseline?.total_points;
-   if(Number.isFinite(Number(total))&&Number.isFinite(Number(base))){
+   if(valid(total)&&valid(base)){
      changed.textContent=fmt(total)+" pkt";
      delta.textContent=(total-base>0?"+":"")+fmt(total-base)+" pkt";
+     for(const side of ["away","home"]){
+       const a=data.baseline||{},b=data.scenario||{};
+       const pt=$("hzm-scenario-"+side+"-points"),win=$("hzm-scenario-"+side+"-win");
+       if(pt)pt.textContent=points(a[side+"_points"])+" → "+points(b[side+"_points"]);
+       const aw=a[side+"_win_pct"],bw=b[side+"_win_pct"];
+       if(win)win.textContent=wins(aw)+" → "+wins(bw)+
+         (valid(aw)&&valid(bw)&&Number(aw)<=100&&Number(bw)<=100
+           ?" ("+(bw-aw>0?"+":"")+fmt(bw-aw)+" pp)":"");
+     }
      status.textContent="Obliczono 5 000 symulacji dla każdej wersji. Tempo: "+
        (state.scenarioPct>0?"+":"")+state.scenarioPct+"%.";
      return;
