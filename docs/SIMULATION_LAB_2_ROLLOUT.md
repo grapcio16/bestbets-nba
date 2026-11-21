@@ -27,7 +27,15 @@ This document tracks the six-phase Premium redesign. Use the approved HOOPZARO n
 ## Remaining implementation stages
 
 2. Future player model validation: true player-specific distributions for PTS/REB/AST/PRA and 3PM if supported by reliable pregame model inputs and audited backtests.
-3. Bidirectional Player Props ↔ Player Simulations deep links: preserve player identity, stat market, selected fixture and return navigation, respecting each module's subscription gate.
+## Phase 3 — Player Props ↔ Player Simulations deep links (this PR)
+
+- Authorized Player Props athlete name + exact NBA team + chosen market → Player Simulations. The target is the closest **verified upcoming fixture** for that team already present in the ESPN calendar; a previous or other team's game is never substituted. When no confirmed future fixture is available, stay in Props and explain the missing schedule.
+- Preserve current Props market, editable line, Over/Under, L5/L10/L15/season period, home/away filter and original query as a return context.
+- From an **authorized current-match** player's simulation card, open history for PTS/REB/AST/PRA only if the source projection exists. The starting threshold is derived arithmetically from the model mean and explicitly disclosed as **not a bookmaker line**.
+- A contextual "return to previous Props analysis" restores the original query and controls without forcing a new search if the authenticated historic player payload still matches. If a refresh must refetch it, restore the selection when the verified server response arrives.
+- Navigation never bypasses the existing per-route Premium entitlement or daily Props search limits. Model-specific data must not be reused for another date or game; account/session changes invalidate bridge state.
+
+## Remaining implementation stages
 4. Scenario Builder: re-run the server-side model using explicit hypothetical constraints, retain the baseline, compare A/B projections, log assumptions; do not treat simulations as official injury news.
 5. Match Intelligence / Team Comparison: verified pace, form, strength, injuries and schedule context; clear missing-data flags and transparent model factor attribution.
 6. Model & Backtest: timestamp/store genuine pre-tipoff forecasts; use walk-forward evaluation, MAE, calibration, sample sizes and historical archived market prices where available. Never display invented ROI/win rates.
