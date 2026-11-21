@@ -1000,12 +1000,16 @@ function render(home,premium){
   // visible. On entitlement revocation update everything so hidden Premium
   // panes cannot retain a paid result in the in-memory DOM.
   const revoking=premium?.entitled!==true;
-  if(revoking||state.view==="results"){
+  if(revoking||state.view==="results"||
+     (state.view==="players"&&!window.HoopzaroPlayerV3)){
+    // Legacy Results view stays intact; the Node mock harness intentionally
+    // runs without the browser-only Player V3 module.
     showChart(sim,game,premium);showPlayers(premium,players,game);
   }
   if(state.view==="players"){
     window.HoopzaroPlayerV3?.render({
       game,sim,players,premium,model:state.model,state,
+      onReturn:()=>callbacks?.backToProps?.(),
       onHistory:(item,market)=>{
         if(!premium?.entitled||!game||!players||!item)return;
         if(players.players?.[state.playerIndex]!==item)return;
