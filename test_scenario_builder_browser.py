@@ -75,8 +75,12 @@ def main():
         payload["premium_simulation"]["scenario"] = {
             "date": day, "game_id": game_id, "model_id": "research_form_v74",
             "pace_pct": 3,
-            "baseline": {"total_points": 230.0},
-            "scenario": {"total_points": 236.0},
+            "baseline": {
+                "total_points": 230.0, "away_points": 113.0,
+                "home_points": 117.0, "away_win_pct": 49.0, "home_win_pct": 51.0},
+            "scenario": {
+                "total_points": 236.0, "away_points": 116.0,
+                "home_points": 120.0, "away_win_pct": 48.6, "home_win_pct": 51.4},
         }
         page.evaluate(
             "data => window.postMessage({type:'streamlit:render',args:{payload:data}}, '*')",
@@ -84,6 +88,21 @@ def main():
         )
         assert page.locator("#hzm-scenario-whatif").inner_text() == "236,0 pkt"
         assert page.locator("#hzm-scenario-delta").inner_text() == "+6,0 pkt"
+        assert page.locator("#hzm-scenario-away-code").inner_text() == "NYK"
+        assert page.locator("#hzm-scenario-home-code").inner_text() == "BOS"
+        assert "113,0 pkt → 116,0 pkt" in page.locator("#hzm-scenario-away-points").inner_text()
+        assert "117,0 pkt → 120,0 pkt" in page.locator("#hzm-scenario-home-points").inner_text()
+        assert "-0,4 pp" in page.locator("#hzm-scenario-away-win").inner_text()
+        assert "+0,4 pp" in page.locator("#hzm-scenario-home-win").inner_text()
+
+        # A cached scenario for a different pace value must not appear.
+        payload["premium_simulation"]["scenario"]["pace_pct"] = 2
+        page.evaluate(
+            "data => window.postMessage({type:'streamlit:render',args:{payload:data}}, '*')",
+            payload,
+        )
+        assert page.locator("#hzm-scenario-whatif").inner_text() == "—"
+        assert "→ —" in page.locator("#hzm-scenario-away-points").inner_text()
 
         payload["auth"] = {"role": "free"}
         payload["premium_simulation"] = {
@@ -96,6 +115,8 @@ def main():
         assert page.locator("#hzm-scenario-whatif").inner_text() == "—"
         assert page.locator("#hzm-scenario-base").inner_text() == "—"
         assert page.locator("#hzm-scenario-run").is_disabled()
+        assert page.locator("#hzm-scenario-away-points").inner_text() == "—"
+        assert page.locator("#hzm-scenario-home-win").inner_text() == "—"
         assert not errors, errors
         browser.close()
         print("Scenario Builder browser: model switch isolation, render and free gate OK")
