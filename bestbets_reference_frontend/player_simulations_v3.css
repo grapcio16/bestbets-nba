@@ -320,3 +320,109 @@
  #hzv3 .hzv3-search{height:29px;max-width:290px}
  #hzv3 .hzv3-description{margin:4px 1px 8px}
 }
+
+/* Approved neon reference: visual color pass, strictly scoped to Player V3.
+   No column widths, scroll behavior, forecast logic or other tabs changed. */
+#hzv3{
+  border-color:#b244ef;
+  background:
+    radial-gradient(ellipse 65% 70% at 99% 92%,rgba(169,38,211,.24),transparent 73%),
+    radial-gradient(ellipse 59% 30% at 16% 0%,rgba(18,158,229,.18),transparent 80%),
+    linear-gradient(142deg,#061a37 0%,#0c1637 57%,#170d32 100%);
+  box-shadow:0 0 0 1px rgba(180,62,245,.19),inset 0 1px rgba(219,143,255,.27),
+             0 0 22px rgba(111,31,188,.24);
+}
+#hzv3 .hzv3-inspector{
+  border-color:#aa4ee9;
+  background:
+    radial-gradient(ellipse 106% 48% at 40% 0%,rgba(179,64,211,.43),transparent 84%),
+    radial-gradient(ellipse 99% 46% at 100% 96%,rgba(114,26,186,.27),transparent),
+    linear-gradient(155deg,#172450 0%,#1a1949 52%,#15132f 100%);
+  box-shadow:inset 0 1px rgba(250,186,255,.24),0 0 17px rgba(153,46,228,.28);
+}
+#hzv3 .hzv3-athlete-photo{
+  isolation:isolate;
+  background:
+    radial-gradient(circle at 55% 41%,rgba(85,235,255,.28),transparent 60%),
+    radial-gradient(ellipse at 48% 84%,rgba(169,45,204,.5),transparent 74%),
+    linear-gradient(160deg,#172950,#241546);
+}
+#hzv3 .hzv3-athlete-photo::before{
+  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:linear-gradient(180deg,transparent 42%,rgba(57,8,90,.35) 100%);
+}
+#hzv3 .hzv3-team-watermark{
+  position:absolute;inset:2px -10px 0;z-index:1;
+  display:grid;place-items:center;overflow:hidden;pointer-events:none;
+  opacity:.36;filter:drop-shadow(0 0 9px rgba(146,88,255,.6));
+}
+#hzv3 .hzv3-team-watermark img{
+  position:absolute;inset:5% 2% 7%;width:96%;height:88%;
+  object-fit:contain;object-position:center;
+  opacity:1;filter:saturate(1.08) contrast(1.13);
+}
+#hzv3 .hzv3-team-watermark-label{
+  font-size:58px;font-weight:950;letter-spacing:-4px;
+  color:#b1eefe;line-height:1;text-shadow:0 0 18px rgba(32,223,255,.8);
+}
+#hzv3 .hzv3-team-watermark.has-logo .hzv3-team-watermark-label{display:none}
+#hzv3 .hzv3-athlete-photo .hzv3-avatar-fallback{
+  position:relative;z-index:2;
+  text-shadow:0 0 11px #0abcef;
+}
+#hzv3 .hzv3-athlete-photo img.hzv3-headshot{
+  z-index:3;object-fit:contain;object-position:bottom center;
+  filter:drop-shadow(0 5px 7px rgba(3,12,39,.48));
+}
+#hzv3 .hzv3-metric{
+  border-color:#258bca;
+  background:linear-gradient(155deg,rgba(9,110,154,.48),#10254e 87%);
+  box-shadow:inset 0 1px rgba(39,232,251,.2),0 0 7px rgba(9,156,216,.16);
+}
+#hzv3 .hzv3-metric[data-hzv3-metric="PRA"]{
+  border-color:#b95aef;
+  background:linear-gradient(150deg,#612579,#30164d 88%);
+  box-shadow:inset 0 1px rgba(239,167,255,.24),0 0 8px rgba(201,80,255,.23);
+}
+#hzv3 .hzv3-roster-card{
+  border-color:#0be6f7;
+  background:linear-gradient(158deg,#09294a 0%,#091a39 68%,#0d1536 100%);
+  box-shadow:inset 0 1px rgba(34,245,252,.32),0 0 15px rgba(22,186,242,.18);
+}
+#hzv3 .hzv3-player:hover{background:linear-gradient(95deg,#145e81,#112750)}
+#hzv3 .hzv3-player[aria-pressed="true"]{
+  border-color:#24effd;
+  box-shadow:0 0 0 1px rgba(20,237,250,.46),inset 0 0 17px rgba(8,200,233,.37),
+             0 0 11px rgba(23,225,241,.24);
+  background:linear-gradient(90deg,#096884,#0b4264 76%,#13325d);
+}
+#hzv3 .hzv3-analytics-card{
+  border-color:#a253e8;
+  background:
+    radial-gradient(ellipse at 92% 100%,rgba(129,35,205,.29),transparent 76%),
+    linear-gradient(135deg,#0c2043,#17123b 100%);
+  box-shadow:inset 0 1px rgba(236,162,255,.19),0 0 11px rgba(131,52,218,.15);
+}
+#hzv3 .hzv3-hist-card,#hzv3 .hzv3-trend-card{border-color:#aa50f1}
+#hzv3 .hzv3-rates-card,#hzv3 .hzv3-averages-card{
+  border-color:#8059d7;
+  background:linear-gradient(142deg,#122d53,#1e1542);
+}
+#hzv3 .hzv3-summary-card{
+  border-color:#2479ba;
+  background:
+    radial-gradient(ellipse at 85% 100%,rgba(66,38,143,.25),transparent),
+    linear-gradient(140deg,#092b4a,#141a3c);
+  box-shadow:inset 0 1px rgba(60,219,255,.18);
+}
+#hzv3 .hzv3-summary-card:nth-child(2){border-color:#675cc6}
+#hzv3 .hzv3-history-actions button{
+  border-color:#12d6fa;
+  background:linear-gradient(160deg,#075c83,#08254c 76%);
+  box-shadow:inset 0 1px rgba(32,244,255,.22),0 0 8px rgba(10,198,236,.13);
+}
+#hzv3 .hzv3-plot svg{filter:drop-shadow(0 0 2px rgba(76,179,253,.12))}
+@media(max-width:767px){
+  #hzv3 .hzv3-team-watermark{opacity:.28}
+  #hzv3 .hzv3-athlete-photo img.hzv3-headshot{object-fit:contain}
+}
