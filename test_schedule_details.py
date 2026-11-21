@@ -147,7 +147,7 @@ class ScheduleDetailsTests(unittest.TestCase):
         wrong=fixture("4018100004","2026-11-03T01:00:00Z",away="MIA",home="ATL")
         self.assertIsNone(_verified_schedule_event(pending))
         self.assertIsNone(_verified_schedule_event({"id":"fake"}))
-        def response(url,params=None,**kwargs):
+        def response(key,url,params=None,**kwargs):
             season=params["season"]
             if season==2026:
                 return ({"events":[old]},{"stale":False})
@@ -178,7 +178,7 @@ class ScheduleDetailsTests(unittest.TestCase):
                 {"homeAway":"away","team":{"abbreviation":"NY"},"linescores":[{"value":26}]},
                 {"homeAway":"home","team":{"abbreviation":"BOS"},"linescores":[{"value":29}]}
             ]}]}]}
-        def response(url,params=None,**kwargs):
+        def response(key,url,params=None,**kwargs):
             if "scoreboard" in url:return (scoreboard,{"stale":False})
             return (raw,{"stale":False})
         history={"h2h":[],"recent":{"NYK":[],"BOS":[]},"coverage":[{"team":"NYK","season":2027}],"error":""}
