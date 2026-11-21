@@ -15,7 +15,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 VIEWS = [
     ("results", "#hzm-detail-grid", "#hzm-players-panel"),
-    ("players", "#hzm-detail-grid", "#hzm-player-inspector"),
+    ("players", "#hzv3", "#hzv3 .hzv3-summary"),
     ("scenario", "#hzm-scenario-panel", "#hzm-availability-panel"),
     ("intelligence", "#hzm-intel-panel", "#hzm-intel-caveat"),
     ("comparison", "#hzm-compare-panel", "#hzm-compare-disclaimer"),
