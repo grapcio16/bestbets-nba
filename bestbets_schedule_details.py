@@ -85,11 +85,16 @@ def parse_game_details(payload, game_id, away, home):
         if code in (away, home):
             team_blocks[code] = block
     metrics = [
-        ("FG%", ("fieldGoalPct", "fieldGoalPercentage", "FG%"), True),
-        ("3PT%", ("threePointFieldGoalPct", "threePointFieldGoalPercentage", "3P%"), True),
-        ("REB", ("totalRebounds", "rebounds", "REB"), False),
-        ("AST", ("assists", "AST"), False),
-        ("TOV", ("totalTurnovers", "turnovers", "TO"), False),
+        ("Celne z gry %", ("fieldGoalPct", "fieldGoalPercentage", "FG%"), True),
+        ("Za 3 punkty %", ("threePointFieldGoalPct", "threePointFieldGoalPercentage", "3P%"), True),
+        ("Rzuty wolne %", ("freeThrowPct", "freeThrowPercentage", "FT%"), True),
+        ("Zbiórki", ("totalRebounds", "rebounds", "REB"), False),
+        ("Zbiórki w ataku", ("offensiveRebounds", "offRebounds", "OREB"), False),
+        ("Asysty", ("assists", "AST"), False),
+        ("Bloki", ("blocks", "BLK"), False),
+        ("Przechwyty", ("steals", "STL"), False),
+        ("Straty", ("totalTurnovers", "turnovers", "TO"), False),
+        ("Faule", ("fouls", "personalFouls", "PF"), False),
     ]
     team_stats = []
     if away in team_blocks and home in team_blocks:
@@ -109,9 +114,12 @@ def parse_game_details(payload, game_id, away, home):
         leaders[side] = [{"name":str(p["PLAYER_NAME"])[:75],
                           "pts":int(p["PTS"]), "reb":int(p["REB"]), "ast":int(p["AST"])}
                          for p in athletes[:3]]
+    # Arena is only displayed when confirmed in the matching ESPN summary.
+    venue = comp.get("venue") or (payload.get("gameInfo") or {}).get("venue") or {}
+    arena = str(venue.get("fullName") or "").strip()[:110] if isinstance(venue, dict) else ""
     return {"id":game_id, "away":away, "home":home,
             "quarters":quarters, "team_stats":team_stats, "leaders":leaders,
-            "source":"ESPN"}
+            "arena":arena, "source":"ESPN"}
 
 
 def load_game_details(game_id, away, home, state):
