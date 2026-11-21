@@ -402,7 +402,9 @@ function showPlayerAnalytics(item){
   b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));
  }
  for(const b of document.querySelectorAll("[data-hzm-history-window]")){
-  const active=Number(b.dataset.hzmHistoryWindow)===state.playerHistoryWindow;
+  const active=b.dataset.hzmHistoryWindow==="season"
+     ?state.playerHistoryWindow==="season"
+     :Number(b.dataset.hzmHistoryWindow)===state.playerHistoryWindow;
   b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));
  }
  if(!item){
@@ -415,7 +417,8 @@ function showPlayerAnalytics(item){
  }
  const rows=playerHistory(item,market);
  hist.innerHTML=playerHistogramMarkup(item,market);
- trend.innerHTML=playerTrendMarkup(item,market,state.playerHistoryWindow);
+ trend.innerHTML=playerTrendMarkup(item,market,
+  state.playerHistoryWindow==="season"?rows.length:state.playerHistoryWindow);
  $("hzm-player-rates-source").textContent="Historyczna częstość · "+rows.length+" meczów (nie prawdopodobieństwo modelu)";
  const projection=playerMetric(item,market);
  if(projection!==null&&rows.length>=3){
@@ -431,9 +434,9 @@ function showPlayerAnalytics(item){
   const mean=historyMean(rows,n);
   return '<div><span>L'+n+'</span><strong>'+fmt(mean)+'</strong>'+
     '<small>'+(rows.length>=n?n+' meczów':'próba '+rows.length+'/'+n)+'</small></div>';
- }).join('');
+ }).join('')+'<div><span>Sezon</span><strong>—</strong><small>brak pełnej próby</small></div>';
  $("hzm-player-averages-source").textContent="Przed wybranym meczem · "+rows.length+
-  " potwierdzonych występów; niepełne okna oznaczono —.";
+  " potwierdzonych występów; niepełne okna i sezon oznaczono —.";
 }
 function showPlayers(premium,players,game){
  const panel=$("hzm-players-panel"),button=$("hzm-expand-players"),rows=$("hzm-player-rows");
@@ -1015,6 +1018,12 @@ function navigate(day){
 }
 function init(api){
   callbacks=api;
+  // Keep the verified ESPN photo optional: network and CDN errors should
+  // reveal the local initials fallback, not a broken-image icon.
+  $("simulations-pane")?.addEventListener("error",event=>{
+    if(event.target?.matches?.(".hzm-player-avatar img"))
+      event.target.remove();
+  },true);
   $("hzm-model-select").addEventListener("change",event=>chooseModel(event.target.value));
   // Give the model dropdown its own control listeners. The new Simulation Lab
   // has a scrollable canvas and overlay fixture picker: model controls must
@@ -1155,8 +1164,9 @@ function init(api){
     }
     const historyButton=event.target.closest("[data-hzm-history-window]");
     if(historyButton){
-      const next=Number(historyButton.dataset.hzmHistoryWindow);
-      if(state.view==="players"&&[5,10,15].includes(next)){
+      const raw=historyButton.dataset.hzmHistoryWindow;
+      const next=raw==="season"?"season":Number(raw);
+      if(state.view==="players"&&(next==="season"||[5,10,15].includes(next))){
         state.playerHistoryWindow=next;
         const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
         const pack=trustedPlayers(state.lastPremium,game);
