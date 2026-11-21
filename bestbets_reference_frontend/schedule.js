@@ -279,8 +279,9 @@ function historyMarkup(data,game){
 function detailsMarkup(data,game,packet){
  const away=String(game.away||""),home=String(game.home||"");
  const statsAway=verified(data,away),statsHome=verified(data,home);
- const details=packet?.id===String(game.id)&&packet?.day===selectedDay&&packet.data?.away===away&&packet.data?.home===home?packet.data:null;
- const loading=game.state!=="scheduled"&&!details&&!packet?.error;
+ const packetForGame=packet?.id===String(game.id)&&packet?.day===selectedDay?packet:null;
+ const details=packetForGame?.data?.away===away&&packetForGame?.data?.home===home?packetForGame.data:null;
+ const loading=game.state!=="scheduled"&&!details&&!packetForGame?.error;
  const quarters=Array.isArray(details?.quarters)?details.quarters.filter(q=>Number.isInteger(q.away)&&Number.isInteger(q.home)):[];
  const metrics=Array.isArray(details?.team_stats)?details.team_stats:[];
  const leaderRows=[...(details?.leaders?.away||[]).map(p=>({...p,team:away})),...(details?.leaders?.home||[]).map(p=>({...p,team:home}))];
@@ -309,7 +310,8 @@ function detailsMarkup(data,game,packet){
  '<h3 class="hzv-gc-subheading">▥ Statystyki drużyn</h3>'+
  (metrics.length?'<div class="hzv-gc-stats">'+metrics.map(q=>
  '<div class="hzv-gc-stat-row"><strong>'+esc(q.away)+'</strong><span>'+esc(q.label)+'</span><strong>'+esc(q.home)+'</strong></div>').join("")+'</div>':
- '<p class="hzv-history-empty">'+(game.state==="scheduled"?"Spotkanie jeszcze się nie rozpoczęło — statystyki będą dostępne po ich publikacji przez ESPN.":packet?.error?esc(packet.error):loading?"Pobieranie zweryfikowanego box score ESPN…":"Brak potwierdzonych statystyk drużyn.")+'</p>')+
+ '<div class="hzv-history-empty">'+(game.state==="scheduled"?"Spotkanie jeszcze się nie rozpoczęło — statystyki będą dostępne po ich publikacji przez ESPN.":packetForGame?.error?esc(packetForGame.error):loading?"Pobieranie zweryfikowanego box score ESPN…":"Brak potwierdzonych statystyk drużyn.")+
+ (packetForGame?.error?'<div><button type="button" class="hzv-retry-button" data-hzv-retry-game="'+esc(game.id)+'">Ponów pobieranie statystyk</button></div>':"")+'</div>')+
  '<p class="hzv-game-source">Źródło: ESPN · statystyki historyczne, bez symulacji i prognoz'+(details?.stale?' · dane opóźnione':'')+'</p>'+
  '</section>';
  const right='<div class="hzv-gc-right"><section class="hzv-game-card hzv-gc-xfactor">'+
@@ -387,6 +389,14 @@ function init(api){
  $("hzv-hero")?.addEventListener("click",event=>{const btn=event.target.closest("[data-hzs-game]");if(btn)openGame(btn.dataset.hzsGame)});
  $("hzv-game-back")?.addEventListener("click",closeGame);
  $("hzv-game-content")?.addEventListener("click",event=>{
+  const retry=event.target.closest("[data-hzv-retry-game]");
+  if(retry&&retry.dataset.hzvRetryGame===selectedGameId&&withinRange(selectedDay)){
+   requestedDetailsId=selectedGameId;
+   lastDetails=null;
+   renderGamePage();
+   callback?.gameDetails?.({game_id:selectedGameId,date:selectedDay});
+   return;
+  }
   const button=event.target.closest("[data-hzv-history]");if(!button)return;
   if(!["h2h","recent"].includes(button.dataset.hzvHistory))return;
   historyTab=button.dataset.hzvHistory;
