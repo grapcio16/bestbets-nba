@@ -63,7 +63,8 @@ def main():
         assert page.locator("#hzm-score").inner_text() == "115 : 116"
         assert page.locator("#hzm-player-rows .hzm-player-row").count() == 4
         assert page.locator(".hzm-lab-subtitle").inner_text() == "Simulation Lab 2.0"
-        assert page.locator("#hzm-lab-nav button:disabled").count()==1
+        assert page.locator("#hzm-lab-nav button:disabled").count()==0
+        assert page.locator("#hzm-lab-tab-backtest").is_enabled()
         assert page.locator("#hzm-lab-tab-comparison").is_enabled()
         assert page.locator("#hzm-lab-tab-intelligence").is_enabled()
         assert page.locator("#hzm-lab-tab-scenario").is_enabled()
