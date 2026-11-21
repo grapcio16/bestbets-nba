@@ -425,6 +425,7 @@ def main() -> None:
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
         st.session_state.pop("bb10_premium_game", None)
         st.session_state.pop("bb10_premium_players", None)
+        st.session_state.pop("bb10_premium_scenario", None)
         st.session_state.pop("bb10_premium_player_averages", None)
         st.session_state.pop("bb10_premium_team_analytics", None)
         st.session_state.pop("bb10_team_analytics_attempt_at", None)
