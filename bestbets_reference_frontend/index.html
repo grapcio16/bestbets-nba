@@ -205,6 +205,23 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 .preview{transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
 .preview:focus-within{outline:2px solid var(--cyan);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+
+/* Desktop split scrolling: the left navigation stays in place. */
+#app-shell.hz-independent-scroll #stage{overflow:hidden}
+#app-shell.hz-independent-scroll #stage aside,
+#app-shell.hz-independent-scroll #stage.bb-home-active aside{height:var(--hz-split-height,691px)!important}
+#app-shell.hz-independent-scroll #work,
+#app-shell.hz-independent-scroll #stage.bb-home-active #work{
+  height:var(--hz-split-height,691px)!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  overscroll-behavior-y:contain;
+  scrollbar-width:thin;scrollbar-color:#347db9 transparent;
+}
+#app-shell.hz-independent-scroll #work::-webkit-scrollbar{width:6px}
+#app-shell.hz-independent-scroll #work::-webkit-scrollbar-thumb{
+  background:linear-gradient(#19dffa,#8356ee);border-radius:6px
+}
+#app-shell.hz-independent-scroll #work::-webkit-scrollbar-track{background:transparent}
 </style>
 <link rel="stylesheet" href="centrum.css">
 <link rel="stylesheet" href="hoopzaro.css">
@@ -707,20 +724,19 @@ function notify(type,extra){
   window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},extra||{}),"*");
 }
 function resize(){
-  // Keep the PROVEN Streamlit v1 iframe lifecycle and its fixed-height CSS
-  // unchanged. Only scale the original 1231x691 composition to the iframe WIDTH.
-  // Its extra height can scroll inside the frame on wide/short screens.
-  // Do not switch iframe to height:auto/aspect-ratio: that broke production.
+  // Keep the approved 1231px-wide design; isolate vertical scrolling in #work.
   const viewportWidth=Math.max(320,document.documentElement.clientWidth||window.innerWidth||1231);
-  const mobileHome=(viewportWidth<=767 ||
-    (viewportWidth<=1200 && window.innerHeight<=500 &&
-     viewportWidth>window.innerHeight)) && state.page==="home";
+  const shortLandscape=viewportWidth<=1200 && window.innerHeight<=500 &&
+    viewportWidth>window.innerHeight;
+  const mobileLayout=viewportWidth<=767 || shortLandscape;
+  const mobileHome=mobileLayout && state.page==="home";
   shell.classList.toggle("hz-mobile-centre",mobileHome);
+  shell.classList.toggle("hz-independent-scroll",!mobileLayout);
   if(mobileHome){
-    // On iPhone, a content-height iframe traps swipes because neither the
-    // iframe nor its document has a scrollable viewport. Keep the iframe at
-    // viewport height and let its document scroll natively on both axes.
+    // Preserve the existing iPhone/mobile-centre touch scrolling.
     root.style.transform="none";
+    root.style.height="";
+    shell.style.removeProperty("--hz-split-height");
     shell.style.width="100%";
     shell.style.height="auto";
     document.documentElement.style.overflowY="auto";
@@ -733,6 +749,22 @@ function resize(){
   const scale=viewportWidth/1231;
   root.style.transform="scale("+scale+")";
   shell.style.width=Math.round(1231*scale)+"px";
+  if(!mobileLayout){
+    const visibleHeight=Math.max(320,window.innerHeight||document.documentElement.clientHeight||700);
+    const unscaledHeight=Math.ceil(visibleHeight/scale);
+    root.style.height=unscaledHeight+"px";
+    shell.style.setProperty("--hz-split-height",unscaledHeight+"px");
+    shell.style.height=visibleHeight+"px";
+    document.documentElement.style.overflowY="hidden";
+    document.body.style.overflowY="hidden";
+    notify("streamlit:setFrameHeight",{height:visibleHeight});
+    return;
+  }
+  // Narrow non-Centrum screens retain their original scaling.
+  root.style.height="";
+  shell.style.removeProperty("--hz-split-height");
+  document.documentElement.style.overflowY="";
+  document.body.style.overflowY="";
   shell.style.height=Math.ceil(691*scale)+"px";
   notify("streamlit:setFrameHeight",{height:Math.ceil(691*scale)+2});
 }
@@ -1174,6 +1206,7 @@ document.addEventListener("keydown",function(e){
 document.querySelectorAll("[data-query]").forEach(function(b){b.addEventListener("click",function(){state.page="props";search(b.dataset.query)})});
 document.querySelectorAll("[data-page]").forEach(function(el){el.addEventListener("click",function(){
   state.page=el.dataset.page;state.payload.error="";render();
+   if(shell.classList.contains("hz-independent-scroll"))$("work").scrollTop=0;
   if(state.page==="admin"&&!state.payload.admin_report)requestAdminReport();
   if(state.page==="players")requestPlayersData();
   if(state.page==="teams")requestTeamsData();
