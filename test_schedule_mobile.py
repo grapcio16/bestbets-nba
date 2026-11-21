@@ -35,6 +35,12 @@ def main():
         assert pane and pane["width"] <= 390 and pane["x"] >= 0, pane
         assert page.locator("#stage").evaluate("el=>getComputedStyle(el).transform") == "none"
         assert page.locator("#hzs-board .hzs-game").count() == 10
+        assert page.locator("#hzv-day-title").count() == 0
+        mobile_controls = page.locator(".hzv-controls").bounding_box()
+        mobile_hero = page.locator("#hzv-hero").bounding_box()
+        assert mobile_controls and mobile_hero
+        assert mobile_controls["y"] < mobile_hero["y"]
+        assert mobile_hero["height"] <= 115, mobile_hero
         assert len(page.locator("#hzs-board .hzs-rows").evaluate(
             "el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean)")) == 2
         assert page.locator(".hz-mobile-nav").is_visible()
