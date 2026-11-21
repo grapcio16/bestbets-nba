@@ -96,6 +96,8 @@ def main():
         help_trigger.click()
         page.locator('.nav-btn[data-page="games"]').click()
         assert page.locator("#schedule-pane").is_visible()
+        assert page.locator("#schedule-pane .hzs-footnote").count() == 0
+        assert page.locator("#hzs-source-note").count() == 0
         assert_box(page, "#schedule-pane", 191, 9, 1025, 635)
         assert page.locator("#schedule-pane .hzv-sport-nav").count() == 0
         assert page.locator("#blank-pane").is_hidden()
