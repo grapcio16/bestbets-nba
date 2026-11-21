@@ -1577,6 +1577,13 @@ if(window.HoopzaroSimulations){
         id:String(Date.now())+"-scenario-"+id+"-"+Math.random().toString(36).slice(2)
       }});
     },
+    loadBacktest:function(){
+      if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled)return;
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"premium_sim_backtest",
+        id:String(Date.now())+"-walk-forward-"+Math.random().toString(36).slice(2)
+      }});
+    },
     loadMinuteScenario:function(args){
       const a=args||{};
       if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled||
