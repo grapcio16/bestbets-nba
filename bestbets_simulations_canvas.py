@@ -366,3 +366,88 @@ def scenario_for_entitled_user(day: str, game_id: str, model_id: str,
         logging.getLogger(__name__).warning(
             "Scenario Builder unavailable: %s", type(exc).__name__)
         return {"error": "Scenariusz chwilowo niedostępny."}
+
+
+
+def player_minutes_scenario_for_entitled_user(
+        day: str, game_id: str, model_id: str, player_name: str,
+        team: str, minute_delta: int) -> dict:
+    """Isolated V7.5 minute *sensitivity*, not another Monte Carlo run.
+
+    Reuses server-confirmed historical player means and minutes for the
+    exact future NBA fixture. Assumes constant rate per minute. It does NOT
+    simulate lineup substitution, pace, injuries, win chance, uncertainty,
+    team totals or independently sampled PRA. No cross-account cache.
+    """
+    if not premium_entitled():
+        return {"error": "Wymagana jest zweryfikowana subskrypcja Premium."}
+    if (model_id != "research_context_v75" or
+            not isinstance(day, str) or len(day) != 10 or
+            not isinstance(game_id, str) or
+            not game_id.isdigit() or len(game_id) > 30 or
+            not isinstance(player_name, str) or
+            not player_name.strip() or len(player_name) > 70 or
+            not isinstance(team, str) or len(team) != 3 or
+            not team.isalpha() or team != team.upper() or
+            type(minute_delta) is not int or not -5 <= minute_delta <= 5):
+        return {"error": "Niepoprawne parametry analizy minut."}
+    try:
+        if pd.Timestamp(day).strftime("%Y-%m-%d") != day:
+            return {"error": "Niepoprawna data spotkania."}
+        now = pd.Timestamp.now(tz="UTC")
+        if abs((pd.Timestamp(day).date() - now.date()).days) > 366:
+            return {"error": "Data poza dozwolonym okresem."}
+        fixture = next((g for g in _day_for_simulations(day).get("games", [])
+                        if str(g.get("id")) == game_id), None)
+        if (fixture is None or fixture.get("state") != "scheduled" or
+                team not in {fixture.get("away"), fixture.get("home")}):
+            return {"error": "Dostępne tylko dla potwierdzonego przyszłego meczu i drużyny."}
+        tipoff = pd.to_datetime(fixture.get("start"), utc=True, errors="coerce")
+        if pd.isna(tipoff) or tipoff <= now:
+            return {"error": "Spotkanie już się rozpoczęło."}
+        player_pack = _game_players(day, game_id, "research_context_v75")
+        if not isinstance(player_pack, dict) or player_pack.get("error"):
+            return {"error": "Zweryfikowane projekcje zawodników są niedostępne."}
+        choices = [p for p in player_pack.get("players", [])
+                   if p.get("name") == player_name.strip() and p.get("team") == team]
+        if len(choices) != 1:
+            return {"error": "Nie udało się jednoznacznie dopasować zawodnika i drużyny."}
+        player = choices[0]
+        status = str(player.get("availability") or "Niezweryfikowany")
+        if status == "Out":
+            return {"error": "Status OUT w raporcie ESPN — nie można wyświetlić scenariusza minut."}
+        minutes = _clean_float(player.get("minutes"))
+        sample = player.get("minutes_sample")
+        if (type(sample) is not int or sample < 3 or
+                minutes is None or not 5 <= minutes <= 44):
+            return {"error": "Brak wiarygodnej próbki co najmniej trzech występów i szacunku minut."}
+        new_minutes = round(minutes + minute_delta, 2)
+        if not 5 <= new_minutes <= 44:
+            return {"error": "Zmiana powodowałaby minuty poza zakresem 5–44."}
+        baseline, adjusted = {}, {}
+        for metric in ("pts", "reb", "ast"):
+            estimate = _clean_float(player.get(metric))
+            if estimate is None or not 0 <= estimate <= 70:
+                return {"error": "Niepełne projekcje PTS, REB i AST; nie wyliczono wariantu."}
+            baseline[metric] = round(estimate, 2)
+            adjusted[metric] = round(estimate * new_minutes / minutes, 2)
+        baseline["pra"] = round(sum(baseline.values()), 2)
+        adjusted["pra"] = round(sum(adjusted[k] for k in ("pts", "reb", "ast")), 2)
+        return {
+            "date": day, "game_id": game_id, "model_id": model_id,
+            "name": player_name.strip(), "team": team,
+            "minute_delta": minute_delta, "baseline_minutes": minutes,
+            "scenario_minutes": new_minutes, "minutes_sample": sample,
+            "availability": status,
+            "baseline": baseline, "scenario": adjusted,
+            "hypothetical": True,
+            "method": "Stała produkcja na minutę; skalowanie średnich, bez symulacji rozkładu.",
+            "warning": ("ESPN: " + status +
+                        ". Nie jest to potwierdzony czas gry. "
+                        "Bez wpływu na wynik meczu i produkcję kolegów z drużyny."),
+        }
+    except (ValueError, TypeError, KeyError, RuntimeError, OverflowError) as exc:
+        import logging
+        logging.getLogger(__name__).warning(
+            "Player minute sensitivity unavailable: %s", type(exc).__name__)
+        return {"error": "Analiza minut jest obecnie niedostępna."}
