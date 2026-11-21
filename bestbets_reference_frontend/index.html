@@ -556,7 +556,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       <button type="button" id="hzm-lab-tab-players" role="tab" data-hzm-view="players" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">♙</span> Player Simulations</button>
       <button type="button" id="hzm-lab-tab-scenario" role="tab" data-hzm-view="scenario" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">☷</span> Scenariusze</button>
       <button type="button" id="hzm-lab-tab-intelligence" role="tab" data-hzm-view="intelligence" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">✧</span> Analiza meczu</button>
-      <button type="button" role="tab" disabled aria-disabled="true" title="Porównanie drużyn — kolejny etap wdrożenia"><span aria-hidden="true">⇄</span> Porównanie drużyn <small>Wkrótce</small></button>
+      <button type="button" id="hzm-lab-tab-comparison" role="tab" data-hzm-view="comparison" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">⇄</span> Porównanie drużyn</button>
       <button type="button" role="tab" disabled aria-disabled="true" title="Model i Backtest — kolejny etap wdrożenia"><span aria-hidden="true">▤</span> Model &amp; Backtest <small>Wkrótce</small></button>
     </nav>
     <div class="hzm-content">
@@ -700,6 +700,44 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <div class="hzm-intel-factor-row total"><span>Łącznie względem bazowej średniej V7.4</span><strong id="hzm-intel-total-away">—</strong><strong id="hzm-intel-total-home">—</strong></div>
           </section>
           <p id="hzm-intel-caveat" class="hzm-intel-caveat">Model nie jest skalibrowany. Historia i kontekst nie gwarantują zwycięstwa. Wartości nie są rekomendacją bukmacherską.</p>
+        </section>
+        <section id="hzm-compare-panel" class="hzm-compare-panel" aria-label="Team Comparison — porównanie zweryfikowanych statystyk NBA" hidden>
+          <header class="hzm-compare-header">
+            <div><small>HOOPZARO · PREGAME DATA LAB</small><h2>Team Comparison</h2><p>Rzeczywiste wyniki przed meczem, bez prognozowanych statystyk.</p></div>
+            <div class="hzm-compare-window" role="group" aria-label="Wybierz liczbę ostatnich meczów">
+              <button type="button" id="hzm-compare-l5" data-hzm-comparison-window="5" aria-pressed="false">L5</button>
+              <button type="button" id="hzm-compare-l10" data-hzm-comparison-window="10" aria-pressed="true">L10</button>
+            </div>
+          </header>
+          <p id="hzm-compare-status" role="status" class="hzm-compare-status">Oczekiwanie na zweryfikowane statystyki wybranego spotkania.</p>
+          <div class="hzm-compare-teams" aria-label="Porównywane drużyny">
+            <div class="hzm-compare-team away">
+              <span class="hzm-compare-side">GOŚCIE</span>
+              <strong id="hzm-compare-away-name">—</strong>
+              <small id="hzm-compare-away-observed">Próba: —</small>
+              <span id="hzm-compare-away-record" class="hzm-compare-team-record">— W / — L</span>
+            </div>
+            <span class="hzm-compare-versus" aria-hidden="true">VS</span>
+            <div class="hzm-compare-team home">
+              <span class="hzm-compare-side">GOSPODARZE</span>
+              <strong id="hzm-compare-home-name">—</strong>
+              <small id="hzm-compare-home-observed">Próba: —</small>
+              <span id="hzm-compare-home-record" class="hzm-compare-team-record">— W / — L</span>
+            </div>
+          </div>
+          <section class="hzm-compare-table" aria-label="Ofensywa defensywa forma i tempo">
+            <div class="hzm-compare-table-head"><span id="hzm-compare-table-away">GOŚCIE</span><span>STATYSTYKA</span><span id="hzm-compare-table-home">GOSPODARZE</span></div>
+            <div class="hzm-compare-row"><strong id="hzm-compare-away-pts">—</strong><span>Śr. punkty zdobyte <small id="hzm-compare-pts-window">L10</small></span><strong id="hzm-compare-home-pts">—</strong></div>
+            <div class="hzm-compare-row"><strong id="hzm-compare-away-allowed">—</strong><span>Śr. punkty stracone <small id="hzm-compare-allowed-window">L10</small></span><strong id="hzm-compare-home-allowed">—</strong></div>
+            <div class="hzm-compare-row"><strong id="hzm-compare-away-margin">—</strong><span>Śr. różnica punktów <small id="hzm-compare-margin-window">L10</small></span><strong id="hzm-compare-home-margin">—</strong></div>
+            <div class="hzm-compare-row"><strong id="hzm-compare-away-win-pct">—</strong><span>Wygrane (%) <small id="hzm-compare-win-window">L10</small></span><strong id="hzm-compare-home-win-pct">—</strong></div>
+            <div class="hzm-compare-row distinct"><strong id="hzm-compare-away-venue-scored">—</strong><span>Śr. zdobyte na wyjeździe / u siebie</span><strong id="hzm-compare-home-venue-scored">—</strong></div>
+            <div class="hzm-compare-row"><strong id="hzm-compare-away-venue-allowed">—</strong><span>Śr. stracone na wyjeździe / u siebie</span><strong id="hzm-compare-home-venue-allowed">—</strong></div>
+            <div class="hzm-compare-row distinct"><strong id="hzm-compare-away-pace">—</strong><span>PACE · NBA Advanced</span><strong id="hzm-compare-home-pace">—</strong></div>
+            <div class="hzm-compare-row"><strong id="hzm-compare-away-off-rating">—</strong><span>OFFRTG · na 100 posiadań</span><strong id="hzm-compare-home-off-rating">—</strong></div>
+            <div class="hzm-compare-row"><strong id="hzm-compare-away-def-rating">—</strong><span>DEFRTG · na 100 posiadań (niższe = lepiej)</span><strong id="hzm-compare-home-def-rating">—</strong></div>
+          </section>
+          <footer id="hzm-compare-disclaimer" class="hzm-compare-disclaimer">Statystyki historyczne, nie przewidywany wynik. Tempo i ratingi tylko przy kompletnych danych NBA Advanced dla obu drużyn. Brak danych oznaczamy kreską.</footer>
         </section>
       </div>
     </div>
