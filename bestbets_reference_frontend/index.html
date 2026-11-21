@@ -481,24 +481,26 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     </nav>
     <div class="hzv-content" id="hzv-list-view">
       <main class="hzv-main">
-        <div id="hzv-hero" class="hzv-hero" aria-label="Mecz dnia"><p class="hzv-skeleton">Wczytywanie meczu dnia…</p></div>
-        <div class="hzv-day-heading">
-          <div class="hzv-day-heading-copy"><span class="hzv-day-accent" aria-hidden="true"></span>
-            <div><h2 id="hzv-day-title">Dzisiejsze mecze</h2><small id="hzs-match-count">— meczów</small></div>
+        <div class="hzv-controls" aria-label="Wybór meczów NBA">
+          <div class="hzv-search-row">
+            <label class="hzv-search"><span aria-hidden="true">⌕</span>
+              <input id="hzv-search" type="search" autocomplete="off" placeholder="Wyszukaj drużynę lub mecz…" aria-label="Wyszukaj mecz NBA"></label>
+            <div class="hzv-day-actions" aria-label="Nawigacja po dniach">
+              <button type="button" class="hzv-day-nav" data-hzs-direction="-1" aria-label="Poprzedni dzień">‹</button>
+              <button type="button" id="hzs-today" class="hzv-day-today">Dzisiaj</button>
+              <button type="button" class="hzv-day-nav" data-hzs-direction="1" aria-label="Następny dzień">›</button>
+            </div>
           </div>
-          <div class="hzv-day-actions"><button type="button" class="hzv-day-nav" data-hzs-direction="-1" aria-label="Poprzedni dzień">‹</button>
-            <button type="button" id="hzs-today" class="hzv-day-today">Dzisiaj</button>
-            <button type="button" class="hzv-day-nav" data-hzs-direction="1" aria-label="Następny dzień">›</button></div>
+          <div class="hzs-filters hzv-filterbar" role="group" aria-label="Filtruj mecze">
+            <button type="button" class="hzs-filter selected" data-hzs-filter="all" aria-pressed="true">Wszystkie</button>
+            <button type="button" class="hzs-filter" data-hzs-filter="live" aria-pressed="false"><span class="hzs-live-dot" aria-hidden="true"></span> Na żywo</button>
+            <button type="button" class="hzs-filter" data-hzs-filter="scheduled" aria-pressed="false">Nadchodzące</button>
+            <button type="button" class="hzs-filter" data-hzs-filter="final" aria-pressed="false">Zakończone</button>
+            <button type="button" class="hzs-filter" data-hzs-filter="favorites" aria-pressed="false">★ Ulubione</button>
+            <span class="hzv-results-count" id="hzs-match-count" aria-live="polite">— meczów</span>
+          </div>
         </div>
-        <label class="hzv-search"><span aria-hidden="true">⌕</span>
-          <input id="hzv-search" type="search" autocomplete="off" placeholder="Wyszukaj drużynę lub mecz…" aria-label="Wyszukaj mecz NBA"></label>
-        <div class="hzs-filters hzv-filterbar" role="group" aria-label="Filtruj mecze">
-          <button type="button" class="hzs-filter selected" data-hzs-filter="all" aria-pressed="true">Wszystkie</button>
-          <button type="button" class="hzs-filter" data-hzs-filter="live" aria-pressed="false"><span class="hzs-live-dot" aria-hidden="true"></span> Na żywo</button>
-          <button type="button" class="hzs-filter" data-hzs-filter="scheduled" aria-pressed="false">Nadchodzące</button>
-          <button type="button" class="hzs-filter" data-hzs-filter="final" aria-pressed="false">Zakończone</button>
-          <button type="button" class="hzs-filter" data-hzs-filter="favorites" aria-pressed="false">★ Ulubione</button>
-        </div>
+        <div id="hzv-hero" class="hzv-hero" aria-label="Mecz dnia"><p class="hzv-skeleton">Wczytywanie meczu dnia…</p></div>
         <div class="hzs-board" id="hzs-board" aria-live="polite"><div class="hzs-empty">Wczytywanie rzeczywistych spotkań NBA…</div></div>
       </main>
       <div class="hzv-rail">
