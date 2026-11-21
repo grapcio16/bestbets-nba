@@ -56,12 +56,14 @@
 #hzv3 .hzv3-search input::placeholder{color:#a3bfd7;opacity:1}
 #hzv3 .hzv3-count{justify-self:end;font-size:11px;font-weight:900;
   color:#c6d9ee;white-space:nowrap}
-#hzv3 .hzv3-grid{display:grid;min-width:0;gap:12px;
-  grid-template-columns:278px 390px minmax(0,1fr);
-  grid-template-rows:412px 130px;
+#hzv3 .hzv3-grid{display:grid;min-width:0;gap:9px;
+  grid-template-columns:205px 287px minmax(0,1fr);
+  grid-template-rows:303px 96px;
   grid-template-areas:"inspector roster analytics" "inspector summary summary";
   align-items:stretch}
-#hzv3 .hzv3-inspector{grid-area:inspector;overflow:hidden;display:flex;flex-direction:column;min-width:0;
+#hzv3 .hzv3-inspector{grid-area:inspector;position:relative!important;left:auto!important;top:auto!important;
+  width:auto!important;height:auto!important;z-index:auto!important;
+  overflow:hidden;display:flex;flex-direction:column;min-width:0;min-height:0;
   border:1px solid #8d4cd7;border-radius:12px;padding:10px 11px;
   background:radial-gradient(ellipse at 0% 0%,#5729827a,transparent 61%),linear-gradient(170deg,#17234b,#141632 95%);
   box-shadow:inset 0 0 20px #55229c2a,0 0 10px #5a259744}
@@ -111,8 +113,8 @@
   box-shadow:inset 0 0 12px #125a9538;color:#eefbff;font-size:12px;line-height:1.2;
   font-weight:900;padding:4px 6px}
 #hzv3 .hzv3-history-actions button:hover{border-color:#69faff;background:#105278}
-#hzv3 .hzv3-roster-card{grid-area:roster;min-width:0;min-height:0;
-  border:1px solid #04c5ed;border-radius:12px;padding:9px 6px 8px;
+#hzv3 .hzv3-roster-card{grid-area:roster;min-width:0;min-height:0;align-self:start;height:287px;
+  border:1px solid #04c5ed;border-radius:9px;padding:6px 5px 6px;
   background:linear-gradient(150deg,#081c3a,#0b1730);
   box-shadow:inset 0 0 10px #0a9fc319;display:flex;flex-direction:column}
 #hzv3 .hzv3-roster-head{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,45px);
@@ -145,7 +147,7 @@
 #hzv3 .hzv3-player[aria-pressed="true"] .hzv3-player-stat{color:#f4fdff}
 #hzv3 .hzv3-analytics{grid-area:analytics;display:grid;min-width:0;min-height:0;
   grid-template-columns:minmax(0,2.9fr) minmax(152px,1fr);
-  grid-template-rows:205px 195px;gap:12px}
+  grid-template-rows:151px 143px;gap:9px}
 #hzv3 .hzv3-analytics-card{min-width:0;min-height:0;overflow:hidden;
   padding:10px 10px 8px;border:1px solid #914de3;border-radius:12px;
   background:radial-gradient(ellipse at 90% 90%,#5a268d30,transparent 72%),linear-gradient(140deg,#0a1b39,#10132f);
@@ -255,3 +257,14 @@
 #hzv3 .hzv3-toolbar{position:relative;z-index:21;isolation:isolate}
 #hzv3 .hzv3-grid{position:relative;z-index:1}
 #hzv3 .hzv3-teams,#hzv3 .hzv3-search{position:relative;z-index:22}
+
+/* Generic app 'aside' is absolute/fixed-size navigation. Never apply
+   that global sidebar geometry/pseudo decoration to the V3 athlete card. */
+#hzv3 .hzv3-inspector:before,#hzv3 .hzv3-inspector:after{
+  display:none!important;content:none!important
+}
+#hzv3 .hzv3-roster-card{max-height:none!important}
+@media(min-width:1451px){
+ #hzv3 .hzv3-grid{grid-template-columns:205px 287px minmax(0,1fr)}
+ #hzv3 .hzv3-analytics{grid-template-rows:151px 143px}
+}
