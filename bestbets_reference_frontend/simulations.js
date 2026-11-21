@@ -305,6 +305,20 @@ function navigate(day){
 function init(api){
   callbacks=api;
   $("hzm-model-select").addEventListener("change",event=>chooseModel(event.target.value));
+  // Give the model dropdown its own control listeners. The new Simulation Lab
+  // has a scrollable canvas and overlay fixture picker: model controls must
+  // not depend on event delegation through the entire pane.
+  $("hzm-model-trigger").addEventListener("click",event=>{
+    event.stopPropagation();
+    toggleModelDropdown($("hzm-model-options").hidden);
+  });
+  MODEL_CHOICES.forEach(choice=>{
+    $("hzm-model-option-"+choice.id)?.addEventListener("click",event=>{
+      event.stopPropagation();
+      toggleModelDropdown(false,true);
+      chooseModel(choice.id);
+    });
+  });
   $("simulations-pane").addEventListener("click",event=>{
     if(event.target.closest("#hzm-match-picker")){toggleMatchPicker();return}
     const viewButton=event.target.closest("[data-hzm-view]");
