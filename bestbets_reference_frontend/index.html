@@ -753,10 +753,12 @@ function resize(){
     viewportWidth>window.innerHeight;
   const mobileLayout=viewportWidth<=767 || shortLandscape;
   const mobileHome=mobileLayout && state.page==="home";
+  const mobileSchedule=mobileLayout && state.page==="games";
   shell.classList.toggle("hz-mobile-centre",mobileHome);
+  shell.classList.toggle("hz-mobile-schedule",mobileSchedule);
   shell.classList.toggle("hz-independent-scroll",!mobileLayout);
-  if(mobileHome){
-    // Preserve the existing iPhone/mobile-centre touch scrolling.
+  if(mobileHome||mobileSchedule){
+    // Native touch scrolling for the free Home and Schedule routes.
     root.style.transform="none";
     root.style.height="";
     shell.style.removeProperty("--hz-split-height");
