@@ -243,13 +243,6 @@
 #schedule-pane.hzv4 .hzv-stand-row>span:not(:nth-child(2)){text-align:center;font-variant-numeric:tabular-nums}
 #schedule-pane.hzv4 .hzv-stand-row>span:last-child{text-align:right}
 #schedule-pane.hzv4 .hzv-standing-foot{font-size:8px;color:#6e9ab8;margin:6px 0 0}
-#schedule-pane.hzv4 .hzs-footnote{
- flex:0 0 19px;height:19px;min-height:19px;padding-top:0;
- display:flex;align-items:center;justify-content:space-between;gap:8px;
- border-top:1px solid #1d3f5d;color:#78a5c1;font-size:9px
-}
-#schedule-pane.hzv4 .hzs-footnote span:last-child{color:#abcce4}
-/* Independent Game Center screen, opened only after clicking a game. */
 #schedule-pane.hzv4 .hzv-game-page{
  flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
  margin:0;padding:0 3px 8px;scrollbar-color:#128eae #091a32;scrollbar-width:thin
@@ -422,7 +415,6 @@
  #app-shell.hz-mobile-schedule .hzv-gc-score strong{font-size:25px}
  #app-shell.hz-mobile-schedule .hzv-game-meta{flex-wrap:wrap;padding:7px 0}
  #app-shell.hz-mobile-schedule .hzv-xfactor-body{grid-template-columns:1fr 1fr}
- #app-shell.hz-mobile-schedule .hzs-footnote{display:none!important}
 }
 @media(max-width:370px){
  #app-shell.hz-mobile-schedule .hzs-rows{grid-template-columns:1fr!important}
