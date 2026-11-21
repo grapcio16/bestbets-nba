@@ -399,7 +399,14 @@ def main():
         model_trigger = page.locator("#hzm-model-trigger")
         model_trigger.click()
         model_options = page.locator("#hzm-model-options")
-        assert model_options.is_visible()
+        assert model_options.is_visible(), page.evaluate("""() => {
+            const menu=document.querySelector('#hzm-model-options');
+            const trigger=document.querySelector('#hzm-model-trigger');
+            return {hidden:menu?.hidden,display:menu&&getComputedStyle(menu).display,
+                    expanded:trigger?.getAttribute('aria-expanded'),
+                    paneScroll:document.querySelector('#simulations-pane')?.scrollTop,
+                    scriptLoaded:!!window.HoopzaroSimulations};
+        }""")
         assert model_trigger.get_attribute("aria-expanded") == "true"
         assert model_options.locator('[role="option"]').count() == 3
         assert model_options.evaluate(
