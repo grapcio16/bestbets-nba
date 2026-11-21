@@ -86,7 +86,21 @@ def main():
         assert page.locator("#hzm-plot svg").count() == 1
         tabs = page.locator("#hzm-chart-tabs button")
         assert [tabs.nth(i).inner_text() for i in range(3)] == ["MECZ", "NYK", "IND"]
+        print("Before expanded click:",page.evaluate("""() => ({
+            rows:document.querySelectorAll('#hzm-player-rows .hzm-player-row').length,
+            button:document.querySelector('#hzm-expand-players')?.outerHTML,
+            view:document.querySelector('#simulations-pane')?.dataset.hzmView,
+            score:document.querySelector('#hzm-score')?.textContent,
+            playerHTML:document.querySelector('#hzm-player-rows')?.innerHTML.slice(0,250)
+        })"""),flush=True)
         page.locator("#hzm-expand-players").click()
+        print("After expanded click:",page.evaluate("""() => ({
+            rows:document.querySelectorAll('#hzm-player-rows .hzm-player-row').length,
+            button:document.querySelector('#hzm-expand-players')?.outerHTML,
+            view:document.querySelector('#simulations-pane')?.dataset.hzmView,
+            score:document.querySelector('#hzm-score')?.textContent,
+            playerHTML:document.querySelector('#hzm-player-rows')?.innerHTML.slice(0,250)
+        })"""),flush=True)
         assert page.locator("#hzm-player-rows .hzm-player-row").count() == 14
         assert page.locator("#hzm-expand-players").get_attribute("aria-expanded") == "true"
         assert page.locator("#hzm-players-panel").bounding_box()["height"] >= 400
