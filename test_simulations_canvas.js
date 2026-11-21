@@ -153,6 +153,12 @@ elements["simulations-pane"].on_click({target:{closest(selector){
 }}});
 assert.equal(elements["simulations-pane"].dataset.hzmView,"results");
 assert.equal(elements["hzm-lab-main"].attributes["aria-labelledby"],"hzm-lab-tab-results");
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,4);
+elements["hzm-expand-players"].on_click({stopPropagation(){}});
+assert.equal(elements["hzm-expand-players"].attributes["aria-expanded"],"true");
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,14);
+elements["hzm-expand-players"].on_click({stopPropagation(){}});
+assert.equal(elements["hzm-expand-players"].attributes["aria-expanded"],"false");
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="#hzm-match-picker"?{}:null;
 }}});
