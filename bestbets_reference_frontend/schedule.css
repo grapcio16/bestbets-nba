@@ -305,6 +305,9 @@
     margin:9px 10px 0;padding:17px 12px calc(103px + env(safe-area-inset-bottom));
     border-radius:16px
   }
+  /* Decorative desktop ellipses must not create sideways page scrolling. */
+  #app-shell.hz-mobile-schedule #schedule-pane::before,
+  #app-shell.hz-mobile-schedule #schedule-pane .hzs-featured::after{display:none!important}
   #app-shell.hz-mobile-schedule #schedule-pane[hidden]{display:none!important}
   #app-shell.hz-mobile-schedule .hzs-header{
     height:auto;min-height:66px;flex:0 0 auto;align-items:flex-start;gap:7px
