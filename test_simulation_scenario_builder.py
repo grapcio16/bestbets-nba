@@ -13,11 +13,13 @@ def test_scenario_builder_permissions_and_assumptions():
                "state": "scheduled", "start": start}
     calls = []
 
-    def fake_model(day_in, id_in, model_id, pace_pct=0):
-        calls.append(pace_pct)
-        base = 113.0 + pace_pct
-        return {"away_points": base, "home_points": 117.0 + pace_pct,
-                "total_points": 230.0 + 2 * pace_pct,
+    def fake_model(day_in, id_in, model_id, pace_pct=0,
+                   off_away_pct=0, off_home_pct=0):
+        calls.append((pace_pct, off_away_pct, off_home_pct))
+        away = 113.0 + pace_pct + off_away_pct
+        home = 117.0 + pace_pct + off_home_pct
+        return {"away_points": away, "home_points": home,
+                "total_points": away + home,
                 "away_win_pct": 49.0, "home_win_pct": 51.0}
 
     with patch("bestbets_simulations_canvas.premium_entitled", return_value=False):
@@ -33,15 +35,33 @@ def test_scenario_builder_permissions_and_assumptions():
         for invalid in (-6, 6, 3.5, True, "3", None):
             assert "error" in scenario_for_entitled_user(
                 day, fixture["id"], "research_form_v74", invalid)
+        for invalid in (-6, 6, 3.5, True, "3", None):
+            assert "error" in scenario_for_entitled_user(
+                day, fixture["id"], "research_form_v74", 0,
+                off_away_pct=invalid)
+        for invalid in (-6, 6, 3.5, True, "3", None):
+            assert "error" in scenario_for_entitled_user(
+                day, fixture["id"], "research_form_v74", 0,
+                off_home_pct=invalid)
         assert not calls, "Invalid inputs must not reach the model"
         result = scenario_for_entitled_user(
             day, fixture["id"], "research_form_v74", 3)
-        assert calls == [0, 3]
+        assert calls == [(0, 0, 0), (3, 0, 0)]
         assert result["hypothetical"] is True
         assert result["n_sims"] == 5000
         assert result["baseline"]["total_points"] == 230
         assert result["scenario"]["total_points"] == 236
         assert result["pace_pct"] == 3
+        with_offense = scenario_for_entitled_user(
+            day, fixture["id"], "research_form_v74", 0,
+            off_away_pct=4, off_home_pct=-2)
+        assert calls[-2:] == [(0, 0, 0), (0, 4, -2)]
+        assert with_offense["baseline"]["away_points"] == 113
+        assert with_offense["scenario"]["away_points"] == 117
+        assert with_offense["scenario"]["home_points"] == 115
+        assert with_offense["scenario"]["total_points"] == 232
+        assert with_offense["off_away_pct"] == 4
+        assert with_offense["off_home_pct"] == -2
 
     past_fixture = {**fixture, "state": "final"}
     with (patch("bestbets_simulations_canvas.premium_entitled", return_value=True),
