@@ -97,6 +97,7 @@ def main():
         page.locator('.nav-btn[data-page="games"]').click()
         assert page.locator("#schedule-pane").is_visible()
         assert_box(page, "#schedule-pane", 191, 9, 1025, 635)
+        assert page.locator("#schedule-pane .hzv-sport-nav").count() == 0
         assert page.locator("#blank-pane").is_hidden()
         assert page.locator("#hzv-calendar-toggle").is_visible()
         assert page.locator("#hzv-game-page").is_hidden()
@@ -143,6 +144,8 @@ def main():
         assert controls_box and hero_box and board_box and first_game_box and pane_box
         assert controls_box["y"] < hero_box["y"] < board_box["y"], (
             controls_box, hero_box, board_box)
+        assert controls_box["y"] - pane_box["y"] < 100, (
+            "Controls should begin immediately below schedule title", controls_box, pane_box)
         assert 100 <= hero_box["height"] <= 125, hero_box
         assert first_game_box["y"] + first_game_box["height"] < pane_box["y"] + pane_box["height"] - 15, (
             first_game_box, pane_box)

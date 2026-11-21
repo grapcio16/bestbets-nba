@@ -27,22 +27,6 @@
  font-size:12px;font-weight:850;white-space:nowrap;
 }
 #schedule-pane.hzv4 .hzv-season>span{margin-left:9px;font-size:16px}
-#schedule-pane.hzv4 .hzv-sport-nav{
- flex:0 0 38px;height:38px;border:1px solid #25476e;border-radius:16px;
- display:flex;align-items:center;justify-content:space-between;gap:3px;padding:3px 8px;
- background:linear-gradient(125deg,rgba(6,27,57,.95),rgba(12,14,35,.95));overflow:hidden;
-}
-#schedule-pane.hzv4 .hzv-sport-nav>span{
- flex:1;display:flex;align-items:center;justify-content:center;white-space:nowrap;
- font-size:10px;font-weight:850;color:#d9e7fa;letter-spacing:-.12px
-}
-#schedule-pane.hzv4 .hzv-sport-current{
- max-width:100px;height:30px!important;border:1px solid #0ff1f5;border-radius:22px;
- color:#fff!important;background:#063950;box-shadow:0 0 11px rgba(11,211,242,.55)
-}
-#schedule-pane.hzv4 .hzv-sport-current:first-letter{color:#ffc847}
-#schedule-pane.hzv4 .hzv-sport-nba{color:#fff!important;font-size:11px!important}
-#schedule-pane.hzv4 .hzv-sport-future{opacity:.65;font-size:10px!important}
 #schedule-pane.hzv4 .hzv-content{
  flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 239px;
  gap:13px;overflow:visible;
@@ -271,7 +255,6 @@
  margin:0;padding:0 3px 8px;scrollbar-color:#128eae #091a32;scrollbar-width:thin
 }
 #schedule-pane.hzv4 .hzv-game-page[hidden]{display:none!important}
-#schedule-pane.hzv4.hzv-show-game .hzv-sport-nav,
 #schedule-pane.hzv4.hzv-show-game .hzv-content{display:none!important}
 #schedule-pane.hzv4 .hzv-breadcrumb{
  height:37px;display:flex;align-items:center;gap:12px;color:#b9cbe5;font-size:11px
@@ -394,11 +377,6 @@
  #app-shell.hz-mobile-schedule .hzv-head h1{font-size:24px!important}
  #app-shell.hz-mobile-schedule .hzv-head p{font-size:10px!important}
  #app-shell.hz-mobile-schedule .hzv-season{font-size:9px!important;padding:0 6px!important;height:30px!important}
- #app-shell.hz-mobile-schedule .hzv-sport-nav{
-   overflow-x:auto!important;flex:0 0 37px!important;width:100%;justify-content:flex-start!important;
-   scrollbar-width:none
- }
- #app-shell.hz-mobile-schedule .hzv-sport-nav>span{flex:0 0 auto!important;padding:0 12px}
  #app-shell.hz-mobile-schedule .hzv-content{
    display:flex!important;flex-direction:column!important;gap:10px!important;
    overflow:visible!important;min-height:0!important
@@ -435,8 +413,7 @@
    display:block!important;overflow:visible!important;min-height:0!important;flex:0 0 auto!important
  }
  #app-shell.hz-mobile-schedule .hzv-game-page[hidden]{display:none!important}
- #app-shell.hz-mobile-schedule #schedule-pane.hzv4.hzv-show-game .hzv-content,
- #app-shell.hz-mobile-schedule #schedule-pane.hzv4.hzv-show-game .hzv-sport-nav{display:none!important}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4.hzv-show-game .hzv-content{display:none!important}
  #app-shell.hz-mobile-schedule .hzv-game-content{grid-template-columns:1fr!important}
  #app-shell.hz-mobile-schedule .hzv-game-card{padding:12px!important}
  #app-shell.hz-mobile-schedule .hzv-gc-team .hzs-team-mark{width:43px;height:43px;flex-basis:43px}
