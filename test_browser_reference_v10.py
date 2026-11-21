@@ -219,7 +219,21 @@ def main():
                       ],
                       "leaders": {"away":[{"name":"Verified Player","pts":22,"reb":7,"ast":3}],
                                   "home":[{"name":"Another Player","pts":20,"reb":8,"ast":5}]},
-                      "arena": "Test Arena", "source":"ESPN"}},
+                      "arena": "Test Arena", "source":"ESPN",
+                      "history":{
+                         "h2h":[{"id":"4018100009","start":"2026-02-11T02:00:00Z",
+                                 "away":"DEN","home":"NOP","away_score":108,"home_score":99,
+                                 "state":"final"}],
+                         "recent":{
+                            "DEN":[{"id":"4018100010","start":"2026-11-10T02:00:00Z",
+                                    "away":"DEN","home":"LAL","away_score":112,
+                                    "home_score":104,"state":"final"}],
+                            "NOP":[{"id":"4018100011","start":"2026-11-12T02:00:00Z",
+                                    "away":"NOP","home":"DAL","away_score":107,
+                                    "home_score":113,"state":"final"}]
+                         },
+                         "coverage":[{"team":"DEN","season":2027}],"error":""
+                      }}},
         )
         page.wait_for_function("document.querySelector('#hzv-game-content')?.textContent.includes('Verified Player')")
         assert "Q1" in page.locator("#hzv-game-content").inner_text()
@@ -243,8 +257,15 @@ def main():
         assert page.locator("#hzv-game-content .hzv-compare-legend").is_visible()
         assert page.locator("#hzv-game-content .hzv-xfactor-chart svg").count() == 1
         assert page.locator('[data-hzv-history="h2h"]').is_visible()
+        assert page.locator("#hzv-history-results .hzv-history-row").count() == 1
+        assert "108 : 99" in page.locator("#hzv-history-results").inner_text()
         page.locator('[data-hzv-history="recent"]').click()
         assert page.locator('[data-hzv-history="recent"]').get_attribute("class") == "selected"
+        assert page.locator("#hzv-history-results .hzv-history-team").count() == 2
+        assert page.locator("#hzv-history-results .hzv-history-row").count() == 2
+        assert "112 : 104" in page.locator("#hzv-history-results").inner_text()
+        page.locator('[data-hzv-history="h2h"]').click()
+        assert page.locator("#hzv-history-results .hzv-history-row").count() == 1
         # Simulate a genuine Streamlit iframe remount while Game Center
         # is open; the selected public game must survive the reload.
         page.reload(wait_until="load")

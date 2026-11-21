@@ -615,3 +615,14 @@
 /* Recover from transient ESPN failures without leaving Game Center. */
 #schedule-pane.hzv4 .hzv-retry-button{margin-top:10px;padding:8px 13px;color:#ecfcff;font:inherit;font-size:11px;border:1px solid #19dbe8;border-radius:10px;background:#0a3650;cursor:pointer}
 #schedule-pane.hzv4 .hzv-retry-button:hover{background:#095073}
+
+/* Game Center history: verified per-team schedule groups. */
+#schedule-pane.hzv4 .hzv-history-team{margin-top:10px;min-width:0}
+#schedule-pane.hzv4 .hzv-history-team:first-child{margin-top:0}
+#schedule-pane.hzv4 .hzv-history-team h3{
+ margin:0 0 6px;font-size:10px;letter-spacing:.3px;font-weight:900;
+ color:#7eeff6;text-transform:uppercase
+}
+#schedule-pane.hzv4 .hzv-history-coverage{
+ display:block;margin-top:8px;color:#88a9bf;font-size:9px
+}

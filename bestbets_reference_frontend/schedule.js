@@ -267,14 +267,47 @@ function lastGamesForTeams(data,game){
 }
 function recentMeetings(data,game){return lastGamesForTeams(data,game).filter(g=>
  (g.away===game.away&&g.home===game.home)||(g.away===game.home&&g.home===game.away));}
+/* The short Centrum fixture window is not a season-long H2H.
+   Use separately verified ESPN team schedules once a game is selected. */
 function historyMarkup(data,game){
- const games=historyTab==="h2h"?recentMeetings(data,game):lastGamesForTeams(data,game);
- if(!games.length)return '<div class="hzv-history-empty">'+(historyTab==="h2h"?
-  "Brak wcześniejszych, potwierdzonych meczów bezpośrednich w aktualnie pobranym zakresie ESPN.":
-  "Brak potwierdzonych ostatnich meczów w aktualnie pobranym zakresie ESPN.")+'</div>';
- return '<div class="hzv-history-list">'+games.map(g=>
-  '<div class="hzv-history-row"><span>'+esc(shortDate(g.day||localDay(g.start)))+'</span><span>'+esc(g.away)+' / '+esc(g.home)+'</span><strong>'+g.away_score+' : '+g.home_score+'</strong></div>'
- ).join("")+'</div>';
+ const active=lastDetails?.id===String(game.id)&&lastDetails?.day===selectedDay
+   &&lastDetails?.data?.away===game.away&&lastDetails?.data?.home===game.home;
+ const history=active?lastDetails.data.history:null;
+ const official=history&&Array.isArray(history.h2h)&&history.recent;
+ const renderRows=games=>
+  '<div class="hzv-history-list">'+games.map(g=>
+   '<div class="hzv-history-row"><span>'+esc(shortDate(g.day||localDay(g.start)))+'</span>'+
+   '<span>'+esc(g.away)+' / '+esc(g.home)+'</span>'+
+   '<strong>'+Number(g.away_score)+' : '+Number(g.home_score)+'</strong></div>').join("")+'</div>';
+ if(official){
+  const coverage=Array.isArray(history.coverage)?history.coverage:[];
+  if(historyTab==="h2h"){
+   const games=history.h2h.filter(g=>g.state==="final"&&Number.isInteger(g.away_score)&&Number.isInteger(g.home_score));
+   if(games.length)return renderRows(games);
+   return '<div class="hzv-history-empty">'+(history.error?esc(history.error):
+    'Brak potwierdzonych wcześniejszych spotkań tych drużyn w pobranych sezonach ESPN.')+
+    (coverage.length?'<small class="hzv-history-coverage"> Zweryfikowano '+esc([...new Set(coverage.map(x=>x.season-1+"/"+String(x.season).slice(-2)))].join(", "))+'.</small>':'')+'</div>';
+  }
+  const recent=history.recent||{};
+  const teams=[game.away,game.home];
+  const panels=teams.map(team=>{
+   const games=(Array.isArray(recent[team])?recent[team]:[]).filter(g=>
+    g?.state==="final"&&Number.isInteger(g.away_score)&&Number.isInteger(g.home_score));
+   return '<div class="hzv-history-team"><h3>'+esc(team)+' · ostatnie mecze</h3>'+
+    (games.length?renderRows(games):'<p class="hzv-history-empty">Brak potwierdzonych spotkań.</p>')+'</div>';
+  });
+  if(panels.some(panel=>panel.includes("hzv-history-row")))return panels.join("");
+  return '<p class="hzv-history-empty">'+esc(history.error||"Brak potwierdzonych poprzednich meczów w pobranej historii ESPN.")+'</p>';
+ }
+ // Before the on-demand history arrives, never present a short cached
+ // scoreboard selection as though it were complete historical coverage.
+ if(active)return '<p class="hzv-history-empty">Pobieranie potwierdzonej historii ESPN…</p>';
+ if(lastDetails?.id===String(game.id)&&lastDetails?.day===selectedDay&&lastDetails?.error){
+  return '<p class="hzv-history-empty">Historia niedostępna. Możesz ponowić pobieranie statystyk meczu.</p>';
+ }
+ return '<p class="hzv-history-empty">'+(game.state==="scheduled"?
+  'Historia tego spotkania będzie dostępna po pobraniu zweryfikowanych danych ESPN.':
+  'Pobieranie historii bezpośrednich spotkań i ostatnich meczów z ESPN…')+'</p>';
 }
 /* Verified ESPN data only. For turnovers and fouls fewer is favorable. */
 function teamComparisonMarkup(metrics,data,away,home,game){
