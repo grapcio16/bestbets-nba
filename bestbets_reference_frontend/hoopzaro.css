@@ -558,29 +558,6 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
 #chart-panel:before{background:#c55bfd;box-shadow:0 0 10px #a332fc}
 .chart-title{top:12px;font-size:16px}
 .chart-title .orange-bars{color:#ce7aff}
-/* Compact venue selection in the chart header; no changes to layout geometry. */
-#chart-panel .chart-title{max-width:346px;white-space:nowrap}
-.venue-filter{
-  position:absolute;right:12px;top:10px;z-index:2;
-  width:190px;height:26px;display:flex;align-items:center;gap:2px;
-  padding:2px;border:1px solid #395a92;border-radius:9px;
-  background:linear-gradient(115deg,#0c2241,#111632);
-  box-shadow:inset 0 1px rgba(122,184,255,.15);
-}
-.venue-filter button{
-  flex:1;height:20px;min-width:0;padding:0 2px;
-  border:1px solid transparent;border-radius:6px;
-  background:transparent;color:#bbd0ea;
-  font-family:inherit;font-size:9px;line-height:19px;font-weight:900;
-  letter-spacing:.28px;cursor:pointer;
-}
-.venue-filter button:hover{color:#fff;background:rgba(14,122,184,.2)}
-.venue-filter button.on{
-  color:#f4ffff;border-color:#19def4;
-  background:linear-gradient(135deg,#0b658e,#14346b);
-  box-shadow:0 0 9px rgba(1,218,247,.35);
-}
-.venue-filter button:focus-visible{outline:2px solid #60ebff;outline-offset:2px}
 #chart-svg{top:40px;height:185px}
 .chart-placeholder{top:118px}
 #side-stats{top:328px;height:235px}
@@ -591,93 +568,12 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
 .rate:last-child{border-color:#9c46ea}
 .avg-box{border-color:#4065a8;background:linear-gradient(#0b203b,#10152d)}
 .avg-box.selected{border-color:#11e5f2;background:#082c4a}
-/* Existing average cards are clickable comparison triggers. */
-button.avg-box{
-  appearance:none;-webkit-appearance:none;width:100%;min-width:0;
-  color:#fff;font:inherit;cursor:pointer;position:relative;
-  transition:border-color .14s ease,background .14s ease,box-shadow .14s ease;
-}
-button.avg-box:hover:not(:disabled){border-color:#49e4f9;box-shadow:0 0 12px rgba(16,214,248,.30)}
-button.avg-box:focus-visible{outline:2px solid #50eaff;outline-offset:2px}
-button.avg-box:disabled{cursor:default;opacity:.8}
-button.avg-box:not(:disabled):after{
-  content:"⌄";position:absolute;right:8px;top:3px;color:#84d9f5;
-  font-size:10px;opacity:.8;pointer-events:none;
-}
-/* Viewport-level comparison overlay: no movement of existing Props panels. */
-.hz-avg-breakdown-backdrop[hidden]{display:none!important}
-.hz-avg-breakdown-backdrop{
-  position:fixed;inset:0;z-index:1600;
-  display:flex;align-items:center;justify-content:center;
-  padding:20px;background:rgba(2,7,22,.78);
-  -webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);
-}
-.hz-avg-breakdown-dialog{
-  width:min(510px,100%);max-height:min(590px,calc(100dvh - 36px));
-  overflow-y:auto;border:1px solid #35cdec;border-radius:18px;
-  background:radial-gradient(ellipse at 100% 0%,rgba(124,48,207,.20),transparent 45%),
-    linear-gradient(140deg,#111a3a,#09162e 80%);
-  color:#edf8ff;font-family:inherit;
-  box-shadow:0 24px 75px rgba(0,0,0,.72),0 0 32px rgba(8,176,235,.26),
-    inset 0 1px rgba(220,240,255,.13);
-}
-.hz-avg-breakdown-header{
-  display:flex;align-items:flex-start;justify-content:space-between;
-  gap:12px;padding:22px 23px 15px;
-}
-.hz-avg-breakdown-eyebrow{color:#4fe1f3;font-weight:900;font-size:10px;letter-spacing:1.45px}
-.hz-avg-breakdown-header h2{
-  margin:7px 0 3px;font-size:22px;line-height:1.2;font-weight:950;color:#f3f7ff;
-}
-.hz-avg-breakdown-header p{margin:5px 0 0;font-size:12px;color:#b5cce5}
-#hz-avg-breakdown-close{
-  width:33px;height:33px;flex:0 0 33px;border-radius:9px;
-  border:1px solid #466794;background:#102a4a;color:#d8eeff;
-  font-size:24px;line-height:27px;cursor:pointer;
-}
-#hz-avg-breakdown-close:hover{border-color:#4deaff;background:#1c4160}
-.hz-avg-breakdown-dialog button:focus-visible{outline:2px solid #4ee9ff;outline-offset:2px}
-.hz-avg-breakdown-table{padding:2px 18px 6px}
-.hz-avg-breakdown-columns,.hz-avg-breakdown-row{
-  display:grid;grid-template-columns:minmax(104px,1.45fr) .42fr .65fr .88fr;
-  align-items:center;column-gap:7px;text-align:center;
-}
-.hz-avg-breakdown-columns{
-  padding:8px 9px;font-size:9px;font-weight:900;letter-spacing:.6px;color:#89b4db;
-}
-.hz-avg-breakdown-columns span:first-child{text-align:left}
-.hz-avg-breakdown-row{
-  width:100%;min-height:60px;margin:0 0 7px;padding:9px;
-  border:1px solid #294b75;border-radius:10px;
-  background:linear-gradient(105deg,#0d233f,#111b37);
-  color:#e9f6ff;font-family:inherit;font-size:13px;cursor:pointer;
-}
-.hz-avg-breakdown-row:hover{border-color:#20d5ef;background:#12365a}
-.hz-avg-breakdown-row.is-selected{
-  border-color:#2bdff8;
-  background:linear-gradient(115deg,rgba(5,115,154,.37),rgba(30,32,97,.70));
-  box-shadow:0 0 12px rgba(9,192,237,.18);
-}
-.hz-avg-breakdown-row>strong{font-size:18px;font-variant-numeric:tabular-nums}
-.hz-avg-breakdown-label{text-align:left;display:flex;flex-direction:column;gap:3px}
-.hz-avg-breakdown-label b{color:#78e9fa;font-size:12px;letter-spacing:.45px}
-.hz-avg-breakdown-label small,.hz-avg-breakdown-hitrate small{font-size:10px;color:#abc2dc}
-.hz-avg-breakdown-hitrate{display:flex;flex-direction:column;gap:2px}
-.hz-avg-breakdown-hitrate b{color:#19f89b;font-size:17px;font-weight:950}
-#hz-avg-breakdown-note{
-  color:#a3bfdc;font-size:11px;line-height:1.5;
-  padding:8px 23px 20px;margin:0;
-}
-@media(max-width:480px){
-  .hz-avg-breakdown-backdrop{padding:10px}
-  .hz-avg-breakdown-header{padding:19px 16px 12px}
-  .hz-avg-breakdown-table{padding:2px 10px 6px}
-  .hz-avg-breakdown-columns,.hz-avg-breakdown-row{
-    grid-template-columns:minmax(75px,1.3fr) .34fr .58fr .85fr;column-gap:4px;
-  }
-  .hz-avg-breakdown-row{padding:8px 5px}
-  #hz-avg-breakdown-note{padding:8px 16px 17px}
-}
+/* Average tiles are the venue picker. No extra tab, table or overlay. */
+button.avg-box{width:100%;min-width:0;appearance:none;-webkit-appearance:none;color:#fff;font:inherit;cursor:pointer;
+  transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
+button.avg-box:hover:not(:disabled){border-color:#32dbef;box-shadow:0 0 10px rgba(21,203,249,.25)}
+button.avg-box:focus-visible{outline:2px solid #47e8fa;outline-offset:2px}
+button.avg-box:disabled{opacity:.75;cursor:default}
 .defense-box{
   height:95px;margin-top:8px;border-color:#ff9c47;
   background:radial-gradient(ellipse 49% 87% at 100% 0%,rgba(234,74,159,.24),transparent),linear-gradient(100deg,#121329,#0b192e);
