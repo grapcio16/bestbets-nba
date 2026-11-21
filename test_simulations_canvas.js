@@ -140,10 +140,15 @@ assert.match(elements["hzm-player-rows"].innerHTML,/Questionable/);
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="[data-hzm-view]"?{dataset:{hzmView:"players"}}:null;
 }}});
+// The new roster sorts by the active market: OUT has no projection and
+// therefore appears last, but remains explicitly selectable from the list.
+elements["hzm-player-rows"].on_click({target:{closest(selector){
+  return selector==="[data-hzm-player-index]"?{dataset:{hzmPlayerIndex:"0"}}:null;
+}}});
 assert.match(elements["hzm-player-inspector"].innerHTML,/Sample Star/);
 assert.match(elements["hzm-player-inspector"].innerHTML,/ESPN: Out/);
 assert.match(elements["hzm-player-inspector"].innerHTML,/0,0 min/);
-assert.match(elements["hzm-player-inspector"].innerHTML,/OUT — model nie wyświetla/);
+assert.match(elements["hzm-player-inspector"].innerHTML,/OUT — model nie pokazuje/);
 assert.doesNotMatch(elements["hzm-player-inspector"].innerHTML,/>0,0<\/strong>/,
   "No fake zero-point production for OUT player");
 elements["simulations-pane"].on_click({target:{closest(selector){
