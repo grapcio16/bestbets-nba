@@ -287,8 +287,8 @@ function drawSummary(){
   ?fmt((Number(c.away.pace)+Number(c.home.pace))/2):"—";
  const sd=Array.isArray(ctx.score_sd_points)?ctx.score_sd_points:[];
  const sample=Array.isArray(ctx.score_sd_samples)?ctx.score_sd_samples:[];
- const sdValid=sd.length===2&&sd.every(v=>num(v)!==null&&num(v)>=0);
- const deviation=sdValid?fmt(Math.sqrt((Number(sd[0])**2+Number(sd[1])**2)/2)):"—";
+ const sdValid=active.model!=="legacy_v72"&&sd.length===2&&sd.every(v=>num(v)!==null&&num(v)>=0);
+ const deviation=sdValid?"±"+fmt(Math.sqrt((Number(sd[0])**2+Number(sd[1])**2)/2)):"—";
  const sampleLabel=sample.length===2&&sample.every(n=>int(n)!==null)
    ?'Próby: '+sample.join(" / "):"Brak potwierdzonej próby";
  $("hzv3-pace").innerHTML='<div class="hzv3-pace-cols">'+
