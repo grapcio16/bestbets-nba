@@ -12,12 +12,17 @@ from pathlib import Path
 import os
 import json
 import time
+from threading import Lock, local
 import requests
 import pandas as pd
 
 ROOT=Path(__file__).resolve().parent
 CACHE=ROOT / 'data'
 CACHE.mkdir(exist_ok=True)
+# Avoid a redundant burst of identical NBA/ESPN requests when many Streamlit
+# sessions ask for the same expired key at once. Different keys remain parallel.
+_CACHE_LOCKS = tuple(Lock() for _ in range(64))
+_HTTP_LOCAL = local()
 HEADERS={'User-Agent':'BestBetsAnalytics/5.0 (educational app; nba data)'}
 NBA_CDN_SCHEDULE='https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json'
 NBA_CDN_SCOREBOARD='https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json'
@@ -73,7 +78,13 @@ def read_cache(key,ttl_seconds=3600):
     except (ValueError,KeyError,TypeError,OSError):return None,None
 
 def http_json(url,params=None,timeout=16):
-    response=requests.get(url,params=params,headers={'User-Agent':'Mozilla/5.0 (BestBets data consumer)','Accept':'application/json'},timeout=timeout)
+    # A session per worker thread permits ESPN keep-alive reuse across multiple
+    # scoreboard dates/roster teams without sharing mutable Session state.
+    session = getattr(_HTTP_LOCAL, "session", None)
+    if session is None:
+        session = requests.Session()
+        _HTTP_LOCAL.session = session
+    response=session.get(url,params=params,headers={'User-Agent':'Mozilla/5.0 (BestBets data consumer)','Accept':'application/json'},timeout=timeout)
     response.raise_for_status()
     return response.json()
 
@@ -81,14 +92,21 @@ def memoized_json(key,url,params=None,ttl_seconds=1800,refresh=False,request_tim
     cache,meta=read_cache(key,ttl_seconds)
     if cache is not None and not refresh and not meta['stale']:
         return cache, {'source':'cache',**meta}
-    try:
-        data=http_json(url,params=params,timeout=request_timeout)
-        store_cache(key,data)
-        return data,{'source':'live','timestamp':now_utc().isoformat(),'age_min':0,'stale':False}
-    except Exception as exc:
-        if cache is not None:
-            return cache,{'source':'stale cache','warning':str(exc),**meta,'stale':True}
-        raise RuntimeError(f'Źródło nie odpowiada: {url} — {exc}') from exc
+    # Double-check inside a key-specific lock: another session may have
+    # refreshed the same event while this session was waiting.
+    lock = _CACHE_LOCKS[hash(key) % len(_CACHE_LOCKS)]
+    with lock:
+        cache,meta=read_cache(key,ttl_seconds)
+        if cache is not None and not refresh and not meta['stale']:
+            return cache, {'source':'cache',**meta}
+        try:
+            data=http_json(url,params=params,timeout=request_timeout)
+            store_cache(key,data)
+            return data,{'source':'live','timestamp':now_utc().isoformat(),'age_min':0,'stale':False}
+        except Exception as exc:
+            if cache is not None:
+                return cache,{'source':'stale cache','warning':str(exc),**meta,'stale':True}
+            raise RuntimeError(f'Źródło nie odpowiada: {url} — {exc}') from exc
 
 
 def nba_stats(module, cls, kwargs, cache_key, ttl_seconds=4*3600, refresh=False):
