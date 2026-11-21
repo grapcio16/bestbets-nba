@@ -257,7 +257,8 @@ function playerInspector(item,players,game,withMinutes){
  const out=withMinutes&&status==="Out";
  const pts=out?null:safeProjection(item.pts),reb=out?null:safeProjection(item.reb),ast=out?null:safeProjection(item.ast);
  const pra=pts!==null&&reb!==null&&ast!==null?pts+reb+ast:null;
- const metrics=[["PTS",pts],["REB",reb],["AST",ast],["PRA",pra]]
+ const forecasts=[["PTS",pts],["REB",reb],["AST",ast],["PRA",pra]];
+ const metrics=forecasts
   .map(([key,value])=>'<div class="hzm-inspector-metric'+(key==="PRA"?' pra':'')+'"><span>'+key+'</span><strong>'+fmt(value)+'</strong></div>').join("");
  const sample=withMinutes&&Number.isInteger(Number(item.minutes_sample))?Math.max(0,Number(item.minutes_sample)):0;
  const minutes=withMinutes?safeProjection(item.minutes):null;
@@ -282,7 +283,7 @@ function playerInspector(item,players,game,withMinutes){
   (withMinutes&&players?.minutes_warning?
     '<small class="hzm-inspector-warning">'+esc(players.minutes_warning)+'</small>':'')+
   '<div class="hzm-inspector-actions" role="group" aria-label="Przejdź do historii zawodnika w Player Props">'+
-  (out?'':metrics.map(([key,value])=>value===null?"":'<button type="button" data-hzm-history-market="'+key+'"'+
+  (out?'':forecasts.map(([key,value])=>value===null?"":'<button type="button" data-hzm-history-market="'+key+'"'+
     (state.fromProps?.market===key?' class="is-related"':'')+' title="Historia '+key+' w Player Props">'+
     'Historia '+key+' ›</button>').join(""))+
   '</div>'+
