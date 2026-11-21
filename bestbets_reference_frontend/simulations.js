@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,playerMetric:"PTS",requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -230,6 +230,8 @@ function playerInspector(item,players,game,withMinutes){
   availability+
   '<div class="hzm-inspector-metrics">'+metrics+'</div>'+
   '<div class="hzm-inspector-minutes">'+(withMinutes?'◷ ':'')+minuteLabel+'</div>'+
+  '<button type="button" id="hzm-open-player-props" class="hzm-open-player-props"'+(pts===null?' disabled':'')+'>Historia PTS w Player Props ↗</button>'+
+  '<small class="hzm-inspector-link-note">Linia startowa pochodzi z projekcji modelu, a nie od bukmachera.</small>'+
   '<p class="hzm-inspector-disclaimer">'+(out?
     'ESPN zgłasza OUT — model nie wyświetla projekcji produkcji zawodnika.':
     'PRA to suma średnich prognoz PTS, REB i AST. Nie jest osobną symulacją ani rozkładem prawdopodobieństwa.')+
@@ -400,6 +402,18 @@ function init(api){
     state.playerQuery=String(event.target.value||"").slice(0,70);
     state.playerIndex=-1;
     render(state.lastHome,state.lastPremium);
+  });
+  $("hzm-player-inspector").addEventListener("click",event=>{
+    if(!event.target.closest("#hzm-open-player-props")||!state.lastPremium?.entitled)return;
+    const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+    const roster=trustedPlayers(state.lastPremium,game);
+    const item=roster?.players?.[state.playerIndex];
+    if(!item||![game?.away,game?.home].includes(item.team))return;
+    if(state.model==="research_context_v75"&&item.availability==="Out")return;
+    const pts=safeProjection(item.pts);
+    if(pts===null)return;
+    const line=Math.max(.5,Math.min(149.5,Math.floor(pts)+.5));
+    callbacks?.openProps?.({name:String(item.name||""),market:"PTS",line});
   });
   $("hzm-player-tools").addEventListener("click",event=>{
     const button=event.target.closest("[data-hzm-player-team]");
