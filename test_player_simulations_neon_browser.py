@@ -102,6 +102,29 @@ def main():
                 };
             }""")
             if width >= 1261:
+                # The previous ~350px roster made PTS/REB/AST/PRA collide.
+                # Verify that the actual rendered table is >=420px and each
+                # numeric cell is independently readable and non-overlapping.
+                widths = page.evaluate("""() => {
+                    const row = document.querySelector('.hzm-player-row-rich');
+                    const cells = [...row.querySelectorAll('.hzm-player-stats > span')];
+                    const box = el => {
+                        const r = el.getBoundingClientRect();
+                        return {left:r.left, right:r.right, width:r.width};
+                    };
+                    return {
+                        roster: box(document.querySelector('#hzm-player-list-wrap')),
+                        row:box(row), name:box(row.querySelector('.hzm-player-info')),
+                        stats:cells.map(box)
+                    };
+                }""")
+                assert widths["roster"]["width"] >= 419, widths
+                assert len(widths["stats"]) == 4, widths
+                assert all(cell["width"] >= 45 for cell in widths["stats"]), widths
+                assert widths["name"]["right"] <= widths["stats"][0]["left"] + 2, widths
+                assert all(a["right"] <= b["left"] + 1
+                           for a,b in zip(widths["stats"],widths["stats"][1:])), widths
+                assert widths["stats"][-1]["right"] <= widths["row"]["right"] + 2, widths
                 assert abs(layout["inspector"]["top"]-layout["roster"]["top"]) < 9, layout
                 assert abs(layout["roster"]["top"]-layout["charts"]["top"]) < 9, layout
                 assert abs(layout["inspector"]["height"]-layout["roster"]["height"]) < 9, layout
