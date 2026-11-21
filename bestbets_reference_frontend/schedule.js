@@ -31,7 +31,7 @@ function withinRange(day){return safeDay(day)&&Math.abs((noon(day)-noon(today())
 function readOpenGame(){
  try{
   const item=JSON.parse(sessionStorage.getItem(OPEN_GAME_KEY)||"null");
-  return item&&/^\\d{6,15}$/.test(String(item.id||""))&&withinRange(item.day)?item:null;
+  return item&&/^\d{6,15}$/.test(String(item.id||""))&&withinRange(item.day)?item:null;
  }catch(_){return null;}
 }
 function saveOpenGame(game){
