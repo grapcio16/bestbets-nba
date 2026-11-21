@@ -27,6 +27,15 @@ function shortDate(day){const d=noon(day);return d.getUTCDate()+" "+MONTHS[d.get
 function localTime(value){const d=new Date(value);return Number.isFinite(d.getTime())?
  new Intl.DateTimeFormat("pl-PL",{timeZone:WARSAW,hour:"2-digit",minute:"2-digit",hour12:false}).format(d):"—"}
 function displayDate(day){return day===today()?"Dzisiaj, "+shortDate(day):shortDate(day)+(noon(day).getUTCFullYear()===noon(today()).getUTCFullYear()?"":" "+noon(day).getUTCFullYear())}
+/* The middle selector shows the selected Warsaw-local day.
+   It still acts as a quick return-to-today control on other dates. */
+function selectedDateLabel(day){
+ const reference=today();
+ if(day===reference)return "Dzisiaj";
+ if(day===shiftDay(reference,-1))return "Wczoraj";
+ if(day===shiftDay(reference,1))return "Jutro";
+ return shortDate(day)+(noon(day).getUTCFullYear()!==noon(reference).getUTCFullYear()?" "+noon(day).getUTCFullYear():"");
+}
 function persistFavorites(){try{localStorage.setItem(FAV_KEY,JSON.stringify([...favorites].sort()))}catch(_){}}
 function favGame(game){return favorites.has(game.away)||favorites.has(game.home)}
 function star(code,id,side){if(!VALID.has(code))return "";
@@ -115,7 +124,15 @@ function dateNavigation(){
   }).join("");
  }
  document.querySelectorAll("#schedule-pane [data-hzs-direction]").forEach(b=>b.disabled=!withinRange(shiftDay(selectedDay,Number(b.dataset.hzsDirection))));
- if($("hzs-today"))$("hzs-today").disabled=selectedDay===today();
+ const dayButton=$("hzs-today");
+ if(dayButton){
+  const isToday=selectedDay===today();
+  const label=selectedDateLabel(selectedDay);
+  dayButton.textContent=label;
+  dayButton.disabled=isToday;
+  dayButton.setAttribute("aria-label",isToday?"Wybrano dzisiejszy dzień":"Wybrano "+label+". Kliknij, aby wrócić do dzisiaj");
+  dayButton.title=isToday?"Dzisiejsze mecze":"Powrót do dzisiejszych meczów";
+ }
 }
 function renderCalendar(){
  const host=$("hzv-calendar-grid");if(!host)return;
