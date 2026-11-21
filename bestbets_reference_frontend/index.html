@@ -354,7 +354,11 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
   </section>
   <section id="side-stats">
     <div class="rates"><div class="rate"><div class="rate-title">L5<br>Hit Rate</div><strong id="rate5">—</strong><small id="sample5">—</small></div><div class="rate"><div class="rate-title">L10<br>Hit Rate</div><strong id="rate10">—</strong><small id="sample10">—</small></div><div class="rate"><div class="rate-title">L15<br>Hit Rate</div><strong id="rate15">—</strong><small id="sample15">—</small></div><div class="rate"><div class="rate-title">Season<br>Hit Rate</div><strong id="rate-season">—</strong><small id="sample-season">—</small></div></div>
-    <div class="averages"><div class="avg-box"><small>Season AVG</small><strong id="season-avg">—</strong></div><div class="avg-box selected"><small>⌂ Home</small><strong id="home-avg">—</strong></div><div class="avg-box"><small>➤ Away</small><strong id="away-avg">—</strong></div></div>
+    <div class="averages">
+      <button type="button" class="avg-box" data-avg-details="ALL" aria-haspopup="dialog" aria-controls="hz-avg-breakdown" aria-expanded="false" title="Otwórz porównanie ALL / HOME / AWAY"><small>Season AVG</small><strong id="season-avg">—</strong></button>
+      <button type="button" class="avg-box selected" data-avg-details="HOME" aria-haspopup="dialog" aria-controls="hz-avg-breakdown" aria-expanded="false" title="Otwórz porównanie ALL / HOME / AWAY"><small>⌂ Home</small><strong id="home-avg">—</strong></button>
+      <button type="button" class="avg-box" data-avg-details="AWAY" aria-haspopup="dialog" aria-controls="hz-avg-breakdown" aria-expanded="false" title="Otwórz porównanie ALL / HOME / AWAY"><small>➤ Away</small><strong id="away-avg">—</strong></button>
+    </div>
     <div class="defense-box"><div class="defense-heading"><span class="shield">⬡</span> <span id="defense-title">Matchup Defense</span></div><div class="defense-badge"><span id="defense-logo">◈</span></div><div class="defense-details" id="defense-details"><div>Weryfikacja danych obrony rywala</div><div>Bez niepotwierdzonych rankingów</div><div>Statystyki tylko z rzeczywistych meczów</div></div></div>
   </section>
   <section id="take"><div class="take-title"><span class="target-icon">▥</span>HOOP<span>ZARO</span> Insight</div><div class="take-text" id="take-text">Wyszukaj zawodnika i linię, aby zobaczyć analizę.</div></section>
@@ -648,6 +652,22 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <div class="bc-free-info-foot"><span>Subskrypcja $9.99 USD miesięcznie · brak gwarancji wyników sportowych.</span><span class="bc-free-info-foot-badge">✦ HOOPZARO PREMIUM</span></div>
   </section>
 </div>
+<!-- Comparison is outside the scaled canvas, so the popup fits desktop and mobile. -->
+<div id="hz-avg-breakdown" class="hz-avg-breakdown-backdrop" hidden>
+  <section class="hz-avg-breakdown-dialog" role="dialog" aria-modal="true" aria-labelledby="hz-avg-breakdown-title" aria-describedby="hz-avg-breakdown-note" tabindex="-1">
+    <header class="hz-avg-breakdown-header">
+      <div><span class="hz-avg-breakdown-eyebrow">HOOPZARO · PLAYER PROPS</span>
+        <h2 id="hz-avg-breakdown-title">HOME / AWAY SPLIT</h2>
+        <p id="hz-avg-breakdown-context">Porównanie występów zawodnika</p></div>
+      <button type="button" id="hz-avg-breakdown-close" aria-label="Zamknij porównanie">×</button>
+    </header>
+    <div class="hz-avg-breakdown-table" role="group" aria-label="Tabela porównawcza ALL, HOME i AWAY">
+      <div class="hz-avg-breakdown-columns" aria-hidden="true"><span>WYSTĘPY</span><span>GP</span><span>AVG</span><span>HIT RATE</span></div>
+      <div id="hz-avg-breakdown-rows"></div>
+    </div>
+    <p id="hz-avg-breakdown-note">Wybierz wiersz, aby przefiltrować wykres. Wyniki historyczne, nie prognoza.</p>
+  </section>
+</div>
 <script src="nba_player_ids.js"></script>
 <script src="portraits.js"></script>
 <script src="centrum.js"></script>
@@ -842,6 +862,54 @@ function measures(p){
     home:averageGames(all.filter(function(g){return gameVenue(g)==="H"})),
     away:averageGames(all.filter(function(g){return gameVenue(g)==="A"}))};
 }
+let avgBreakdownTrigger=null;
+function closeAvgBreakdown(restoreFocus=true){
+  const backdrop=$("hz-avg-breakdown");
+  if(backdrop.hidden)return;
+  backdrop.hidden=true;
+  document.querySelectorAll("[data-avg-details]").forEach(function(btn){
+    btn.setAttribute("aria-expanded","false");
+  });
+  if(restoreFocus && avgBreakdownTrigger && avgBreakdownTrigger.isConnected
+     && state.page==="props")avgBreakdownTrigger.focus({preventScroll:true});
+  avgBreakdownTrigger=null;
+}
+function renderAvgBreakdown(){
+  const player=state.payload.player;
+  if(!player||!Array.isArray(player.games)){closeAvgBreakdown(false);return}
+  text("hz-avg-breakdown-context",player.name+" · "+(marketLabels[state.market]||state.market)
+    +" · "+state.side+" "+fmt(state.line,1));
+  const all=player.games.filter(function(g){return finite(g[state.market])});
+  const groups=[["ALL","Wszystkie",all],["HOME","Dom",all.filter(function(g){return gameVenue(g)==="H"})],
+    ["AWAY","Wyjazd",all.filter(function(g){return gameVenue(g)==="A"})]];
+  $("hz-avg-breakdown-rows").innerHTML=groups.map(function(group){
+    const key=group[0],games=group[2],values=games.map(function(g){return Number(g[state.market])});
+    const observed=rate(values),mean=averageGames(games),selected=key===state.venue;
+    const subtitle=key==="ALL"?"Wszystkie mecze":key==="HOME"?"U siebie":"Na wyjeździe";
+    return '<button type="button" class="hz-avg-breakdown-row'+(selected?' is-selected':'')+
+      '" data-breakdown-venue="'+key+'" aria-pressed="'+String(selected)+'"'+
+      ' aria-label="'+key+': '+subtitle+', '+games.length+' meczów, średnia '+(mean===null?'brak danych':fmt(mean))+
+      ', hit rate '+observed.label+'">'+
+      '<span class="hz-avg-breakdown-label"><b>'+key+'</b><small>'+subtitle+'</small></span>'+
+      '<span>'+games.length+'</span>'+
+      '<strong>'+fmt(mean)+'</strong>'+
+      '<span class="hz-avg-breakdown-hitrate"><b>'+observed.label+'</b><small>'+observed.wins+'/'+observed.n+'</small></span>'+
+      '</button>';
+  }).join("");
+  const unknown=all.filter(function(g){return !gameVenue(g)}).length;
+  text("hz-avg-breakdown-note","Wybierz wiersz, aby przefiltrować wykres. Statystyki historyczne, nie prognoza."
+    +(unknown?" "+unknown+" występ(ów) bez potwierdzonego miejsca: wyłącznie w ALL.":""));
+}
+function openAvgBreakdown(trigger){
+  if(state.page!=="props"||!state.payload.player)return;
+  avgBreakdownTrigger=trigger;
+  renderAvgBreakdown();
+  $("hz-avg-breakdown").hidden=false;
+  document.querySelectorAll("[data-avg-details]").forEach(function(btn){
+    btn.setAttribute("aria-expanded",String(btn===trigger));
+  });
+  $("hz-avg-breakdown-close").focus({preventScroll:true});
+}
 function setImage(id,url,alternate){
   const img=$(id);
   const okay=typeof url==="string"&&(url.startsWith("https://")||url.startsWith("data:image/png;base64,")||url.startsWith("data:image/svg+xml;base64,"));
@@ -963,7 +1031,9 @@ function renderPlayer(){
   text("season-avg",m?fmt(m.avg):"—");text("home-avg",m?fmt(m.home):"—");text("away-avg",m?fmt(m.away):"—");
   document.querySelectorAll(".avg-box").forEach(function(box,i){
     box.classList.toggle("selected",i===(state.venue==="HOME"?1:state.venue==="AWAY"?2:0));
+    box.disabled=!p;
   });
+  if(!$("hz-avg-breakdown").hidden)renderAvgBreakdown();
   text("defense-title",p&&p.opponent?"vs "+p.opponent+" Defense":"Matchup Defense");
   const defense=$("defense-details");
   if(p && finite(p.defense)){
@@ -1015,6 +1085,7 @@ function requestHomeData(){
 }
 function render(){
   const active=state.page==="props",home=state.page==="home";
+  if(!active)closeAvgBreakdown(false);
   if(!active)setMarketMenuOpen(false);
   if(!active)setPropsHelpOpen(false);
   const role=state.payload.auth?.role||"guest";
@@ -1252,6 +1323,32 @@ if(window.HoopzaroSimulations){
 $("hz-account-login").addEventListener("click",function(){sendAuth("auth_login")});
 $("hz-account-logout").addEventListener("click",function(){sendAuth("auth_logout")});
 $("search-form").addEventListener("submit",function(e){e.preventDefault();search($("query").value)});
+document.querySelectorAll("[data-avg-details]").forEach(function(btn){
+  btn.addEventListener("click",function(){openAvgBreakdown(btn)});
+});
+$("hz-avg-breakdown-close").addEventListener("click",function(){closeAvgBreakdown()});
+$("hz-avg-breakdown").addEventListener("click",function(event){
+  if(event.target===this)closeAvgBreakdown();
+});
+$("hz-avg-breakdown-rows").addEventListener("click",function(event){
+  const row=event.target.closest("[data-breakdown-venue]");
+  if(!row)return;
+  if(!["ALL","HOME","AWAY"].includes(row.dataset.breakdownVenue))return;
+  state.venue=row.dataset.breakdownVenue;
+  closeAvgBreakdown();
+  render();
+});
+document.addEventListener("keydown",function(event){
+  const dialog=$("hz-avg-breakdown");
+  if(dialog.hidden)return;
+  if(event.key==="Escape"){event.preventDefault();closeAvgBreakdown();return}
+  if(event.key==="Tab"){
+    const focusable=Array.from(dialog.querySelectorAll('button:not([disabled])'));
+    const current=focusable.indexOf(document.activeElement);
+    if(event.shiftKey && current<=0){event.preventDefault();focusable[focusable.length-1].focus()}
+    else if(!event.shiftKey && current===focusable.length-1){event.preventDefault();focusable[0].focus()}
+  }
+});
 $("props-help-trigger").addEventListener("click",function(){setPropsHelpOpen($("props-help-panel").hidden)});
 $("props-help-close").addEventListener("click",function(){setPropsHelpOpen(false,true)});
 document.querySelectorAll("[data-help-query]").forEach(function(button){button.addEventListener("click",function(){
@@ -1395,6 +1492,7 @@ window.addEventListener("message",function(event){
     :String(state.payload.auth?.subject||state.payload.auth?.email||state.payload.auth?.role||"guest");
   if(state.playerIdentity!==currentIdentity){
     if(state.playerIdentity!==""){
+      closeAvgBreakdown(false);
       state.query="";$('query').value="";
       state.lastIdentity="";state.paywallServerErrorSeen="";
     }
@@ -1416,6 +1514,7 @@ window.addEventListener("message",function(event){
   if(p){
     const identity=[p.name,p.market,p.line,p.side].join("|");
     if(identity!==state.lastIdentity){
+      closeAvgBreakdown(false);
       state.market=p.market||"PTS";state.line=Number(p.line)||25.5;
       state.side=p.side==="UNDER"?"UNDER":"OVER";state.period="L10";state.venue="ALL";
       state.lastIdentity=identity;
