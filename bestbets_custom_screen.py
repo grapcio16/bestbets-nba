@@ -124,6 +124,18 @@ def _number(value: Any) -> float | None:
         return None
 
 
+def _verified_venue(matchup: Any) -> str:
+    """Derive H/A only from a provider-reported matchup, never from a guess."""
+    import re
+
+    value = _plain(matchup)
+    if re.search(r"\s@\s", value):
+        return "A"
+    if re.search(r"\svs\.?\s", value, flags=re.IGNORECASE):
+        return "H"
+    return ""
+
+
 def _brand_image() -> str:
     file = ROOT / "assets" / "hoopzaro.svg"
     if not file.is_file():
@@ -286,6 +298,7 @@ def _research(query: str) -> dict:
         records.append({
             "date": stamp.strftime("%Y-%m-%d"),
             "matchup": _plain(match.get("MATCHUP")),
+            "venue": _verified_venue(match.get("MATCHUP")),
             "PTS": _number(match.get("PTS")),
             "REB": _number(match.get("REB")),
             "AST": _number(match.get("AST")),
