@@ -343,7 +343,15 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <div class="control-group" id="tabs-group"><label>&nbsp;</label><div class="control-box tab-control"><button data-market="PTS" class="on">PTS</button><button data-market="REB">REB</button><button data-market="AST">AST</button><button data-market="FG3M">3PM</button><button data-market="PRA">PRA</button></div></div>
     <div class="control-group" id="period-group"><label>&nbsp;</label><div class="control-box period-control"><button data-period="L5">L5</button><button data-period="L10" class="on">L10</button><button data-period="L15">L15</button><button data-period="2026">2026</button><button data-period="Season">Season</button></div></div>
   </section>
-  <section id="chart-panel"><div class="chart-title"><span class="orange-bars">▥</span><span id="chart-heading">Last 10 Games — Points</span></div><svg id="chart-svg" viewBox="0 0 581 170" role="img" aria-label="Wykres statystyk zawodnika"></svg><div id="chart-placeholder" class="chart-placeholder">Wpisz zawodnika, aby zobaczyć historię rzeczywistych meczów.</div></section>
+  <section id="chart-panel"><div class="chart-title"><span class="orange-bars">▥</span><span id="chart-heading">Last 10 Games — Points</span></div>
+    <div class="venue-filter" role="group" aria-label="Miejsce rozegrania meczu">
+      <button type="button" data-venue="ALL" class="on" aria-pressed="true" title="Wszystkie mecze">ALL</button>
+      <button type="button" data-venue="HOME" aria-pressed="false" title="Tylko mecze domowe">HOME</button>
+      <button type="button" data-venue="AWAY" aria-pressed="false" title="Tylko mecze wyjazdowe">AWAY</button>
+    </div>
+    <svg id="chart-svg" viewBox="0 0 581 185" role="img" aria-label="Wykres statystyk zawodnika"></svg>
+    <div id="chart-placeholder" class="chart-placeholder">Wpisz zawodnika, aby zobaczyć historię rzeczywistych meczów.</div>
+  </section>
   <section id="side-stats">
     <div class="rates"><div class="rate"><div class="rate-title">L5<br>Hit Rate</div><strong id="rate5">—</strong><small id="sample5">—</small></div><div class="rate"><div class="rate-title">L10<br>Hit Rate</div><strong id="rate10">—</strong><small id="sample10">—</small></div><div class="rate"><div class="rate-title">L15<br>Hit Rate</div><strong id="rate15">—</strong><small id="sample15">—</small></div><div class="rate"><div class="rate-title">Season<br>Hit Rate</div><strong id="rate-season">—</strong><small id="sample-season">—</small></div></div>
     <div class="averages"><div class="avg-box"><small>Season AVG</small><strong id="season-avg">—</strong></div><div class="avg-box selected"><small>⌂ Home</small><strong id="home-avg">—</strong></div><div class="avg-box"><small>➤ Away</small><strong id="away-avg">—</strong></div></div>
@@ -656,7 +664,7 @@ const $=function(id){return document.getElementById(id)};
 const root=$("stage"),shell=$("app-shell");
 const marketNames={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PTS + REB + AST"};
 const pages={home:"Centrum",props:"Player Props",games:"Terminarz",simulations:"Symulacje",players:"Zawodnicy",teams:"Drużyny",settings:"Ustawienia",shortcuts:"Skrót wpisywania",admin:"Model Performance"};
-const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",loading:false,lastIdentity:"",homeRequested:false,homeRequestAt:0,homeLastAttempt:0,homeRetryCount:0,homeTimedOut:false,paywallOpen:false,paywallServerErrorSeen:"",adminLoading:false,adminLastRequest:0,playerCatalogRequested:false,playerAveragesRequested:false,teamAnalyticsRequested:false,playerIdentity:""};
+const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",venue:"ALL",loading:false,lastIdentity:"",homeRequested:false,homeRequestAt:0,homeLastAttempt:0,homeRetryCount:0,homeTimedOut:false,paywallOpen:false,paywallServerErrorSeen:"",adminLoading:false,adminLastRequest:0,playerCatalogRequested:false,playerAveragesRequested:false,teamAnalyticsRequested:false,playerIdentity:""};
 const marketLabels={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PTS + REB + AST"};
 // The server sends each logo once rather than repeating base64 in every game.
 // Keep the original badge markup and image sizing: only resolve references.
@@ -807,18 +815,32 @@ function fmt(v,digits){
 function pct(w,n){return n?Math.round(100*w/n)+"%":"—"}
 function finite(v){return v!==null && v!==undefined && Number.isFinite(Number(v))}
 function rate(items){const nums=items.filter(function(v){return finite(v)});const wins=nums.filter(function(v){return state.side==="UNDER"?Number(v)<state.line:Number(v)>state.line}).length;return {n:nums.length,wins:wins,label:pct(wins,nums.length)}}
+function gameVenue(g){
+  // Prefer server-verified venue; strict fallback supports old cached histories.
+  if(g?.venue==="H"||g?.venue==="HOME")return "H";
+  if(g?.venue==="A"||g?.venue==="AWAY")return "A";
+  const matchup=String(g?.matchup||"");
+  if(/\s@\s/.test(matchup))return "A";
+  if(/\svs\.?\s/i.test(matchup))return "H";
+  return ""; // Never assign an unverified location.
+}
+function venueMatches(g){
+  return state.venue==="ALL"||gameVenue(g)===(state.venue==="HOME"?"H":"A");
+}
+function averageGames(games){
+  const values=games.map(function(g){return Number(g[state.market])});
+  return values.length?values.reduce(function(a,b){return a+b},0)/values.length:null;
+}
 function measures(p){
-  const valid=p.games.filter(function(g){return finite(g[state.market])});
+  const all=p.games.filter(function(g){return finite(g[state.market])});
+  // Filter before L5/L10/L15: L10 HOME means the latest 10 home games.
+  const valid=all.filter(venueMatches);
   const values=valid.map(function(g){return Number(g[state.market])});
   const subset=function(n){return rate(values.slice(-n))};
-  const seasons=rate(values);
-  const avg=values.length?values.reduce(function(a,b){return a+b},0)/values.length:null;
-  const onCourt=function(away){
-    const matches=valid.filter(function(g){return away?String(g.matchup||"").includes("@"):String(g.matchup||"").includes("vs")});
-    const xs=matches.map(function(g){return Number(g[state.market])}).filter(Number.isFinite);
-    return xs.length?xs.reduce(function(a,b){return a+b},0)/xs.length:null;
-  };
-  return {valid:valid,values:values,l5:subset(5),l10:subset(10),l15:subset(15),season:seasons,avg:avg,home:onCourt(false),away:onCourt(true)};
+  return {valid:valid,values:values,l5:subset(5),l10:subset(10),
+    l15:subset(15),season:rate(values),avg:averageGames(valid),
+    home:averageGames(all.filter(function(g){return gameVenue(g)==="H"})),
+    away:averageGames(all.filter(function(g){return gameVenue(g)==="A"}))};
 }
 function setImage(id,url,alternate){
   const img=$(id);
@@ -832,8 +854,8 @@ function escapeHtml(raw){
 }
 function chartMarkup(games){
   if(!games.length)return "";
-  const padLeft=37,padRight=9,top=11,bottom=29;
-  const w=581-padLeft-padRight,h=170-top-bottom;
+  const padLeft=37,padRight=9,top=11,bottom=44;
+  const w=581-padLeft-padRight,h=185-top-bottom;
   const values=games.map(function(g){return Number(g[state.market])});
   const maxv=Math.max(state.line||0,1,...values);
   const max=Math.max(5,Math.ceil(maxv*1.20/5)*5);
@@ -859,20 +881,34 @@ function chartMarkup(games){
     const date=String(g.date||"").slice(5).replace("-","/"), opp=String(g.matchup||"").split("@").pop().split("vs.").pop().split("vs").pop().trim().slice(0,5);
     svg+='<text x="'+(x+bar/2).toFixed(1)+'" y="153" fill="#b5c8e0" font-size="'+(n>15?7:8.7)+'" text-anchor="middle">'+escapeHtml(date)+'</text>';
     svg+='<text x="'+(x+bar/2).toFixed(1)+'" y="163" fill="#abc6e3" font-size="'+(n>15?7:8.7)+'" text-anchor="middle">'+escapeHtml(opp)+'</text>';
+    const venue=gameVenue(g);
+    if(venue){
+      const center=x+bar/2, badgeWidth=14;
+      svg+='<rect class="bb-venue-badge" x="'+(center-badgeWidth/2).toFixed(1)+'" y="168" width="'+badgeWidth+'" height="13" rx="4" fill="'+(venue==="H"?"#0b4963":"#3d275d")+'" stroke="'+(venue==="H"?"#23dff4":"#bc86fa")+'" stroke-width=".7"/>';
+      svg+='<text class="bb-venue-label" x="'+center.toFixed(1)+'" y="177.7" fill="'+(venue==="H"?"#a3f7ff":"#eed1ff")+'" font-weight="bold" font-size="9" text-anchor="middle">'+venue+'</text>';
+    }
   });
   return svg+"</g>";
 }
 function renderChart(p){
   const svg=$("chart-svg"),placeholder=$("chart-placeholder");
   if(!p||!Array.isArray(p.games)){svg.innerHTML="";placeholder.style.display="block";return}
-  let rows=p.games.filter(function(g){return finite(g[state.market])});
+  let rows=p.games.filter(function(g){return finite(g[state.market])&&venueMatches(g)});
   if(state.period==="L5")rows=rows.slice(-5);
   else if(state.period==="L10")rows=rows.slice(-10);
   else if(state.period==="L15")rows=rows.slice(-15);
   else if(state.period==="2026")rows=rows.filter(function(g){return String(g.date||"").startsWith("2026")});
   if(rows.length>20)rows=rows.slice(-20);
   placeholder.style.display=rows.length?"none":"block";
-  if(!rows.length){svg.innerHTML="";return}
+  if(!rows.length){
+    svg.innerHTML="";
+    placeholder.textContent=state.venue==="HOME"
+      ?"Brak potwierdzonych występów domowych w wybranym okresie."
+      :state.venue==="AWAY"
+      ?"Brak potwierdzonych występów wyjazdowych w wybranym okresie."
+      :"Brak występów w wybranym okresie.";
+    return;
+  }
   svg.innerHTML=chartMarkup(rows);
 }
 const searchMarketLabels={PTS:"points",REB:"rebounds",AST:"assists",FG3M:"three-pointers",PRA:"PRA"};
@@ -892,7 +928,7 @@ function renderPlayer(){
   // not rebuild the Props SVG or restart its visual transitions.
   const signature=JSON.stringify([
     state.payload.player||null,state.payload.error||"",state.market,
-    state.line,state.side,state.period,state.loading,state.payload.auth?.role||"guest"
+    state.line,state.side,state.period,state.venue,state.loading,state.payload.auth?.role||"guest"
   ]);
   if(signature===lastPlayerRenderSignature)return;
   lastPlayerRenderSignature=signature;
@@ -915,7 +951,7 @@ function renderPlayer(){
   text("hero-avg",m?fmt(m.avg):"—");
   text("hero-line",p?fmt(state.line):"—");
   text("hero-rate",m?m.l10.label:"—");
-  text("hero-rate-sample",m?("L10 ("+m.l10.wins+"/"+m.l10.n+")"):"L10");
+  text("hero-rate-sample",m?("L10 "+(state.venue==="ALL"?"":state.venue==="HOME"?"H ":"A ")+"("+m.l10.wins+"/"+m.l10.n+")"):"L10");
   text("hero-defense",p&&finite(p.defense)?fmt(p.defense):"—");
   text("hero-grade","—");
   const labels={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PRA"};
@@ -925,6 +961,9 @@ function renderPlayer(){
   const windows=[["rate5","sample5",m&&m.l5],["rate10","sample10",m&&m.l10],["rate15","sample15",m&&m.l15],["rate-season","sample-season",m&&m.season]];
   windows.forEach(function(pair){const r=pair[2];text(pair[0],r?r.label:"—");text(pair[1],r?"("+r.wins+"/"+r.n+")":"—")});
   text("season-avg",m?fmt(m.avg):"—");text("home-avg",m?fmt(m.home):"—");text("away-avg",m?fmt(m.away):"—");
+  document.querySelectorAll(".avg-box").forEach(function(box,i){
+    box.classList.toggle("selected",i===(state.venue==="HOME"?1:state.venue==="AWAY"?2:0));
+  });
   text("defense-title",p&&p.opponent?"vs "+p.opponent+" Defense":"Matchup Defense");
   const defense=$("defense-details");
   if(p && finite(p.defense)){
@@ -938,10 +977,13 @@ function renderPlayer(){
   const take=$("take-text");
   if(!p) take.textContent="Wyszukaj zawodnika i linię, aby zobaczyć analizę.";
   else if(m && m.season.n){
+    const context=state.venue==="HOME"?" meczów domowych":state.venue==="AWAY"?" meczów wyjazdowych":" występów";
     take.innerHTML="<span class='green'>"+state.side+" "+fmt(state.line)+" "+escapeHtml(labels[state.market])+"</span> — "+escapeHtml(p.name)+
-      " osiągnął wskazaną stronę w "+m.season.wins+" z "+m.season.n+" występów ("+m.season.label+
+      " osiągnął wskazaną stronę w "+m.season.wins+" z "+m.season.n+context+" ("+m.season.label+
       "). To częstotliwość historyczna, nie skalibrowana prognoza.";
-  }else take.textContent="Brak występów dla tego rynku i linii.";
+  }else take.textContent=state.venue==="HOME"?"Brak potwierdzonych występów domowych dla wybranego rynku."
+    :state.venue==="AWAY"?"Brak potwierdzonych występów wyjazdowych dla wybranego rynku."
+    :"Brak występów dla tego rynku i linii.";
   const premiumError=String(state.payload.error||"").startsWith("Player Props wymaga konta Premium");
   text("notice",premiumError?"":state.payload.error||"");
   $("notice").style.display=state.payload.error&&!premiumError?"block":"none";
@@ -954,6 +996,10 @@ function renderPlayer(){
   document.querySelectorAll("[data-market]").forEach(function(el){el.classList.toggle("on",el.dataset.market===state.market)});
   document.querySelectorAll("[data-side]").forEach(function(el){el.classList.toggle("on",el.dataset.side===state.side)});
   document.querySelectorAll("[data-period]").forEach(function(el){el.classList.toggle("on",el.dataset.period===state.period)});
+  document.querySelectorAll("[data-venue]").forEach(function(el){
+    const active=el.dataset.venue===state.venue;
+    el.classList.toggle("on",active);el.setAttribute("aria-pressed",String(active));
+  });
 }
 function requestHomeData(){
   if(state.page!=="home" || state.payload.home)return;
@@ -1293,6 +1339,7 @@ document.addEventListener("pointerdown",function(e){
 });
 document.querySelectorAll("[data-side]").forEach(function(el){el.addEventListener("click",function(){state.side=el.dataset.side;render()})});
 document.querySelectorAll("[data-period]").forEach(function(el){el.addEventListener("click",function(){state.period=el.dataset.period;render()})});
+document.querySelectorAll("[data-venue]").forEach(function(el){el.addEventListener("click",function(){state.venue=el.dataset.venue;render()})});
 $("line-minus").addEventListener("click",function(){state.line=Math.max(.5,state.line-.5);render()});
 $("line-plus").addEventListener("click",function(){state.line=Math.min(150,state.line+.5);render()});
 $("line").addEventListener("change",function(){const value=Number(this.value);state.line=Number.isFinite(value)?Math.min(150,Math.max(.5,value)):state.line;render()});
@@ -1370,7 +1417,7 @@ window.addEventListener("message",function(event){
     const identity=[p.name,p.market,p.line,p.side].join("|");
     if(identity!==state.lastIdentity){
       state.market=p.market||"PTS";state.line=Number(p.line)||25.5;
-      state.side=p.side==="UNDER"?"UNDER":"OVER";state.period="L10";
+      state.side=p.side==="UNDER"?"UNDER":"OVER";state.period="L10";state.venue="ALL";
       state.lastIdentity=identity;
     }
   }
