@@ -352,7 +352,38 @@ function teamComparisonMarkup(metrics,data,away,home,game){
  '<small>% do 100 · pozostałe: skala wiersza</small>'+
  '<span><i class="hzv-dot-home"></i>'+esc(home)+'</span></div></section>';
 }
+function scoreFallbackGraph(game){
+ if(!Number.isInteger(game.away_score)||!Number.isInteger(game.home_score))
+  return '<p class="hzv-history-empty">Brak potwierdzonego wykresu kwartowego ESPN.</p>';
+ const a=game.away_score,h=game.home_score,max=Math.max(a,h,1);
+ return '<div class="hzv-xfactor-final" role="img" aria-label="'+esc("Wynik końcowy "+game.away+" "+a+", "+game.home+" "+h)+'">'+
+  '<p>Przebieg kwartowy niedostępny. Wynik końcowy:</p>'+
+  '<div class="hzv-xfactor-final-row"><b>'+esc(game.away)+'</b><div class="hzv-xfactor-final-track"><i class="hzv-xfactor-final-away" style="width:'+(100*a/max).toFixed(1)+'%"></i></div><strong>'+a+'</strong></div>'+
+  '<div class="hzv-xfactor-final-row"><b>'+esc(game.home)+'</b><div class="hzv-xfactor-final-track"><i class="hzv-xfactor-final-home" style="width:'+(100*h/max).toFixed(1)+'%"></i></div><strong>'+h+'</strong></div>'+
+ '</div>';
+}
+function pregameMarkup(data,game){
+ const away=String(game.away||""),home=String(game.home||"");
+ const status='<section class="hzv-game-card hzv-game-summary hzv-pregame-summary">'+
+  '<div class="hzv-game-ribbon">✦ NADCHODZĄCY MECZ NBA ✦</div>'+
+  '<div class="hzv-pregame-teams">'+
+   '<div>'+teamLogo(data,away,game,"away")+'<strong>'+esc(away)+'</strong></div>'+
+   '<span>VS</span>'+
+   '<div>'+teamLogo(data,home,game,"home")+'<strong>'+esc(home)+'</strong></div></div>'+
+  '<p class="hzv-pregame-time">◷ '+esc(fullHistoryDate(game.start))+' · '+esc(localTime(game.start))+'</p>'+
+  '<div class="hzv-pregame-notice"><span aria-hidden="true">◷</span>'+
+   '<h2>Mecz jeszcze się nie rozpoczął</h2>'+
+   '<p>Statystyki drużyn, X-Factor i przebieg punktacji będą dostępne po meczu.</p></div></section>';
+ const right='<section class="hzv-game-card hzv-gc-history hzv-pregame-history">'+
+  '<h2 class="hzv-pregame-history-title">Historia drużyn</h2>'+
+  '<div class="hzv-history-tabs" role="group" aria-label="Historia spotkań">'+
+   '<button type="button" data-hzv-history="h2h" class="'+(historyTab==="h2h"?"selected":"")+'">Head to Head</button>'+
+   '<button type="button" data-hzv-history="recent" class="'+(historyTab==="recent"?"selected":"")+'">Ostatnie mecze</button></div>'+
+  '<div id="hzv-history-results">'+historyMarkup(data,game)+'</div></section>';
+ return status+right;
+}
 function detailsMarkup(data,game,packet){
+ if(game.state==="scheduled")return pregameMarkup(data,game);
  const away=String(game.away||""),home=String(game.home||"");
  const statsAway=verified(data,away),statsHome=verified(data,home);
  const packetForGame=packet?.id===String(game.id)&&packet?.day===selectedDay?packet:null;
@@ -394,8 +425,8 @@ function detailsMarkup(data,game,packet){
   '<strong>'+esc(leader.name)+'</strong><small>'+esc(leader.team)+' · lider punktowy</small>'+
   '<small>'+leader.pts+' PTS · '+leader.reb+' REB · '+leader.ast+' AST</small>':
   '<p class="hzv-history-empty">Brak potwierdzonego lidera punktowego.</p>')+
- '</div><div class="hzv-xfactor-chart"><h3>Przebieg punktacji</h3>'+
- quarterGraph(quarters,away,home)+'</div></div>'+
+ '</div><div class="hzv-xfactor-chart"><h3>'+(quarters.length?"Przebieg punktacji":"Porównanie punktów")+'</h3>'+
+ (quarters.length?quarterGraph(quarters,away,home):scoreFallbackGraph(game))+'</div></div>'+
  '<div class="hzv-gc-callout"><b>✦ KLUCZOWY MOMENT</b><span>'+esc(periodChange)+'</span></div>'+
  '</section><section class="hzv-game-card hzv-gc-history">'+
  '<div class="hzv-history-tabs" role="group" aria-label="Porównanie historyczne">'+
@@ -439,7 +470,7 @@ function openGame(id){
  if(!lastData)return;const game=selectedGames(lastData).games.find(g=>String(g.id||"")===id);if(!game)return;
  selectedGameId=id;historyTab="h2h";toggleCalendar(false);
  saveOpenGame({id,day:selectedDay});
- if(game.state!=="scheduled"&&(!lastDetails||lastDetails.id!==id||lastDetails.day!==selectedDay)){
+ if(!lastDetails||lastDetails.id!==id||lastDetails.day!==selectedDay){
   if(requestedDetailsId!==id){requestedDetailsId=id;callback?.gameDetails?.({game_id:id,date:selectedDay});}
  }
  renderGamePage();const page=$("hzv-game-page");if(page)page.scrollTop=0;
