@@ -30,6 +30,8 @@ jobs:
         run: python test_free_analyses_browser.py
       - name: Pixel baseline, browser fixture and unchanged Props
         run: python test_browser_reference_v10.py
+      - name: Native phone Terminarz scrolling and free details
+        run: python test_schedule_mobile.py
       - name: Start production entrypoint WITHOUT deployment
         run: |
           python -m streamlit run app.py --server.port 8501 --server.headless true > /tmp/centre-data.log 2>&1 &
