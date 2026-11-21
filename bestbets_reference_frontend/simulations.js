@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -62,7 +62,7 @@ function toggleModelDropdown(open,restoreFocus=false){
 }
 function chooseModel(model){
   if(!MODEL_CHOICES.some(item=>item.id===model)||model===state.model)return;
-  state.model=model;state.gamePending="";state.playersPending="";state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
+  state.model=model;state.gamePending="";state.playersPending="";state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function toggleMatchPicker(open){
@@ -435,6 +435,69 @@ function showScenario(game,sim,premium){
  status.textContent=state.scenarioPending===state.day+"|"+game.id+"|"+state.model+"|"+state.scenarioPct+"|"+state.offAwayPct+"|"+state.offHomePct
    ?"Trwa przeliczanie scenariusza…":"Zmień założenie i kliknij Przelicz 5 000 symulacji.";
 }
+
+function showPlayerMinutes(game,players,premium){
+ const select=$("hzm-minute-player"),slider=$("hzm-minute-delta"),run=$("hzm-minute-run");
+ const status=$("hzm-minute-status"),display=$("hzm-minute-delta-output");
+ if(!select||!slider||!run||!status||!display)return;
+ const ids=["minutes","pts","reb","ast","pra"];
+ const clear=()=>{for(const id of ids){const el=$("hzm-minute-"+id);if(el)el.textContent=(id==="minutes"?"Minuty":id.toUpperCase())+": —";}};
+ clear();
+ const validGame=game?.state==="scheduled"&&Date.parse(game?.start||"")>Date.now();
+ const entitled=premium?.entitled===true;
+ const allowed=entitled&&validGame&&state.model==="research_context_v75";
+ const list=allowed&&Array.isArray(players?.players)?players.players:[];
+ const validMetric=p=>safeProjection(p?.pts)!==null&&safeProjection(p?.reb)!==null&&safeProjection(p?.ast)!==null;
+ const good=(p)=>p&&p.availability!=="Out"&&
+   [game?.away,game?.home].includes(p.team)&&Number.isInteger(Number(p.minutes_sample))&&
+   Number(p.minutes_sample)>=3&&safeProjection(p.minutes)!==null&&
+   Number(p.minutes)>=5&&Number(p.minutes)<=44&&validMetric(p);
+ const eligible=list.map((p,i)=>({p,i})).filter(x=>good(x.p));
+ if(!eligible.some(x=>x.i===state.minuteIndex)){
+   state.minuteIndex=eligible.length?eligible[0].i:-1;
+   state.minuteDelta=0;
+   state.minutePending="";
+ }
+ select.innerHTML=eligible.length
+  ?eligible.map(({p,i})=>'<option value="'+i+'">'+esc(p.name)+' · '+esc(p.team)+'</option>').join("")
+  :'<option value="">Brak dostępnych minut</option>';
+ select.disabled=!eligible.length;
+ select.value=state.minuteIndex<0?"":String(state.minuteIndex);
+ slider.disabled=!eligible.length;
+ slider.value=String(state.minuteDelta);
+ display.textContent=(state.minuteDelta>0?"+":"")+state.minuteDelta+" min";
+ const item=list[state.minuteIndex];
+ const newMinutes=item?Number(item.minutes)+state.minuteDelta:null;
+ run.disabled=!item||newMinutes<5||newMinutes>44;
+ if(!entitled){status.textContent="Dostępne tylko w Premium.";return}
+ if(state.model!=="research_context_v75"){status.textContent="Wybierz V7.5: pozostałe modele nie mają zweryfikowanych szacunków minut.";return}
+ if(!validGame){status.textContent="Analiza minut dostępna wyłącznie przed potwierdzonym meczem.";return}
+ if(!players){status.textContent="Pobieranie projekcji V7.5 z ESPN…";return}
+ if(!eligible.length){status.textContent="Brak zawodnika z próbką ≥3 występów, prawidłowym szacunkiem minut i kompletem PTS/REB/AST. OUT jest wykluczony.";return}
+ if(run.disabled){status.textContent="Zakładany czas gry musi mieścić się w zakresie 5–44 minut.";return}
+ const record=premium?.minute_scenario;
+ const matched=record&&record.date===state.day&&record.game_id===String(game.id)&&
+    record.model_id===state.model&&record.name===item.name&&record.team===item.team&&
+    record.minute_delta===state.minuteDelta;
+ if(matched){
+   if(record.error){status.textContent=String(record.error).slice(0,180);return}
+   const base=record.baseline||{},hyp=record.scenario||{};
+   if(["pts","reb","ast","pra"].every(k=>safeProjection(base[k])!==null&&safeProjection(hyp[k])!==null)&&
+      safeProjection(record.baseline_minutes)!==null&&safeProjection(record.scenario_minutes)!==null){
+     $("hzm-minute-minutes").textContent="MIN: "+fmt(record.baseline_minutes)+" → "+fmt(record.scenario_minutes);
+     for(const k of ["pts","reb","ast","pra"])
+       $("hzm-minute-"+k).textContent=k.toUpperCase()+": "+fmt(base[k])+" → "+fmt(hyp[k]);
+     status.textContent="Szacunek liniowy: stała produkcja na minutę; "+record.minutes_sample+
+        " występów. ESPN: "+String(record.availability||"niezweryfikowany")+
+        ". Bez korekty wyniku drużyny, rotacji i wpływu kontuzji.";
+     return;
+   }
+ }
+ const key=state.day+"|"+game.id+"|"+state.model+"|"+item.team+"|"+item.name+"|"+state.minuteDelta;
+ status.textContent=state.minutePending===key?"Obliczanie wrażliwości minut…":
+    "Wariant hipotetyczny: "+fmt(item.minutes)+" → "+fmt(newMinutes)+" min · ESPN: "+
+    String(item.availability||"niezweryfikowany")+". Kliknij Oblicz projekcję.";
+}
 function render(home,premium){
   state.lastHome=home;state.lastPremium=premium;
   syncModelDropdown();
@@ -445,7 +508,7 @@ function render(home,premium){
   if(data.known&&state.requestedDay===state.day)state.requestedDay="";
   if(!data.games.some(game=>game.id===state.gameId)){
     const next=data.games.find(game=>game.state==="scheduled")||data.games[0];
-    state.gameId=next?.id||"";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";
+    state.gameId=next?.id||"";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
   }
   $("hzm-day-title").textContent=labelDay(state.day);
   $("hzm-day-input").value=state.day;
@@ -490,12 +553,12 @@ function render(home,premium){
     ?"Zweryfikowane Premium wymagane":!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":
       sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji · "+modelLabel());
   $("simulations-pane").classList.toggle("hzm-premium-locked",!premium?.entitled);
-  showChart(sim,game,premium);showPlayers(premium,players,game);showScenario(game,sim,premium);
+  showChart(sim,game,premium);showPlayers(premium,players,game);showScenario(game,sim,premium);showPlayerMinutes(game,players,premium);
   maybeLoadPaid(game,premium,sim,players);
 }
 function navigate(day){
   if(!safeDate(day)||!withinRange(day)||state.day===day)return;
-  state.day=day;state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
+  state.day=day;state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function init(api){
@@ -544,6 +607,40 @@ function init(api){
     callbacks?.loadScenario?.(state.day,game.id,state.model,state.scenarioPct,state.offAwayPct,state.offHomePct);
     showScenario(game,sim,state.lastPremium);
   });
+  $("hzm-minute-player")?.addEventListener("change",event=>{
+    const next=Number(event.target.value);
+    if(!Number.isInteger(next)||next<0)return;
+    state.minuteIndex=next;state.minuteDelta=0;state.minutePending="";
+    const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+    showPlayerMinutes(game,trustedPlayers(state.lastPremium,game),state.lastPremium);
+  });
+  $("hzm-minute-delta")?.addEventListener("input",event=>{
+    const v=Number(event.target.value);
+    if(!Number.isInteger(v)||v< -5||v>5)return;
+    state.minuteDelta=v;state.minutePending="";
+    const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+    showPlayerMinutes(game,trustedPlayers(state.lastPremium,game),state.lastPremium);
+  });
+  $("hzm-minute-run")?.addEventListener("click",()=>{
+    const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+    const players=trustedPlayers(state.lastPremium,game);
+    const player=players?.players?.[state.minuteIndex];
+    if(!state.lastPremium?.entitled||state.model!=="research_context_v75"||
+       game?.state!=="scheduled"||!(Date.parse(game.start||"")>Date.now())||
+       !player||player.availability==="Out"||
+       ![game.away,game.home].includes(player.team)||
+       !Number.isInteger(Number(player.minutes_sample))||Number(player.minutes_sample)<3||
+       safeProjection(player.minutes)===null||Number(player.minutes)+state.minuteDelta<5||
+       Number(player.minutes)+state.minuteDelta>44||
+       ["pts","reb","ast"].some(k=>safeProjection(player[k])===null))return;
+    state.minutePending=state.day+"|"+game.id+"|"+state.model+"|"+
+      player.team+"|"+player.name+"|"+state.minuteDelta;
+    callbacks?.loadMinuteScenario?.({
+      day:state.day,gameId:String(game.id),modelId:state.model,
+      playerName:String(player.name),team:String(player.team),minuteDelta:state.minuteDelta
+    });
+    showPlayerMinutes(game,players,state.lastPremium);
+  });
   $("hzm-player-search").addEventListener("input",event=>{
     state.playerQuery=String(event.target.value||"").slice(0,70);
     state.playerIndex=-1;
@@ -574,7 +671,7 @@ function init(api){
     const selected=event.target.closest("[data-hzm-game]");
     if(!selected)return;
     event.stopPropagation();
-    state.gameId=selected.dataset.hzmGame;state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";
+    state.gameId=selected.dataset.hzmGame;state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
     state.expanded=state.view==="players";
     toggleMatchPicker(false);
     render(state.lastHome,state.lastPremium);

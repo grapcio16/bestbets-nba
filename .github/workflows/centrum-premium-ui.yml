@@ -52,6 +52,8 @@ jobs:
           python test_simulations_props_bridge.py
           python test_simulation_scenario_builder.py
           python test_scenario_builder_browser.py
+          python test_player_minutes_scenario.py
+          python test_player_minutes_browser.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
