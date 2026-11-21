@@ -41,6 +41,13 @@ class EnrichedModelTests(unittest.TestCase):
         self.assertEqual(first["context"]["venue_samples"], [10, 10])
         self.assertFalse(first["context"]["advanced_available"])
         self.assertIsNotNone(first["score_noise"]["home_sd"])
+        self.assertEqual(first["context"]["score_sd_points"], [
+            score_volatility(verified_history(self.data, self.game["start_utc"]), "NYK")["sd"],
+            score_volatility(verified_history(self.data, self.game["start_utc"]), "BOS")["sd"],
+        ])
+        self.assertEqual(len(first["context"]["score_sd_samples"]), 2)
+        self.assertNotEqual(first["context"]["score_sd_points"],
+                            first["context"]["score_sd_samples"])
 
     def test_noise_is_finite_shrunk_and_deterministic(self):
         actual = verified_history(self.data, self.game["start_utc"])
