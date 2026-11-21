@@ -49,7 +49,12 @@ def main():
         })""")
         print("Mobile schedule scroll geometry:", heights)
         assert max(heights["document"], heights["body"], heights["scrolling"]) > 844, heights
-        assert page.evaluate("Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)") <= 394
+        widths=page.evaluate("""() => ({
+            document:document.documentElement.scrollWidth,body:document.body.scrollWidth,
+            pane:document.querySelector('#schedule-pane').scrollWidth, viewport:innerWidth
+        })""")
+        print("Mobile schedule horizontal geometry:",widths)
+        assert max(widths["document"],widths["body"]) <= widths["viewport"]+4, widths
         page.locator("#hzs-board .hzs-game").first.click()
         assert page.locator("#hzs-game-details").is_visible()
         assert "Pobieranie" in page.locator("#hzs-game-details").inner_text()
