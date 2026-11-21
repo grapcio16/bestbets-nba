@@ -304,9 +304,9 @@ function playerInspector(item,players,game,withMinutes){
  const sample=withMinutes&&Number.isInteger(Number(item.minutes_sample))?Math.max(0,Number(item.minutes_sample)):0;
  const minutes=withMinutes?safeProjection(item.minutes):null;
  const minuteLabel=withMinutes
-  ?minutes===null?'Brak wiarygodnego szacunku minut':fmt(minutes)+' min · '+sample+' wcześniejszych występów'
-  :'Minuty: brak zweryfikowanego szacunku w modelu '+esc(modelLabel());
- const recent=playerHistory(item,"PTS");
+  ?minutes===null?'— · brak danych':fmt(minutes)+' min ('+sample+' gier)'
+  :'— · '+esc(modelLabel());
+ const recent=playerHistory(item,state.playerMarket);
  const l5=historyMean(recent,5);
  const statusText=withMinutes?("ESPN: "+status):"Dostępność: nieoceniana w tym modelu";
  const statusClass=out?" is-out":["Questionable","Doubtful","Day-to-day","Sprzeczne"].includes(status)?" is-uncertain":"";
@@ -318,10 +318,10 @@ function playerInspector(item,players,game,withMinutes){
   (playerPosition?' · '+esc(playerPosition):'')+' · szacunek na wybrany mecz</div></div></div>'+
   '<div class="hzm-inspector-metrics">'+metrics+'</div>'+
   '<span class="hzm-inspector-status'+statusClass+'">'+esc(statusText)+'</span>'+
-  '<div class="hzm-inspector-facts"><div><span>◷</span> Minuty (prognoza)<strong>'+minuteLabel+'</strong></div>'+
-  '<div><span>⌁</span> Forma (L5) <strong>'+(l5!==null?fmt(l5)+' PTS':'Brak pełnej próby L5')+'</strong></div>'+
-  '<div><span>▥</span> Historyczne mecze ESPN<strong>'+recent.length+' potwierdzonych</strong></div>'+
-  '<div><span>ⓘ</span> Model <strong>'+esc(modelLabel())+'</strong></div></div>'+
+  '<div class="hzm-inspector-facts"><div title="Minuty: brak zweryfikowanego szacunku w modelach bez estymatora minut"><span>◷</span> Minuty<strong>'+minuteLabel+'</strong></div>'+
+  '<div><span>⌁</span> Forma L5 · '+state.playerMarket+'<strong>'+(l5!==null?fmt(l5):'— · '+recent.length+'/5')+'</strong></div>'+
+  '<div><span>▥</span> Historia ESPN<strong>'+recent.length+' występów</strong></div>'+
+  '<div><span>ⓘ</span> Model<strong>'+esc(modelLabel())+'</strong></div></div>'+
   '<p class="hzm-inspector-disclaimer">'+(out?
     'ESPN: OUT — model nie pokazuje projekcji aktywnego występu.':
     'PRA to suma średnich PTS + REB + AST, nie odrębny rozkład. Historia to rzeczywiste wyniki, a nie prognoza.')+
@@ -511,7 +511,7 @@ function showPlayers(premium,players,game){
        '<span class="hzm-focus-stat'+(key===market?' active':'')+'">'+fmt(playerMetric(item,key))+'</span>').join("");
      return '<button type="button" class="hzm-player-row hzm-player-row-rich" data-hzm-player-index="'+index+
        '" aria-pressed="'+(index===state.playerIndex)+'" aria-label="'+esc('Projekcja '+item.name+', '+item.team)+'">'+
-       avatar+'<span class="hzm-player-info"><strong>'+esc(item.name)+'</strong>'+statusHtml+'</span>'+
+       avatar+'<span class="hzm-player-info"><strong title="'+esc(item.name)+'">'+esc(item.name)+'</strong>'+statusHtml+'</span>'+
        '<span class="hzm-player-stats">'+scores+'</span></button>';
    }
    return '<button type="button" class="hzm-player-row" data-hzm-player-index="'+index+

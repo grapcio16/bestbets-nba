@@ -84,9 +84,36 @@ def main():
             assert "Test Guard Alpha" in page.locator("#hzm-player-inspector").inner_text()
             assert page.locator("#hzm-player-histogram svg").count() == 1
             assert page.locator("#hzm-player-trend svg").count() == 1
+            # Geometry matters: the first release overflowed the left card
+            # down onto the three evidence tiles. Compare real rectangles,
+            # not only whether elements exist in the DOM.
+            layout = page.evaluate("""() => {
+                const rect = selector => {
+                    const el = document.querySelector(selector);
+                    const r = el.getBoundingClientRect();
+                    return {top:r.top, bottom:r.bottom, height:r.height,
+                            scrollHeight:el.scrollHeight, clientHeight:el.clientHeight};
+                };
+                return {
+                    inspector:rect('#hzm-player-inspector'),
+                    roster:rect('#hzm-player-list-wrap'),
+                    charts:rect('#hzm-player-analytics'),
+                    footer:rect('#simulations-pane .hzm-insights'),
+                };
+            }""")
+            if width >= 1261:
+                assert abs(layout["inspector"]["top"]-layout["roster"]["top"]) < 9, layout
+                assert abs(layout["roster"]["top"]-layout["charts"]["top"]) < 9, layout
+                assert abs(layout["inspector"]["height"]-layout["roster"]["height"]) < 9, layout
+                assert abs(layout["roster"]["height"]-layout["charts"]["height"]) < 9, layout
+            assert layout["footer"]["top"] >= max(
+                layout["inspector"]["bottom"],
+                layout["roster"]["bottom"],
+                layout["charts"]["bottom"]) - 9, layout
             assert "7 meczów" in page.locator("#hzm-player-rates-source").inner_text()
             assert "—" in page.locator("#hzm-player-averages").inner_text(), "L10/L15 must be hidden with only 7 ESPN games"
             assert "20,0" in page.locator(".hzm-inspector-metric.current").inner_text()
+            assert "Minuty Minuty" not in page.locator("#hzm-player-inspector").inner_text()
             assert page.locator("[data-hzm-player-market]").count() == 4
             page.locator('[data-hzm-player-market="REB"]').click()
             assert page.locator("#hzm-player-rate-metric").inner_text() == "REB"

@@ -87,7 +87,7 @@ def main():
         assert page.locator("#hzm-player-inspector").is_visible()
         assert "Test Player 0" in page.locator("#hzm-player-inspector").inner_text()
         assert "36,9" in page.locator(".hzm-inspector-metric.pra").inner_text()
-        assert "brak zweryfikowanego szacunku" in page.locator("#hzm-player-inspector").inner_text()
+        assert "— · V7.4" in page.locator("#hzm-player-inspector").inner_text()
         # Team filtering and a specific athlete name must narrow the real
         # Premium payload, not display the previous team's projections.
         page.locator('[data-hzm-player-team="away"]').click()
