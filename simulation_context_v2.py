@@ -36,6 +36,64 @@ def score_volatility(verified: pd.DataFrame, team: str, minimum: int = 8) -> dic
     return {"sample": sample, "sd": round(sqrt(variance), 3)}
 
 
+def verified_team_comparison(earlier: pd.DataFrame, home: str, away: str,
+                             home_snapshot: dict, away_snapshot: dict,
+                             ratings: dict) -> dict:
+    """Descriptive facts, not new simulated or calibrated projections.
+
+    The input history has already been restricted to distinct verified NBA
+    final results strictly BEFORE the selected tipoff. Samples are limited
+    to 20 games; W/L is taken from the same last 10 verified games.
+    NBA Advanced is shown only when both teams have complete actual metrics.
+    """
+    full_advanced = home in ratings and away in ratings
+
+    def one(code: str, snapshot: dict, venue: str) -> dict:
+        games = earlier[(earlier["home"] == code) |
+                        (earlier["away"] == code)].tail(10)
+        wins = sum(
+            (r["home"] == code and r["home_score"] > r["away_score"]) or
+            (r["away"] == code and r["away_score"] > r["home_score"])
+            for _, r in games.iterrows()
+        )
+        observations = len(games)
+        adv = ratings[code] if full_advanced else {}
+        return {
+            "team": code,
+            "sample": snapshot.get("sample", 0),
+            "n5": snapshot.get("n5", 0),
+            "n10": snapshot.get("n10", 0),
+            "n20": snapshot.get("n20", 0),
+            "pts5": snapshot.get("pts5"),
+            "pts10": snapshot.get("pts10"),
+            "allowed10": snapshot.get("allowed10"),
+            "margin10": snapshot.get("margin10"),
+            "wins10": int(wins) if observations else None,
+            "losses10": int(observations - wins) if observations else None,
+            "win_pct10": round(100 * wins / observations, 1) if observations else None,
+            "venue": venue,
+            "venue_sample": snapshot.get("venue_sample", 0),
+            "venue_scored": snapshot.get("venue_scored"),
+            "venue_allowed": snapshot.get("venue_allowed"),
+            # Do not infer possessions from a points/total score series.
+            "pace": adv.get("pace"),
+            "off_rating": adv.get("off"),
+            "def_rating": adv.get("def"),
+        }
+
+    return {
+        "source": "Verified ESPN NBA finals strictly before game tipoff",
+        "advanced_available": full_advanced,
+        "away": one(away, away_snapshot, "away"),
+        "home": one(home, home_snapshot, "home"),
+        "disclaimer": (
+            "Observed points/defense and form are pregame descriptive averages; "
+            "PACE/OFFRTG/DEFRTG come only from both verified NBA Advanced rows. "
+            "Neither source guarantees future points, wins or bookmaker outcomes."
+        ),
+    }
+
+
 def simulation_inputs(completed: pd.DataFrame, game: dict,
                       advanced: pd.DataFrame | None = None) -> dict:
     """Prepare evidence-rich scoring inputs, excluding this or future games."""
@@ -74,6 +132,8 @@ def simulation_inputs(completed: pd.DataFrame, game: dict,
                       rest["home"].get("rest_days")],
         "score_sd_samples": [away_sd["sample"], home_sd["sample"]],
         "advanced_available": home in ratings and away in ratings,
+        "team_comparison": verified_team_comparison(
+            earlier, home, away, home_stats, away_stats, ratings),
         "warnings": (home_stats.get("warnings", []) + away_stats.get("warnings", []))[:6],
     }
     return {"means": means, "score_noise": noise, "context": context}
