@@ -727,3 +727,130 @@
  #app-shell.hz-mobile-schedule .hzv-history-matchup{gap:2px}
  #app-shell.hz-mobile-schedule .hzv-history-row .hzv-history-score{font-size:12px}
 }
+
+/* Game Center Premium reference. All rules stay inside game details; the
+   schedule board, Team Comparison, other tabs and global sizing are unchanged. */
+#schedule-pane.hzv4 .hzv-game-page .hzv-tone-cyan{--hzv-accent:#20e9f4;--hzv-accent-rgb:32,233,244}
+#schedule-pane.hzv4 .hzv-game-page .hzv-tone-violet{--hzv-accent:#df83ff;--hzv-accent-rgb:223,131,255}
+#schedule-pane.hzv4 .hzv-game-page .hzv-tone-gold{--hzv-accent:#ffdc86;--hzv-accent-rgb:255,220,134}
+#schedule-pane.hzv4 .hzv-game-page .hzv-score-value{font-variant-numeric:tabular-nums}
+#schedule-pane.hzv4 .hzv-game-page .hzv-score-value.is-winner{
+ color:var(--hzv-accent);text-shadow:0 0 12px rgba(var(--hzv-accent-rgb),.6)
+}
+#schedule-pane.hzv4 .hzv-game-page .hzv-score-value.is-loser{color:#b0c3d6;text-shadow:none}
+#schedule-pane.hzv4 .hzv-game-page .hzv-score-separator{color:#c0d3e3;font-weight:750}
+#schedule-pane.hzv4 .hzv-gc-team{position:relative}
+#schedule-pane.hzv4 .hzv-gc-team small{
+ display:block;white-space:normal;overflow:visible;text-overflow:clip;
+ overflow-wrap:anywhere;line-height:1.35
+}
+#schedule-pane.hzv4 .hzv-gc-team.is-winner .hzs-team-mark{
+ border-color:var(--hzv-accent);
+ box-shadow:0 0 8px var(--hzv-accent),0 0 28px rgba(var(--hzv-accent-rgb),.5)
+}
+#schedule-pane.hzv4 .hzv-gc-team.is-loser .hzs-team-mark{
+ border-color:#32758b;box-shadow:0 0 9px rgba(18,151,186,.15)
+}
+#schedule-pane.hzv4 .hzv-gc-team .hzv-winner-badge{
+ position:absolute;top:-23px;left:50%;transform:translateX(-50%);
+ display:inline-flex;align-items:center;justify-content:center;gap:4px;
+ padding:3px 8px;border:1px solid var(--hzv-accent);border-radius:20px;
+ color:#f7edff;background:linear-gradient(135deg,rgba(var(--hzv-accent-rgb),.26),#12182e);
+ box-shadow:0 0 14px rgba(var(--hzv-accent-rgb),.4);
+ white-space:nowrap;font-size:8px;font-weight:950;line-height:1.2
+}
+#schedule-pane.hzv4 .hzv-winner-badge svg{
+ width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round
+}
+#schedule-pane.hzv4 .hzv-quarter-row .hzv-quarter-total{
+ justify-self:center;min-width:34px;padding:2px 5px;border:1px solid transparent;
+ border-radius:8px;font-size:12px;font-weight:950;line-height:1.2
+}
+#schedule-pane.hzv4 .hzv-quarter-row .hzv-quarter-total.is-winner{
+ color:#fff;border-color:var(--hzv-accent);background:rgba(var(--hzv-accent-rgb),.25);
+ box-shadow:0 0 11px rgba(var(--hzv-accent-rgb),.5),inset 0 0 8px rgba(var(--hzv-accent-rgb),.18)
+}
+#schedule-pane.hzv4 .hzv-quarter-row .hzv-quarter-total.is-loser{color:#acbdd1;background:#112847}
+#schedule-pane.hzv4 .hzv-history-row{
+ grid-template-columns:minmax(108px,1.2fr) minmax(142px,1.45fr) minmax(72px,.8fr);
+ min-height:34px;gap:7px;padding:3px 8px;
+ border-color:#365d87;background:linear-gradient(115deg,#0b203a,#081a32);
+ box-shadow:inset 0 1px rgba(153,208,245,.06);
+ transition:border-color .16s ease,box-shadow .16s ease
+}
+#schedule-pane.hzv4 .hzv-history-row:hover{border-color:#558eaf;box-shadow:0 0 10px rgba(26,171,215,.12)}
+#schedule-pane.hzv4 .hzv-history-date{
+ display:flex;align-items:center;gap:7px;font-size:9.5px;line-height:1.4;color:#e6effa;min-width:0
+}
+#schedule-pane.hzv4 .hzv-history-row .hzv-history-date>span{white-space:normal;overflow-wrap:anywhere;color:#e6effa}
+#schedule-pane.hzv4 .hzv-calendar-icon{
+ width:12px;height:12px;flex:0 0 12px;fill:none;stroke:#d4e7f6;stroke-width:1.3;stroke-linecap:round
+}
+#schedule-pane.hzv4 .hzv-history-matchup{gap:5px}
+#schedule-pane.hzv4 .hzv-history-participant{
+ flex:0 0 auto;gap:4px;padding:1px 5px 1px 2px;border:1px solid transparent;
+ border-radius:18px;color:#afc4d8;font-size:11px;line-height:1.1
+}
+#schedule-pane.hzv4 .hzv-history-participant .hzs-team-mark{width:22px;height:22px;flex-basis:22px}
+#schedule-pane.hzv4 .hzv-history-participant .hzs-team-mark img{width:21px;height:21px}
+#schedule-pane.hzv4 .hzv-history-participant.is-winner{
+ color:#fff;border-color:var(--hzv-accent);background:rgba(var(--hzv-accent-rgb),.14);
+ box-shadow:0 0 8px rgba(var(--hzv-accent-rgb),.35),inset 0 0 6px rgba(var(--hzv-accent-rgb),.12)
+}
+#schedule-pane.hzv4 .hzv-history-participant.is-loser{color:#93aac2}
+#schedule-pane.hzv4 .hzv-history-participant.is-loser .hzs-team-mark{opacity:.78}
+#schedule-pane.hzv4 .hzv-history-versus{color:#bdd6e9}
+#schedule-pane.hzv4 .hzv-history-row .hzv-history-score{font-size:17px;letter-spacing:-.5px}
+#schedule-pane.hzv4 .hzv-history-score .hzv-score-value.is-winner{font-size:20px;font-weight:950}
+#schedule-pane.hzv4 .hzv-xfactor-body{
+ grid-template-columns:minmax(100px,.8fr) minmax(0,1.6fr);gap:15px;min-height:142px;align-items:start
+}
+#schedule-pane.hzv4 .hzv-xfactor-player{height:100%;justify-content:flex-start;border-right:1px solid #254463;padding-right:12px}
+#schedule-pane.hzv4 .hzv-xfactor-player strong{font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+#schedule-pane.hzv4 .hzv-xfactor-player small{font-size:10px;line-height:1.4}
+#schedule-pane.hzv4 .hzv-xfactor-player small:last-child{color:#e6f3ff;font-weight:850}
+#schedule-pane.hzv4 .hzv-xfactor-avatar{
+ border-color:var(--hzv-accent,#e56bf8);box-shadow:0 0 17px rgba(var(--hzv-accent-rgb,223,131,255),.35)
+}
+#schedule-pane.hzv4 .hzv-xfactor-title{margin-bottom:8px;padding-bottom:7px}
+#schedule-pane.hzv4 .hzv-xfactor-chart h3{font-size:11px;color:#eef7ff}
+#schedule-pane.hzv4 .hzv-xfactor-chart svg{width:100%;height:auto;min-height:90px;overflow:visible}
+#schedule-pane.hzv4 .hzv-quarter-line{filter:drop-shadow(0 0 2px rgba(125,207,255,.25))}
+#schedule-pane.hzv4 .hzv-quarter-legend{font-size:8px;line-height:1.4;color:#b5d5eb;text-align:center}
+#schedule-pane.hzv4 .hzv-gc-callout{
+ gap:13px;padding:7px 10px;border:1px solid transparent;line-height:1.35;font-size:9.5px;
+ background:linear-gradient(110deg,#16162e,#082237) padding-box,linear-gradient(115deg,#cd73ee,#19c9e8) border-box;
+ box-shadow:inset 0 0 12px rgba(145,50,210,.08);color:#e0eafb
+}
+#schedule-pane.hzv4 .hzv-gc-callout b{
+ display:flex;align-items:center;gap:5px;align-self:stretch;flex:0 0 auto;
+ padding-right:13px;border-right:1px solid #49617f;color:#ffdc69;font-size:10px
+}
+#schedule-pane.hzv4 .hzv-gc-callout b>span{font-size:17px;text-shadow:0 0 9px rgba(255,206,60,.35)}
+@media(max-width:767px){
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-history-row{
+  grid-template-columns:minmax(0,1fr) auto;gap:4px 8px;padding:7px 8px
+ }
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-history-date{
+  grid-column:1/-1;font-size:10px
+ }
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-history-matchup{justify-content:flex-start;gap:3px}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-history-participant{font-size:10px;gap:3px;padding-right:4px}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-history-participant .hzs-team-mark{width:20px;height:20px;flex-basis:20px}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-history-participant .hzs-team-mark img{width:19px;height:19px}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-history-row .hzv-history-score{font-size:15px}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-history-score .hzv-score-value.is-winner{font-size:18px}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-gc-team small{display:block;font-size:10px}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-gc-score strong{font-size:clamp(20px,6vw,25px)}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-gc-team .hzv-winner-badge{font-size:7px;padding:3px 5px;top:-21px}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-xfactor-body{grid-template-columns:1fr;gap:12px}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-xfactor-player{
+  display:grid;grid-template-columns:52px minmax(0,1fr);gap:3px 12px;height:auto;
+  border-right:0;border-bottom:1px solid #254463;padding:0 0 11px
+ }
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-xfactor-avatar{grid-row:1/4}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-xfactor-chart svg text{font-size:12px}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-quarter-legend{font-size:9px}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-gc-callout{flex-wrap:wrap;gap:5px}
+ #app-shell.hz-mobile-schedule #schedule-pane.hzv4 .hzv-gc-callout b{border-right:0;padding-right:0}
+}

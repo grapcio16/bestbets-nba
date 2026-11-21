@@ -15,6 +15,8 @@ def main():
         page = browser.new_page(viewport={"width": 1231, "height": 691}, device_scale_factor=1)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
+        # Keep the synthetic November fixture independent of the runner date.
+        page.clock.set_fixed_time("2026-11-14T12:00:00Z")
         page.goto(PAGE, wait_until="load")
         page.locator('.nav-btn[data-page="simulations"]').click()
         assert page.locator("#simulations-pane").is_visible()
@@ -44,12 +46,12 @@ def main():
                      "calendar_games": fixtures, "calendar_extras": {}},
             "premium_simulation": {
                 "entitled": True,
-                "game": {"date": day, "game_id": "40100000", "away": "NYK", "home": "IND",
+                "game": {"model_id": "research_form_v74", "date": day, "game_id": "40100000", "away": "NYK", "home": "IND",
                          "away_win_pct": 48.1, "home_win_pct": 51.9,
                          "away_points": 115, "home_points": 116,
                          "total_points": 231, "distributions": distributions,
                          "n_sims": 5000},
-                "players": {"date": day, "game_id": "40100000", "home": "IND",
+                "players": {"model_id": "research_form_v74", "date": day, "game_id": "40100000", "home": "IND",
                             "players": players},
             },
         }

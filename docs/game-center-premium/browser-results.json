@@ -1,0 +1,182 @@
+[
+  {
+    "viewport": [
+      1920,
+      1080
+    ],
+    "winner_home_and_away": true,
+    "club_colors": true,
+    "overtime": true,
+    "safe_fallbacks": true,
+    "geometry": {
+      "viewport": 1920,
+      "document": 1920,
+      "overflow": [],
+      "labelsOverlap": false,
+      "chartInside": true
+    },
+    "js_errors": []
+  },
+  {
+    "viewport": [
+      1710,
+      998
+    ],
+    "winner_home_and_away": true,
+    "club_colors": true,
+    "overtime": true,
+    "safe_fallbacks": true,
+    "geometry": {
+      "viewport": 1710,
+      "document": 1710,
+      "overflow": [],
+      "labelsOverlap": false,
+      "chartInside": true
+    },
+    "js_errors": []
+  },
+  {
+    "viewport": [
+      1600,
+      900
+    ],
+    "winner_home_and_away": true,
+    "club_colors": true,
+    "overtime": true,
+    "safe_fallbacks": true,
+    "geometry": {
+      "viewport": 1600,
+      "document": 1600,
+      "overflow": [],
+      "labelsOverlap": false,
+      "chartInside": true
+    },
+    "js_errors": []
+  },
+  {
+    "viewport": [
+      1366,
+      768
+    ],
+    "winner_home_and_away": true,
+    "club_colors": true,
+    "overtime": true,
+    "safe_fallbacks": true,
+    "geometry": {
+      "viewport": 1366,
+      "document": 1366,
+      "overflow": [],
+      "labelsOverlap": false,
+      "chartInside": true
+    },
+    "js_errors": []
+  },
+  {
+    "viewport": [
+      768,
+      1024
+    ],
+    "winner_home_and_away": true,
+    "club_colors": true,
+    "overtime": true,
+    "safe_fallbacks": true,
+    "geometry": {
+      "viewport": 768,
+      "document": 768,
+      "overflow": [],
+      "labelsOverlap": false,
+      "chartInside": true
+    },
+    "js_errors": []
+  },
+  {
+    "viewport": [
+      430,
+      932
+    ],
+    "winner_home_and_away": true,
+    "club_colors": true,
+    "overtime": true,
+    "safe_fallbacks": true,
+    "geometry": {
+      "viewport": 430,
+      "document": 430,
+      "overflow": [],
+      "labelsOverlap": false,
+      "chartInside": true
+    },
+    "js_errors": []
+  },
+  {
+    "viewport": [
+      390,
+      844
+    ],
+    "winner_home_and_away": true,
+    "club_colors": true,
+    "overtime": true,
+    "safe_fallbacks": true,
+    "geometry": {
+      "viewport": 390,
+      "document": 390,
+      "overflow": [],
+      "labelsOverlap": false,
+      "chartInside": true
+    },
+    "js_errors": []
+  },
+  {
+    "viewport": [
+      360,
+      800
+    ],
+    "winner_home_and_away": true,
+    "club_colors": true,
+    "overtime": true,
+    "safe_fallbacks": true,
+    "geometry": {
+      "viewport": 360,
+      "document": 360,
+      "overflow": [],
+      "labelsOverlap": false,
+      "chartInside": true
+    },
+    "js_errors": []
+  },
+  {
+    "viewport": [
+      320,
+      720
+    ],
+    "winner_home_and_away": true,
+    "club_colors": true,
+    "overtime": true,
+    "safe_fallbacks": true,
+    "geometry": {
+      "viewport": 320,
+      "document": 320,
+      "overflow": [],
+      "labelsOverlap": false,
+      "chartInside": true
+    },
+    "js_errors": []
+  },
+  {
+    "viewport": [
+      844,
+      390
+    ],
+    "winner_home_and_away": true,
+    "club_colors": true,
+    "overtime": true,
+    "safe_fallbacks": true,
+    "geometry": {
+      "viewport": 844,
+      "document": 844,
+      "overflow": [],
+      "labelsOverlap": false,
+      "chartInside": true
+    },
+    "js_errors": []
+  }
+]

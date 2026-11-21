@@ -257,7 +257,9 @@ def main():
             {"id": str(4018100001), "day": selected_day, "error": "",
              "data": {"id": str(4018100001), "away": "DEN", "home": "NOP",
                       "quarters": [{"period":"Q1","away":28,"home":25},
-                                   {"period":"Q2","away":22,"home":26}],
+                                   {"period":"Q2","away":22,"home":26},
+                                   {"period":"Q3","away":24,"home":20},
+                                   {"period":"Q4","away":24,"home":20}],
                       "team_stats": [
                           {"label":"Celne z gry %","away":"40.0%","home":"51.0%"},
                           {"label":"Zbiórki","away":"42","home":"39"},
