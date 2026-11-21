@@ -330,6 +330,13 @@ function init(api){
     toggleMatchPicker(false);
     render(state.lastHome,state.lastPremium);
   });
+  // The expand button stays in the DOM while switching lab modules. Handling
+  // it directly avoids a missed delegated click after a panel reflow.
+  $("hzm-expand-players").addEventListener("click",event=>{
+    event.stopPropagation();
+    state.expanded=!state.expanded;
+    render(state.lastHome,state.lastPremium);
+  });
   $("simulations-pane").addEventListener("click",event=>{
     if(event.target.closest("#hzm-match-picker")){toggleMatchPicker();return}
     const viewButton=event.target.closest("[data-hzm-view]");
