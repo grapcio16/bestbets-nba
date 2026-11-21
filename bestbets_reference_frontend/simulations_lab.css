@@ -343,3 +343,10 @@
  #simulations-pane[data-hzm-view="players"] .hzm-player-rows{height:260px}
  #simulations-pane[data-hzm-view="players"] .hzm-player-inspector{height:255px}
 }
+
+/* Player forecast -> historical Player Props link; isolated to Simulation Lab. */
+#simulations-pane .hzm-open-player-props{display:flex;align-items:center;justify-content:center;width:100%;min-height:38px;margin-top:9px;border:1px solid #11d5e4;border-radius:9px;background:linear-gradient(100deg,#075c7c,#302266);color:#fff;font-size:12px;font-weight:700;cursor:pointer}
+#simulations-pane .hzm-open-player-props:hover:not(:disabled){filter:brightness(1.15)}
+#simulations-pane .hzm-open-player-props:focus-visible{outline:2px solid #21e9f3;outline-offset:2px}
+#simulations-pane .hzm-open-player-props:disabled{opacity:.45;cursor:not-allowed}
+#simulations-pane .hzm-inspector-link-note{display:block;margin-top:6px;color:#9ab8ce;font-size:10px;line-height:1.35}
