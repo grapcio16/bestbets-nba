@@ -73,7 +73,7 @@ function toggleMatchPicker(open){
  trigger.setAttribute("aria-expanded",String(visible));
 }
 function chooseView(view){
- if(!["results","players","scenario"].includes(view)||view===state.view)return;
+ if(!["results","players","scenario","intelligence"].includes(view)||view===state.view)return;
  state.view=view;
  state.expanded=view==="players";
  render(state.lastHome,state.lastPremium);
@@ -126,8 +126,9 @@ function bridgeToHistory(market){
 function syncLabView(){
  const pane=$("simulations-pane");
  if(pane)pane.dataset.hzmView=state.view;
- if($("hzm-detail-grid"))$("hzm-detail-grid").hidden=state.view==="scenario";
+ if($("hzm-detail-grid"))$("hzm-detail-grid").hidden=["scenario","intelligence"].includes(state.view);
  if($("hzm-scenario-panel"))$("hzm-scenario-panel").hidden=state.view!=="scenario";
+ if($("hzm-intel-panel"))$("hzm-intel-panel").hidden=state.view!=="intelligence";
  const nav=$("hzm-lab-nav");
  if(nav)nav.querySelectorAll("[data-hzm-view]").forEach(tab=>{
    const active=tab.dataset.hzmView===state.view;
@@ -574,6 +575,70 @@ function showAvailability(game,players,sim,premium){
       :"Korekta modelu V7.5: brak wiarygodnych danych.";
  }
 }
+
+function showMatchIntelligence(game,sim,premium){
+ const ids=["completed","source","advanced",
+   "away-sample","away-venue-sample","away-rest","away-sd-sample",
+   "home-sample","home-venue-sample","home-rest","home-sd-sample",
+   "venue-away","venue-home","rest-away","rest-home",
+   "injury-away","injury-home","total-away","total-home"];
+ for(const id of ids){const el=$("hzm-intel-"+id);if(el)el.textContent="—";}
+ const status=$("hzm-intel-status"),caveat=$("hzm-intel-caveat"),model=$("hzm-intel-model");
+ if(!status||!caveat||!model)return;
+ model.textContent=modelLabel();
+ for(const side of ["away","home"]){
+   const code=game?.[side]||(side==="away"?"GOŚCIE":"GOSPODARZE");
+   $("hzm-intel-"+side+"-name").textContent=code;
+   $("hzm-intel-factor-"+side).textContent=code;
+ }
+ caveat.textContent="Nieskalibrowany model eksperymentalny. Korekty nie stanowią prognozy dostępności składu, gwarancji zwycięstwa ani linii bukmachera.";
+ if(premium?.entitled!==true){
+   status.textContent="Dane modelu dostępne tylko w Premium.";return;
+ }
+ if(!game){status.textContent="Wybierz mecz NBA.";return;}
+ if(!sim){status.textContent="Pobieranie modelu i jego udokumentowanych czynników…";return;}
+ if(sim.error){status.textContent=String(sim.error).slice(0,180);return;}
+ const ctx=sim.model_context;
+ if(!ctx||typeof ctx!=="object"){
+   status.textContent="Wybrany model nie dostarczył danych do wyjaśnienia prognozy.";return;
+ }
+ const count=n=>Number.isInteger(n)&&n>=0?String(n):"—";
+ const value=n=>n!==null&&n!==undefined&&Number.isFinite(Number(n))?Number(n):null;
+ const rest=n=>value(n)!==null&&Number(n)>=0?fmt(n)+" dni":"Brak danych";
+ const corrected=n=>value(n)===null?"—":(Number(n)>0?"+":"")+fmt(n)+" pkt";
+ $("hzm-intel-completed").textContent=count(ctx.completed_games);
+ $("hzm-intel-source").textContent=typeof ctx.source==="string"?ctx.source.slice(0,50):"—";
+ $("hzm-intel-advanced").textContent=ctx.advanced_available===true?"Dostępne":ctx.advanced_available===false?"Brak danych":"—";
+ for(const [side,i] of [["away",0],["home",1]]){
+   $("hzm-intel-"+side+"-sample").textContent=count(ctx[side+"_sample"]);
+   $("hzm-intel-"+side+"-venue-sample").textContent=count(ctx.venue_samples?.[i]);
+   $("hzm-intel-"+side+"-rest").textContent=rest(ctx.rest_days?.[i]);
+   $("hzm-intel-"+side+"-sd-sample").textContent=count(ctx.score_sd_samples?.[i]);
+ }
+ const factor=ctx.v75_factors;
+ if(state.model==="research_context_v75"&&factor&&typeof factor==="object"){
+   for(const side of ["away","home"]){
+     const venue=value(factor["venue_"+side+"_pts"]);
+     const restPts=value(factor["rest_"+side+"_pts"]);
+     const injury=value(factor["injury_"+side+"_pts"]);
+     $("hzm-intel-venue-"+side).textContent=corrected(venue);
+     $("hzm-intel-rest-"+side).textContent=corrected(restPts);
+     $("hzm-intel-injury-"+side).textContent=corrected(injury);
+     if([venue,restPts,injury].every(v=>v!==null))
+       $("hzm-intel-total-"+side).textContent=corrected(venue+restPts+injury);
+   }
+   const report=factor.injuries_espn_fresh===true?
+     "W modelu uwzględniono raport ESPN oceniony jako świeży w chwili obliczenia.":"Brak świeżego raportu ESPN w chwili obliczenia.";
+   const warnings=Array.isArray(ctx.warnings)?ctx.warnings.filter(x=>typeof x==="string").slice(0,2):[];
+   status.textContent="V7.5: rozbicie dodatków do średniej V7.4 · "+report;
+   caveat.textContent="Korekty V7.5 są eksperymentalne, niekalibrowane; "+report+
+      " Status raportu może później wygasnąć. "+warnings.join(" · ").slice(0,200);
+ }else{
+   status.textContent=state.model==="legacy_v72"?
+     "V7.2: bazowa metoda punktowa. Kontekst historyczny jest informacyjny; brak rozbicia korekt V7.5.":
+     "V7.4: historyczna forma i kontekst. Korekty dom/wyjazd, odpoczynku i ESPN OUT są liczone dopiero w V7.5.";
+ }
+}
 function render(home,premium){
   state.lastHome=home;state.lastPremium=premium;
   syncModelDropdown();
@@ -629,7 +694,7 @@ function render(home,premium){
     ?"Zweryfikowane Premium wymagane":!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":
       sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji · "+modelLabel());
   $("simulations-pane").classList.toggle("hzm-premium-locked",!premium?.entitled);
-  showChart(sim,game,premium);showPlayers(premium,players,game);showScenario(game,sim,premium);showPlayerMinutes(game,players,premium);showAvailability(game,players,sim,premium);
+  showChart(sim,game,premium);showPlayers(premium,players,game);showScenario(game,sim,premium);showPlayerMinutes(game,players,premium);showAvailability(game,players,sim,premium);showMatchIntelligence(game,sim,premium);
   maybeLoadPaid(game,premium,sim,players);
 }
 function navigate(day){
