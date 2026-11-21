@@ -594,8 +594,14 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <label for="hzm-scenario-pace">Zmiana tempa gry (oba zespoły)</label>
             <div class="hzm-scenario-slider-line"><input type="range" id="hzm-scenario-pace" min="-5" max="5" step="1" value="0" aria-label="Hipotetyczna zmiana tempa gry w procentach"><output id="hzm-scenario-pace-display" for="hzm-scenario-pace">0%</output></div>
             <div class="hzm-scenario-ticks"><span>−5% · wolniej</span><span>0% · bazowo</span><span>+5% · szybciej</span></div>
+            <div class="hzm-scenario-team-sliders" role="group" aria-label="Hipotetyczna efektywność ofensywna drużyn">
+              <label for="hzm-scenario-off-away">Ofensywa <strong id="hzm-scenario-off-away-code">GOŚCIE</strong></label>
+              <div class="hzm-scenario-slider-line"><input type="range" id="hzm-scenario-off-away" min="-5" max="5" step="1" value="0" aria-label="Hipotetyczna skuteczność ofensywna gości"><output id="hzm-scenario-off-away-display" for="hzm-scenario-off-away">0%</output></div>
+              <label for="hzm-scenario-off-home">Ofensywa <strong id="hzm-scenario-off-home-code">GOSPODARZE</strong></label>
+              <div class="hzm-scenario-slider-line"><input type="range" id="hzm-scenario-off-home" min="-5" max="5" step="1" value="0" aria-label="Hipotetyczna skuteczność ofensywna gospodarzy"><output id="hzm-scenario-off-home-display" for="hzm-scenario-off-home">0%</output></div>
+            </div>
             <button id="hzm-scenario-run" type="button">Przelicz 5 000 symulacji</button>
-            <p>Zmiana tempa to założenie użytkownika, nie informacja z NBA. Minuty, kontuzje i forma pozostają bez zmian.</p>
+            <p>Wszystkie trzy suwaki to założenia użytkownika — nie potwierdzona forma NBA. Skład, minuty i kontuzje nie są przeliczane.</p>
           </div>
           <div class="hzm-scenario-output" aria-live="polite">
             <header><strong>Porównanie prognoz</strong><span>BAZA VS WHAT-IF</span></header>
