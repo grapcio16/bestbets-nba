@@ -305,7 +305,7 @@ function playerInspector(item,players,game,withMinutes){
  const minutes=withMinutes?safeProjection(item.minutes):null;
  const minuteLabel=withMinutes
   ?minutes===null?'Brak wiarygodnego szacunku minut':fmt(minutes)+' min · '+sample+' wcześniejszych występów'
-  :'Brak zweryfikowanego szacunku minut w '+esc(modelLabel());
+  :'Minuty: brak zweryfikowanego szacunku w modelu '+esc(modelLabel());
  const recent=playerHistory(item,"PTS");
  const l5=historyMean(recent,5);
  const statusText=withMinutes?("ESPN: "+status):"Dostępność: nieoceniana w tym modelu";
