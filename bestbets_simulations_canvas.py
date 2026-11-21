@@ -281,7 +281,14 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     return {"players": players[:40], "home": str(match["home"]),
             "model_id": model_id, "error": "",
             "minutes_warning": (availability.get("warning", "")
-                                if model_id == "research_context_v75" else "")}
+                                if model_id == "research_context_v75" else ""),
+            # Injury Watch consumes the exact same server-derived V7.5
+            # evidence as the team model and the selected player view.
+            "injury_report_fresh": bool(availability.get("report_fresh"))
+                if model_id == "research_context_v75" else False,
+            "injury_report_valid_until": (
+                availability.get("report_valid_until")
+                if model_id == "research_context_v75" else None)}
 
 
 def simulation_for_entitled_user(day: str, game_id: str, players: bool = False,
