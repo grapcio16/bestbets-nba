@@ -1368,3 +1368,59 @@
     grid-template-columns:minmax(0,1fr)!important
   }
 }
+
+/* Player Simulations: wider, legible centre roster.
+   Approved screenshot review: the stat values collided because the old
+   row used only 154px for four numbers and the centre panel was ~350px.
+   This intentionally prioritizes the data table over chart whitespace. */
+@media (min-width:1261px){
+ #simulations-pane[data-hzm-view="players"] .hzm-player-lab-body{
+  grid-template-columns:minmax(232px,.82fr) minmax(420px,1.55fr) minmax(0,1.73fr)!important;
+  grid-template-areas:"inspector roster analytics"!important;
+  gap:10px!important
+ }
+ #simulations-pane[data-hzm-view="players"] .hzm-inspector-identity{
+  grid-template-columns:72px minmax(0,1fr);gap:8px
+ }
+ #simulations-pane[data-hzm-view="players"] .hzm-player-avatar.large{
+  width:72px;height:94px
+ }
+ #simulations-pane[data-hzm-view="players"] #hzm-player-inspector h3{
+  font-size:18px!important
+ }
+ #simulations-pane[data-hzm-view="players"] .hzm-player-analytics-upper,
+ #simulations-pane[data-hzm-view="players"] .hzm-player-analytics-lower{
+  grid-template-columns:minmax(0,1.9fr) minmax(128px,.94fr)!important
+ }
+}
+@media (min-width:768px) and (max-width:1260px){
+ #simulations-pane[data-hzm-view="players"] .hzm-player-lab-body{
+  grid-template-columns:minmax(205px,.8fr) minmax(300px,1.55fr)!important
+ }
+}
+@media (min-width:768px){
+ #simulations-pane[data-hzm-view="players"] .hzm-player-column-header{
+  grid-template-columns:minmax(0,1fr) repeat(4,minmax(0,53px))!important;
+  gap:0!important;padding-left:9px!important;padding-right:9px!important;
+  font-size:10px;letter-spacing:.1px
+ }
+ #simulations-pane[data-hzm-view="players"] .hzm-player-row-rich{
+  grid-template-columns:32px minmax(0,1fr) minmax(0,212px)!important;
+  gap:7px!important;min-width:0
+ }
+ #simulations-pane[data-hzm-view="players"] .hzm-player-row-rich .hzm-player-stats{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:0!important;width:100%
+ }
+ #simulations-pane[data-hzm-view="players"] .hzm-player-row-rich .hzm-player-stats span{
+  min-width:0;display:block;white-space:nowrap;overflow:hidden;
+  font-size:11.5px!important;line-height:1.25;letter-spacing:.08px;
+  font-variant-numeric:tabular-nums;text-align:right;padding-right:2px
+ }
+ #simulations-pane[data-hzm-view="players"] .hzm-player-row-rich .hzm-player-info strong{
+  font-size:11.5px!important
+ }
+ #simulations-pane[data-hzm-view="players"] .hzm-player-row-rich[aria-pressed="true"]{
+  background:linear-gradient(90deg,#075a72,#0d385b)!important
+ }
+}
