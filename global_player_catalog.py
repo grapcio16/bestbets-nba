@@ -58,18 +58,26 @@ def build_global_catalog(roster_fetch=team_roster, max_workers=5, refresh_all=Fa
                 if meta.get("stale"):stale.add(team)
                 if len(roster)<8:sparse.add(team)
 
-    # A single retry for failed and unusually small squads, without burst
-    # concurrency. Retain the first verified roster if retry fails.
-    for team in sorted(missing|sparse):
-        roster,meta=fetch_one(team,refresh=True)
-        if roster is not None and (team not in loaded or len(roster)>len(loaded[team])):
-            loaded[team]=roster
-            if not meta.get("stale"):stale.discard(team)
-            else:stale.add(team)
-        if team in loaded:
-            missing.discard(team)
-        if team in loaded and len(loaded[team])>=8:
-            sparse.discard(team)
+    # Retry only failed/short squads with two concurrent workers instead of
+    # up to 30 sequential seven-second waits. Keep the ESPN retry rate low.
+    # Never replace an already verified roster with a shorter retry response.
+    retry_teams = sorted(missing | sparse)
+    if retry_teams:
+        with ThreadPoolExecutor(max_workers=min(2, len(retry_teams))) as pool:
+            retry_jobs = {pool.submit(fetch_one, team, True): team for team in retry_teams}
+            for future in as_completed(retry_jobs):
+                team = retry_jobs[future]
+                roster, meta = future.result()
+                if roster is not None and (team not in loaded or len(roster) > len(loaded[team])):
+                    loaded[team] = roster
+                    if not meta.get("stale"):
+                        stale.discard(team)
+                    else:
+                        stale.add(team)
+                if team in loaded:
+                    missing.discard(team)
+                if team in loaded and len(loaded[team]) >= 8:
+                    sparse.discard(team)
 
     catalog=(pd.concat(list(loaded.values()),ignore_index=True)
              if loaded else pd.DataFrame(columns=COLUMNS))

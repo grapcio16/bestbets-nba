@@ -47,10 +47,13 @@ def smoke(browser, url, width, height, out):
     assert rect and fb, "Blank iframe or absent stage"
     assert abs(rect["width"]-fb["width"])<4, (
         "Black gutters remain: stage is not as wide as actual iframe",width,height,rect,fb)
-    assert abs(rect["height"] - rect["width"]*691/1231)<5, (
-        "Approved design aspect ratio changed",rect)
-    # If the full-width 16:9 canvas is taller than a short browser window,
-    # the Streamlit document must scroll instead of cropping its final cards.
+    # Since the approved independent-scroll layout, the desktop stage fills
+    # the actual iframe viewport instead of keeping the obsolete 1231:691
+    # canvas aspect ratio. Validate full-height coverage without stretching.
+    assert abs(rect["height"] - fb["height"])<5, (
+        "Desktop stage no longer fills the iframe viewport",rect,fb)
+    # The fixed-height Streamlit iframe must still allow internal page panels
+    # to scroll rather than cropping content below the visible viewport.
     assert fb["height"]+3>=rect["height"],(
         "Iframe crops the bottom of the Teams/Players screen",rect,fb)
     # Ensure 3 seconds without progressive zoom after the screen appears.

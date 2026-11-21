@@ -29,7 +29,8 @@ function positionBadge(p){
  return pos?'<span class="bc-pos-badge bc-watch-position" title="Pozycja zawodnika">'+escape(pos)+'</span>':"";
 }
 function teamBadge(code){
- const safe=escape(code||"NBA"),uri=teamLogos[code];
+ const safe=escape(code||"NBA"),
+       uri=window.hzResolveTeamLogo?.(teamLogos[code])||"";
  const image=typeof uri==="string"&&uri.startsWith("data:image/png;base64,")?
   '<img alt="" src="'+uri+'" loading="lazy">':"";
  return '<span class="bc-free-team">'+image+'<strong>'+safe+'</strong></span>';

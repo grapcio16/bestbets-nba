@@ -55,6 +55,7 @@ const escapeHtml=raw=>String(raw==null?"":raw).replace(/[&<>"']/g,ch=>({
  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
 })[ch]);
 function logo(code,uri) {
+ uri=window.hzResolveTeamLogo?.(uri)||"";
  if(typeof uri==="string" && uri.startsWith("data:image/png;base64,"))
    return '<img alt="" src="'+uri+'" loading="lazy">';
  // Deliberate brand-neutral monogram if an image is missing or delayed.
@@ -67,7 +68,7 @@ function teamLogoUri(code){
  return row?.logo||"";
 }
 function teamBadge(code){
- const uri=teamLogoUri(code);
+ const uri=window.hzResolveTeamLogo?.(teamLogoUri(code))||"";
  return '<span class="bc-free-team">'+
    (typeof uri==="string"&&uri.startsWith("data:image/png;base64,")?'<img src="'+uri+'" alt="" loading="lazy">':"")+
    '<strong>'+escapeHtml(code||"NBA")+'</strong></span>';
@@ -94,6 +95,7 @@ function shortTeam(code,src){
  return logo(code,src)+'<b>'+escapeHtml(code||"NBA")+'</b>';
 }
 function tickerLogo(code,uri){
+ uri=window.hzResolveTeamLogo?.(uri)||"";
  const safe=typeof uri==="string"&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(uri);
  return '<span class="bc-ticker-team-mark">'+(safe
   ?'<img src="'+uri+'" alt="" loading="lazy">'

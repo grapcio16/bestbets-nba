@@ -29,7 +29,7 @@ def _safe_code(code):
     return code if len(code)==3 and code.isalpha() else "NBA"
 
 
-def build_centre_snapshot(schedule_df, meta=None, now=None, logo_provider=None):
+def build_centre_snapshot(schedule_df, meta=None, now=None, logo_provider=None, compact_logos=False):
     """Format actual ESPN/NBA games; never turn unavailable data into fake numbers."""
     now=(now if now is not None else pd.Timestamp.now(tz="Europe/Warsaw"))
     now=pd.Timestamp(now)
@@ -41,7 +41,7 @@ def build_centre_snapshot(schedule_df, meta=None, now=None, logo_provider=None):
     empty={"as_of":now.strftime("%Y-%m-%d %H:%M %Z"),"source":str(meta.get("source") or "NBA / ESPN")[:90],
            "day_label":"Dziś","games":[],"all_games":[],"calendar_games":[],
            "calendar_today":now.date().isoformat(),"calendar_loaded_days":[],
-           "ticker":[],"finals":[],"form":[],"error":"",
+           "ticker":[],"finals":[],"form":[],"error":"", "team_logos":{},
            # Every NBA team remains selectable even without recent verified games.
            "form_options":[{"team":code,"name":name,"logo":"",
                             "wins":0,"losses":0,"sample":0}
@@ -56,7 +56,12 @@ def build_centre_snapshot(schedule_df, meta=None, now=None, logo_provider=None):
         if code not in logos:
             try:logos[code]=logo_provider(code) if logo_provider else ""
             except (OSError,KeyError,ValueError):logos[code]=""
-        return logos[code]
+        uri = logos[code]
+        # Put each large data URI into the payload only once. Schedule cards,
+        # ticker and team form rows use a short, browser-resolved reference.
+        if compact_logos and isinstance(uri, str) and uri.startswith("data:image/png;base64,"):
+            return "team-logo:" + code
+        return uri
     for _,r in schedule_df.iterrows():
         start=pd.to_datetime(r.get("start_utc"),utc=True,errors="coerce")
         if pd.isna(start):
@@ -124,6 +129,11 @@ def build_centre_snapshot(schedule_df, meta=None, now=None, logo_provider=None):
                   "calendar_games":calendar_games,
                   "ticker":ticker[:5],"finals":final_recent[:2],
                   "form":form,"form_options":form_options})
+    if compact_logos:
+        empty["team_logos"] = {
+            code: uri for code, uri in logos.items()
+            if isinstance(uri, str) and uri.startswith("data:image/png;base64,")
+        }
     if bool(meta.get("stale")):
         empty["error"]="Źródło oznaczyło terminarz jako nieaktualny."
     return empty

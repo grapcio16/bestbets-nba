@@ -155,7 +155,7 @@ def get_centre_live_data(now=None):
             table=parse_espn_schedule(raw)
             snap=build_centre_snapshot(
                 table,{"source":"ESPN — rzeczywiste mecze NBA"},now=now,
-                logo_provider=logo_data_uri,
+                logo_provider=logo_data_uri, compact_logos=True,
             )
             if not events_by_id:
                 # Successful empty days can be a legitimate NBA off-day.
@@ -199,7 +199,7 @@ def get_centre_live_data(now=None):
         if table is None or table.empty:
             raise ValueError("Pusty zapasowy terminarz NBA CDN")
         meta={**meta,"source":"NBA CDN — oficjalny terminarz zapasowy"}
-        snap=build_centre_snapshot(table,meta,now=now,logo_provider=logo_data_uri)
+        snap=build_centre_snapshot(table,meta,now=now,logo_provider=logo_data_uri,compact_logos=True)
         apply_season_form(snap,season_records,season_meta)
         snap["players"]=[]
         snap["injury_watch"]=injury_report
@@ -276,11 +276,16 @@ def get_centre_day_data(day):
         return {"date":chosen.isoformat(),"games":[],"error":"Źródło ESPN nie odpowiedziało.","complete":False}
     noon=pd.Timestamp(chosen.isoformat()+"T12:00:00",tz="Europe/Warsaw")
     table=parse_espn_schedule({"events":list(events.values())})
-    snapshot=build_centre_snapshot(table,{"source":"ESPN"},now=noon,logo_provider=logo_data_uri)
+    snapshot=build_centre_snapshot(table,{"source":"ESPN"},now=noon,logo_provider=logo_data_uri,compact_logos=True)
     day_games=[g for g in snapshot["calendar_games"] if g["day"]==chosen.isoformat()]
     return {
         "date":chosen.isoformat(),
         "games":day_games,
+        # Include only badges needed by this selected day, not all 30 teams.
+        "team_logos": {
+            code: uri for code, uri in snapshot.get("team_logos", {}).items()
+            if any(code in (game["away"], game["home"]) for game in day_games)
+        },
         "error":"Niepełne dane z ESPN. Spróbuj odświeżyć." if errors else "",
         "complete":not errors,
     }

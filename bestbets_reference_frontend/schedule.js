@@ -101,6 +101,7 @@ function gameOfDay(games,data){
   return best;
 }
 function teamMark(code,url){
+  url=window.hzResolveTeamLogo?.(url)||"";
   const safe=typeof url==="string"&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(url);
   return '<span class="hzs-team-mark">'+(safe
     ?'<img src="'+url+'" alt="" loading="lazy">'
