@@ -24,7 +24,7 @@ def main():
             for i in range(10)
         ]
         page.evaluate(
-            "home => window.postMessage({type:'streamlit:render',args:{payload:{home}}}, '*')",
+            "home => {window.__mobileScheduleHome=home; window.postMessage({type:'streamlit:render',args:{payload:{home}}}, '*')}",
             {"calendar_today":selected,"calendar_loaded_days":[selected],
              "calendar_games":games,"form_options":[
                 {"team":"DEN","name":"Denver Nuggets","wins":7,"losses":3,"ppg":114.1,"record_verified":True},
@@ -77,6 +77,33 @@ def main():
         assert page.locator("#hzv-game-page").is_visible()
         assert "Pobieranie" in page.locator("#hzv-game-content").inner_text()
         assert page.locator("#hzs-board .hzs-game").first.is_hidden()
+        # Render real-shaped ESPN metrics and confirm no sideways scroll on a phone.
+        page.evaluate(
+            "details=>window.postMessage({type:'streamlit:render',args:{payload:{home:window.__mobileScheduleHome,schedule_game_details:details}}},'*')",
+            {"id":str(4018101000),"day":selected,"error":"",
+             "data":{"id":str(4018101000),"away":"DEN","home":"NOP",
+                     "quarters":[],"team_stats":[
+                         {"label":"Celne z gry %","away":"44.0%","home":"51.0%"},
+                         {"label":"Zbiórki","away":"42","home":"39"},
+                         {"label":"Straty","away":"10","home":"17"}
+                     ],"leaders":{"away":[],"home":[]},"source":"ESPN"}}
+        )
+        page.wait_for_function("document.querySelectorAll('.hzv-compare-row').length===3")
+        assert page.locator(".hzv-compare-panel").is_visible()
+        assert page.locator('[data-hzv-metric="Straty"]').get_attribute("data-hzv-advantage") == "away"
+        geometry = page.evaluate("""() => ({
+            viewport: innerWidth,
+            document:document.documentElement.scrollWidth,
+            body:document.body.scrollWidth,
+            panel:document.querySelector('.hzv-compare-panel').getBoundingClientRect().width,
+            card:document.querySelector('.hzv-game-summary').getBoundingClientRect().width,
+            tracks:[...document.querySelectorAll('.hzv-compare-bars')].every(
+              el=>el.scrollWidth<=el.clientWidth+2)
+        })""")
+        assert geometry["document"] <= geometry["viewport"] + 4, geometry
+        assert geometry["body"] <= geometry["viewport"] + 4, geometry
+        assert geometry["panel"] <= geometry["card"], geometry
+        assert geometry["tracks"], geometry
         page.locator("#hzv-game-back").click()
         assert page.locator("#hzv-game-page").is_hidden()
         page.mouse.wheel(0,850)
