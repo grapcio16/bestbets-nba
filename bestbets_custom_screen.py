@@ -653,15 +653,21 @@ def main() -> None:
         game_id = _plain(event.get("game_id"))
         model_id = _plain(event.get("model_id"))
         pct = event.get("pace_pct")
+        away_pct = event.get("off_away_pct", 0)
+        home_pct = event.get("off_home_pct", 0)
         if (not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day)
                 or not re.fullmatch(r"\d{1,30}", game_id)
                 or model_id not in ("legacy_v72", "research_form_v74", "research_context_v75")
-                or type(pct) is not int or not -5 <= pct <= 5):
+                or any(type(v) is not int or not -5 <= v <= 5
+                       for v in (pct, away_pct, home_pct))):
             return
-        result = scenario_for_entitled_user(day, game_id, model_id, pct)
+        result = scenario_for_entitled_user(
+            day, game_id, model_id, pct,
+            off_away_pct=away_pct, off_home_pct=home_pct)
         st.session_state["bb10_premium_scenario"] = {
             "date": day, "game_id": game_id, "model_id": model_id,
-            "pace_pct": pct, **result}
+            "pace_pct": pct, "off_away_pct": away_pct,
+            "off_home_pct": home_pct, **result}
         st.rerun()
         return
     if event.get("type") in ("premium_sim_game", "premium_sim_players"):
