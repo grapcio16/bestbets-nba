@@ -212,7 +212,11 @@ def main():
              "data": {"id": str(4018100001), "away": "DEN", "home": "NOP",
                       "quarters": [{"period":"Q1","away":28,"home":25},
                                    {"period":"Q2","away":22,"home":26}],
-                      "team_stats": [{"label":"Zbiórki","away":"42","home":"39"}],
+                      "team_stats": [
+                          {"label":"Celne z gry %","away":"40.0%","home":"51.0%"},
+                          {"label":"Zbiórki","away":"42","home":"39"},
+                          {"label":"Straty","away":"17","home":"11"}
+                      ],
                       "leaders": {"away":[{"name":"Verified Player","pts":22,"reb":7,"ast":3}],
                                   "home":[{"name":"Another Player","pts":20,"reb":8,"ast":5}]},
                       "arena": "Test Arena", "source":"ESPN"}},
@@ -220,7 +224,23 @@ def main():
         page.wait_for_function("document.querySelector('#hzv-game-content')?.textContent.includes('Verified Player')")
         assert "Q1" in page.locator("#hzv-game-content").inner_text()
         assert "Test Arena" in page.locator("#hzv-game-content").inner_text()
-        assert page.locator("#hzv-game-content .hzv-gc-stat-row").count() == 1
+        assert page.locator("#hzv-game-content .hzv-compare-panel").is_visible()
+        assert page.locator("#hzv-game-content .hzv-gc-stat-row").count() == 0
+        assert page.locator("#hzv-game-content .hzv-compare-row").count() == 3
+        assert "STATYSTYKI DRUŻYN" in page.locator("#hzv-game-content").inner_text()
+        assert "DEN" in page.locator(".hzv-compare-team.hzv-compare-away").inner_text()
+        assert "NOP" in page.locator(".hzv-compare-team.hzv-compare-home").inner_text()
+        # Positive metrics: more is better. Turnovers: fewer is better.
+        assert page.locator('[data-hzv-metric="Celne z gry %"]').get_attribute("data-hzv-advantage") == "home"
+        assert page.locator('[data-hzv-metric="Zbiórki"]').get_attribute("data-hzv-advantage") == "away"
+        assert page.locator('[data-hzv-metric="Straty"]').get_attribute("data-hzv-advantage") == "home"
+        fills = page.locator('[data-hzv-metric="Celne z gry %"] .hzv-compare-fill')
+        assert fills.count() == 2
+        assert [round(float(fills.nth(i).evaluate("el=>parseFloat(el.style.width)"))) for i in range(2)] == [40,51]
+        # Mirrored tracks must remain confined to their columns.
+        assert page.locator(".hzv-compare-bars").first.evaluate(
+            "el=>el.scrollWidth<=el.clientWidth+2")
+        assert page.locator("#hzv-game-content .hzv-compare-legend").is_visible()
         assert page.locator("#hzv-game-content .hzv-xfactor-chart svg").count() == 1
         assert page.locator('[data-hzv-history="h2h"]').is_visible()
         page.locator('[data-hzv-history="recent"]').click()
