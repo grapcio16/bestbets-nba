@@ -229,6 +229,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="schedule_v4.css">
 <link rel="stylesheet" href="simulations.css">
 <link rel="stylesheet" href="simulations_lab.css">
+<link rel="stylesheet" href="player_simulations_v3.css">
 <link rel="stylesheet" href="premium_modal.css">
 <link rel="stylesheet" href="admin_model_performance.css">
 <link rel="stylesheet" href="players.css">
@@ -562,6 +563,81 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <div class="hzm-content">
       <section id="hzm-match-list" class="hzm-match-list" aria-label="Wybierz spotkanie" hidden><h2>Wybierz mecz</h2><div id="hzm-matches" class="hzm-matches"></div></section>
       <div id="hzm-lab-main" class="hzm-analysis" role="tabpanel" aria-labelledby="hzm-lab-tab-results">
+        
+        <!-- Player Simulations v3 — independent layout, not inherited from legacy
+             results chart/player card. Layout directly measured against approved
+             1672x941 screenshot: 278/390/rest columns, 412+130 rows. -->
+        <section id="hzv3" class="hzv3" aria-label="Player Simulations Premium" hidden>
+          <header class="hzv3-titlebar">
+            <div class="hzv3-title"><h2>Player Simulations</h2><span id="hzv3-version" class="hzv3-version">V7.5</span></div>
+            <div class="hzv3-markets" role="group" aria-label="Wybrana statystyka">
+              <button type="button" data-hzv3-market="PTS" aria-pressed="true">PTS</button>
+              <button type="button" data-hzv3-market="REB" aria-pressed="false">REB</button>
+              <button type="button" data-hzv3-market="AST" aria-pressed="false">AST</button>
+              <button type="button" data-hzv3-market="PRA" aria-pressed="false">PRA</button>
+            </div>
+            <span class="hzv3-model-selector">Projekcja modelu <span aria-hidden="true">⌄</span></span>
+          </header>
+          <p class="hzv3-description">Projekcje na wybrany mecz · wykresy oparte na wcześniejszych wynikach ESPN. Historia nie jest rozkładem z 5000 symulacji; PRA to suma średnich prognoz.</p>
+          <div class="hzv3-toolbar">
+            <div class="hzv3-teams" role="group" aria-label="Filtr drużyn">
+              <button type="button" data-hzv3-team="all" aria-pressed="true">Obie drużyny</button>
+              <button type="button" data-hzv3-team="away" aria-pressed="false" id="hzv3-away-filter">GOŚCIE</button>
+              <button type="button" data-hzv3-team="home" aria-pressed="false" id="hzv3-home-filter">GOSPODARZE</button>
+            </div>
+            <label class="hzv3-search"><span aria-hidden="true">⌕</span><input id="hzv3-query" type="search" placeholder="Szukaj zawodnika..." autocomplete="off" aria-label="Szukaj zawodnika"></label>
+            <span id="hzv3-count" class="hzv3-count" aria-live="polite"></span>
+          </div>
+          <div class="hzv3-grid">
+            <aside id="hzv3-inspector" class="hzv3-inspector" aria-label="Wybrany zawodnik"></aside>
+            <section class="hzv3-roster-card" aria-label="Tabela projekcji zawodników">
+              <div class="hzv3-roster-head">
+                <span>ZAWODNIK</span><span class="hzv3-sort-label" id="hzv3-sort-pts">PTS</span><span>REB</span><span>AST</span><span>PRA</span>
+              </div>
+              <div id="hzv3-roster" class="hzv3-roster" role="list"></div>
+            </section>
+            <section class="hzv3-analytics" aria-label="Wykresy historyczne wybranego zawodnika">
+              <div class="hzv3-analytics-card hzv3-hist-card">
+                <h3 id="hzv3-hist-title">Rozkład punktów <span class="hzv3-help" title="Wygładzona częstość z rozegranych meczów ESPN, nie prawdopodobieństwo prognozy.">ⓘ</span></h3>
+                <div id="hzv3-hist" class="hzv3-plot"></div>
+              </div>
+              <div class="hzv3-analytics-card hzv3-rates-card">
+                <h3 id="hzv3-rates-title">Historyczne over (PTS)</h3>
+                <small id="hzv3-rates-note">Odsetek wcześniejszych występów</small>
+                <div id="hzv3-rates" class="hzv3-rates"></div>
+              </div>
+              <div class="hzv3-analytics-card hzv3-trend-card">
+                <div class="hzv3-chart-top"><h3 id="hzv3-trend-title">Forma – punkty <span class="hzv3-help" title="Wyniki z wcześniejszych spotkań ESPN.">ⓘ</span></h3>
+                  <div class="hzv3-windows" role="group" aria-label="Wybierz okres historii">
+                    <button type="button" data-hzv3-window="5" aria-pressed="true">L5</button>
+                    <button type="button" data-hzv3-window="10" aria-pressed="false">L10</button>
+                    <button type="button" data-hzv3-window="15" aria-pressed="false">L15</button>
+                    <button type="button" data-hzv3-window="season" aria-pressed="false">Sezon</button>
+                  </div>
+                </div>
+                <div id="hzv3-trend" class="hzv3-plot"></div>
+              </div>
+              <div class="hzv3-analytics-card hzv3-averages-card">
+                <h3 id="hzv3-averages-title">Średnie punkty</h3>
+                <div id="hzv3-averages" class="hzv3-averages"></div>
+              </div>
+            </section>
+            <div class="hzv3-summary">
+              <article class="hzv3-summary-card">
+                <h3><span>◈</span> Forma drużyn (L10)</h3>
+                <div id="hzv3-teamform"></div>
+              </article>
+              <article class="hzv3-summary-card">
+                <h3><span>◴</span> Tempo i zmienność</h3>
+                <div id="hzv3-pace"></div>
+              </article>
+              <article class="hzv3-summary-card">
+                <h3><span>▦</span> Odpoczynek i składy</h3>
+                <div id="hzv3-rest"></div>
+              </article>
+            </div>
+          </div>
+        </section>
         <div id="hzm-detail-grid" class="hzm-detail-grid">
           <section class="hzm-chart-card" aria-label="Rozkład punktów">
             <header><div><h2>Rozkład punktów</h2><span id="hzm-chart-context">5000 symulacji · model punktowy</span></div><div id="hzm-chart-tabs" class="hzm-chart-tabs" role="group" aria-label="Wybierz rozkład punktów"><button type="button" data-hzm-chart="match" class="active">MECZ</button><button type="button" data-hzm-chart="away">GOŚCIE</button><button type="button" data-hzm-chart="home">GOSPODARZE</button></div></header>
@@ -940,6 +1016,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <script src="centrum.js"></script>
 <script src="player_picker.js"></script>
 <script src="schedule.js"></script>
+<script src="player_simulations_v3.js"></script>
 <script src="simulations.js"></script>
 <script src="admin_model_performance.js"></script>
 <script src="players.js"></script>
