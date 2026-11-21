@@ -19,7 +19,8 @@ import streamlit as st
 
 from teams import TEAM_FULL
 from bestbets_free_analyses import SCHEMA, photo_policy, select_leader
-from bestbets_simulations_canvas import premium_entitled, simulation_for_entitled_user
+from bestbets_simulations_canvas import (premium_entitled, simulation_for_entitled_user,
+                                         scenario_for_entitled_user)
 from access_control import (auth_configured, auth_context, current_principal,
                             current_role, login_provider)
 from checkout_links import validated_checkout_url, is_test_checkout_url
@@ -424,6 +425,7 @@ def main() -> None:
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
         st.session_state.pop("bb10_premium_game", None)
         st.session_state.pop("bb10_premium_players", None)
+        st.session_state.pop("bb10_premium_scenario", None)
         st.session_state.pop("bb10_premium_player_averages", None)
         st.session_state.pop("bb10_premium_team_analytics", None)
         st.session_state.pop("bb10_team_analytics_attempt_at", None)
@@ -481,6 +483,7 @@ def main() -> None:
             "entitled": has_premium,
             "game": st.session_state.get("bb10_premium_game") if has_premium else None,
             "players": st.session_state.get("bb10_premium_players") if has_premium else None,
+            "scenario": st.session_state.get("bb10_premium_scenario") if has_premium else None,
         },
     }
     event = COMPONENT(payload=payload, default=None, key="bb10_reference_canvas")
@@ -640,6 +643,25 @@ def main() -> None:
         teams = dict(current.get("teams") or {})
         teams[team_code] = {**existing, **(rating or {}), "rating_attempted": True}
         st.session_state["bb10_premium_team_analytics"] = {**current, "teams": teams}
+        st.rerun()
+        return
+    if event.get("type") == "premium_sim_scenario":
+        if not premium_entitled():
+            return
+        import re
+        day = _plain(event.get("date"))
+        game_id = _plain(event.get("game_id"))
+        model_id = _plain(event.get("model_id"))
+        pct = event.get("pace_pct")
+        if (not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day)
+                or not re.fullmatch(r"\d{1,30}", game_id)
+                or model_id not in ("legacy_v72", "research_form_v74", "research_context_v75")
+                or type(pct) is not int or not -5 <= pct <= 5):
+            return
+        result = scenario_for_entitled_user(day, game_id, model_id, pct)
+        st.session_state["bb10_premium_scenario"] = {
+            "date": day, "game_id": game_id, "model_id": model_id,
+            "pace_pct": pct, **result}
         st.rerun()
         return
     if event.get("type") in ("premium_sim_game", "premium_sim_players"):
