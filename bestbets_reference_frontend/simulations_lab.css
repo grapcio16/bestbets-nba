@@ -1089,3 +1089,24 @@
  #simulations-pane .hzm-player-averages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px}
  #simulations-pane .hzm-player-averages>div{grid-template-columns:1fr auto}
 }
+
+/* Three screenshot-style evidence tiles along the bottom of Player Simulations. */
+#simulations-pane[data-hzm-view="players"] .hzm-insights{
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:10px;height:auto!important;min-height:78px;padding:0;
+ border:0;background:transparent;box-shadow:none
+}
+#simulations-pane[data-hzm-view="players"] .hzm-insights>.hzm-insight-title{display:none}
+#simulations-pane[data-hzm-view="players"] .hzm-insights>div:not(:first-child){
+ min-height:75px;display:flex;flex-direction:column;justify-content:center;
+ padding:10px 12px 10px 39px;border:1px solid #285a85;
+ border-radius:11px;background:linear-gradient(125deg,#09233e,#101933);
+ box-shadow:inset 0 1px #77aed422
+}
+#simulations-pane[data-hzm-view="players"] .hzm-insights>div:nth-child(3){border-color:#4a508c;background:linear-gradient(125deg,#0b213c,#1a193e)}
+#simulations-pane[data-hzm-view="players"] .hzm-insights strong{font-size:12px;color:#e8f7ff}
+#simulations-pane[data-hzm-view="players"] .hzm-insights small{font-size:9px;line-height:1.4;color:#bed0ed;max-height:none}
+#simulations-pane[data-hzm-view="players"] .hzm-insight-icon{font-size:20px;left:13px}
+@media(max-width:767px){
+ #simulations-pane[data-hzm-view="players"] .hzm-insights{grid-template-columns:minmax(0,1fr)}
+}
