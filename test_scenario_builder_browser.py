@@ -53,6 +53,10 @@ def main():
         assert page.locator("#hzm-scenario-base").inner_text() == "230,0 pkt"
         assert page.locator("#hzm-scenario-whatif").inner_text() == "—"
         assert page.locator("#hzm-scenario-run").is_enabled()
+        assert page.locator("#hzm-scenario-off-away-code").inner_text() == "NYK"
+        assert page.locator("#hzm-scenario-off-home-code").inner_text() == "BOS"
+        assert page.locator("#hzm-scenario-off-away-display").inner_text() == "0%"
+        assert page.locator("#hzm-scenario-off-home-display").inner_text() == "0%"
 
         page.evaluate("""() => {
           window.__scenarioRequests = [];
@@ -71,10 +75,11 @@ def main():
         req = page.evaluate("window.__scenarioRequests[0]")
         assert req["pace_pct"] == 3 and req["game_id"] == game_id
         assert req["model_id"] == "research_form_v74"
+        assert req["off_away_pct"] == 0 and req["off_home_pct"] == 0
 
         payload["premium_simulation"]["scenario"] = {
             "date": day, "game_id": game_id, "model_id": "research_form_v74",
-            "pace_pct": 3,
+            "pace_pct": 3, "off_away_pct": 0, "off_home_pct": 0,
             "baseline": {
                 "total_points": 230.0, "away_points": 113.0,
                 "home_points": 117.0, "away_win_pct": 49.0, "home_win_pct": 51.0},
@@ -94,6 +99,36 @@ def main():
         assert "117,0 pkt → 120,0 pkt" in page.locator("#hzm-scenario-home-points").inner_text()
         assert "-0,4 pp" in page.locator("#hzm-scenario-away-win").inner_text()
         assert "+0,4 pp" in page.locator("#hzm-scenario-home-win").inner_text()
+
+        # Independent team adjustments must invalidate previous cached results
+        # and be transmitted explicitly to the server.
+        page.locator("#hzm-scenario-off-away").evaluate(
+            """el => {el.value='4';el.dispatchEvent(new Event('input',{bubbles:true}))}"""
+        )
+        page.locator("#hzm-scenario-off-home").evaluate(
+            """el => {el.value='-2';el.dispatchEvent(new Event('input',{bubbles:true}))}"""
+        )
+        assert page.locator("#hzm-scenario-off-away-display").inner_text() == "+4%"
+        assert page.locator("#hzm-scenario-off-home-display").inner_text() == "-2%"
+        assert page.locator("#hzm-scenario-whatif").inner_text() == "—"
+        page.locator("#hzm-scenario-run").click()
+        page.wait_for_function("window.__scenarioRequests.length===2")
+        req2 = page.evaluate("window.__scenarioRequests[1]")
+        assert req2["off_away_pct"] == 4 and req2["off_home_pct"] == -2
+        assert req2["pace_pct"] == 3
+        payload["premium_simulation"]["scenario"].update({
+            "off_away_pct": 4, "off_home_pct": -2,
+            "scenario": {"total_points": 234.0,
+                         "away_points": 120.0, "home_points": 114.0,
+                         "away_win_pct": 57.0, "home_win_pct": 43.0}
+        })
+        page.evaluate(
+            "data => window.postMessage({type:'streamlit:render',args:{payload:data}}, '*')",
+            payload,
+        )
+        assert page.locator("#hzm-scenario-whatif").inner_text() == "234,0 pkt"
+        assert "113,0 pkt → 120,0 pkt" in page.locator("#hzm-scenario-away-points").inner_text()
+        assert "117,0 pkt → 114,0 pkt" in page.locator("#hzm-scenario-home-points").inner_text()
 
         # A cached scenario for a different pace value must not appear.
         payload["premium_simulation"]["scenario"]["pace_pct"] = 2

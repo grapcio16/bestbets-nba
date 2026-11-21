@@ -450,3 +450,14 @@
 #simulations-pane .hzm-scenario-split span b:not(:empty){font-variant-numeric:tabular-nums}
 #simulations-pane .hzm-scenario-output #hzm-scenario-status{margin-top:6px}
 #simulations-pane .hzm-scenario-output #hzm-scenario-context{margin-top:4px}
+
+/* Phase 4C: two separate what-if offensive efficiency inputs (not actual form). */
+#simulations-pane .hzm-scenario-control{min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#248fae #091b36}
+#simulations-pane .hzm-scenario-team-sliders{margin-top:9px;border-top:1px solid #274766;padding-top:8px}
+#simulations-pane .hzm-scenario-team-sliders label{display:flex;align-items:center;justify-content:space-between;margin-top:7px;font-size:11px}
+#simulations-pane .hzm-scenario-team-sliders label strong{color:#36eaf9;font-size:11px}
+#simulations-pane .hzm-scenario-team-sliders label[for="hzm-scenario-off-home"] strong{color:#d79bff}
+#simulations-pane .hzm-scenario-team-sliders .hzm-scenario-slider-line{margin-top:3px}
+#simulations-pane .hzm-scenario-team-sliders input{flex:1;min-width:0;accent-color:#b36bfb;cursor:pointer}
+#simulations-pane .hzm-scenario-team-sliders output{flex:0 0 55px;border:1px solid #7950b1;border-radius:7px;background:#231844;color:#eed2ff;font-weight:850;text-align:center;padding:5px 2px;font-size:12px}
+#simulations-pane .hzm-scenario-team-sliders input:focus-visible{outline:2px solid #b6eeff;outline-offset:2px}
