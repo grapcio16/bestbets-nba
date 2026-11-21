@@ -3,6 +3,29 @@
 "use strict";
 let callback=null,selectedDay="",requestedDay="",selectedFilter="all",lastData=null;
 let selectedGameId="",requestedDetailsId="",lastDetails=null;
+const FAV_KEY="hoopzaro.schedule.favoriteTeams.v1";
+const VALID_TEAMS=new Set("ATL BOS BKN CHA CHI CLE DAL DEN DET GSW HOU IND LAC LAL MEM MIA MIL MIN NOP NYK OKC ORL PHI PHX POR SAC SAS TOR UTA WAS".split(" "));
+function readFavorites(){
+  try{
+    const stored=JSON.parse(window.localStorage.getItem(FAV_KEY)||"[]");
+    return Array.isArray(stored)?stored.filter(code=>typeof code==="string"&&VALID_TEAMS.has(code)):[];
+  }catch(_){return []}
+}
+const favorites=new Set(readFavorites());
+function persistFavorites(){
+  try{window.localStorage.setItem(FAV_KEY,JSON.stringify([...favorites].sort()))}catch(_){
+    // Private browsing and restricted contexts still allow session favorites.
+  }
+}
+function isFavoriteGame(game){return favorites.has(game?.away)||favorites.has(game?.home)}
+function favoriteStar(code,gameId,side){
+  if(!VALID_TEAMS.has(code))return "";
+  const active=favorites.has(code),title=active?"Usuń z ulubionych: ":"Dodaj do ulubionych: ";
+  return '<button type="button" class="hzs-favorite-star hzs-favorite-'+side+
+    (active?' is-favorite':'')+'" data-hzs-star="'+escapeHtml(code)+
+    '" aria-label="'+title+escapeHtml(code)+'" aria-pressed="'+String(active)+
+    '" title="'+title+escapeHtml(code)+'"><span aria-hidden="true">'+(active?'★':'☆')+'</span></button>';
+}
 const $=id=>document.getElementById(id);
 const escapeHtml=value=>String(value==null?"":value).replace(/[&<>"']/g,ch=>({
   "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
@@ -45,6 +68,13 @@ function dateNavigation(){
     const candidate=shiftDay(selectedDay,Number(button.dataset.hzsDirection));
     button.disabled=!withinRange(candidate);
   });
+  const datePicker=$("hzs-date-picker");
+  if(datePicker){
+    datePicker.value=selectedDay;
+    datePicker.min=shiftDay(today(),-366);
+    datePicker.max=shiftDay(today(),366);
+  }
+  if($("hzs-today"))$("hzs-today").disabled=selectedDay===today();
 }
 function selectedGames(data){
   const extra=data?.calendar_extras?.[selectedDay];
@@ -136,14 +166,17 @@ function gameMarkup(game,data,featured=false){
   const winner=final&&awayScore!==homeScore?(awayScore>homeScore?"away":"home"):"";
   const id=String(game.id||"");
   const expanded=id!==""&&id===selectedGameId;
-  return '<button type="button" class="hzs-game hzs-'+kind+(featured?' hzs-featured':'')+
+  return '<div class="hzs-game-shell'+(featured?' hzs-featured-shell':'')+
+    (isFavoriteGame(game)?' hzs-favorite-game':'')+'" data-hzs-shell-id="'+escapeHtml(id)+'">'+
+    '<button type="button" class="hzs-game hzs-'+kind+(featured?' hzs-featured':'')+
     '" data-hzs-game="'+escapeHtml(id)+'" aria-expanded="'+String(expanded)+
     '" aria-label="'+escapeHtml(away+' – '+home+', '+badge+', pokaż szczegóły meczu')+'">'+
     (featured?'<span class="hzs-feature-ribbon" title="Mecz dnia: 45% siła bilansów, 45% wyrównanie bilansów, 10% średnia punktów. Wyłącznie zweryfikowane dane sezonu, bez symulacji."><span aria-hidden="true">✦</span> MECZ DNIA <span aria-hidden="true">✦</span></span>':'')+
     '<span class="hzs-team away'+(winner==="away"?' hzs-winner':'')+'">'+teamMark(away,game.away_logo)+teamText(away,data)+'</span>'+
     '<span class="hzs-score"><strong>'+escapeHtml(score(game))+'</strong><span class="hzs-status">'+escapeHtml(badge)+'</span></span>'+
     '<span class="hzs-team home'+(winner==="home"?' hzs-winner':'')+'">'+teamText(home,data)+teamMark(home,game.home_logo)+'</span>'+
-    '<span class="hzs-expand-mark" aria-hidden="true">'+(expanded?'⌃':'⌄')+'</span></button>';
+    '<span class="hzs-expand-mark" aria-hidden="true">'+(expanded?'⌃':'⌄')+'</span></button>'+
+    favoriteStar(away,id,"away")+favoriteStar(home,id,"home")+'</div>';
 }
 function detailMarkup(game,data){
   const id=String(game.id||"");
@@ -244,20 +277,31 @@ function render(data,details){
     return;
   }
   const filtered=selectedFilter==="all"?games:
+    selectedFilter==="favorites"?games.filter(isFavoriteGame):
     games.filter(game=>game.state===selectedFilter);
   if(!filtered.length){
-    const empty={live:"Brak trwających meczów.",scheduled:"Brak nadchodzących meczów.",final:"Brak zakończonych meczów."};
+    const empty={live:"Brak trwających meczów.",scheduled:"Brak nadchodzących meczów.",
+      final:"Brak zakończonych meczów.",
+      favorites:favorites.size===0?"Oznacz drużynę gwiazdką ☆, aby zobaczyć jej mecze.":"Ulubione drużyny nie rozgrywają meczów w wybranym dniu."};
     host.innerHTML=alert+'<div class="hzs-empty">'+(empty[selectedFilter]||"Brak meczów.")+'</div>';
     return;
   }
   const featured=selectedFilter==="all"?gameOfDay(games,data):null;
   const remaining=featured?filtered.filter(game=>game!==featured):filtered;
+  const favoriteRemaining=remaining.filter(isFavoriteGame);
+  const ordinaryRemaining=remaining.filter(game=>!isFavoriteGame(game));
   const title=featured?"POZOSTAŁE MECZE":selectedFilter==="all"?"WSZYSTKIE MECZE":"MECZE";
+  const group=(heading,items,highlight)=>
+    items.length?'<div class="hzs-section-title'+(highlight?' hzs-favorite-section-title':'')+'"><span class="hzs-section-dot" aria-hidden="true"></span>'+
+      heading+' · '+items.length+'</div><div class="hzs-rows">'+
+      items.map(game=>gameMarkup(game,data)+detailMarkup(game,data)).join("")+'</div>':"";
+  const favoriteMarkup=group("★ ULUBIONE DRUŻYNY",favoriteRemaining,true);
+  const regularMarkup=group(title,ordinaryRemaining,false);
+  const featureMarkup=featured?gameMarkup(featured,data,true)+detailMarkup(featured,data):"";
+  const placeFavoritesFirst=Boolean(featured&&!isFavoriteGame(featured)&&favoriteRemaining.length);
   host.innerHTML=alert+'<section class="hzs-section" aria-label="Mecze NBA">'+
-    (featured?gameMarkup(featured,data,true)+detailMarkup(featured,data):'')+
-    (remaining.length?'<div class="hzs-section-title"><span class="hzs-section-dot" aria-hidden="true"></span>'+title+' · '+remaining.length+'</div>'+
-      '<div class="hzs-rows">'+remaining.map(game=>gameMarkup(game,data)+detailMarkup(game,data)).join("")+'</div>':'')+
-    '</section>';
+    (placeFavoritesFirst?favoriteMarkup:"")+featureMarkup+
+    (placeFavoritesFirst?"":favoriteMarkup)+regularMarkup+'</section>';
   host.scrollTop=previousScroll;
 }
 function requestDay(day){
@@ -273,6 +317,21 @@ function selectDay(day){
 function init(api){
   callback=api;
   $("hzs-board")?.addEventListener("click",event=>{
+    const star=event.target.closest("[data-hzs-star]");
+    if(star){
+      event.preventDefault();
+      const code=star.dataset.hzsStar||"";
+      const gameId=star.closest("[data-hzs-shell-id]")?.dataset.hzsShellId||"";
+      if(!VALID_TEAMS.has(code))return;
+      if(favorites.has(code))favorites.delete(code);
+      else favorites.add(code);
+      persistFavorites();
+      render(lastData,lastDetails);
+      const replacement=[...$("hzs-board").querySelectorAll("[data-hzs-star]")].find(el=>
+        el.dataset.hzsStar===code&&el.closest("[data-hzs-shell-id]")?.dataset.hzsShellId===gameId);
+      replacement?.focus({preventScroll:true});
+      return;
+    }
     const target=event.target.closest("[data-hzs-game]");
     if(!target||!lastData)return;
     const id=target.dataset.hzsGame||"";
@@ -305,6 +364,12 @@ function init(api){
   });
   document.querySelectorAll("[data-hzs-direction]").forEach(button=>{
     button.addEventListener("click",()=>selectDay(shiftDay(selectedDay,Number(button.dataset.hzsDirection))));
+  });
+  $("hzs-today")?.addEventListener("click",()=>selectDay(today()));
+  $("hzs-date-picker")?.addEventListener("change",event=>{
+    const value=event.target.value;
+    if(safeDay(value)&&withinRange(value))selectDay(value);
+    else event.target.value=selectedDay;
   });
 }
 window.HoopzaroSchedule={init,render};
