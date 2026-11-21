@@ -570,7 +570,19 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <div class="hzm-chart-source"><span id="hzm-chart-source">Średnie wyłącznie z wykonanych symulacji.</span><strong id="hzm-lab-range">Przedział 80%: —</strong></div>
           </section>
           <section id="hzm-players-panel" class="hzm-players-panel" aria-label="Player Simulations — projekcje modelu">
-            <header><h2>Player Simulations</h2><div id="hzm-player-headings" class="hzm-player-headings"><span>PTS</span><span>REB</span><span>AST</span></div></header>
+            <header>
+              <h2>Player Simulations <span class="hzm-player-version" id="hzm-player-version">V7.4</span></h2>
+              <div id="hzm-player-headings" class="hzm-player-headings"><span>PTS</span><span>REB</span><span>AST</span></div>
+              <div class="hzm-player-focus-controls">
+                <div class="hzm-player-market-switch" role="group" aria-label="Wybierz statystykę projekcji zawodników">
+                  <button type="button" data-hzm-player-market="PTS" aria-pressed="true" class="active">PTS</button>
+                  <button type="button" data-hzm-player-market="REB" aria-pressed="false">REB</button>
+                  <button type="button" data-hzm-player-market="AST" aria-pressed="false">AST</button>
+                  <button type="button" data-hzm-player-market="PRA" aria-pressed="false">PRA</button>
+                </div>
+                <span class="hzm-player-mode-label">Projekcja modelu <span aria-hidden="true">⌄</span></span>
+              </div>
+            </header>
             <p class="hzm-player-focused-note">Projekcje modelu na wybrany mecz · historyczne wykresy L5/L10/L15 znajdziesz w Player Props. PRA to suma średnich prognoz, nie osobny rozkład.</p>
             <div id="hzm-player-tools" class="hzm-player-tools">
               <div class="hzm-player-team-filter" role="group" aria-label="Filtr drużyny">
@@ -582,8 +594,43 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
               <span id="hzm-player-count" class="hzm-player-count" aria-live="polite"></span>
             </div>
             <div class="hzm-player-lab-body">
-              <div id="hzm-player-rows" class="hzm-player-rows"><div class="hzm-no-players">Pełne projekcje dostępne w Premium.</div></div>
+              <div id="hzm-player-list-wrap" class="hzm-player-list-wrap">
+                <div id="hzm-player-column-header" class="hzm-player-column-header">
+                  <span>ZAWODNIK</span><span>PTS</span><span>REB</span><span>AST</span><span>PRA</span>
+                </div>
+                <div id="hzm-player-rows" class="hzm-player-rows"><div class="hzm-no-players">Pełne projekcje dostępne w Premium.</div></div>
+              </div>
               <aside id="hzm-player-inspector" class="hzm-player-inspector" aria-label="Szczegóły projekcji wybranego zawodnika" aria-live="polite"><p>Wybierz zawodnika, aby zobaczyć projekcję.</p></aside>
+              <section id="hzm-player-analytics" class="hzm-player-analytics" aria-label="Rzeczywista historia i projekcja wybranego zawodnika">
+                <div class="hzm-player-analytics-upper">
+                  <div class="hzm-player-histogram-card">
+                    <h3>Rozkład historyczny — <span id="hzm-player-chart-name">wybrany zawodnik</span><span class="hzm-player-help" title="Rozkład rzeczywistych wyników historycznych, nie rozkład probabilistyczny modelu.">ⓘ</span></h3>
+                    <div id="hzm-player-histogram" class="hzm-player-histogram" aria-live="polite"><p>Wybierz zawodnika, aby zobaczyć historię.</p></div>
+                  </div>
+                  <div class="hzm-player-rates-card">
+                    <h3>Częstość over <span id="hzm-player-rate-metric">PTS</span></h3>
+                    <small id="hzm-player-rates-source">Dane historyczne ESPN</small>
+                    <div id="hzm-player-rates" class="hzm-player-rates"><p>Brak danych.</p></div>
+                  </div>
+                </div>
+                <div class="hzm-player-analytics-lower">
+                  <div class="hzm-player-trend-card">
+                    <header><h3>Forma zawodnika <span id="hzm-player-trend-metric">PTS</span><span class="hzm-player-help" title="Rzeczywiste statystyki z zakończonych meczów ESPN przed wybranym spotkaniem.">ⓘ</span></h3>
+                      <div id="hzm-player-history-switch" class="hzm-player-history-switch" role="group" aria-label="Liczba historycznych meczów">
+                        <button type="button" data-hzm-history-window="5" class="active" aria-pressed="true">L5</button>
+                        <button type="button" data-hzm-history-window="10" aria-pressed="false">L10</button>
+                        <button type="button" data-hzm-history-window="15" aria-pressed="false">L15</button>
+                      </div>
+                    </header>
+                    <div id="hzm-player-trend" class="hzm-player-trend"><p>Rzeczywista historia będzie dostępna po wybraniu zawodnika.</p></div>
+                  </div>
+                  <div class="hzm-player-averages-card">
+                    <h3>Średnie <span id="hzm-player-average-metric">PTS</span></h3>
+                    <div id="hzm-player-averages" class="hzm-player-averages"><p>Brak danych.</p></div>
+                    <small id="hzm-player-averages-source">Tylko zweryfikowane występy ESPN</small>
+                  </div>
+                </div>
+              </section>
             </div>
             <button type="button" id="hzm-expand-players" class="hzm-expand" aria-expanded="false" aria-controls="hzm-player-rows">Rozwiń pełną listę zawodników <span aria-hidden="true">⌄</span></button>
           </section>
