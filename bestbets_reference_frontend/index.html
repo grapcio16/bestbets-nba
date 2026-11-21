@@ -555,7 +555,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       <button type="button" id="hzm-lab-tab-results" role="tab" data-hzm-view="results" aria-controls="hzm-lab-main" aria-selected="true" class="selected"><span aria-hidden="true">▥</span> Wyniki i rozkłady</button>
       <button type="button" id="hzm-lab-tab-players" role="tab" data-hzm-view="players" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">♙</span> Player Simulations</button>
       <button type="button" id="hzm-lab-tab-scenario" role="tab" data-hzm-view="scenario" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">☷</span> Scenariusze</button>
-      <button type="button" role="tab" disabled aria-disabled="true" title="Analiza meczu — kolejny etap wdrożenia"><span aria-hidden="true">✧</span> Analiza meczu <small>Wkrótce</small></button>
+      <button type="button" id="hzm-lab-tab-intelligence" role="tab" data-hzm-view="intelligence" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">✧</span> Analiza meczu</button>
       <button type="button" role="tab" disabled aria-disabled="true" title="Porównanie drużyn — kolejny etap wdrożenia"><span aria-hidden="true">⇄</span> Porównanie drużyn <small>Wkrótce</small></button>
       <button type="button" role="tab" disabled aria-disabled="true" title="Model i Backtest — kolejny etap wdrożenia"><span aria-hidden="true">▤</span> Model &amp; Backtest <small>Wkrótce</small></button>
     </nav>
@@ -663,6 +663,43 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             </div>
             <p class="hzm-availability-warning">ESPN nie jest oficjalnym raportem NBA. Brak wpisu o zawodniku nie potwierdza, że zagra. Statusy i małe korekty punktów są nieskalibrowanym kontekstem V7.5, nie oddzielnym scenariuszem ani nową symulacją.</p>
           </section>
+        </section>
+        <section id="hzm-intel-panel" class="hzm-intel-panel" aria-label="Match Intelligence — czynniki modelu" hidden>
+          <header class="hzm-intel-head">
+            <div><small>HOOPZARO · MODEL EXPLAINABILITY</small><h2>Match Intelligence</h2><p>Co naprawdę wpływa na prognozę meczu?</p></div>
+            <span id="hzm-intel-model" class="hzm-intel-model">WYBIERZ MODEL</span>
+          </header>
+          <p id="hzm-intel-status" class="hzm-intel-status" role="status">Pobieranie danych modelu Premium…</p>
+          <div class="hzm-intel-evidence">
+            <div class="hzm-intel-kpi"><small>Zweryfikowane mecze przed tip-off</small><strong id="hzm-intel-completed">—</strong></div>
+            <div class="hzm-intel-kpi"><small>Źródło modelu</small><strong id="hzm-intel-source">—</strong></div>
+            <div class="hzm-intel-kpi"><small>NBA Advanced (obie drużyny)</small><strong id="hzm-intel-advanced">—</strong></div>
+          </div>
+          <div class="hzm-intel-teams">
+            <article class="hzm-intel-team away">
+              <header><strong id="hzm-intel-away-name">GOŚCIE</strong><small>AWAY</small></header>
+              <div><span>Próba drużyny</span><strong id="hzm-intel-away-sample">—</strong></div>
+              <div><span>Mecze na wyjeździe</span><strong id="hzm-intel-away-venue-sample">—</strong></div>
+              <div><span>Odpoczynek</span><strong id="hzm-intel-away-rest">—</strong></div>
+              <div><span>Próba zmienności punktów</span><strong id="hzm-intel-away-sd-sample">—</strong></div>
+            </article>
+            <article class="hzm-intel-team home">
+              <header><strong id="hzm-intel-home-name">GOSPODARZE</strong><small>HOME</small></header>
+              <div><span>Próba drużyny</span><strong id="hzm-intel-home-sample">—</strong></div>
+              <div><span>Mecze u siebie</span><strong id="hzm-intel-home-venue-sample">—</strong></div>
+              <div><span>Odpoczynek</span><strong id="hzm-intel-home-rest">—</strong></div>
+              <div><span>Próba zmienności punktów</span><strong id="hzm-intel-home-sd-sample">—</strong></div>
+            </article>
+          </div>
+          <section class="hzm-intel-factors" aria-label="Składniki korekty modelu V7.5">
+            <header><strong>Rozbicie korekty średniej liczby punktów</strong><small>V7.5 · eksperymentalne, nieskalibrowane</small></header>
+            <div class="hzm-intel-factor-head"><span>Czynnik</span><span id="hzm-intel-factor-away">GOŚCIE</span><span id="hzm-intel-factor-home">GOSPODARZE</span></div>
+            <div class="hzm-intel-factor-row"><span>Dom / wyjazd</span><strong id="hzm-intel-venue-away">—</strong><strong id="hzm-intel-venue-home">—</strong></div>
+            <div class="hzm-intel-factor-row"><span>Odpoczynek / B2B</span><strong id="hzm-intel-rest-away">—</strong><strong id="hzm-intel-rest-home">—</strong></div>
+            <div class="hzm-intel-factor-row"><span>ESPN OUT (modelowa korekta)</span><strong id="hzm-intel-injury-away">—</strong><strong id="hzm-intel-injury-home">—</strong></div>
+            <div class="hzm-intel-factor-row total"><span>Łącznie względem bazowej średniej V7.4</span><strong id="hzm-intel-total-away">—</strong><strong id="hzm-intel-total-home">—</strong></div>
+          </section>
+          <p id="hzm-intel-caveat" class="hzm-intel-caveat">Model nie jest skalibrowany. Historia i kontekst nie gwarantują zwycięstwa. Wartości nie są rekomendacją bukmacherską.</p>
         </section>
       </div>
     </div>
