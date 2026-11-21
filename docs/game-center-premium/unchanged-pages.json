@@ -1,0 +1,74 @@
+[
+  {
+    "page": "home",
+    "viewport": [
+      1600,
+      900
+    ],
+    "different_pixels_above_4_rgb": 0
+  },
+  {
+    "page": "props",
+    "viewport": [
+      1600,
+      900
+    ],
+    "different_pixels_above_4_rgb": 0
+  },
+  {
+    "page": "games",
+    "viewport": [
+      1600,
+      900
+    ],
+    "different_pixels_above_4_rgb": 0
+  },
+  {
+    "page": "simulations",
+    "viewport": [
+      1600,
+      900
+    ],
+    "different_pixels_above_4_rgb": 0
+  },
+  {
+    "page": "players",
+    "viewport": [
+      1600,
+      900
+    ],
+    "different_pixels_above_4_rgb": 0
+  },
+  {
+    "page": "teams",
+    "viewport": [
+      1600,
+      900
+    ],
+    "different_pixels_above_4_rgb": 0
+  },
+  {
+    "page": "settings",
+    "viewport": [
+      1600,
+      900
+    ],
+    "different_pixels_above_4_rgb": 0
+  },
+  {
+    "page": "home",
+    "viewport": [
+      390,
+      844
+    ],
+    "different_pixels_above_4_rgb": 0
+  },
+  {
+    "page": "props",
+    "viewport": [
+      390,
+      844
+    ],
+    "different_pixels_above_4_rgb": 0
+  }
+]

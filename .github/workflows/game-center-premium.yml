@@ -1,0 +1,40 @@
+name: HOOPZARO Game Center Premium reference
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  game-center-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install existing application and browser dependencies
+        run: |
+          python -m pip install -r requirements.txt 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - name: All existing unit tests, ESPN identity and Premium access
+        run: python -m unittest discover -v
+      - name: Winners, stable club colors, overtime and verified final totals
+        run: |
+          node test_game_center_premium.js
+          node test_schedule_board.js
+          node test_simulations_canvas.js
+      - name: Ten desktop and mobile sizes, history tabs and missing data
+        run: python test_game_center_premium_browser.py --out test-results/game-center-premium
+      - name: Existing mobile schedule and Game Center routes
+        run: |
+          python test_schedule_mobile.py
+          python test_simulations_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hoopzaro-game-center-premium-evidence
+          path: test-results/game-center-premium/

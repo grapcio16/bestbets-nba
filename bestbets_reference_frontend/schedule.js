@@ -254,18 +254,49 @@ function gameFromSelected(data){
  return games.find(g=>String(g.id||"")===selectedGameId)||null;
 }
 function initials(name){return String(name||"").split(/\s+/).map(part=>part[0]||"").slice(0,2).join("").toUpperCase()}
+// Game Center accents belong to the selected clubs, never to a historical
+// home/away position. Other clubs use gold consistently in the recent list.
+function gameCenterTone(code,game){
+ return code===game.away?"hzv-tone-cyan":code===game.home?"hzv-tone-violet":"hzv-tone-gold";
+}
+function gameCenterWinner(game){
+ if(!isFinal(game)||game.away_score<0||game.home_score<0||game.away_score===game.home_score)return "";
+ return game.away_score>game.home_score?"away":"home";
+}
+function gameCenterScore(game,selected,separator){
+ if(!Number.isInteger(game.away_score)||!Number.isInteger(game.home_score))return esc(score(game));
+ const won=gameCenterWinner(game);
+ return ["away","home"].map(side=>'<span data-hzv-score-team="'+esc(game[side])+'" class="hzv-score-value '+
+  gameCenterTone(game[side],selected)+(won?(won===side?' is-winner':' is-loser'):'')+'">'+game[side+"_score"]+'</span>')
+  .join('<span class="hzv-score-separator">'+separator+'</span>');
+}
 function quarterGraph(quarters,away,home){
  if(!quarters.length)return '<p class="hzv-history-empty">Brak potwierdzonych wyników kwart do wykresu.</p>';
  let a=0,h=0;const av=[],hv=[];for(const q of quarters){a+=q.away;h+=q.home;av.push(a);hv.push(h)}
- const high=Math.max(...av,...hv,1),W=265,H=122,left=18,right=245,top=11,bottom=100;
+ const high=Math.max(20,Math.ceil(Math.max(...av,...hv,1)/20)*20),left=30,right=260,top=10,bottom=103;
  const x=i=>left+(right-left)*(i+1)/quarters.length,y=v=>bottom-(bottom-top)*v/high;
  const path=arr=>"M"+arr.map((v,i)=>x(i).toFixed(1)+","+y(v).toFixed(1)).join(" L");
- const grid=[0,.25,.5,.75,1].map(p=>'<line x1="18" x2="245" y1="'+y(high*p).toFixed(1)+'" y2="'+y(high*p).toFixed(1)+'" stroke="#285071" stroke-width=".7"/>').join("");
- return '<svg viewBox="0 0 265 122" role="img" aria-label="Zweryfikowany przebieg punktów na koniec każdej kwarty">'+grid+
- '<path d="'+path(av)+'" fill="none" stroke="#02e5ef" stroke-width="2.5"/>'+
- '<path d="'+path(hv)+'" fill="none" stroke="#cb57ef" stroke-width="2.5"/>'+
- quarters.map((q,i)=>'<text x="'+x(i)+'" y="115" fill="#84acc9" font-size="8" text-anchor="middle">'+esc(q.period)+'</text>').join("")+
- '</svg><small style="color:#9fc2d9;font-size:9px">Cyan: '+esc(away)+' · Fiolet: '+esc(home)+' · końce kwart</small>';
+ const grid=[0,.25,.5,.75,1].map(p=>'<line x1="30" x2="260" y1="'+y(high*p).toFixed(1)+'" y2="'+y(high*p).toFixed(1)+'" stroke="#345c7f" stroke-width=".8"/>'+
+  '<text x="23" y="'+(y(high*p)+3).toFixed(1)+'" fill="#afcbe3" font-size="9" text-anchor="end">'+(high*p)+'</text>').join("")+
+  quarters.map((q,i)=>'<line x1="'+x(i)+'" x2="'+x(i)+'" y1="10" y2="103" stroke="#294967" stroke-width=".6"/>').join("");
+ // Separate nearby endpoint labels without moving any measured graph point.
+ let ay=Math.max(top+10,Math.min(bottom-10,y(a))),hy=Math.max(top+10,Math.min(bottom-10,y(h)));
+ if(Math.abs(ay-hy)<26){
+  const mid=Math.max(top+23,Math.min(bottom-23,(ay+hy)/2));
+  if(a>h){ay=mid-13;hy=mid+13;}else{hy=mid-13;ay=mid+13;}
+ }
+ const endpoint=(code,value,labelY,color,side)=>
+  '<circle class="hzv-quarter-dot" cx="260" cy="'+y(value).toFixed(1)+'" r="3.7" fill="'+color+'"/>'+
+  '<path d="M264,'+y(value).toFixed(1)+' L275,'+labelY.toFixed(1)+'" fill="none" stroke="'+color+'" stroke-width="1"/>'+
+  '<g class="hzv-quarter-endpoint hzv-quarter-endpoint-'+side+'" data-hzv-team="'+esc(code)+'" data-hzv-points="'+value+'">'+
+  '<rect x="275" y="'+(labelY-10).toFixed(1)+'" width="78" height="20" rx="6" fill="#091b34" stroke="'+color+'"/>'+
+  '<text x="314" y="'+(labelY+3.5).toFixed(1)+'" fill="'+color+'" font-size="11" font-weight="bold" text-anchor="middle">'+esc(code)+' '+value+'</text></g>';
+ return '<svg viewBox="0 0 360 130" role="img" aria-label="Zweryfikowany przebieg punktów na koniec każdej kwarty">'+grid+
+ '<path class="hzv-quarter-line hzv-quarter-line-away" d="'+path(av)+'" fill="none" stroke="#02e5ef" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'+
+ '<path class="hzv-quarter-line hzv-quarter-line-home" d="'+path(hv)+'" fill="none" stroke="#cb57ef" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'+
+ quarters.map((q,i)=>'<text class="hzv-period-label" x="'+x(i)+'" y="121" fill="#c0d7ed" font-size="10" text-anchor="middle">'+esc(q.period)+'</text>').join("")+
+ endpoint(away,a,ay,"#20e9f4","away")+endpoint(home,h,hy,"#df83ff","home")+
+ '</svg><small class="hzv-quarter-legend">Cyan: '+esc(away)+' · Fiolet: '+esc(home)+' · końce kwart</small>';
 }
 function lastGamesForTeams(data,game){
  const known=allKnownGames(data),t=String(game.start||"");
@@ -282,16 +313,18 @@ function historyMarkup(data,game){
    &&lastDetails?.data?.away===game.away&&lastDetails?.data?.home===game.home;
  const history=active?lastDetails.data.history:null;
  const official=history&&Array.isArray(history.h2h)&&history.recent;
- const renderRows=games=>
-  '<div class="hzv-history-list">'+games.map(g=>
-   '<div class="hzv-history-row"><time class="hzv-history-date" datetime="'+esc(localDay(g.start))+'">'+
-    esc(fullHistoryDate(g.start))+'</time>'+
-   '<span class="hzv-history-matchup">'+
-    '<span class="hzv-history-participant">'+teamLogo(data,g.away,g,"away")+'<b>'+esc(g.away)+'</b></span>'+
-    '<span class="hzv-history-versus">–</span>'+
-    '<span class="hzv-history-participant">'+teamLogo(data,g.home,g,"home")+'<b>'+esc(g.home)+'</b></span>'+
-   '</span>'+
-   '<strong class="hzv-history-score">'+Number(g.away_score)+' : '+Number(g.home_score)+'</strong></div>').join("")+'</div>';
+ const renderRows=games=>'<div class="hzv-history-list">'+games.map(g=>{
+  const won=gameCenterWinner(g);
+  const participant=side=>'<span data-hzv-team="'+esc(g[side])+'" class="hzv-history-participant '+
+   gameCenterTone(g[side],game)+(won?(won===side?' is-winner':' is-loser'):'')+'"'+
+   (won===side?' aria-label="'+esc(g[side])+' — zwycięzca"':'')+'>'+teamLogo(data,g[side],g,side)+'<b>'+esc(g[side])+'</b></span>';
+  return '<div class="hzv-history-row" data-hzv-winner="'+esc(won?g[won]:"")+'">'+
+   '<time class="hzv-history-date" datetime="'+esc(localDay(g.start))+'">'+
+    '<svg class="hzv-calendar-icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="2"/><path d="M5 1v4m6-4v4M2 7h12M5 10h1m3 0h1m-5 2h1"/></svg>'+
+    '<span>'+esc(fullHistoryDate(g.start))+'</span></time>'+
+   '<span class="hzv-history-matchup">'+participant("away")+'<span class="hzv-history-versus">–</span>'+participant("home")+'</span>'+
+   '<strong class="hzv-history-score">'+gameCenterScore(g,game," : ")+'</strong></div>';
+ }).join("")+'</div>';
  if(official){
   const coverage=Array.isArray(history.coverage)?history.coverage:[];
   if(historyTab==="h2h"){
@@ -392,11 +425,18 @@ function detailsMarkup(data,game,packet){
  const packetForGame=packet?.id===String(game.id)&&packet?.day===selectedDay?packet:null;
  const details=packetForGame?.data?.away===away&&packetForGame?.data?.home===home?packetForGame.data:null;
  const loading=game.state!=="scheduled"&&!details&&!packetForGame?.error;
- const quarters=Array.isArray(details?.quarters)?details.quarters.filter(q=>Number.isInteger(q.away)&&Number.isInteger(q.home)):[];
+ const reportedQuarters=Array.isArray(details?.quarters)?details.quarters.filter(q=>Number.isInteger(q.away)&&q.away>=0&&Number.isInteger(q.home)&&q.home>=0):[];
+ // Never label a partial/corrected final-game series as its official total.
+ // The established final-score fallback remains available without inventing Q3/Q4.
+ const quarters=isFinal(game)&&(reportedQuarters.length<4||["away","home"].some(side=>
+  reportedQuarters.reduce((sum,q)=>sum+q[side],0)!==game[side+"_score"]))?[]:reportedQuarters;
  const metrics=Array.isArray(details?.team_stats)?details.team_stats:[];
  const leaderRows=[...(details?.leaders?.away||[]).map(p=>({...p,team:away})),...(details?.leaders?.home||[]).map(p=>({...p,team:home}))];
  leaderRows.sort((a,b)=>b.pts-a.pts||b.reb-a.reb);
  const leader=leaderRows[0]||null;
+ const won=gameCenterWinner(game);
+ const teamClass=side=>"hzv-gc-team "+gameCenterTone(game[side],game)+(won?(won===side?" is-winner":" is-loser"):"");
+ const winnerBadge=side=>won===side?'<span class="hzv-winner-badge"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3h8v5a4 4 0 0 1-8 0V3Zm0 1H3v2a4 4 0 0 0 4 4m7-6h3v2a4 4 0 0 1-4 4M10 12v4m-4 1h8"/></svg>ZWYCIĘZCA</span>':"";
  let periodChange="Kluczowe momenty wymagają potwierdzonych danych play-by-play.";
  if(quarters.length>=2){
   let prevDiff=0,maxChange=0,changedPeriod="";
@@ -406,17 +446,17 @@ function detailsMarkup(data,game,packet){
  }
  const first='<section class="hzv-game-card hzv-game-summary">'+
  '<div class="hzv-game-ribbon">✦ MECZ NBA ✦</div>'+
- '<div class="hzv-game-scoreboard"><div class="hzv-gc-team">'+teamLogo(data,away,game,"away")+
+ '<div class="hzv-game-scoreboard"><div data-hzv-team="'+esc(away)+'" class="'+teamClass("away")+'">'+winnerBadge("away")+teamLogo(data,away,game,"away")+
  '<strong>'+esc(away)+'</strong><small>'+esc(codeLabel(data,away))+'</small><span>'+esc(statsAway?statsAway.wins+"–"+statsAway.losses:"—")+' W–L</span></div>'+
- '<div class="hzv-gc-score"><strong>'+esc(score(game))+'</strong><em>'+esc(badge(game))+'</em></div>'+
- '<div class="hzv-gc-team">'+teamLogo(data,home,game,"home")+
+ '<div class="hzv-gc-score"><strong>'+gameCenterScore(game,game," – ")+'</strong><em>'+esc(badge(game))+'</em></div>'+
+ '<div data-hzv-team="'+esc(home)+'" class="'+teamClass("home")+'">'+winnerBadge("home")+teamLogo(data,home,game,"home")+
  '<strong>'+esc(home)+'</strong><small>'+esc(codeLabel(data,home))+'</small><span>'+esc(statsHome?statsHome.wins+"–"+statsHome.losses:"—")+' W–L</span></div></div>'+
  '<div class="hzv-game-meta"><span>◷ '+esc(game.state==="scheduled"?"Rozpoczęcie "+localTime(game.start):"Czas "+localTime(game.start))+'</span>'+
  '<span>▦ '+esc(shortDate(game.day||selectedDay))+'</span>'+
  (details?.arena?'<span>⌖ '+esc(details.arena)+'</span>':'')+'</div>'+
  (quarters.length?'<div class="hzv-quarter-table"><h3>Przebieg meczu · kwarty</h3><div style="--quarter-count:'+Math.min(quarters.length+1,9)+'" class="hzv-quarter-row hzv-quarter-head"><span>Drużyna</span>'+quarters.map(q=>'<span>'+esc(q.period)+'</span>').join("")+'<span>SUMA</span></div>'+
  ['away','home'].map(side=>'<div style="--quarter-count:'+Math.min(quarters.length+1,9)+'" class="hzv-quarter-row"><strong>'+esc(game[side])+'</strong>'+quarters.map(q=>'<span>'+esc(q[side])+'</span>').join("")+
- '<span>'+quarters.reduce((sum,q)=>sum+q[side],0)+'</span></div>').join("")+'</div>':'')+
+ '<span class="hzv-quarter-total '+gameCenterTone(game[side],game)+(won?(won===side?' is-winner':' is-loser'):'')+'">'+quarters.reduce((sum,q)=>sum+q[side],0)+'</span></div>').join("")+'</div>':'')+
  (metrics.length?teamComparisonMarkup(metrics,data,away,home,game):'<div class="hzv-history-empty">'+(game.state==="scheduled"?"Spotkanie jeszcze się nie rozpoczęło — statystyki będą dostępne po ich publikacji przez ESPN.":packetForGame?.error?esc(packetForGame.error):loading?"Pobieranie zweryfikowanego box score ESPN…":"Brak potwierdzonych statystyk drużyn.")+
  (packetForGame?.error?'<div><button type="button" class="hzv-retry-button" data-hzv-retry-game="'+esc(game.id)+'">Ponów pobieranie statystyk</button></div>':"")+'</div>')+
  '<p class="hzv-game-source">Źródło: ESPN · statystyki historyczne, bez symulacji i prognoz'+(details?.stale?' · dane opóźnione':'')+'</p>'+
@@ -424,13 +464,13 @@ function detailsMarkup(data,game,packet){
  const right='<div class="hzv-gc-right"><section class="hzv-game-card hzv-gc-xfactor">'+
  '<h2 class="hzv-xfactor-title"><span>ϟ</span> X-FACTOR MECZU</h2>'+
  '<div class="hzv-xfactor-body"><div class="hzv-xfactor-player">'+
- (leader?'<span class="hzv-xfactor-avatar" aria-hidden="true">'+esc(initials(leader.name))+'</span>'+
+ (leader?'<span class="hzv-xfactor-avatar '+gameCenterTone(leader.team,game)+'" aria-hidden="true">'+esc(initials(leader.name))+'</span>'+
   '<strong>'+esc(leader.name)+'</strong><small>'+esc(leader.team)+' · lider punktowy</small>'+
   '<small>'+leader.pts+' PTS · '+leader.reb+' REB · '+leader.ast+' AST</small>':
   '<p class="hzv-history-empty">Brak potwierdzonego lidera punktowego.</p>')+
  '</div><div class="hzv-xfactor-chart"><h3>'+(quarters.length?"Przebieg punktacji":"Porównanie punktów")+'</h3>'+
  (quarters.length?quarterGraph(quarters,away,home):scoreFallbackGraph(game))+'</div></div>'+
- '<div class="hzv-gc-callout"><b>✦ KLUCZOWY MOMENT</b><span>'+esc(periodChange)+'</span></div>'+
+ '<div class="hzv-gc-callout"><b><span aria-hidden="true">★</span> KLUCZOWY MOMENT</b><span>'+esc(periodChange)+'</span></div>'+
  '</section><section class="hzv-game-card hzv-gc-history">'+
  '<div class="hzv-history-tabs" role="group" aria-label="Porównanie historyczne">'+
  '<button type="button" data-hzv-history="h2h" class="'+(historyTab==="h2h"?"selected":"")+'">Head to Head</button>'+

@@ -5,13 +5,14 @@ const vm=require("node:vm");
 const path=require("node:path");
 
 const elements={};
-for(const id of ["hzs-board","hzs-date-strip","hzs-source-note"]){
+for(const id of ["hzs-board","hzs-date-strip","hzs-source-note","hzv-hero","hzs-match-count","hzv-east","hzv-west"]){
   elements[id]={innerHTML:"",textContent:"",addEventListener(){}};
 }
 const arrows=[-1,1].map(direction=>({dataset:{hzsDirection:String(direction)},disabled:false,addEventListener(){}}));
 const context={window:{},document:{
   getElementById(id){return elements[id]||null},
-  querySelectorAll(selector){return selector==="[data-hzs-direction]"?arrows:[]}
+  querySelector(){return null},
+  querySelectorAll(selector){return selector==="#schedule-pane [data-hzs-direction]"?arrows:[]}
 },Date,Intl,Number,String,Array,Map,Math};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,"bestbets_reference_frontend/schedule.js"),"utf8"),context);
 const schedule=context.window.HoopzaroSchedule;
@@ -30,20 +31,23 @@ const data={calendar_today:day,calendar_loaded_days:[day],calendar_games:games,
   ]};
 schedule.render(data);
 let html=elements["hzs-board"].innerHTML;
-assert.equal((html.match(/<article class="hzs-game /g)||[]).length,17,"All 17 games must render");
-assert.match(html,/116,8 PPG/);
-assert.match(html,/9–3/);
-assert.match(html,/112,3 PPG/);
-assert.match(html,/6–7/);
+assert.equal((html.match(/class="hzs-game hzs-/g)||[]).length,17,"All 17 games must render");
+// V4 keeps season records in its standings and uses buttons for Game Center.
+assert.match(elements["hzv-east"].innerHTML,/>NYK</);
+assert.match(elements["hzv-east"].innerHTML,/<span>9<\/span><span>3<\/span>/);
+assert.match(elements["hzv-east"].innerHTML,/>IND</);
+assert.match(elements["hzv-east"].innerHTML,/<span>6<\/span><span>7<\/span>/);
+assert.equal(elements["hzs-match-count"].textContent,"17 meczów");
+assert.match(elements["hzv-hero"].innerHTML,/MECZ DNIA/);
 assert.match(html,/MECZE · 17/);
-assert.match(html,/NA ŻYWO · 4\. KWARTA/);
+assert.match(html,/NA ŻYWO/);
 assert.match(html,/KONIEC/);
-assert.match(html,/NADCHODZĄCE/);
+assert.match(html,/WKRÓTCE/);
 assert.equal((html.match(/class="hzs-rows"/g)||[]).length,1,"One full-width list for every status");
 assert.doesNotMatch(html,/hzs-columns/,"No blank second column");
 assert.equal((html.match(/hzs-live"/g)||[]).length,6);
 assert.equal((html.match(/hzs-final"/g)||[]).length,6);
-assert.equal((html.match(/hzs-upcoming"/g)||[]).length,5);
+assert.equal((html.match(/hzs-scheduled"/g)||[]).length,5);
 assert.doesNotMatch(html,/typ dnia|kurs|projekcja/i);
 assert.match(elements["hzs-date-strip"].innerHTML,/aria-pressed="true"/);
 
@@ -51,16 +55,16 @@ const unavailable={...data,form_options:[{team:"NYK",wins:2,losses:2,ppg:null,re
 schedule.render(unavailable);
 html=elements["hzs-board"].innerHTML;
 assert.doesNotMatch(html,/116,8 PPG/);
-assert.match(html,/— PPG/);
+assert.match(elements["hzv-east"].innerHTML,/Brak potwierdzonej tabeli/);
 
 schedule.render({...data,calendar_games:games.filter(game=>game.state==="scheduled")});
 html=elements["hzs-board"].innerHTML;
-assert.equal((html.match(/<article class="hzs-game/g)||[]).length,5);
+assert.equal((html.match(/class="hzs-game hzs-/g)||[]).length,5);
 assert.equal((html.match(/class="hzs-rows"/g)||[]).length,1);
 assert.doesNotMatch(html,/hzs-columns|hzs-live|hzs-final/);
 
 const offDay={calendar_today:day,calendar_loaded_days:[day],calendar_games:[],form_options:[]};
 schedule.render(offDay);
-assert.match(elements["hzs-board"].innerHTML,/Brak potwierdzonych meczów/);
+assert.match(elements["hzs-board"].innerHTML,/Brak potwierdzonych spotkań NBA/);
 
 console.log("HOOPZARO schedule UI checks passed");
