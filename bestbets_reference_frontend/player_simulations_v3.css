@@ -276,3 +276,47 @@
   max-height:none!important;z-index:auto!important;overflow:hidden!important;
   transform:none!important
 }
+
+/* V3 reference uses visual pixels, while #stage is a 1231×691 canvas that
+   scales up (e.g. 1.358× at 1672×941). These base-unit sizes yield reference
+   card widths of ~278px / ~390px after the application's own stage scale. */
+#stage.bb-home-active #hzv3 aside.hzv3-inspector::before,
+#stage.bb-home-active #hzv3 aside.hzv3-inspector::after{content:none!important;display:none!important}
+@media(min-width:768px){
+ #hzv3{overflow:visible}
+ #hzv3 .hzv3-titlebar,#hzv3 .hzv3-description,#hzv3 .hzv3-toolbar,
+ #hzv3 .hzv3-grid{min-width:0}
+ #hzv3 .hzv3-grid{
+   grid-template-columns:205px 287px minmax(0,1fr)!important;
+   grid-template-rows:303px 96px!important;
+   gap:9px!important
+ }
+ #hzv3 .hzv3-analytics{
+   grid-template-columns:minmax(0,2.9fr) minmax(112px,1fr)!important;
+   grid-template-rows:151px 143px!important;
+   gap:9px!important
+ }
+ #hzv3 .hzv3-roster-card{align-self:start;height:287px}
+ #hzv3 .hzv3-roster-head{grid-template-columns:minmax(0,1fr) repeat(4,34px)!important}
+ #hzv3 .hzv3-player{grid-template-columns:29px minmax(0,1fr) repeat(4,34px)!important;
+   height:42px;padding:3px}
+ #hzv3 .hzv3-face{width:25px;height:31px}
+ #hzv3 .hzv3-athlete-top{grid-template-columns:85px minmax(0,1fr);min-height:100px}
+ #hzv3 .hzv3-athlete-photo{height:100px}
+ #hzv3 .hzv3-athlete-name{font-size:19px}
+ #hzv3 .hzv3-metric{min-height:48px}
+ #hzv3 .hzv3-metric strong{font-size:16px}
+ #hzv3 .hzv3-status{min-height:30px}
+ #hzv3 .hzv3-history-actions button{min-height:34px}
+ #hzv3 .hzv3-fact{min-height:16px}
+ #hzv3 .hzv3-titlebar{min-height:25px}
+ #hzv3 .hzv3-title h2{font-size:19px}
+ #hzv3 .hzv3-markets,#hzv3 .hzv3-model-selector{height:28px}
+ #hzv3 .hzv3-markets button{width:48px}
+ #hzv3 .hzv3-model-selector{width:130px}
+ #hzv3 .hzv3-toolbar{height:30px;margin-bottom:8px}
+ #hzv3 .hzv3-teams{height:28px}
+ #hzv3 .hzv3-teams button{height:22px}
+ #hzv3 .hzv3-search{height:29px;max-width:290px}
+ #hzv3 .hzv3-description{margin:4px 1px 8px}
+}
