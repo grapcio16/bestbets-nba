@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",expanded:false,requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",expanded:false,requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -64,6 +64,31 @@ function chooseModel(model){
   if(!MODEL_CHOICES.some(item=>item.id===model)||model===state.model)return;
   state.model=model;state.gamePending="";state.playersPending="";
   render(state.lastHome,state.lastPremium);
+}
+function toggleMatchPicker(open){
+ const list=$("hzm-match-list"),trigger=$("hzm-match-picker");
+ if(!list||!trigger)return;
+ const visible=typeof open==="boolean"?open:list.hidden;
+ list.hidden=!visible;
+ trigger.setAttribute("aria-expanded",String(visible));
+}
+function chooseView(view){
+ if(!["results","players"].includes(view)||view===state.view)return;
+ state.view=view;
+ state.expanded=view==="players";
+ render(state.lastHome,state.lastPremium);
+}
+function syncLabView(){
+ const pane=$("simulations-pane");
+ if(pane)pane.dataset.hzmView=state.view;
+ const nav=$("hzm-lab-nav");
+ if(nav)nav.querySelectorAll("[data-hzm-view]").forEach(tab=>{
+   const active=tab.dataset.hzmView===state.view;
+   tab.classList.toggle("selected",active);
+   tab.setAttribute("aria-selected",String(active));
+   tab.tabIndex=active?0:-1;
+ });
+ $("hzm-lab-main")?.setAttribute("aria-labelledby","hzm-lab-tab-"+state.view);
 }
 function fixtures(home){
   const extra=home?.calendar_extras?.[state.day];
@@ -157,6 +182,8 @@ function showChart(sim,game,premium){
   const code=state.chart==="match"?"MECZ":state.chart==="away"?game?.away:game?.home;
   $("hzm-chart-context").textContent=(code||"NBA")+" · 5 000 symulacji · "+modelLabel();
   $("hzm-chart-source").textContent="Średnie wyłącznie z 5 000 symulacji; model eksperymentalny.";
+  const range=$("hzm-lab-range");
+  if(range)range.textContent="Przedział 80%: —";
   const plot=$("hzm-plot");
   if(!premium?.entitled){plot.innerHTML='<div class="hzm-no-chart"><strong>Rozkład punktów w Premium</strong><span>Wykres meczu i każdej drużyny zostanie odblokowany po aktywacji.</span></div>';return}
   if(!game){plot.innerHTML='<div class="hzm-no-chart">Wybierz spotkanie NBA.</div>';return}
@@ -164,6 +191,10 @@ function showChart(sim,game,premium){
   if(sim.error){plot.innerHTML='<div class="hzm-no-chart">'+esc(sim.error)+'</div>';return}
   const dist=sim.distributions?.[state.chart];
   plot.innerHTML=chartSvg(dist,code);
+  if(range&&dist&&Number.isFinite(Number(dist.p10))&&Number.isFinite(Number(dist.p90))&&
+     dist.p10!==null&&dist.p90!==null){
+   range.textContent="Przedział 80%: "+fmt(dist.p10)+" – "+fmt(dist.p90)+" pkt";
+  }
   if(Number.isFinite(Number(dist?.threshold))&&Number.isFinite(Number(dist?.over_pct))){
     $("hzm-chart-source").textContent='P('+code+' ≥ '+dist.threshold+' pkt): '+fmt(dist.over_pct)+'% · przedział 80%: '+dist.p10+'–'+dist.p90+' pkt';
   }
@@ -211,13 +242,14 @@ function maybeLoadPaid(game,premium,sim,players){
 function render(home,premium){
   state.lastHome=home;state.lastPremium=premium;
   syncModelDropdown();
+  syncLabView();
   if(!state.day)state.day=safeDate(home?.calendar_today)?home.calendar_today:localDay(new Date().toISOString());
   const data=gamesForDay(home);
   if(!data.known&&home&&state.requestedDay!==state.day){state.requestedDay=state.day;callbacks?.selectDay?.(state.day)}
   if(data.known&&state.requestedDay===state.day)state.requestedDay="";
   if(!data.games.some(game=>game.id===state.gameId)){
     const next=data.games.find(game=>game.state==="scheduled")||data.games[0];
-    state.gameId=next?.id||"";state.expanded=false;
+    state.gameId=next?.id||"";state.expanded=state.view==="players";
   }
   $("hzm-day-title").textContent=labelDay(state.day);
   $("hzm-day-input").value=state.day;
@@ -245,7 +277,11 @@ function render(home,premium){
       injuryLine
     :"Raport ESPN nie jest oficjalnym potwierdzeniem składu";
   const away=game?.away||"NBA",homeCode=game?.home||"NBA";
-  $("hzm-match-label").innerHTML=esc(away)+' <span>VS</span> <span class="hzm-home-code">'+esc(homeCode)+'</span>';
+  const pickerLabel=$("hzm-match-picker-label");
+  if(pickerLabel)pickerLabel.textContent=game?away+" – "+homeCode:"Wybierz mecz";
+  $("hzm-match-label").innerHTML='<span class="hzm-hero-team away">'+teamLogo(away,game?.away_logo)+'<strong>'+esc(away)+'</strong></span>'+
+    '<span class="hzm-versus-divider">VS</span>'+
+    '<span class="hzm-hero-team home">'+teamLogo(homeCode,game?.home_logo)+'<strong>'+esc(homeCode)+'</strong></span>';
   $("hzm-away-code").textContent=away;$("hzm-home-code").textContent=homeCode;
   const isValid=sim&&!sim.error;
   $("hzm-score").textContent=isValid?Math.round(sim.away_points)+' : '+Math.round(sim.home_points):"— : —";
@@ -263,13 +299,48 @@ function render(home,premium){
 }
 function navigate(day){
   if(!safeDate(day)||!withinRange(day)||state.day===day)return;
-  state.day=day;state.gameId="";state.chart="match";state.expanded=false;state.gamePending="";state.playersPending="";
+  state.day=day;state.gameId="";state.chart="match";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";
   render(state.lastHome,state.lastPremium);
 }
 function init(api){
   callbacks=api;
   $("hzm-model-select").addEventListener("change",event=>chooseModel(event.target.value));
+  // Give the model dropdown its own control listeners. The new Simulation Lab
+  // has a scrollable canvas and overlay fixture picker: model controls must
+  // not depend on event delegation through the entire pane.
+  $("hzm-model-trigger").addEventListener("click",event=>{
+    event.stopPropagation();
+    toggleModelDropdown($("hzm-model-options").hidden);
+  });
+  MODEL_CHOICES.forEach(choice=>{
+    $("hzm-model-option-"+choice.id)?.addEventListener("click",event=>{
+      event.stopPropagation();
+      toggleModelDropdown(false,true);
+      chooseModel(choice.id);
+    });
+  });
+  // Popup buttons are rerendered in place, but the list container stays
+  // mounted. Handle its clicks directly so selecting a game always closes it.
+  $("hzm-matches").addEventListener("click",event=>{
+    const selected=event.target.closest("[data-hzm-game]");
+    if(!selected)return;
+    event.stopPropagation();
+    state.gameId=selected.dataset.hzmGame;state.chart="match";
+    state.expanded=state.view==="players";
+    toggleMatchPicker(false);
+    render(state.lastHome,state.lastPremium);
+  });
+  // The expand button stays in the DOM while switching lab modules. Handling
+  // it directly avoids a missed delegated click after a panel reflow.
+  $("hzm-expand-players").addEventListener("click",event=>{
+    event.stopPropagation();
+    state.expanded=!state.expanded;
+    render(state.lastHome,state.lastPremium);
+  });
   $("simulations-pane").addEventListener("click",event=>{
+    if(event.target.closest("#hzm-match-picker")){toggleMatchPicker();return}
+    const viewButton=event.target.closest("[data-hzm-view]");
+    if(viewButton){chooseView(viewButton.dataset.hzmView);return}
     if(event.target.closest("#hzm-model-trigger")){
       toggleModelDropdown($("hzm-model-options").hidden);return;
     }
@@ -278,13 +349,21 @@ function init(api){
     const arrow=event.target.closest("[data-hzm-shift]");
     if(arrow){navigate(dayShift(state.day,Number(arrow.dataset.hzmShift)));return}
     const gameButton=event.target.closest("[data-hzm-game]");
-    if(gameButton){state.gameId=gameButton.dataset.hzmGame;state.chart="match";state.expanded=false;render(state.lastHome,state.lastPremium);return}
+    if(gameButton){
+      state.gameId=gameButton.dataset.hzmGame;state.chart="match";
+      state.expanded=state.view==="players";toggleMatchPicker(false);
+      render(state.lastHome,state.lastPremium);return;
+    }
     const metric=event.target.closest("[data-hzm-chart]");
     if(metric){state.chart=metric.dataset.hzmChart;render(state.lastHome,state.lastPremium);return}
     if(event.target.closest("#hzm-expand-players")){state.expanded=!state.expanded;render(state.lastHome,state.lastPremium);return}
     if(event.target.closest("#hzm-premium-link")){callbacks?.premium?.()}
   });
   $("simulations-pane").addEventListener("keydown",event=>{
+    if(event.key==="Escape" &&
+       (event.target.closest("#hzm-match-picker")||event.target.closest("#hzm-match-list"))){
+      toggleMatchPicker(false);$("hzm-match-picker")?.focus();return;
+    }
     const trigger=event.target.closest("#hzm-model-trigger");
     const option=event.target.closest("[data-hzm-model]");
     if(!trigger&&!option)return;
@@ -303,6 +382,8 @@ function init(api){
   });
   document.addEventListener?.("pointerdown",event=>{
     if(!event.target.closest(".hzm-model-choice"))toggleModelDropdown(false);
+    if(!event.target.closest("#hzm-match-picker")&&!event.target.closest("#hzm-match-list"))
+      toggleMatchPicker(false);
   });
   $("hzm-day-input").addEventListener("change",event=>navigate(event.target.value));
 }
