@@ -617,6 +617,32 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <p id="hzm-scenario-status">Wybierz tempo i uruchom symulację.</p>
             <small id="hzm-scenario-context">Wyniki hipotetyczne · 5 000 niezależnych symulacji na wariant · nie są kursem bukmachera.</small>
           </div>
+          <section id="hzm-minute-panel" class="hzm-minute-panel" aria-label="Player Minutes What-if — wariant zawodnika">
+            <div class="hzm-minute-head"><strong>◷ Player Minutes · What-if</strong><span>V7.5 · HISTORYCZNE MINUTY ESPN</span></div>
+            <p class="hzm-minute-note">Oddzielny test wrażliwości PTS / REB / AST / PRA. Stała produkcja na minutę; <strong>nie zmienia wyniku meczu</strong> ani nie potwierdza dostępności zawodnika.</p>
+            <div class="hzm-minute-controls">
+              <label class="hzm-minute-picker">Zawodnik
+                <select id="hzm-minute-player" aria-label="Wybierz zawodnika ze zweryfikowanymi historycznymi minutami" disabled>
+                  <option value="">Brak dostępnej próbki V7.5</option>
+                </select>
+              </label>
+              <label class="hzm-minute-adjust">Korekta minut
+                <span class="hzm-minute-slider-line">
+                  <input id="hzm-minute-delta" type="range" min="-5" max="5" step="1" value="0" disabled aria-label="Hipotetyczna zmiana minut zawodnika">
+                  <output id="hzm-minute-delta-output" for="hzm-minute-delta">0 min</output>
+                </span>
+              </label>
+              <button id="hzm-minute-run" type="button" disabled>Oblicz projekcję</button>
+            </div>
+            <div id="hzm-minute-result" class="hzm-minute-result" aria-live="polite">
+              <span id="hzm-minute-minutes">Minuty: —</span>
+              <span id="hzm-minute-pts">PTS: —</span>
+              <span id="hzm-minute-reb">REB: —</span>
+              <span id="hzm-minute-ast">AST: —</span>
+              <span id="hzm-minute-pra">PRA: —</span>
+            </div>
+            <p id="hzm-minute-status" class="hzm-minute-status" role="status">Wybierz model V7.5 i zweryfikowanego zawodnika.</p>
+          </section>
         </section>
       </div>
     </div>
