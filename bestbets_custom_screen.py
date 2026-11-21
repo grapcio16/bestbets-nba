@@ -21,7 +21,8 @@ from teams import TEAM_FULL
 from bestbets_free_analyses import SCHEMA, photo_policy, select_leader
 from bestbets_simulations_canvas import (premium_entitled, simulation_for_entitled_user,
                                          scenario_for_entitled_user,
-                                         player_minutes_scenario_for_entitled_user)
+                                         player_minutes_scenario_for_entitled_user,
+                                         backtest_for_entitled_user)
 from access_control import (auth_configured, auth_context, current_principal,
                             current_role, login_provider)
 from checkout_links import validated_checkout_url, is_test_checkout_url
@@ -428,6 +429,7 @@ def main() -> None:
         st.session_state.pop("bb10_premium_players", None)
         st.session_state.pop("bb10_premium_scenario", None)
         st.session_state.pop("bb10_premium_minute_scenario", None)
+        st.session_state.pop("bb10_premium_backtest", None)
         st.session_state.pop("bb10_premium_player_averages", None)
         st.session_state.pop("bb10_premium_team_analytics", None)
         st.session_state.pop("bb10_team_analytics_attempt_at", None)
@@ -487,6 +489,7 @@ def main() -> None:
             "players": st.session_state.get("bb10_premium_players") if has_premium else None,
             "scenario": st.session_state.get("bb10_premium_scenario") if has_premium else None,
             "minute_scenario": st.session_state.get("bb10_premium_minute_scenario") if has_premium else None,
+            "backtest": st.session_state.get("bb10_premium_backtest") if has_premium else None,
         },
     }
     event = COMPONENT(payload=payload, default=None, key="bb10_reference_canvas")
@@ -646,6 +649,14 @@ def main() -> None:
         teams = dict(current.get("teams") or {})
         teams[team_code] = {**existing, **(rating or {}), "rating_attempted": True}
         st.session_state["bb10_premium_team_analytics"] = {**current, "teams": teams}
+        st.rerun()
+        return
+    if event.get("type") == "premium_sim_backtest":
+        # Triggered only by a paid user's click. The season, window, models
+        # and source history are chosen by the server, never by event payload.
+        if not premium_entitled():
+            return
+        st.session_state["bb10_premium_backtest"] = backtest_for_entitled_user()
         st.rerun()
         return
     if event.get("type") == "premium_sim_player_minutes":
