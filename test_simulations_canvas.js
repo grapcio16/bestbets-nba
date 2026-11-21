@@ -132,6 +132,11 @@ assert.equal(elements["hzm-model-options"].hidden,false,
 elements["hzm-model-option-legacy_v72"].on_click({stopPropagation(){}});
 assert.equal(elements["hzm-model-options"].hidden,true);
 assert.equal(elements["hzm-model-select"].value,"legacy_v72");
+// The research-form fixture is authorized only for research_form_v74.
+// Restore that model before checking its 14-player list; showing it under
+// V7.2 would be a serious Premium projection data-integrity regression.
+elements["hzm-model-option-research_form_v74"].on_click({stopPropagation(){}});
+assert.equal(elements["hzm-model-select"].value,"research_form_v74");
 
 // Simulation Lab 2.0: working tabs and match selector, not empty UI controls.
 app.render(home,{entitled:true,game:fakeGame,players:fakePlayers});
