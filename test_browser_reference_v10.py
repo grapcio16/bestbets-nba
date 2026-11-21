@@ -133,6 +133,22 @@ def main():
         assert page.locator("#hzs-board .hzs-game").first.evaluate("e=>e.tagName") == "BUTTON"
         assert "MECZ DNIA" in page.locator("#hzv-hero").inner_text()
         assert page.locator("#hzs-match-count").inner_text() == "3 mecze"
+        # Compact Terminarz: controls precede a shorter hero, with cards
+        # visible immediately on the initial desktop screen.
+        controls_box = page.locator(".hzv-controls").bounding_box()
+        hero_box = page.locator("#hzv-hero").bounding_box()
+        board_box = page.locator("#hzs-board").bounding_box()
+        first_game_box = page.locator("#hzs-board .hzs-game").first.bounding_box()
+        pane_box = page.locator("#schedule-pane").bounding_box()
+        assert controls_box and hero_box and board_box and first_game_box and pane_box
+        assert controls_box["y"] < hero_box["y"] < board_box["y"], (
+            controls_box, hero_box, board_box)
+        assert 100 <= hero_box["height"] <= 125, hero_box
+        assert first_game_box["y"] + first_game_box["height"] < pane_box["y"] + pane_box["height"] - 15, (
+            first_game_box, pane_box)
+        assert page.locator("#hzv-day-title").count() == 0
+        assert page.locator("#hzv-search").is_visible()
+        assert page.locator("#hzs-today").is_visible()
         assert len(page.locator("#hzs-board .hzs-rows").first.evaluate(
             "e => getComputedStyle(e).gridTemplateColumns.split(' ').filter(Boolean)")) == 3
         assert page.locator("#hzv-east .hzv-stand-row").count() == 3
