@@ -18,6 +18,7 @@ const ids=[
   "hzm-plot","hzm-players-panel","hzm-player-headings","hzm-expand-players","hzm-player-rows",
   "hzm-evidence-form","hzm-evidence-pace","hzm-evidence-rest",
   "hzm-match-list","hzm-match-picker","hzm-match-picker-label","hzm-lab-main","hzm-lab-range",
+  "hzm-player-tools","hzm-player-search","hzm-player-count","hzm-player-team-away","hzm-player-team-home","hzm-player-inspector",
 ];
 for(const id of ids){
   elements[id]={innerHTML:"",textContent:"",value:"",style:{},dataset:{},attributes:{},
@@ -33,6 +34,11 @@ elements["hzm-chart-tabs"]={querySelectorAll(){return tabs}};
 const labTabs=["results","players"].map(view=>({dataset:{hzmView:view},attributes:{},
   classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v}}));
 elements["hzm-lab-nav"]={querySelectorAll(){return labTabs}};
+const playerTeamButtons=["all","away","home"].map(team=>({
+  dataset:{hzmPlayerTeam:team},attributes:{},classList:{toggle(){}},
+  setAttribute(k,v){this.attributes[k]=v}
+}));
+elements["hzm-player-tools"].querySelectorAll=()=>playerTeamButtons;
 const context={window:{},document:{getElementById(id){return elements[id]||null}},Date,Intl,Number,Math,Map,String,Array};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,"bestbets_reference_frontend/simulations.js"),"utf8"),context);
 const app=context.window.HoopzaroSimulations;
@@ -75,6 +81,29 @@ assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row
   "Expanded panel contains all 14 verified test players");
 assert.equal(requests,0,"Matching cached data does not trigger a network request");
 
+// Phase 2: player detail derives from the currently entitled model only.
+elements["simulations-pane"].on_click({target:{closest(selector){
+  return selector==="[data-hzm-view]"?{dataset:{hzmView:"players"}}:null;
+}}});
+assert.match(elements["hzm-player-inspector"].innerHTML,/Test Athlete 1/);
+assert.match(elements["hzm-player-inspector"].innerHTML,/39,2/,
+  "PTS + REB + AST derives mean PRA without claiming an independent distribution");
+assert.match(elements["hzm-player-inspector"].innerHTML,/Minuty: brak zweryfikowanego szacunku/);
+elements["hzm-player-tools"].on_click({target:{closest(selector){
+  return selector==="[data-hzm-player-team]"?{dataset:{hzmPlayerTeam:"home"}}:null;
+}}});
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,7);
+elements["hzm-player-search"].on_input({target:{value:"Test Athlete 14"}});
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,1);
+assert.match(elements["hzm-player-inspector"].innerHTML,/Test Athlete 14/);
+assert.match(elements["hzm-player-inspector"].innerHTML,/26,2/);
+elements["hzm-player-search"].on_input({target:{value:""}});
+elements["hzm-player-tools"].on_click({target:{closest(selector){
+  return selector==="[data-hzm-player-team]"?{dataset:{hzmPlayerTeam:"all"}}:null;
+}}});
+elements["simulations-pane"].on_click({target:{closest(selector){
+  return selector==="[data-hzm-view]"?{dataset:{hzmView:"results"}}:null;
+}}});
 // A model switch must neither reuse stale V7.4 results nor leak cached athletes.
 elements["hzm-model-select"].on_change({target:{value:"legacy_v72"}});
 assert.equal(elements["hzm-score"].textContent,"— : —");
@@ -108,10 +137,24 @@ assert.match(elements["hzm-player-headings"].innerHTML,/MIN/);
 assert.match(elements["hzm-player-rows"].innerHTML,/OUT \(ESPN\)/);
 assert.match(elements["hzm-player-rows"].innerHTML,/31,5/);
 assert.match(elements["hzm-player-rows"].innerHTML,/Questionable/);
+elements["simulations-pane"].on_click({target:{closest(selector){
+  return selector==="[data-hzm-view]"?{dataset:{hzmView:"players"}}:null;
+}}});
+assert.match(elements["hzm-player-inspector"].innerHTML,/Sample Star/);
+assert.match(elements["hzm-player-inspector"].innerHTML,/ESPN: Out/);
+assert.match(elements["hzm-player-inspector"].innerHTML,/0,0 min/);
+assert.match(elements["hzm-player-inspector"].innerHTML,/OUT — model nie wyświetla/);
+assert.doesNotMatch(elements["hzm-player-inspector"].innerHTML,/>0,0<\/strong>/,
+  "No fake zero-point production for OUT player");
+elements["simulations-pane"].on_click({target:{closest(selector){
+  return selector==="[data-hzm-view]"?{dataset:{hzmView:"results"}}:null;
+}}});
 
 app.render(home,{entitled:false,game:fakeGame,players:fakePlayers});
 assert.equal(elements["hzm-score"].textContent,"— : —","Premium expiry instantly hides figures");
 assert.doesNotMatch(elements["hzm-player-rows"].innerHTML,/Test Athlete/);
+assert.doesNotMatch(elements["hzm-player-inspector"].innerHTML,/Sample Star|Test Athlete/,
+  "Player inspector must clear immediately when Premium expires");
 // The custom Premium dropdown must preserve the existing model-selection flow.
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="#hzm-model-trigger"?{}:null;

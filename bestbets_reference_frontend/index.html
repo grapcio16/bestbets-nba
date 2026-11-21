@@ -571,8 +571,20 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
           </section>
           <section id="hzm-players-panel" class="hzm-players-panel" aria-label="Player Simulations — projekcje modelu">
             <header><h2>Player Simulations</h2><div id="hzm-player-headings" class="hzm-player-headings"><span>PTS</span><span>REB</span><span>AST</span></div></header>
-            <p class="hzm-player-focused-note">Prognozy PTS, REB i AST dla wybranego meczu. Historyczne L5/L10/L15 pozostają w Player Props; pozostałe rynki dodamy po weryfikacji danych.</p>
-            <div id="hzm-player-rows" class="hzm-player-rows"><div class="hzm-no-players">Pełne projekcje dostępne w Premium.</div></div>
+            <p class="hzm-player-focused-note">Projekcje modelu na wybrany mecz · historyczne wykresy L5/L10/L15 znajdziesz w Player Props. PRA to suma średnich prognoz, nie osobny rozkład.</p>
+            <div id="hzm-player-tools" class="hzm-player-tools">
+              <div class="hzm-player-team-filter" role="group" aria-label="Filtr drużyny">
+                <button type="button" data-hzm-player-team="all" aria-pressed="true">Obie drużyny</button>
+                <button type="button" data-hzm-player-team="away" aria-pressed="false" id="hzm-player-team-away">Goście</button>
+                <button type="button" data-hzm-player-team="home" aria-pressed="false" id="hzm-player-team-home">Gospodarze</button>
+              </div>
+              <label class="hzm-player-search-wrap"><span aria-hidden="true">⌕</span><input type="search" id="hzm-player-search" placeholder="Szukaj zawodnika..." autocomplete="off" aria-label="Szukaj w projekcjach zawodników"></label>
+              <span id="hzm-player-count" class="hzm-player-count" aria-live="polite"></span>
+            </div>
+            <div class="hzm-player-lab-body">
+              <div id="hzm-player-rows" class="hzm-player-rows"><div class="hzm-no-players">Pełne projekcje dostępne w Premium.</div></div>
+              <aside id="hzm-player-inspector" class="hzm-player-inspector" aria-label="Szczegóły projekcji wybranego zawodnika" aria-live="polite"><p>Wybierz zawodnika, aby zobaczyć projekcję.</p></aside>
+            </div>
             <button type="button" id="hzm-expand-players" class="hzm-expand" aria-expanded="false" aria-controls="hzm-player-rows">Rozwiń pełną listę zawodników <span aria-hidden="true">⌄</span></button>
           </section>
         </div>

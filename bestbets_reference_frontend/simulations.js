@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",expanded:false,requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -62,7 +62,7 @@ function toggleModelDropdown(open,restoreFocus=false){
 }
 function chooseModel(model){
   if(!MODEL_CHOICES.some(item=>item.id===model)||model===state.model)return;
-  state.model=model;state.gamePending="";state.playersPending="";
+  state.model=model;state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function toggleMatchPicker(open){
@@ -199,40 +199,115 @@ function showChart(sim,game,premium){
     $("hzm-chart-source").textContent='P('+code+' ≥ '+dist.threshold+' pkt): '+fmt(dist.over_pct)+'% · przedział 80%: '+dist.p10+'–'+dist.p90+' pkt';
   }
 }
-function showPlayers(premium,players){
-  const panel=$("hzm-players-panel"),button=$("hzm-expand-players"),rows=$("hzm-player-rows");
-  const withMinutes=state.model==="research_context_v75";
-  const headings=$("hzm-player-headings");
-  headings.classList.toggle("with-min",withMinutes);
-  headings.innerHTML=(withMinutes?'<span>MIN</span>':'')+'<span>PTS</span><span>REB</span><span>AST</span>';
-  panel.classList.toggle("expanded",state.expanded);
-  button.setAttribute("aria-expanded",String(state.expanded));
-  button.innerHTML=(state.expanded?'Zwiń listę':'Rozwiń pełną listę zawodników')+' <span aria-hidden="true">⌄</span>';
-  if(!premium?.entitled){
-    rows.innerHTML='<div class="hzm-no-players">'+(state.expanded
-      ?'Pełna lista i projekcje graczy wymagają zweryfikowanej subskrypcji Premium.'
-      :'Projekcje PTS, REB i AST są dostępne w Premium.')+'</div>';return;
-  }
-  if(!players){rows.innerHTML='<div class="hzm-no-players">Pobieranie projekcji zawodników z ESPN…</div>';return}
-  if(!Array.isArray(players.players)||!players.players.length){
-    rows.innerHTML='<div class="hzm-no-players">'+esc(players.error||'Brak zweryfikowanych danych zawodników.')+'</div>';return;
-  }
-  const visible=state.expanded?players.players:players.players.slice(0,4);
-  rows.innerHTML=visible.map(item=>{
-    const initials=String(item.name||'').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
-    const status=withMinutes?String(item.availability||''):'';
-    const atRisk=["Questionable","Doubtful","Day-to-day"].includes(status);
-    const statusHtml=status==="Out"?'<small class="hzm-injured">'+esc(item.team)+' · OUT (ESPN)</small>':
-      atRisk?'<small class="hzm-uncertain">'+esc(item.team)+' · '+esc(status)+' (ESPN)</small>':
-      '<small class="'+(item.team===players.home?'home':'')+'">'+esc(item.team)+'</small>';
-    return '<div class="hzm-player-row"><span class="hzm-player-initials">'+esc(initials)+'</span>'+
-      '<div class="hzm-player-info"><strong>'+esc(item.name)+'</strong>'+statusHtml+'</div>'+
-      '<div class="hzm-player-stats'+(withMinutes?' with-min':'')+'">'+
-      (withMinutes?'<span title="Szacowane minuty z '+esc(item.minutes_sample||0)+' występów">'+fmt(item.minutes)+'</span>':'')+
-      '<span>'+fmt(item.pts)+'</span><span>'+fmt(item.reb)+'</span><span>'+fmt(item.ast)+'</span></div></div>';
-  }).join("");
-  if(!state.expanded&&players.players.length>4){button.textContent='Pokaż wszystkich zawodników ('+players.players.length+') ▾'}
+function safeProjection(value){
+ return value!==null&&value!==undefined&&value!==""&&Number.isFinite(Number(value))&&Number(value)>=0
+  ?Number(value):null;
 }
+function playerInspector(item,players,game,withMinutes){
+ const container=$("hzm-player-inspector");
+ if(!container)return;
+ if(!item){container.innerHTML='<div class="hzm-inspector-placeholder">Wybierz zawodnika z listy, aby zobaczyć szczegóły jego projekcji.</div>';return}
+ const name=String(item.name||"").slice(0,70),code=String(item.team||"").slice(0,4);
+ const status=withMinutes?String(item.availability||"Niezweryfikowany").slice(0,50):"";
+ const out=withMinutes&&status==="Out";
+ const pts=out?null:safeProjection(item.pts),reb=out?null:safeProjection(item.reb),ast=out?null:safeProjection(item.ast);
+ const pra=pts!==null&&reb!==null&&ast!==null?pts+reb+ast:null;
+ const metrics=[["PTS",pts],["REB",reb],["AST",ast],["PRA",pra]]
+  .map(([key,value])=>'<div class="hzm-inspector-metric'+(key==="PRA"?' pra':'')+'"><span>'+key+'</span><strong>'+fmt(value)+'</strong></div>').join("");
+ const sample=withMinutes&&Number.isInteger(Number(item.minutes_sample))?Math.max(0,Number(item.minutes_sample)):0;
+ const minutes=withMinutes?safeProjection(item.minutes):null;
+ const minuteLabel=withMinutes
+  ?minutes===null?'Brak wiarygodnego szacunku minut':fmt(minutes)+' min · '+sample+' wcześniejszych występów'
+  :'Minuty: brak zweryfikowanego szacunku w modelu '+esc(modelLabel());
+ const availability=withMinutes
+  ?'<span class="hzm-inspector-status'+(out?' is-out':(["Questionable","Doubtful","Day-to-day"].includes(status)?' is-uncertain':''))+'">'+
+    'ESPN: '+esc(status)+'</span>'
+  :'<span class="hzm-inspector-status">Dostępność: nieoceniana w tym modelu</span>';
+ container.innerHTML=
+  '<div class="hzm-inspector-top"><span>PLAYER FORECAST · '+esc(modelLabel())+'</span><strong>'+esc(code)+'</strong></div>'+
+  '<h3>'+esc(name)+'</h3><div class="hzm-inspector-sub">'+esc(game?.away||"NBA")+
+  ' vs '+esc(game?.home||"NBA")+' · szacunki na wybrany mecz</div>'+
+  availability+
+  '<div class="hzm-inspector-metrics">'+metrics+'</div>'+
+  '<div class="hzm-inspector-minutes">'+(withMinutes?'◷ ':'')+minuteLabel+'</div>'+
+  '<p class="hzm-inspector-disclaimer">'+(out?
+    'ESPN zgłasza OUT — model nie wyświetla projekcji produkcji zawodnika.':
+    'PRA to suma średnich prognoz PTS, REB i AST. Nie jest osobną symulacją ani rozkładem prawdopodobieństwa.')+
+  '</p>'+
+  (withMinutes&&players?.minutes_warning?
+    '<small class="hzm-inspector-warning">'+esc(players.minutes_warning)+'</small>':'');
+}
+function showPlayers(premium,players,game){
+ const panel=$("hzm-players-panel"),button=$("hzm-expand-players"),rows=$("hzm-player-rows");
+ const focused=state.view==="players",withMinutes=state.model==="research_context_v75";
+ const headings=$("hzm-player-headings");
+ headings.classList.toggle("with-min",withMinutes);
+ headings.innerHTML=(withMinutes?'<span>MIN</span>':'')+'<span>PTS</span><span>REB</span><span>AST</span>';
+ panel.classList.toggle("expanded",state.expanded);
+ button.setAttribute("aria-expanded",String(state.expanded));
+ button.innerHTML=(state.expanded?'Zwiń listę':'Rozwiń pełną listę zawodników')+' <span aria-hidden="true">⌄</span>';
+ const search=$("hzm-player-search"),count=$("hzm-player-count");
+ if(search&&search.value!==state.playerQuery)search.value=state.playerQuery;
+ const codes={away:game?.away||"Goście",home:game?.home||"Gospodarze"};
+ for(const side of ["away","home"]){const element=$("hzm-player-team-"+side);if(element)element.textContent=codes[side]}
+ $("hzm-player-tools")?.querySelectorAll("[data-hzm-player-team]").forEach(element=>{
+   const active=element.dataset.hzmPlayerTeam===state.playerTeam;
+   element.setAttribute("aria-pressed",String(active));element.classList.toggle("selected",active);
+ });
+ const inspector=$("hzm-player-inspector");
+ if(!premium?.entitled){
+   rows.innerHTML='<div class="hzm-no-players">'+(state.expanded
+     ?'Pełna lista i projekcje graczy wymagają zweryfikowanej subskrypcji Premium.'
+     :'Projekcje PTS, REB i AST są dostępne w Premium.')+'</div>';
+   if(count)count.textContent="";
+   if(inspector)inspector.innerHTML='<div class="hzm-inspector-placeholder">Dane zawodników dostępne wyłącznie z aktywnym Premium.</div>';
+   return;
+ }
+ if(!players){
+   rows.innerHTML='<div class="hzm-no-players">Pobieranie projekcji zawodników z ESPN…</div>';
+   if(count)count.textContent="";
+   playerInspector(null,players,game,withMinutes);return;
+ }
+ if(!Array.isArray(players.players)||!players.players.length){
+   rows.innerHTML='<div class="hzm-no-players">'+esc(players.error||'Brak zweryfikowanych danych zawodników.')+'</div>';
+   if(count)count.textContent="0 zawodników";
+   playerInspector(null,players,game,withMinutes);return;
+ }
+ // Team-scoped row identities prevent a mismatched roster record appearing
+ // for the selected matchup. All rows come from the Premium-protected payload.
+ const athletes=players.players.map((item,index)=>({item,index})).filter(({item})=>
+   item&&String(item.team||"").toUpperCase()===String(game?.away||"").toUpperCase()||
+   item&&String(item.team||"").toUpperCase()===String(game?.home||"").toUpperCase());
+ const query=state.playerQuery.trim().toLocaleLowerCase("pl");
+ const filtered=focused?athletes.filter(({item})=>
+   (state.playerTeam==="all"||String(item.team).toUpperCase()===String(codes[state.playerTeam]||"").toUpperCase())&&
+   (!query||String(item.name||"").toLocaleLowerCase("pl").includes(query))):athletes;
+ const visible=focused?filtered:(state.expanded?filtered:filtered.slice(0,4));
+ if(count)count.textContent=focused?filtered.length+" z "+athletes.length+" zawodników":"";
+ if(focused&&!filtered.some(p=>p.index===state.playerIndex))state.playerIndex=filtered[0]?.index??-1;
+ if(!visible.length){
+   rows.innerHTML='<div class="hzm-no-players">Brak zawodników spełniających wybrane filtry.</div>';
+   playerInspector(null,players,game,withMinutes);return;
+ }
+ rows.innerHTML=visible.map(({item,index})=>{
+   const initials=String(item.name||'').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
+   const status=withMinutes?String(item.availability||''):'';
+   const atRisk=["Questionable","Doubtful","Day-to-day"].includes(status);
+   const statusHtml=status==="Out"?'<small class="hzm-injured">'+esc(item.team)+' · OUT (ESPN)</small>':
+     atRisk?'<small class="hzm-uncertain">'+esc(item.team)+' · '+esc(status)+' (ESPN)</small>':
+     '<small class="'+(item.team===players.home?'home':'')+'">'+esc(item.team)+'</small>';
+   return '<button type="button" class="hzm-player-row" data-hzm-player-index="'+index+'" aria-pressed="'+(focused&&index===state.playerIndex)+'" aria-label="'+esc('Szczegóły prognozy '+item.name+', '+item.team)+'">'+
+     '<span class="hzm-player-initials">'+esc(initials)+'</span>'+
+     '<span class="hzm-player-info"><strong>'+esc(item.name)+'</strong>'+statusHtml+'</span>'+
+     '<span class="hzm-player-stats'+(withMinutes?' with-min':'')+'">'+
+     (withMinutes?'<span title="Szacowane minuty z '+esc(item.minutes_sample||0)+' występów">'+fmt(item.minutes)+'</span>':'')+
+     '<span>'+fmt(item.pts)+'</span><span>'+fmt(item.reb)+'</span><span>'+fmt(item.ast)+'</span></span></button>';
+ }).join("");
+ if(!state.expanded&&athletes.length>4)button.textContent='Pokaż wszystkich zawodników ('+athletes.length+') ▾';
+ if(focused)playerInspector(filtered.find(p=>p.index===state.playerIndex)?.item||null,players,game,withMinutes);
+ else if(inspector)inspector.innerHTML='';
+}
+
 function maybeLoadPaid(game,premium,sim,players){
   if(!premium?.entitled||!game||!["scheduled","final"].includes(game.state))return;
   const key=state.day+"|"+game.id+"|"+state.model;
@@ -249,7 +324,7 @@ function render(home,premium){
   if(data.known&&state.requestedDay===state.day)state.requestedDay="";
   if(!data.games.some(game=>game.id===state.gameId)){
     const next=data.games.find(game=>game.state==="scheduled")||data.games[0];
-    state.gameId=next?.id||"";state.expanded=state.view==="players";
+    state.gameId=next?.id||"";state.expanded=state.view==="players";state.playerIndex=-1;
   }
   $("hzm-day-title").textContent=labelDay(state.day);
   $("hzm-day-input").value=state.day;
@@ -294,12 +369,12 @@ function render(home,premium){
     ?"Zweryfikowane Premium wymagane":!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":
       sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji · "+modelLabel());
   $("simulations-pane").classList.toggle("hzm-premium-locked",!premium?.entitled);
-  showChart(sim,game,premium);showPlayers(premium,players);
+  showChart(sim,game,premium);showPlayers(premium,players,game);
   maybeLoadPaid(game,premium,sim,players);
 }
 function navigate(day){
   if(!safeDate(day)||!withinRange(day)||state.day===day)return;
-  state.day=day;state.gameId="";state.chart="match";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";
+  state.day=day;state.gameId="";state.chart="match";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function init(api){
@@ -321,11 +396,31 @@ function init(api){
   });
   // Popup buttons are rerendered in place, but the list container stays
   // mounted. Handle its clicks directly so selecting a game always closes it.
+  $("hzm-player-search").addEventListener("input",event=>{
+    state.playerQuery=String(event.target.value||"").slice(0,70);
+    state.playerIndex=-1;
+    render(state.lastHome,state.lastPremium);
+  });
+  $("hzm-player-tools").addEventListener("click",event=>{
+    const button=event.target.closest("[data-hzm-player-team]");
+    if(!button||!["all","away","home"].includes(button.dataset.hzmPlayerTeam))return;
+    state.playerTeam=button.dataset.hzmPlayerTeam;state.playerIndex=-1;
+    render(state.lastHome,state.lastPremium);
+  });
+  $("hzm-player-rows").addEventListener("click",event=>{
+    const row=event.target.closest("[data-hzm-player-index]");
+    if(!row)return;
+    const idx=Number(row.dataset.hzmPlayerIndex);
+    if(!Number.isInteger(idx)||idx<0)return;
+    state.playerIndex=idx;
+    if(state.view!=="players"){state.view="players";state.expanded=true}
+    render(state.lastHome,state.lastPremium);
+  });
   $("hzm-matches").addEventListener("click",event=>{
     const selected=event.target.closest("[data-hzm-game]");
     if(!selected)return;
     event.stopPropagation();
-    state.gameId=selected.dataset.hzmGame;state.chart="match";
+    state.gameId=selected.dataset.hzmGame;state.chart="match";state.playerIndex=-1;
     state.expanded=state.view==="players";
     toggleMatchPicker(false);
     render(state.lastHome,state.lastPremium);
@@ -350,7 +445,7 @@ function init(api){
     if(arrow){navigate(dayShift(state.day,Number(arrow.dataset.hzmShift)));return}
     const gameButton=event.target.closest("[data-hzm-game]");
     if(gameButton){
-      state.gameId=gameButton.dataset.hzmGame;state.chart="match";
+      state.gameId=gameButton.dataset.hzmGame;state.chart="match";state.playerIndex=-1;
       state.expanded=state.view==="players";toggleMatchPicker(false);
       render(state.lastHome,state.lastPremium);return;
     }

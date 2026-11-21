@@ -241,7 +241,10 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
         name = str(row.get("Zawodnik") or "").strip()
         team = str(row.get("Drużyna") or "").upper().strip()
         points = _clean_float(row.get("PTS"))
-        if not name or not team or points is None:
+        # Never show a player whose verified team identity is outside the two
+        # sides of the selected fixture, even if the ESPN table is stale.
+        if (not name or team not in {str(match["away"]), str(match["home"])}
+                or points is None):
             continue
         player = {"name": name[:70], "team": team[:4],
                   "pts": points, "reb": _clean_float(row.get("REB")),

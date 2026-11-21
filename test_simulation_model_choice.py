@@ -51,6 +51,9 @@ class ModelChoiceTests(unittest.TestCase):
              "REB": 5.5, "AST": 4.6, "Minuty": 30, "Próba występów": 7},
             {"Zawodnik": "Sample Guard", "Drużyna": "NYK", "PTS": 15.0,
              "REB": 3.0, "AST": 8.0, "Minuty": 28, "Próba występów": 7},
+            # A stale/unmatched roster entry must NEVER appear in BOS–NYK.
+            {"Zawodnik": "Unrelated Player", "Drużyna": "LAL", "PTS": 50.0,
+             "REB": 10.0, "AST": 10.0, "Minuty": 38, "Próba występów": 12},
         ])
         evidence = {"players": {
             ("BOS", "samplestarter"): {"status": "Out", "minutes": 0, "sample": 7},
