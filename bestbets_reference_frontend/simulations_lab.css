@@ -1459,3 +1459,13 @@
    font-variant-numeric:tabular-nums;
  }
 }
+
+/* Date picker must stay above the Simulation Lab panels and retain a
+   full pointer target in the independently scrolling application shell. */
+#simulations-pane .hzm-day-control{
+ position:relative;z-index:25;pointer-events:auto;
+}
+#simulations-pane .hzm-day-control button,
+#simulations-pane .hzm-day-control input,
+#simulations-pane .hzm-day-control label{pointer-events:auto}
+#simulations-pane .hzm-day-control #hzm-day-title{cursor:pointer}

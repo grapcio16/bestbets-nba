@@ -49,6 +49,7 @@ jobs:
         run: |
           node test_simulations_canvas.js
           python test_simulations_browser.py
+          python test_simulations_date_navigation_browser.py
           python test_simulations_props_bridge.py
           python test_simulation_scenario_builder.py
           python test_scenario_builder_browser.py
