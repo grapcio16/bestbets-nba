@@ -65,6 +65,27 @@ def main() -> None:
                 assert home_rect["y"] + home_rect["height"] < height, (width, home_rect)
             if width == 1800:
                 page.screenshot(path=str(ROOT / "hoopzaro_centre_smoke.png"))
+                # Production now sends shared base64 badges by reference; test
+                # the real iframe resolver without changing the approved look.
+                sample_logo = (
+                    "data:image/png;base64,"
+                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ"
+                    "AAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg=="
+                )
+                page.evaluate(
+                    "payload => window.postMessage({type:'streamlit:render',args:{payload}},'*')",
+                    {"player": None, "home": {
+                        "games": [], "ticker": [], "finals": [],
+                        "form": [], "players": [], "source": "Synthetic UI test",
+                        "calendar_today": "2026-11-14",
+                        "form_options": [{"team": "BOS", "logo": "team-logo:BOS"}],
+                        "team_logos": {"BOS": sample_logo},
+                    }, "brand": BRAND, "error": ""},
+                )
+                page.wait_for_function(
+                    "() => window.hzResolveTeamLogo('team-logo:BOS').startsWith('data:image/png;base64,')"
+                )
+                assert page.evaluate("window.hzResolveTeamLogo('team-logo:BOS')") == sample_logo
             props_tab = ('#hz-mobile-nav [data-page="props"]' if width < 768
                          else '.nav-btn[data-page="props"]')
             page.locator(props_tab).click()
