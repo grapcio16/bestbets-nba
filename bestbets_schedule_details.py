@@ -331,7 +331,7 @@ def load_scheduled_game_history(game_id, away, home, game_start):
     its trusted server-side ESPN fixture. This function accepts no arbitrary URL.
     """
     from datetime import datetime
-    if not re.fullmatch(r"\\d{6,15}", str(game_id)):
+    if not re.fullmatch(r"\d{6,15}", str(game_id)):
         raise ValueError("Nieobsługiwany mecz")
     if away not in TEAM_FULL or home not in TEAM_FULL or away == home:
         raise ValueError("Nieprawidłowe drużyny")
