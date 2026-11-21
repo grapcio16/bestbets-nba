@@ -65,15 +65,10 @@ def main():
         # From model forecast to the historical analysis, with a visibly
         # hypothetical editable half-point starting line.
         page.locator('[data-hzm-history-market="PTS"]').click()
-        assert page.locator("#props-pane").is_visible(), page.evaluate("""() => ({
-            propsVisible:getComputedStyle(document.querySelector('#props-pane')).display,
-            simulationsHidden:document.querySelector('#simulations-pane').hidden,
-            query:document.querySelector('#query').value,
-            paywall:document.querySelector('#hz-paywall-backdrop').hidden,
-            historyButtons:[...document.querySelectorAll('[data-hzm-history-market]')].map(b=>b.dataset.hzmHistoryMarket),
-            simButtons:[...document.querySelectorAll('#hzm-player-rows [data-hzm-player-index]')].map(b=>b.getAttribute('aria-pressed')),
-            inspector:document.querySelector('#hzm-player-inspector').textContent.slice(0,330)
-        })""")
+        # Props container has absolutely positioned children and no intrinsic
+        # box height. Verify the actually visible Props hero and route instead.
+        assert page.locator("#hero").is_visible()
+        assert page.locator("#simulations-pane").is_hidden()
         assert page.locator("#query").input_value() == "Test Player 0 over 26.5 points"
         assert "nie jest kursem" in page.locator("#hz-props-bridge-note").inner_text()
         assert page.locator("#hz-paywall-backdrop").is_hidden()
@@ -108,7 +103,8 @@ def main():
         assert "Test Player 0" in page.locator("#hzm-player-inspector").inner_text()
         assert page.locator("[data-hzm-return-props]").is_visible()
         page.locator("[data-hzm-return-props]").click()
-        assert page.locator("#props-pane").is_visible()
+        assert page.locator("#hero").is_visible()
+        assert page.locator("#simulations-pane").is_hidden()
         assert page.locator("#query").input_value() == "Test Player 0 over 26.5 points"
         assert page.locator("#hero-line").inner_text() == "26.5"
         assert page.locator("#hz-paywall-backdrop").is_hidden()
