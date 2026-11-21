@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",comparisonWindow:10,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -73,7 +73,7 @@ function toggleMatchPicker(open){
  trigger.setAttribute("aria-expanded",String(visible));
 }
 function chooseView(view){
- if(!["results","players","scenario","intelligence","comparison"].includes(view)||view===state.view)return;
+ if(!["results","players","scenario","intelligence","comparison","backtest"].includes(view)||view===state.view)return;
  state.view=view;
  state.expanded=view==="players";
  render(state.lastHome,state.lastPremium);
@@ -126,10 +126,11 @@ function bridgeToHistory(market){
 function syncLabView(){
  const pane=$("simulations-pane");
  if(pane)pane.dataset.hzmView=state.view;
- if($("hzm-detail-grid"))$("hzm-detail-grid").hidden=["scenario","intelligence","comparison"].includes(state.view);
+ if($("hzm-detail-grid"))$("hzm-detail-grid").hidden=["scenario","intelligence","comparison","backtest"].includes(state.view);
  if($("hzm-scenario-panel"))$("hzm-scenario-panel").hidden=state.view!=="scenario";
  if($("hzm-intel-panel"))$("hzm-intel-panel").hidden=state.view!=="intelligence";
  if($("hzm-compare-panel"))$("hzm-compare-panel").hidden=state.view!=="comparison";
+ if($("hzm-backtest-panel"))$("hzm-backtest-panel").hidden=state.view!=="backtest";
  const nav=$("hzm-lab-nav");
  if(nav)nav.querySelectorAll("[data-hzm-view]").forEach(tab=>{
    const active=tab.dataset.hzmView===state.view;
@@ -702,6 +703,67 @@ function showTeamComparison(game,sim,premium){
     "Brak kompletnych NBA Advanced dla obu drużyn — PACE, OFFRTG, DEFRTG niedostępne.")+
    " Średnie punktów straconych to nie DEFRTG; żadna z tych statystyk nie gwarantuje wyniku.";
 }
+
+function showModelBacktest(premium){
+ const status=$("hzm-backtest-status"),run=$("hzm-backtest-run"),note=$("hzm-backtest-caveat");
+ if(!status||!run||!note)return;
+ const paid=premium?.entitled===true;
+ const report=paid?premium.backtest:null;
+ for(const key of ["old","new","enriched","v75"])
+   for(const metric of ["total","team","accuracy","brier"])
+     $("hzm-backtest-"+key+"-"+metric).textContent="—";
+ for(const metric of ["games","season","range"])$("hzm-backtest-"+metric).textContent="—";
+ note.textContent="Walk-forward (tylko zweryfikowane wcześniejsze mecze). Raport offline nie odtwarza dostępności NBA Advanced ani dawnych raportów kontuzji ESPN — nie przedstawia pełnej skuteczności produkcyjnego V7.5.";
+ if(!paid){
+   state.backtestPending=false;run.disabled=true;
+   status.textContent="Model & Backtest jest dostępny wyłącznie w Premium.";
+   return;
+ }
+ if(report)state.backtestPending=false;
+ run.disabled=state.backtestPending;
+ if(!report){
+   status.textContent=state.backtestPending?"Analizowanie maks. 40 meczów walk-forward…":
+     "Uruchom test historyczny. Dane nie są pobierane przy otwieraniu aplikacji.";
+   return;
+ }
+ if(report.error){
+   status.textContent=String(report.error).slice(0,180);return;
+ }
+ if(!/^\d{4}-\d{2}$/.test(String(report.season||""))||
+    !Number.isInteger(report.games)||report.games<1||report.games>40||
+    !Array.isArray(report.models)){
+   status.textContent="Niekompletny raport walidacyjny.";return;
+ }
+ $("hzm-backtest-season").textContent=report.season;
+ $("hzm-backtest-games").textContent=String(report.games)+" / "+String(report.max_games||40);
+ if(/^\d{4}-\d{2}-\d{2}$/.test(String(report.first_game||""))&&
+    /^\d{4}-\d{2}-\d{2}$/.test(String(report.last_game||"")))
+    $("hzm-backtest-range").textContent=report.first_game+" – "+report.last_game;
+ const keys=new Set(["old","new","enriched","v75"]);
+ let shown=0;
+ for(const row of report.models){
+   if(!row||!keys.has(row.key))continue;
+   const n=v=>v!==null&&v!==undefined&&v!==""&&Number.isFinite(Number(v))?Number(v):null;
+   const total=n(row.total_mae),team=n(row.team_mae),acc=n(row.winner_accuracy_pct),brier=n(row.brier);
+   if([total,team,acc,brier].some(v=>v===null)||total<0||team<0||
+      acc<0||acc>100||brier<0||brier>1)continue;
+   $("hzm-backtest-"+row.key+"-total").textContent=fmt(total);
+   $("hzm-backtest-"+row.key+"-team").textContent=fmt(team);
+   $("hzm-backtest-"+row.key+"-accuracy").textContent=fmt(acc)+"%";
+   $("hzm-backtest-"+row.key+"-brier").textContent=brier.toFixed(4).replace(".",",");
+   shown++;
+ }
+ if(shown!==4){
+   status.textContent="Wyniki nie wszystkich metod są dostępne; brakujące metryki pozostają puste.";
+ }else{
+   const stamped=Date.parse(String(report.as_of_utc||""));
+   const when=Number.isFinite(stamped)?new Date(stamped).toISOString().slice(0,16).replace("T"," ")+" UTC":"brak godziny";
+   status.textContent="Walk-forward gotowy: "+report.games+" ukończonych spotkań. Opracowano: "+when+
+      ". Próbka ograniczona do maks. 40 ostatnich ocenionych meczów.";
+ }
+ if(typeof report.limitation==="string")note.textContent=report.limitation.slice(0,320)+
+   " Bez kursów historycznych ROI pozostaje niedostępne.";
+}
 function render(home,premium){
   state.lastHome=home;state.lastPremium=premium;
   syncModelDropdown();
@@ -757,7 +819,7 @@ function render(home,premium){
     ?"Zweryfikowane Premium wymagane":!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":
       sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji · "+modelLabel());
   $("simulations-pane").classList.toggle("hzm-premium-locked",!premium?.entitled);
-  showChart(sim,game,premium);showPlayers(premium,players,game);showScenario(game,sim,premium);showPlayerMinutes(game,players,premium);showAvailability(game,players,sim,premium);showMatchIntelligence(game,sim,premium);showTeamComparison(game,sim,premium);
+  showChart(sim,game,premium);showPlayers(premium,players,game);showScenario(game,sim,premium);showPlayerMinutes(game,players,premium);showAvailability(game,players,sim,premium);showMatchIntelligence(game,sim,premium);showTeamComparison(game,sim,premium);showModelBacktest(premium);
   maybeLoadPaid(game,premium,sim,players);
 }
 function navigate(day){
@@ -888,6 +950,14 @@ function init(api){
     render(state.lastHome,state.lastPremium);
   });
   $("simulations-pane").addEventListener("click",event=>{
+    if(event.target.closest("#hzm-backtest-run")){
+      if(state.lastPremium?.entitled===true&&!state.backtestPending){
+        state.backtestPending=true;
+        showModelBacktest(state.lastPremium);
+        callbacks?.loadBacktest?.();
+      }
+      return;
+    }
     const comparison=event.target.closest("[data-hzm-comparison-window]");
     if(comparison){
       const n=Number(comparison.dataset.hzmComparisonWindow);

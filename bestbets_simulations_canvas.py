@@ -458,3 +458,85 @@ def player_minutes_scenario_for_entitled_user(
         logging.getLogger(__name__).warning(
             "Player minute sensitivity unavailable: %s", type(exc).__name__)
         return {"error": "Analiza minut jest obecnie niedostępna."}
+
+
+
+@st.cache_data(ttl=3600, max_entries=3, show_spinner=False)
+def _cached_walkforward_report(season: str) -> dict:
+    """Bounded on-demand season report; no live injury/advanced lookahead.
+
+    This is the *offline historical research core*, not a fully replicated
+    production V7.5 forecast. Historical odds were not recorded and ROI
+    therefore cannot be computed truthfully.
+    """
+    from simulation_backtest import walk_forward_comparison
+    from simulation_data_audit import verified_history
+
+    generated = pd.Timestamp.now(tz="UTC")
+    history, warning = _history_for_simulations(season)
+    evidence = verified_history(history, generated)
+    if evidence.empty:
+        return {"error": "Brak potwierdzonych zakończonych spotkań ESPN w bieżącym sezonie."}
+    events, results = walk_forward_comparison(evidence, max_games=40)
+    n = results.get("games", 0)
+    if not isinstance(n, int) or n < 1 or events.empty:
+        return {"error": "Za mało historycznych danych do testu walk-forward."}
+    labels = (
+        ("old", "Baseline · średnie historyczne"),
+        ("new", "Forma · średnie ważone"),
+        ("enriched", "V7.4 · rdzeń offline"),
+        ("v75", "V7.5 · rdzeń offline"),
+    )
+    comparisons = []
+    for key, label in labels:
+        total = _clean_float(results.get(key + "_total_mae"))
+        team = _clean_float(results.get(key + "_team_mae"))
+        brier_raw = results.get(key + "_brier")
+        accuracy_raw = results.get(key + "_winner_accuracy")
+        try:
+            accuracy = float(accuracy_raw)
+            brier = float(brier_raw)
+        except (ValueError, TypeError, OverflowError):
+            return {"error": "Niekompletne wyniki walidacji historycznej."}
+        if (total is None or team is None or
+                not isfinite(accuracy) or not 0 <= accuracy <= 1 or
+                not isfinite(brier) or not 0 <= brier <= 1):
+            return {"error": "Niepoprawne metryki walidacji historycznej."}
+        comparisons.append({
+            "key": key, "label": label, "total_mae": total,
+            "team_mae": team, "winner_accuracy_pct": round(accuracy * 100, 1),
+            "brier": round(brier, 4),
+        })
+    start = pd.to_datetime(events["date"].min(), utc=True, errors="coerce")
+    end = pd.to_datetime(events["date"].max(), utc=True, errors="coerce")
+    return {
+        "season": season, "games": n, "max_games": 40,
+        "as_of_utc": generated.isoformat(),
+        "first_game": start.date().isoformat() if pd.notna(start) else None,
+        "last_game": end.date().isoformat() if pd.notna(end) else None,
+        "models": comparisons,
+        "data_source": "ESPN · potwierdzone wyniki rozegranych meczów",
+        "method": "Walk-forward: każdy oceniany mecz prognozowany tylko z wcześniejszych wyników; maks. 40 ocenianych spotkań.",
+        "limitation": (
+            "Testowany rdzeń historyczny bez rzeczywistego NBA Advanced "
+            "ani raportu ESPN kontuzji dostępnego przed dawnymi meczami. "
+            "To nie jest dokładny wynik pełnego modelu produkcyjnego V7.5."
+        ),
+        "roi_available": False,
+        "odds_available": False,
+        "warning": str(warning or "")[:180],
+    }
+
+
+def backtest_for_entitled_user() -> dict:
+    """On-demand report, never requested by free users or on page startup."""
+    if not premium_entitled():
+        return {"error": "Wymagana jest zweryfikowana subskrypcja Premium."}
+    try:
+        season = _season_at(pd.Timestamp.now(tz="UTC"))
+        return _cached_walkforward_report(season)
+    except (OSError, RuntimeError, ValueError, TypeError, KeyError, OverflowError) as exc:
+        import logging
+        logging.getLogger(__name__).warning(
+            "Premium walk-forward report unavailable (%s)", type(exc).__name__)
+        return {"error": "Nie udało się obliczyć raportu historycznego."}

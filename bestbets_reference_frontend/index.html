@@ -557,7 +557,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       <button type="button" id="hzm-lab-tab-scenario" role="tab" data-hzm-view="scenario" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">☷</span> Scenariusze</button>
       <button type="button" id="hzm-lab-tab-intelligence" role="tab" data-hzm-view="intelligence" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">✧</span> Analiza meczu</button>
       <button type="button" id="hzm-lab-tab-comparison" role="tab" data-hzm-view="comparison" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">⇄</span> Porównanie drużyn</button>
-      <button type="button" role="tab" disabled aria-disabled="true" title="Model i Backtest — kolejny etap wdrożenia"><span aria-hidden="true">▤</span> Model &amp; Backtest <small>Wkrótce</small></button>
+      <button type="button" id="hzm-lab-tab-backtest" role="tab" data-hzm-view="backtest" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">▤</span> Model &amp; Backtest</button>
     </nav>
     <div class="hzm-content">
       <section id="hzm-match-list" class="hzm-match-list" aria-label="Wybierz spotkanie" hidden><h2>Wybierz mecz</h2><div id="hzm-matches" class="hzm-matches"></div></section>
@@ -738,6 +738,28 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <div class="hzm-compare-row"><strong id="hzm-compare-away-def-rating">—</strong><span>DEFRTG · na 100 posiadań (niższe = lepiej)</span><strong id="hzm-compare-home-def-rating">—</strong></div>
           </section>
           <footer id="hzm-compare-disclaimer" class="hzm-compare-disclaimer">Statystyki historyczne, nie przewidywany wynik. Tempo i ratingi tylko przy kompletnych danych NBA Advanced dla obu drużyn. Brak danych oznaczamy kreską.</footer>
+        </section>
+        <section id="hzm-backtest-panel" class="hzm-backtest-panel" aria-label="Model & Backtest — historia błędów prognoz" hidden>
+          <header class="hzm-backtest-head">
+            <div><small>HOOPZARO · WALK-FORWARD VALIDATION</small><h2>Model &amp; Backtest</h2><p>Rzetelność prognoz — wyniki historyczne, bez spojrzenia w przyszłość.</p></div>
+            <button type="button" id="hzm-backtest-run">Uruchom test historyczny</button>
+          </header>
+          <p id="hzm-backtest-status" role="status" class="hzm-backtest-status">Kliknij „Uruchom test historyczny”. Analiza wykonuje się na żądanie, nie podczas startu aplikacji.</p>
+          <div class="hzm-backtest-summary">
+            <div><small>Sezon NBA</small><strong id="hzm-backtest-season">—</strong></div>
+            <div><small>Próba ocenianych meczów</small><strong id="hzm-backtest-games">—</strong></div>
+            <div><small>Okres ocenianych spotkań (UTC)</small><strong id="hzm-backtest-range">—</strong></div>
+          </div>
+          <div class="hzm-backtest-metrics-head"><span>MODEL HISTORYCZNY</span><span>MAE SUMY PTS</span><span>MAE DRUŻYNY</span><span>TRAFNOŚĆ W/L</span><span>BRIER</span></div>
+          <div id="hzm-backtest-results" class="hzm-backtest-results">
+            <div class="hzm-backtest-model" data-hzm-backtest-model="old"><strong>Baseline historyczny</strong><b id="hzm-backtest-old-total">—</b><b id="hzm-backtest-old-team">—</b><b id="hzm-backtest-old-accuracy">—</b><b id="hzm-backtest-old-brier">—</b></div>
+            <div class="hzm-backtest-model" data-hzm-backtest-model="new"><strong>Forma ważona</strong><b id="hzm-backtest-new-total">—</b><b id="hzm-backtest-new-team">—</b><b id="hzm-backtest-new-accuracy">—</b><b id="hzm-backtest-new-brier">—</b></div>
+            <div class="hzm-backtest-model" data-hzm-backtest-model="enriched"><strong>V7.4 · rdzeń offline</strong><b id="hzm-backtest-enriched-total">—</b><b id="hzm-backtest-enriched-team">—</b><b id="hzm-backtest-enriched-accuracy">—</b><b id="hzm-backtest-enriched-brier">—</b></div>
+            <div class="hzm-backtest-model" data-hzm-backtest-model="v75"><strong>V7.5 · rdzeń offline</strong><b id="hzm-backtest-v75-total">—</b><b id="hzm-backtest-v75-team">—</b><b id="hzm-backtest-v75-accuracy">—</b><b id="hzm-backtest-v75-brier">—</b></div>
+          </div>
+          <div class="hzm-backtest-metric-notes">MAE = średni bezwzględny błąd punktowy (niżej = lepiej). Brier = błąd prognozy prawdopodobieństwa zwycięstwa (niżej = lepiej). Trafność W/L to odsetek poprawnie wskazanych zwycięzców — nie ROI.</div>
+          <div class="hzm-backtest-roi"><strong>ROI / kursy bukmacherskie</strong><span>Brak wiarygodnego archiwum kursów — wynik niedostępny.</span></div>
+          <p id="hzm-backtest-caveat" class="hzm-backtest-caveat">Ten test nie odtwarza historycznych raportów kontuzji ani danych NBA Advanced. Dlatego nie jest pełnym backtestem aktualnego modelu produkcyjnego.</p>
         </section>
       </div>
     </div>
@@ -1553,6 +1575,13 @@ if(window.HoopzaroSimulations){
         type:"premium_sim_scenario",date:day,game_id:id,model_id:modelId,
         pace_pct:pacePct,off_away_pct:awayPct,off_home_pct:homePct,
         id:String(Date.now())+"-scenario-"+id+"-"+Math.random().toString(36).slice(2)
+      }});
+    },
+    loadBacktest:function(){
+      if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled)return;
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"premium_sim_backtest",
+        id:String(Date.now())+"-walk-forward-"+Math.random().toString(36).slice(2)
       }});
     },
     loadMinuteScenario:function(args){
