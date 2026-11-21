@@ -42,6 +42,12 @@ const previousGame=readOpenGame();
 if(previousGame){selectedGameId=String(previousGame.id);selectedDay=previousGame.day;}
 
 function shortDate(day){const d=noon(day);return d.getUTCDate()+" "+MONTHS[d.getUTCMonth()]}
+function fullHistoryDate(start){
+ const day=localDay(start);
+ if(!safeDay(day))return "—";
+ const d=noon(day);
+ return d.getUTCDate()+" "+MONTHS[d.getUTCMonth()]+" "+d.getUTCFullYear();
+}
 function localTime(value){const d=new Date(value);return Number.isFinite(d.getTime())?
  new Intl.DateTimeFormat("pl-PL",{timeZone:WARSAW,hour:"2-digit",minute:"2-digit",hour12:false}).format(d):"—"}
 function displayDate(day){return day===today()?"Dzisiaj, "+shortDate(day):shortDate(day)+(noon(day).getUTCFullYear()===noon(today()).getUTCFullYear()?"":" "+noon(day).getUTCFullYear())}
@@ -276,9 +282,14 @@ function historyMarkup(data,game){
  const official=history&&Array.isArray(history.h2h)&&history.recent;
  const renderRows=games=>
   '<div class="hzv-history-list">'+games.map(g=>
-   '<div class="hzv-history-row"><span>'+esc(shortDate(g.day||localDay(g.start)))+'</span>'+
-   '<span>'+esc(g.away)+' / '+esc(g.home)+'</span>'+
-   '<strong>'+Number(g.away_score)+' : '+Number(g.home_score)+'</strong></div>').join("")+'</div>';
+   '<div class="hzv-history-row"><time class="hzv-history-date" datetime="'+esc(localDay(g.start))+'">'+
+    esc(fullHistoryDate(g.start))+'</time>'+
+   '<span class="hzv-history-matchup">'+
+    '<span class="hzv-history-participant">'+teamLogo(data,g.away,g,"away")+'<b>'+esc(g.away)+'</b></span>'+
+    '<span class="hzv-history-versus">–</span>'+
+    '<span class="hzv-history-participant">'+teamLogo(data,g.home,g,"home")+'<b>'+esc(g.home)+'</b></span>'+
+   '</span>'+
+   '<strong class="hzv-history-score">'+Number(g.away_score)+' : '+Number(g.home_score)+'</strong></div>').join("")+'</div>';
  if(official){
   const coverage=Array.isArray(history.coverage)?history.coverage:[];
   if(historyTab==="h2h"){
@@ -293,7 +304,7 @@ function historyMarkup(data,game){
   const panels=teams.map(team=>{
    const games=(Array.isArray(recent[team])?recent[team]:[]).filter(g=>
     g?.state==="final"&&Number.isInteger(g.away_score)&&Number.isInteger(g.home_score));
-   return '<div class="hzv-history-team"><h3>'+esc(team)+' · ostatnie mecze</h3>'+
+   return '<div class="hzv-history-team"><h3>'+teamLogo(data,team,null,"home")+esc(team)+' · ostatnie mecze</h3>'+
     (games.length?renderRows(games):'<p class="hzv-history-empty">Brak potwierdzonych spotkań.</p>')+'</div>';
   });
   if(panels.some(panel=>panel.includes("hzv-history-row")))return panels.join("");
@@ -303,10 +314,10 @@ function historyMarkup(data,game){
  // scoreboard selection as though it were complete historical coverage.
  if(active)return '<p class="hzv-history-empty">Pobieranie potwierdzonej historii ESPN…</p>';
  if(lastDetails?.id===String(game.id)&&lastDetails?.day===selectedDay&&lastDetails?.error){
-  return '<p class="hzv-history-empty">Historia niedostępna. Możesz ponowić pobieranie statystyk meczu.</p>';
+  return '<p class="hzv-history-empty">Historia ESPN jest chwilowo niedostępna. <button type="button" class="hzv-retry-button" data-hzv-retry-game="'+esc(game.id)+'">Ponów pobieranie historii</button></p>';
  }
  return '<p class="hzv-history-empty">'+(game.state==="scheduled"?
-  'Historia tego spotkania będzie dostępna po pobraniu zweryfikowanych danych ESPN.':
+  'Pobieranie Head to Head i ostatnich meczów z ESPN…':
   'Pobieranie historii bezpośrednich spotkań i ostatnich meczów z ESPN…')+'</p>';
 }
 /* Verified ESPN data only. For turnovers and fouls fewer is favorable. */
