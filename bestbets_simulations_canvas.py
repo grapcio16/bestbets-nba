@@ -129,7 +129,8 @@ def _v75_player_evidence(day: str, game_id: str):
 
 
 @st.cache_data(ttl=600, max_entries=90, show_spinner=False)
-def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"):
+def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74",
+                     pace_pct: int = 0):
     """Future model, or clearly labeled retrospective model for a final game."""
     from espn_player_data import prefetch_matchup_boxscores
     from simulation_engine import (advanced_ratings, completed_team_scores,
@@ -181,6 +182,17 @@ def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"
         if model_id == "legacy_v72" else context["means"])
     if means is None:
         return {"error": "Za mało historycznych spotkań do wiarygodnej symulacji."}
+    # Scenario Builder changes only one explicitly hypothetical pregame input.
+    # No injury / minutes assumptions are silently inferred from pace.
+    if pace_pct:
+        if type(pace_pct) is not int or not -5 <= pace_pct <= 5:
+            return {"error": "Nieprawidłowa korekta tempa."}
+        factor = 1 + pace_pct / 100
+        means = {**means, "home": float(means["home"]) * factor,
+                 "away": float(means["away"]) * factor,
+                 "source": str(means.get("source") or "ESPN") + " · hipotetyczne tempo"}
+        if any(not 60 < means[k] < 170 for k in ("home", "away")):
+            return {"error": "Korekta tempa wykracza poza zakres modelu."}
     summary, _, home_scores, away_scores = simulate_game(
         game, means, score_noise=(context["score_noise"]
                                  if model_id != "legacy_v72" else None))
@@ -284,3 +296,58 @@ def simulation_for_entitled_user(day: str, game_id: str, players: bool = False,
         import logging
         logging.getLogger(__name__).warning("Premium simulation unavailable: %s", type(exc).__name__)
         return {"error": "Dane symulacji są obecnie niedostępne. Spróbuj później."}
+
+
+
+def scenario_for_entitled_user(day: str, game_id: str, model_id: str,
+                               pace_pct: int) -> dict:
+    """Server-side Premium-only what-if model. Never treated as injury news.
+
+    The hypothesis is a uniform percent change to both teams' projected
+    possessions/scoring means, with observed score variance held constant.
+    An input of +3 means a +3% *hypothetical* pace scenario, not verified pace.
+    """
+    if not premium_entitled():
+        return {"error": "Wymagana jest zweryfikowana subskrypcja Premium."}
+    if (type(pace_pct) is not int or not -5 <= pace_pct <= 5
+            or model_id not in SIMULATION_MODELS or not isinstance(day, str)
+            or not isinstance(game_id, str)
+            or len(day) != 10 or not game_id.isdigit() or len(game_id) > 30):
+        return {"error": "Niepoprawne parametry scenariusza."}
+    try:
+        if pd.Timestamp(day).strftime("%Y-%m-%d") != day:
+            return {"error": "Niepoprawna data scenariusza."}
+        now = pd.Timestamp.now(tz="UTC")
+        if abs((pd.Timestamp(day).date() - now.date()).days) > 366:
+            return {"error": "Data poza dozwolonym okresem."}
+        event = _day_for_simulations(day)
+        fixture = next((g for g in event.get("games", [])
+                        if str(g.get("id")) == game_id), None)
+        if not fixture or fixture.get("state") != "scheduled":
+            return {"error": "Scenariusze dostępne tylko przed meczem."}
+        start = pd.to_datetime(fixture.get("start"), utc=True, errors="coerce")
+        if pd.isna(start) or start <= now:
+            return {"error": "Mecz już się rozpoczął lub brak potwierdzonego terminu."}
+        baseline = _game_simulation(day, game_id, model_id)
+        if baseline.get("error"):
+            return {"error": baseline["error"]}
+        modified = (_game_simulation(day, game_id, model_id, pace_pct=pace_pct)
+                    if pace_pct else baseline)
+        if modified.get("error"):
+            return {"error": modified["error"]}
+        keys = ("away_points", "home_points", "total_points",
+                "away_win_pct", "home_win_pct")
+        return {
+            "date": day, "game_id": game_id, "model_id": model_id,
+            "pace_pct": pace_pct, "n_sims": 5000,
+            "baseline": {key: baseline[key] for key in keys},
+            "scenario": {key: modified[key] for key in keys},
+            "hypothetical": True,
+            "description": "Korekta oczekiwanej liczby posiadań obu drużyn o "
+                           f"{pace_pct:+d}%. Bez symulacji zmian składu i minut.",
+        }
+    except (ValueError, TypeError, KeyError, RuntimeError, OverflowError) as exc:
+        import logging
+        logging.getLogger(__name__).warning(
+            "Scenario Builder unavailable: %s", type(exc).__name__)
+        return {"error": "Scenariusz chwilowo niedostępny."}
