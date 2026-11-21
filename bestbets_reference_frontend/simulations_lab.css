@@ -343,3 +343,34 @@
  #simulations-pane[data-hzm-view="players"] .hzm-player-rows{height:260px}
  #simulations-pane[data-hzm-view="players"] .hzm-player-inspector{height:255px}
 }
+
+/* Phase 3 — cross-workspace navigation. No additional analytics data. */
+#simulations-pane .hzm-inspector-actions{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;
+ padding-top:6px;border-top:1px solid rgba(69,126,175,.5)
+}
+#simulations-pane .hzm-inspector-actions button{
+ min-height:26px;padding:3px 6px;text-align:center;
+ border:1px solid #316e98;border-radius:7px;background:#0a3551;
+ color:#dcfaff;font-family:inherit;font-weight:850;font-size:9px;
+ cursor:pointer;transition:background .14s,border-color .14s
+}
+#simulations-pane .hzm-inspector-actions button.is-related{
+ border-color:#ad66e5;background:#291b4d;color:#f2d3ff
+}
+#simulations-pane .hzm-inspector-actions button:hover{
+ border-color:#18edfa;background:#125176
+}
+#simulations-pane .hzm-inspector-actions button:focus-visible,
+#simulations-pane .hzm-return-to-props:focus-visible{
+ outline:2px solid #5df4ff;outline-offset:2px
+}
+#simulations-pane .hzm-return-to-props{
+ margin-top:1px;min-height:27px;padding:5px 8px;width:100%;
+ border:1px solid #9265cf;border-radius:7px;
+ background:linear-gradient(90deg,#1e1a44,#102e4d);
+ color:#e1dbff;font-family:inherit;font-size:9px;font-weight:850;cursor:pointer
+}
+#simulations-pane .hzm-return-to-props:hover{border-color:#d1a2ff;background:#34205b}
+#simulations-pane[data-hzm-view="players"] .hzm-player-inspector{gap:6px}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-warning{font-size:8px}
