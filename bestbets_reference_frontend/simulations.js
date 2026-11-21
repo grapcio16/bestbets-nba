@@ -84,6 +84,7 @@ function gamesForDay(home){
   return {known:found.known,games:[...unique.values()].sort((a,b)=>String(a.start||"").localeCompare(String(b.start||"")))};
 }
 function teamLogo(code,url){
+  url=window.hzResolveTeamLogo?.(url)||"";
   const safe=typeof url==="string"&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(url);
   return '<span class="hzm-mark">'+(safe?'<img src="'+url+'" alt="" loading="lazy">':esc(code))+'</span>';
 }
