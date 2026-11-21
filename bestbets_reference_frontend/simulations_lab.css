@@ -374,3 +374,66 @@
 #simulations-pane .hzm-return-to-props:hover{border-color:#d1a2ff;background:#34205b}
 #simulations-pane[data-hzm-view="players"] .hzm-player-inspector{gap:6px}
 #simulations-pane[data-hzm-view="players"] .hzm-inspector-warning{font-size:8px}
+
+/* Phase 4 / Scenario Builder — first verified what-if dimension: pace ±5%. */
+#simulations-pane #hzm-detail-grid[hidden],
+#simulations-pane #hzm-scenario-panel[hidden]{display:none!important}
+#simulations-pane .hzm-scenario-panel{
+ display:grid;grid-template-columns:minmax(0,.96fr) minmax(0,1.12fr);
+ gap:10px;height:296px;min-height:0;color:#eefaff
+}
+#simulations-pane .hzm-scenario-control,#simulations-pane .hzm-scenario-output{
+ border:1px solid #176d9e;border-radius:13px;padding:16px 18px;
+ background:radial-gradient(ellipse at 100% 5%,#144b7148,transparent 63%),#091b36;
+ box-shadow:inset 0 1px #54e4ef15,0 0 13px #1658a31b;min-width:0
+}
+#simulations-pane .hzm-scenario-output{
+ border-color:#9753d7;
+ background:radial-gradient(ellipse at 100% 100%,#59209044,transparent 67%),#091830
+}
+#simulations-pane .hzm-scenario-control header,
+#simulations-pane .hzm-scenario-output header{
+ display:flex;align-items:center;gap:8px;padding-bottom:11px;
+ margin-bottom:13px;border-bottom:1px solid #32618b
+}
+#simulations-pane .hzm-scenario-control header>span{color:#27edff;font-size:19px}
+#simulations-pane .hzm-scenario-control header strong,
+#simulations-pane .hzm-scenario-output header strong{font-size:16px;font-weight:900}
+#simulations-pane .hzm-scenario-control header small,
+#simulations-pane .hzm-scenario-output header span{margin-left:auto;color:#b998ed;font-size:9px;font-weight:800}
+#simulations-pane .hzm-scenario-control label{display:block;font-size:13px;font-weight:750}
+#simulations-pane .hzm-scenario-slider-line{display:flex;align-items:center;gap:12px;margin-top:16px}
+#simulations-pane #hzm-scenario-pace{flex:1;min-width:0;accent-color:#26e8fa;cursor:pointer}
+#simulations-pane #hzm-scenario-pace-display{
+ flex:0 0 59px;text-align:center;font-size:16px;font-weight:950;color:#35eefa;
+ border:1px solid #2c8fb1;background:#0b3151;border-radius:8px;padding:8px 2px
+}
+#simulations-pane .hzm-scenario-ticks{display:flex;justify-content:space-between;color:#8ca7cb;font-size:9px;margin:10px 0}
+#simulations-pane #hzm-scenario-run{
+ width:100%;min-height:37px;margin:8px 0 7px;border-radius:9px;
+ border:1px solid #3ff3ff;background:linear-gradient(90deg,#006782,#252276);
+ color:white;font-family:inherit;font-size:12px;font-weight:900;cursor:pointer
+}
+#simulations-pane #hzm-scenario-run:hover:not(:disabled){filter:brightness(1.15)}
+#simulations-pane #hzm-scenario-run:disabled{opacity:.42;cursor:not-allowed}
+#simulations-pane #hzm-scenario-run:focus-visible,
+#simulations-pane #hzm-scenario-pace:focus-visible{outline:2px solid #84f8ff;outline-offset:3px}
+#simulations-pane .hzm-scenario-control p{font-size:9px;line-height:1.4;color:#8eacc7;margin:6px 0 0}
+#simulations-pane .hzm-scenario-compare{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#simulations-pane .hzm-scenario-compare>div{
+ border:1px solid #296a9a;border-radius:10px;text-align:center;
+ padding:13px 8px;background:#0a2444;min-width:0
+}
+#simulations-pane .hzm-scenario-compare>div:nth-child(2){border-color:#9759db;background:#20183d}
+#simulations-pane .hzm-scenario-compare small{display:block;color:#acc9e0;font-size:10px}
+#simulations-pane .hzm-scenario-compare strong{display:block;font-size:26px;margin-top:5px;white-space:nowrap}
+#simulations-pane #hzm-scenario-whatif{color:#eb9cff}
+#simulations-pane .hzm-scenario-delta{margin-top:12px;font-size:11px;color:#b5cfe1}
+#simulations-pane .hzm-scenario-delta strong{color:#5bf8e5}
+#simulations-pane #hzm-scenario-status{color:#e8d1ff;font-size:11px;margin-top:8px}
+#simulations-pane #hzm-scenario-context{display:block;margin-top:9px;color:#8dacbf;font-size:9px;line-height:1.3}
+@media(max-width:767px){
+ #simulations-pane[data-hzm-view="scenario"] .hzm-content{height:auto;min-height:550px}
+ #simulations-pane .hzm-scenario-panel{height:auto;grid-template-columns:1fr}
+ #simulations-pane .hzm-scenario-control,#simulations-pane .hzm-scenario-output{padding:15px}
+}
