@@ -125,6 +125,9 @@ def _v75_player_evidence(day: str, game_id: str):
     result = availability_evidence(
         table, report, meta, game, logs=logs,
         historical=match.get("state") == "final")
+    # Reuse the SAME already fetched ESPN boxscores for the selected
+    # Premium player chart. These logs never enter the iframe wholesale.
+    result["verified_history_logs"] = logs
     return table, result
 
 
@@ -220,6 +223,56 @@ def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"
     }
 
 
+def _compact_pregame_player_history(raw, tipoff, away: str, home: str) -> dict:
+    """Previously played ESPN boxscore observations ONLY, never new model odds.
+
+    Up to seven completed team fixtures are already downloaded by the
+    projection engine. Do not request 15 more and slow down Player Simulations.
+    The browser displays L10/L15 only when all observations actually exist.
+    """
+    from core import norm_name
+    if raw is None or not isinstance(raw, pd.DataFrame) or raw.empty:
+        return {}
+    required = {"GAME_ID", "GAME_DATE", "TEAM_ABBREVIATION",
+                "PLAYER_NAME", "PLAYER_ID", "PTS", "REB", "AST", "MIN"}
+    if not required.issubset(raw.columns):
+        return {}
+    frame = raw.copy()
+    frame["GAME_DATE"] = pd.to_datetime(frame["GAME_DATE"], utc=True, errors="coerce")
+    frame = frame[(frame["GAME_DATE"] < tipoff) &
+                  (frame["TEAM_ABBREVIATION"].isin((away, home))) &
+                  (pd.to_numeric(frame["MIN"], errors="coerce") > 0)]
+    frame = frame.sort_values("GAME_DATE").drop_duplicates(
+        subset=["GAME_ID", "TEAM_ABBREVIATION", "PLAYER_NAME"], keep="last")
+    histories = {}
+    for row in frame.to_dict("records"):
+        team = str(row.get("TEAM_ABBREVIATION") or "").strip().upper()
+        name = str(row.get("PLAYER_NAME") or "").strip()
+        key = (team, norm_name(name))
+        eid = str(row.get("PLAYER_ID") or "")
+        pts, reb, ast = (_clean_float(row.get(k)) for k in ("PTS", "REB", "AST"))
+        if not name or any(v is None or v < 0 or v > 100 for v in (pts, reb, ast)):
+            continue
+        position = str(row.get("POSITION") or "").strip().upper()
+        position = position if position in {"PG", "SG", "SF", "PF", "C", "G", "F"} else ""
+        item = {
+            "date": row["GAME_DATE"].date().isoformat(),
+            "game_id": str(row["GAME_ID"]),
+            "pts": pts, "reb": reb, "ast": ast,
+            "pra": round(pts + reb + ast, 1),
+        }
+        if key not in histories:
+            histories[key] = {"history": [], "espn_id": "", "position": position}
+        histories[key]["history"].append(item)
+        if eid.isdigit() and 1 <= len(eid) <= 12:
+            histories[key]["espn_id"] = eid
+        if position:
+            histories[key]["position"] = position
+    for data in histories.values():
+        data["history"] = data["history"][-15:]
+    return histories
+
+
 @st.cache_data(ttl=600, max_entries=50, show_spinner=False)
 def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     """Lazily fetch only the selected matchup's two actual ESPN player histories."""
@@ -242,10 +295,16 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     availability = {}
     if model_id == "research_context_v75":
         table, availability = _v75_player_evidence(day, game_id)
+        historical_logs = availability.get("verified_history_logs")
     else:
         table, _ = matchup_players_cached(season, game, historical,
                                           advanced, 0,
                                           research_mode=model_id != "legacy_v72")
+        # This reads the boxscores already fetched/cached by the projector.
+        from espn_player_data import matchup_espn_logs
+        historical_logs, _ = matchup_espn_logs(historical, game)
+    evidence_by_player = _compact_pregame_player_history(
+        historical_logs, tipoff, str(match["away"]), str(match["home"]))
     if table is None or table.empty:
         return {"players": [], "error": "ESPN nie dostarczył projekcji graczy dla tego spotkania."}
     required = {"Zawodnik", "Drużyna", "PTS", "REB", "AST"}
@@ -262,9 +321,15 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
         if (not name or team not in {str(match["away"]), str(match["home"])}
                 or points is None):
             continue
+        observed = evidence_by_player.get((team, norm_name(name)), {})
         player = {"name": name[:70], "team": team[:4],
                   "pts": points, "reb": _clean_float(row.get("REB")),
-                  "ast": _clean_float(row.get("AST"))}
+                  "ast": _clean_float(row.get("AST")),
+                  # Distinct: history = ACTUAL ESPN boxscores, never simulated
+                  # distributions or bookmakers' pregame player lines.
+                  "history": observed.get("history", []),
+                  "espn_id": observed.get("espn_id", ""),
+                  "position": observed.get("position", "")}
         if model_id == "research_context_v75":
             pctx = (availability.get("players") or {}).get((team, norm_name(name)), {})
             player["minutes"] = pctx.get("minutes")
