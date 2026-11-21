@@ -115,12 +115,14 @@ def main():
                     return {
                         roster: box(document.querySelector('#hzm-player-list-wrap')),
                         row:box(row), name:box(row.querySelector('.hzm-player-info')),
-                        stats:cells.map(box)
+                        stats:cells.map(box),
+                        textFits:cells.map(el=>el.scrollWidth<=el.clientWidth+1),
                     };
                 }""")
-                assert widths["roster"]["width"] >= 419, widths
+                assert widths["roster"]["width"] >= 499, widths
                 assert len(widths["stats"]) == 4, widths
-                assert all(cell["width"] >= 45 for cell in widths["stats"]), widths
+                assert all(cell["width"] >= 64 for cell in widths["stats"]), widths
+                assert all(widths["textFits"]), widths
                 assert widths["name"]["right"] <= widths["stats"][0]["left"] + 2, widths
                 assert all(a["right"] <= b["left"] + 1
                            for a,b in zip(widths["stats"],widths["stats"][1:])), widths
