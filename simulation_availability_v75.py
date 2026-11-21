@@ -124,6 +124,11 @@ def availability_evidence(player_table, injury_table, metadata, game, *,
         "score_delta": {"home": changes[home], "away": changes[away]},
         "players": player_context,
         "report_fresh": recent_report,
+        # Browser must re-check expiry: a cached response can cross the 90m
+        # report freshness boundary without fetching again.
+        "report_valid_until": (
+            (report_time + pd.Timedelta(minutes=90)).isoformat()
+            if recent_report else None),
         "out_count": {"home": counted_out[home], "away": counted_out[away]},
         "uncertain_count": {"home": uncertain[home], "away": uncertain[away]},
         "minute_coverage": {"home": covered[home], "away": covered[away]},

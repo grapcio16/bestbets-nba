@@ -42,6 +42,7 @@ class AvailabilityV75Tests(unittest.TestCase):
     def test_recent_out_changes_only_team_with_proven_participation(self):
         result = self.evidence()
         self.assertTrue(result["report_fresh"])
+        self.assertEqual(result["report_valid_until"], "2026-11-18T16:20:00+00:00")
         self.assertEqual(result["score_delta"], {"home": -2.5, "away": 0.0})
         self.assertEqual(result["out_count"], {"home": 1, "away": 0})
         self.assertEqual(result["players"][("BOS", "samplestar")]["minutes"], 0.0)
@@ -67,6 +68,7 @@ class AvailabilityV75Tests(unittest.TestCase):
         for meta in conditions:
             with self.subTest(meta=meta):
                 self.assertEqual(self.evidence(meta=meta)["score_delta"]["home"], 0)
+                self.assertIsNone(self.evidence(meta=meta)["report_valid_until"])
         self.assertEqual(self.evidence(historical=True)["score_delta"]["home"], 0)
 
     def test_wrong_team_or_future_boxscores_do_not_create_absence(self):

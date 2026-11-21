@@ -513,3 +513,43 @@
  #simulations-pane .hzm-minute-head{flex-wrap:wrap;gap:4px}
  #simulations-pane .hzm-minute-controls{grid-template-columns:minmax(0,1fr);gap:9px}
 }
+
+/* Phase 4E — evidence-only ESPN Injury Watch; not a speculative lineup model. */
+#simulations-pane .hzm-availability-panel{
+ grid-column:1/-1;min-width:0;border:1px solid #486bb6;border-radius:12px;
+ padding:14px 17px;background:radial-gradient(ellipse at 96% 6%,#3c26784a,transparent 65%),#091a33
+}
+#simulations-pane .hzm-availability-head{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+#simulations-pane .hzm-availability-head strong{font-size:14px;font-weight:900;color:#56e9f6}
+#simulations-pane .hzm-availability-freshness{
+ border:1px solid #6462a5;border-radius:10px;padding:4px 8px;
+ font-weight:800;font-size:9px;color:#d6bfeb;background:#211b44
+}
+#simulations-pane .hzm-availability-message{font-size:10px;line-height:1.4;color:#a7cbe0;margin:9px 0}
+#simulations-pane .hzm-availability-teams{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#simulations-pane .hzm-availability-team{
+ padding:10px;border:1px solid #296f98;border-radius:9px;background:#08243e;min-width:0
+}
+#simulations-pane .hzm-availability-team.home{border-color:#8854c3;background:#1b193a}
+#simulations-pane .hzm-availability-team header{display:flex;justify-content:space-between;gap:8px;align-items:center;margin:0 0 8px}
+#simulations-pane .hzm-availability-team header strong{font-size:13px;color:#53eafa}
+#simulations-pane .hzm-availability-team.home header strong{color:#d7a4ff}
+#simulations-pane .hzm-availability-team header span{color:#a6bfdb;font-size:9px;white-space:nowrap}
+#simulations-pane .hzm-availability-list{
+ display:flex;flex-direction:column;gap:5px;min-height:37px;max-height:205px;overflow-y:auto;
+ scrollbar-width:thin;scrollbar-color:#517da9 #09223f;font-size:10px;line-height:1.4;color:#b8cfe4
+}
+#simulations-pane .hzm-availability-row{display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:6px;background:#0b2f4b}
+#simulations-pane .hzm-availability-team.home .hzm-availability-row{background:#271d4b}
+#simulations-pane .hzm-availability-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f1faff;font-weight:800}
+#simulations-pane .hzm-availability-status{flex:0 0 auto;border-radius:7px;border:1px solid #3b98bd;padding:2px 5px;color:#7be8f3;font-size:9px;font-weight:900}
+#simulations-pane .hzm-availability-status.out{border-color:#ec698b;color:#ff8caa;background:#57223f}
+#simulations-pane .hzm-availability-status.uncertain{border-color:#e5ac56;color:#ffcc80;background:#503325}
+#simulations-pane .hzm-availability-status.probable{border-color:#63b49f;color:#9be0bb;background:#153c39}
+#simulations-pane .hzm-availability-row small{color:#a5c8db;font-size:9px}
+#simulations-pane .hzm-availability-team>small{display:block;border-top:1px solid #37608b;margin-top:9px;padding-top:7px;color:#9cc8d9;font-size:10px}
+#simulations-pane .hzm-availability-warning{margin:9px 0 0;color:#9ab3cb;font-size:9px;line-height:1.45}
+@media(max-width:767px){
+ #simulations-pane .hzm-availability-teams{grid-template-columns:minmax(0,1fr)}
+ #simulations-pane .hzm-availability-row small{display:none}
+}
