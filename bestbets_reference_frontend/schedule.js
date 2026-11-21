@@ -210,7 +210,7 @@ function render(data,details){
   if(!selectedDay)selectedDay=safeDay(data?.calendar_today)?data.calendar_today:today();
   dateNavigation();
   syncFilters();
-  const host=$("hzs-board");if(!host;
+  const host=$("hzs-board");if(!host)return;
   const previousScroll=host.scrollTop;
   const footnote=$("hzs-source-note");
   const counter=$("hzs-match-count");
