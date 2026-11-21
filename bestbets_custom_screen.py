@@ -78,6 +78,18 @@ def _cached_centre_day(day: str) -> dict:
     return get_centre_day_data(day)
 
 
+@st.cache_data(ttl=45, show_spinner=False)
+def _cached_schedule_details_live(game_id: str, away: str, home: str) -> dict:
+    from bestbets_schedule_details import load_game_details
+    return load_game_details(game_id, away, home, "live")
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _cached_schedule_details_final(game_id: str, away: str, home: str) -> dict:
+    from bestbets_schedule_details import load_game_details
+    return load_game_details(game_id, away, home, "final")
+
+
 def _safe_centre_live() -> dict:
     """Always give the frontend a complete status, even on backend failures."""
     try:
@@ -455,6 +467,7 @@ def main() -> None:
             st.session_state.get("bb10_premium_team_analytics") if has_premium else None
         ),
         "free_details": st.session_state.get("bb10_free_leader_details"),
+        "schedule_game_details": st.session_state.get("bb10_schedule_game_details"),
         # This is intentionally absent for all non-admin identities.
         "admin_report": st.session_state.get("bb10_admin_report") if is_admin else None,
         # Never serialize premium model output into a guest's iframe.
@@ -702,6 +715,48 @@ def main() -> None:
             if allowed_force:
                 st.session_state["bb10_player_catalog_force_at"] = time.monotonic()
                 st.session_state.pop("bb10_premium_player_averages", None)
+        st.rerun()
+        return
+    if event.get("type") == "schedule_game_details":
+        # Only allow ESPN summaries for a game already present in this session's
+        # trusted NBA scoreboard. Do not accept arbitrary IDs or team names.
+        import re
+        game_id = _plain(event.get("game_id"))
+        day = _plain(event.get("date"))
+        if not re.fullmatch(r"\d{6,15}", game_id) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day):
+            return
+        snapshot = st.session_state.get("bb10_centre_data") or {}
+        original = snapshot.get("calendar_games") or []
+        extra = (st.session_state.get("bb10_centre_extra_days") or {}).get(day) or {}
+        trusted = list(original) + list(extra.get("games") or [])
+        game = next((g for g in trusted
+                     if isinstance(g, dict) and str(g.get("id")) == game_id
+                     and g.get("day") == day and g.get("state") in ("live", "final")), None)
+        if game is None:
+            st.session_state["bb10_schedule_game_details"] = {
+                "id": game_id, "day": day, "data": None,
+                "error": "Ten mecz nie jest dostępny w potwierdzonym terminarzu ESPN."
+            }
+            st.rerun()
+            return
+        away, home = game.get("away"), game.get("home")
+        try:
+            if away not in TEAM_FULL or home not in TEAM_FULL or away == home:
+                raise ValueError("Nieprawidłowe drużyny")
+            fetch = (_cached_schedule_details_live if game["state"] == "live"
+                     else _cached_schedule_details_final)
+            details = fetch(game_id, away, home)
+            st.session_state["bb10_schedule_game_details"] = {
+                "id": game_id, "day": day, "data": details, "error": ""
+            }
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Schedule boxscore unavailable: %s", type(exc).__name__)
+            st.session_state["bb10_schedule_game_details"] = {
+                "id": game_id, "day": day, "data": None,
+                "error": "Szczegółowe statystyki ESPN są chwilowo niedostępne."
+            }
         st.rerun()
         return
     if event.get("type") == "home_date":

@@ -481,7 +481,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       <div class="hzs-match-count" id="hzs-match-count" aria-live="polite">— meczów</div>
     </div>
     <div class="hzs-board" id="hzs-board" aria-live="polite"><div class="hzs-empty">Wczytywanie terminarza NBA…</div></div>
-    <div class="hzs-footnote"><span id="hzs-source-note">Rzeczywiste mecze NBA / ESPN</span><span>Przewiń, aby zobaczyć wszystkie spotkania ↓</span></div>
+    <div class="hzs-footnote"><span id="hzs-source-note">Rzeczywiste mecze NBA / ESPN</span><span>Kliknij mecz, aby rozwinąć szczegóły · przewiń ↓</span></div>
   </section>
   <section id="simulations-pane" class="hzm" hidden aria-label="Symulacje NBA Premium">
     <header class="hzm-header">
@@ -753,10 +753,12 @@ function resize(){
     viewportWidth>window.innerHeight;
   const mobileLayout=viewportWidth<=767 || shortLandscape;
   const mobileHome=mobileLayout && state.page==="home";
+  const mobileSchedule=mobileLayout && state.page==="games";
   shell.classList.toggle("hz-mobile-centre",mobileHome);
+  shell.classList.toggle("hz-mobile-schedule",mobileSchedule);
   shell.classList.toggle("hz-independent-scroll",!mobileLayout);
-  if(mobileHome){
-    // Preserve the existing iPhone/mobile-centre touch scrolling.
+  if(mobileHome||mobileSchedule){
+    // Native touch scrolling for the free Home and Schedule routes.
     root.style.transform="none";
     root.style.height="";
     shell.style.removeProperty("--hz-split-height");
@@ -1073,7 +1075,7 @@ function render(){
     // it can cause a needless Streamlit rerun while the iframe is sizing.
     // The existing watchdog retries after 6.5s if the host never responds.
   }
-  if(schedule && window.HoopzaroSchedule)window.HoopzaroSchedule.render(state.payload.home||null);
+  if(schedule && window.HoopzaroSchedule)window.HoopzaroSchedule.render(state.payload.home||null,state.payload.schedule_game_details||null);
   if(simulations && window.HoopzaroSimulations)window.HoopzaroSimulations.render(state.payload.home||null,state.payload.premium_simulation||null);
   if(players&&window.HoopzaroPlayers)window.HoopzaroPlayers.render(state.payload.player_catalog||null,state.payload.premium_player_averages||null,role);
   if(teams&&window.HoopzaroTeams)window.HoopzaroTeams.render(state.payload.home||null,state.payload.premium_team_analytics||null,role);
@@ -1217,13 +1219,23 @@ if(window.BestBetsCentre){
   });
 }
 if(window.HoopzaroSchedule){
-  window.HoopzaroSchedule.init({selectDay:function(day){
-    if(state.page!=="games" || !/^\d{4}-\d{2}-\d{2}$/.test(day))return;
-    notify("streamlit:setComponentValue",{dataType:"json",value:{
-      type:"home_date",date:day,
-      id:String(Date.now())+"-schedule-day-"+day+"-"+Math.random().toString(36).slice(2)
-    }});
-  }});
+  window.HoopzaroSchedule.init({
+    selectDay:function(day){
+      if(state.page!=="games" || !/^\d{4}-\d{2}-\d{2}$/.test(day))return;
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"home_date",date:day,
+        id:String(Date.now())+"-schedule-day-"+day+"-"+Math.random().toString(36).slice(2)
+      }});
+    },
+    gameDetails:function(game){
+      if(state.page!=="games" || !/^\d{6,15}$/.test(String(game?.game_id||"")) ||
+         !/^\d{4}-\d{2}-\d{2}$/.test(String(game?.date||"")))return;
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"schedule_game_details",date:game.date,game_id:game.game_id,
+        id:String(Date.now())+"-schedule-details-"+game.game_id+"-"+Math.random().toString(36).slice(2)
+      }});
+    }
+  });
 }
 if(window.HoopzaroSimulations){
   window.HoopzaroSimulations.init({

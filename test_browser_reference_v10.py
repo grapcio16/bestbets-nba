@@ -140,19 +140,19 @@ def main():
         assert page.locator("#hzs-date-strip button").count() == 7
         selected_day = page.locator(".hzs-date.selected").get_attribute("data-hzs-day")
         schedule_games = [
-            {"id": f"layout-{index}", "day": selected_day,
+            {"id": str(4018100000 + index), "day": selected_day,
              "away": "DEN", "home": "NOP", "state": status,
              "start": f"{selected_day}T02:00:00Z", "status": "Q3 03:00",
              "away_score": 98, "home_score": 91}
             for index, status in enumerate(("live", "final", "scheduled"))
         ]
         page.evaluate(
-            "home => window.postMessage({type:'streamlit:render',args:{payload:{home}}}, '*')",
+            "home => {window.__scheduleHome=home; window.postMessage({type:'streamlit:render',args:{payload:{home}}}, '*')}",
             {"calendar_today": selected_day, "calendar_loaded_days": [selected_day],
              "calendar_games": schedule_games,
-             "form_options": [{"team": "DEN", "wins": 6, "losses": 4,
+             "form_options": [{"team": "DEN", "name": "Denver Nuggets", "wins": 6, "losses": 4,
                                "ppg": 114.5, "record_verified": True},
-                              {"team": "NOP", "wins": 5, "losses": 5,
+                              {"team": "NOP", "name": "New Orleans Pelicans", "wins": 5, "losses": 5,
                                "ppg": 112.3, "record_verified": True}]},
         )
         page.wait_for_function("document.querySelectorAll('#hzs-board .hzs-game').length===3")
@@ -166,6 +166,8 @@ def main():
             "e => getComputedStyle(e).gridTemplateColumns.split(' ').filter(Boolean)")) == 2
         assert "NA ŻYWO · 3. KWARTA" in page.locator("#hzs-board").inner_text()
         assert "114,5 PPG" in page.locator("#hzs-board").inner_text()
+        assert "Denver Nuggets" in page.locator("#hzs-board").inner_text()
+        assert page.locator("#hzs-board .hzs-game").first.evaluate("el => el.tagName") == "BUTTON"
         board_box = page.locator("#hzs-board").bounding_box()
         game_box = page.locator("#hzs-board .hzs-featured").bounding_box()
         assert board_box and game_box
@@ -183,7 +185,48 @@ def main():
         page.locator('[data-hzs-filter="scheduled"]').click()
         assert page.locator("#hzs-board .hzs-game").count() == 1
         assert "NADCHODZĄCE" in page.locator("#hzs-board").inner_text()
+        # Pregame information expands inline without an ESPN summary request.
+        page.locator("#hzs-board .hzs-game").click()
+        assert page.locator("#hzs-game-details").is_visible()
+        assert "Spotkanie jeszcze się nie rozpoczęło" in page.locator("#hzs-game-details").inner_text()
+        assert "6–4" in page.locator("#hzs-game-details").inner_text()
+        assert page.locator("#hzs-game-details .hzs-detail-row").count() == 0
+        page.locator("#hzs-board .hzs-game").click()
+        assert page.locator("#hzs-game-details").count() == 0
+        # A finished game retrieves a verified boxscore only after explicit click.
+        page.evaluate("""() => {
+          window.__scheduleRequests = [];
+          window.addEventListener('message', event => {
+            if(event.data?.type==='streamlit:setComponentValue' &&
+              event.data.value?.type==='schedule_game_details')
+              window.__scheduleRequests.push(event.data.value);
+          });
+        }""")
+        page.locator('[data-hzs-filter="final"]').click()
+        page.locator("#hzs-board .hzs-game").click()
+        assert page.locator("#hzs-game-details").is_visible()
+        assert "Pobieranie" in page.locator("#hzs-game-details").inner_text()
+        page.wait_for_function("window.__scheduleRequests.length===1")
+        request = page.evaluate("window.__scheduleRequests[0]")
+        assert request["game_id"] == str(4018100001)
+        assert request["date"] == selected_day
+        page.evaluate(
+            "details => window.postMessage({type:'streamlit:render',args:{payload:{home:window.__scheduleHome,schedule_game_details:details}}},'*')",
+            {"id": str(4018100001), "day": selected_day, "error": "",
+             "data": {"id": str(4018100001), "away": "DEN", "home": "NOP",
+                      "quarters": [{"period":"Q1","away":28,"home":25}],
+                      "team_stats": [{"label":"REB","away":"42","home":"39"}],
+                      "leaders": {"away":[{"name":"Verified Player","pts":22,"reb":7,"ast":3}],
+                                  "home":[{"name":"Another Player","pts":20,"reb":8,"ast":5}]},
+                      "source":"ESPN"}},
+        )
+        page.wait_for_function("document.querySelector('#hzs-game-details')?.textContent.includes('Verified Player')")
+        assert "Q1" in page.locator("#hzs-game-details").inner_text()
+        assert "42" in page.locator("#hzs-game-details").inner_text()
+        assert page.locator("#hzs-game-details .hzs-leader").count() == 2
+        assert "SYMU" not in page.locator("#hzs-game-details").inner_text()
         page.locator('[data-hzs-filter="all"]').click()
+        assert page.locator("#hzs-game-details").count() == 0
         assert page.locator("#hzs-board .hzs-game").count() == 3
         assert page.locator("#hzs-board .hzs-featured").count() == 1
         # Unverified standings must not create a fake 'game of the day'.
@@ -230,8 +273,15 @@ def main():
         assert page.locator("#hzs-board .hzs-game").count() == 4
         feature_box = page.locator("#hzs-board .hzs-featured").bounding_box()
         compact_box = page.locator("#hzs-board .hzs-rows .hzs-game").first.bounding_box()
-        assert feature_box and feature_box["height"] <= 107, feature_box
-        assert compact_box and compact_box["height"] <= 70, compact_box
+        assert feature_box and feature_box["height"] <= 120, feature_box
+        assert compact_box and compact_box["height"] <= 85, compact_box
+        # The old 635px schedule wasted space on tall desktop windows.
+        page.set_viewport_size({"width": 1400, "height": 940})
+        page.wait_for_function("document.querySelector('#schedule-pane').getBoundingClientRect().height > 750")
+        tall = page.locator("#schedule-pane").bounding_box()
+        assert tall and tall["height"] > 750, tall
+        page.set_viewport_size({"width": 1231, "height": 691})
+        page.wait_for_function("Math.abs(document.querySelector('#schedule-pane').getBoundingClientRect().height-635)<3")
         # Premium simulations: the final evidence strip must fit inside
         # the canvas, with a two-line heading and no clipped insight cards.
         page.locator('.nav-btn[data-page="simulations"]').click()
