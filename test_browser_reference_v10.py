@@ -151,6 +151,13 @@ def main():
         assert 100 <= hero_box["height"] <= 125, hero_box
         assert first_game_box["y"] + first_game_box["height"] < pane_box["y"] + pane_box["height"] - 15, (
             first_game_box, pane_box)
+        # Never cut off the match's starting time / result caption.
+        caption_box = page.locator("#hzs-board .hzs-mini-bottom").first.bounding_box()
+        assert caption_box
+        assert caption_box["y"] + caption_box["height"] <= (
+            first_game_box["y"] + first_game_box["height"] - 3), (caption_box, first_game_box)
+        assert page.locator("#hzs-board .hzs-mini-bottom").first.evaluate(
+            "e => e.scrollHeight <= e.clientHeight + 2")
         assert page.locator("#hzv-day-title").count() == 0
         assert page.locator("#hzv-search").is_visible()
         assert page.locator("#hzs-today").is_visible()
@@ -218,6 +225,52 @@ def main():
         assert page.locator('[data-hzv-history="h2h"]').is_visible()
         page.locator('[data-hzv-history="recent"]').click()
         assert page.locator('[data-hzv-history="recent"]').get_attribute("class") == "selected"
+        # Simulate a genuine Streamlit iframe remount while Game Center
+        # is open; the selected public game must survive the reload.
+        page.reload(wait_until="load")
+        assert page.locator("#schedule-pane").is_visible()
+        page.evaluate(
+            "args => window.postMessage({type:'streamlit:render',args:{payload:args}},'*')",
+            {"home":schedule_data, "schedule_game_details":{
+                "id":str(4018100001), "day":selected_day, "error":"",
+                "data":{"id":str(4018100001),"away":"DEN","home":"NOP",
+                        "quarters":[{"period":"Q1","away":28,"home":25}],
+                        "team_stats":[{"label":"Zbiórki","away":"42","home":"39"}],
+                        "leaders":{"away":[{"name":"Verified Player","pts":22,"reb":7,"ast":3}],
+                                   "home":[]}, "source":"ESPN"}
+            }},
+        )
+        page.wait_for_function(
+            "document.querySelector('#hzv-game-content')?.textContent.includes('Verified Player')")
+        assert page.locator("#hzv-game-page").is_visible()
+        assert page.locator("#hzs-board .hzs-game").first.is_hidden()
+        page.locator("#hzv-game-back").click()
+        assert page.evaluate("!sessionStorage.getItem('hoopzaro.schedule.openGame.v1')")
+        # An error for an earlier game must not obscure the loading state
+        # when the user opens a different NBA match.
+        page.locator('[data-hzs-filter="live"]').click()
+        page.locator("#hzs-board .hzs-game").click()
+        assert page.locator("#hzv-game-page").is_visible()
+        page.evaluate(
+            "args => window.postMessage({type:'streamlit:render',args:{payload:args}},'*')",
+            {"home":schedule_data, "schedule_game_details":{
+                "id":str(4018100001),"day":selected_day,
+                "data":None,"error":"Poprzedni mecz jest niedostępny"
+            }},
+        )
+        assert "Poprzedni mecz jest niedostępny" not in page.locator("#hzv-game-content").inner_text()
+        assert "Pobieranie zweryfikowanego" in page.locator("#hzv-game-content").inner_text()
+        page.evaluate(
+            "args => window.postMessage({type:'streamlit:render',args:{payload:args}},'*')",
+            {"home":schedule_data, "schedule_game_details":{
+                "id":str(4018100000),"day":selected_day,
+                "data":None,"error":"Szczegółowe statystyki ESPN są chwilowo niedostępne."
+            }},
+        )
+        retry_button = page.locator("[data-hzv-retry-game]")
+        assert retry_button.is_visible()
+        retry_button.click()
+        assert "Pobieranie zweryfikowanego" in page.locator("#hzv-game-content").inner_text()
         page.locator("#hzv-game-back").click()
         page.locator('[data-hzs-filter="all"]').click()
         # Unverified records never yield an invented featured matchup.
