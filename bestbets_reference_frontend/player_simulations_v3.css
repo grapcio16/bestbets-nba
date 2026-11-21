@@ -247,3 +247,11 @@
  color:#defaff;font-size:10px;font-weight:800}
 #hzv3 .hzv3-return-props:hover{background:#185b81}
 #hzv3 .hzv3-history-actions button:disabled{opacity:.38;cursor:not-allowed}
+
+/* Prevent Player V3 data-grid cards from intercepting upper toolbar clicks
+   in the independently scrolling HOOPZARO shell. Toolbar is the topmost
+   interaction layer; chart and inspector cards remain in normal flow. */
+#hzv3 .hzv3-titlebar{position:relative;z-index:22}
+#hzv3 .hzv3-toolbar{position:relative;z-index:21;isolation:isolate}
+#hzv3 .hzv3-grid{position:relative;z-index:1}
+#hzv3 .hzv3-teams,#hzv3 .hzv3-search{position:relative;z-index:22}
