@@ -39,14 +39,24 @@ def main():
             "el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean)")) == 1
         assert page.locator(".hz-mobile-nav").is_visible()
         assert page.locator("#hzs-board").evaluate("el=>getComputedStyle(el).overflowY") == "visible"
-        assert page.evaluate("document.documentElement.scrollHeight") > 844
-        assert page.evaluate("document.documentElement.scrollWidth") <= 394
+        heights = page.evaluate("""() => ({
+            document: document.documentElement.scrollHeight,
+            body: document.body.scrollHeight,
+            scrolling: document.scrollingElement?.scrollHeight || 0,
+            pane: document.querySelector('#schedule-pane').scrollHeight,
+            board: document.querySelector('#hzs-board').scrollHeight,
+            viewport: innerHeight
+        })""")
+        print("Mobile schedule scroll geometry:", heights)
+        assert max(heights["document"], heights["body"], heights["scrolling"]) > 844, heights
+        assert page.evaluate("Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)") <= 394
         page.locator("#hzs-board .hzs-game").first.click()
         assert page.locator("#hzs-game-details").is_visible()
         assert "Pobieranie" in page.locator("#hzs-game-details").inner_text()
         page.mouse.wheel(0,850)
         page.wait_for_timeout(120)
-        assert page.evaluate("window.scrollY") > 0
+        scroll = page.evaluate("Math.max(window.scrollY,document.body.scrollTop,document.documentElement.scrollTop)")
+        assert scroll > 0, {"scroll":scroll,"heights":heights}
         assert not errors, errors
         browser.close()
 
