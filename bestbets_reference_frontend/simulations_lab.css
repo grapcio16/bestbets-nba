@@ -607,3 +607,49 @@
  #simulations-pane .hzm-intel-head{align-items:flex-start}
  #simulations-pane .hzm-intel-model{font-size:9px}
 }
+
+/* Stage 6A: factual Team Comparison; original Simulation Lab geometry retained. */
+#simulations-pane #hzm-compare-panel[hidden]{display:none!important}
+#simulations-pane[data-hzm-view="comparison"] .hzm-content{height:auto;min-height:0}
+#simulations-pane .hzm-compare-panel{min-width:0;display:flex;flex-direction:column;gap:12px;border:1px solid #266da4;border-radius:13px;padding:16px;background:radial-gradient(ellipse at 95% 5%,#652c9844,transparent 60%),#081b35;color:#eefaff}
+#simulations-pane .hzm-compare-header{display:flex;align-items:center;justify-content:space-between;gap:15px}
+#simulations-pane .hzm-compare-header small{font-size:9px;letter-spacing:1px;color:#49edf7;font-weight:850}
+#simulations-pane .hzm-compare-header h2{font-size:21px;font-weight:950;line-height:1.1;margin:3px 0}
+#simulations-pane .hzm-compare-header p{color:#9fbed6;font-size:10px;margin:3px 0 0}
+#simulations-pane .hzm-compare-window{display:flex;flex:0 0 auto;gap:4px;padding:3px;border:1px solid #32668f;border-radius:9px;background:#09152e}
+#simulations-pane .hzm-compare-window button{min-width:46px;padding:8px 10px;border:1px solid transparent;border-radius:7px;color:#b8ccdf;background:transparent;font-family:inherit;font-size:11px;font-weight:900;cursor:pointer}
+#simulations-pane .hzm-compare-window button.selected{border-color:#1eebf6;background:linear-gradient(100deg,#006a87,#36226c);color:#fff;box-shadow:0 0 10px #1db6ea44}
+#simulations-pane .hzm-compare-window button:focus-visible{outline:2px solid #5ae7fa;outline-offset:2px}
+#simulations-pane .hzm-compare-status{margin:0;color:#9ccbe4;font-size:10px;line-height:1.4}
+#simulations-pane .hzm-compare-teams{display:grid;grid-template-columns:minmax(0,1fr) 36px minmax(0,1fr);align-items:center;gap:8px}
+#simulations-pane .hzm-compare-team{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;row-gap:5px;align-items:center;padding:12px;border:1px solid #227e9e;border-radius:11px;background:linear-gradient(130deg,#06344d,#102443)}
+#simulations-pane .hzm-compare-team.home{background:linear-gradient(130deg,#231547,#291a50);border-color:#ab61d8}
+#simulations-pane .hzm-compare-side{grid-column:1/-1;color:#8acbd9;font-size:9px;font-weight:900;letter-spacing:.8px}
+#simulations-pane .hzm-compare-team strong{font-size:22px;color:#52f1f8;font-weight:950}
+#simulations-pane .hzm-compare-team.home strong{color:#d9a2fa}
+#simulations-pane .hzm-compare-team small{color:#9db5d1;font-size:9px;grid-column:1/2}
+#simulations-pane .hzm-compare-team-record{color:#eefbff;font-size:13px;font-weight:900;grid-column:2;grid-row:2/4;text-align:right;white-space:nowrap}
+#simulations-pane .hzm-compare-versus{font-size:13px;color:#bb8cf5;text-align:center;font-weight:950}
+#simulations-pane .hzm-compare-table{border:1px solid #346697;border-radius:11px;overflow:hidden;background:#0a203b}
+#simulations-pane .hzm-compare-table-head,#simulations-pane .hzm-compare-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr) minmax(0,1fr);align-items:center;text-align:center;gap:8px;padding:10px 12px}
+#simulations-pane .hzm-compare-table-head{background:#101e3a;border-bottom:1px solid #3775a4;color:#94dce9;font-size:10px;font-weight:900}
+#simulations-pane .hzm-compare-table-head span:last-child{color:#ce9cfa}
+#simulations-pane .hzm-compare-row{min-height:37px;border-bottom:1px solid #24476a}
+#simulations-pane .hzm-compare-row:last-child{border-bottom:0}
+#simulations-pane .hzm-compare-row.distinct{background:#112548}
+#simulations-pane .hzm-compare-row span{font-size:10px;color:#b5d0e6}
+#simulations-pane .hzm-compare-row span small{font-size:9px;font-weight:900;color:#e7b8fe}
+#simulations-pane .hzm-compare-row strong{font-size:15px;font-weight:950;color:#5aebf4;font-variant-numeric:tabular-nums}
+#simulations-pane .hzm-compare-row strong:last-child{color:#d8a0f8}
+#simulations-pane .hzm-compare-disclaimer{border-top:1px solid #31577d;padding-top:8px;font-size:9px;line-height:1.55;color:#a5b9d8}
+@media(max-width:767px){
+ #simulations-pane .hzm-compare-panel{padding:12px}
+ #simulations-pane .hzm-compare-header{flex-wrap:wrap}
+ #simulations-pane .hzm-compare-team strong{font-size:18px}
+ #simulations-pane .hzm-compare-teams{grid-template-columns:minmax(0,1fr) 24px minmax(0,1fr);gap:5px}
+ #simulations-pane .hzm-compare-team{grid-template-columns:minmax(0,1fr);padding:8px}
+ #simulations-pane .hzm-compare-team-record{grid-column:1;grid-row:auto;text-align:left}
+ #simulations-pane .hzm-compare-row,#simulations-pane .hzm-compare-table-head{padding:8px 5px;gap:4px}
+ #simulations-pane .hzm-compare-row strong{font-size:13px}
+ #simulations-pane .hzm-compare-row span{font-size:9px}
+}
