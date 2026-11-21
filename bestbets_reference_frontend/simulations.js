@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,scenarioPending:"",requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -62,7 +62,7 @@ function toggleModelDropdown(open,restoreFocus=false){
 }
 function chooseModel(model){
   if(!MODEL_CHOICES.some(item=>item.id===model)||model===state.model)return;
-  state.model=model;state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
+  state.model=model;state.gamePending="";state.playersPending="";state.scenarioPct=0;state.scenarioPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function toggleMatchPicker(open){
@@ -73,7 +73,7 @@ function toggleMatchPicker(open){
  trigger.setAttribute("aria-expanded",String(visible));
 }
 function chooseView(view){
- if(!["results","players"].includes(view)||view===state.view)return;
+ if(!["results","players","scenario"].includes(view)||view===state.view)return;
  state.view=view;
  state.expanded=view==="players";
  render(state.lastHome,state.lastPremium);
@@ -126,6 +126,8 @@ function bridgeToHistory(market){
 function syncLabView(){
  const pane=$("simulations-pane");
  if(pane)pane.dataset.hzmView=state.view;
+ if($("hzm-detail-grid"))$("hzm-detail-grid").hidden=state.view==="scenario";
+ if($("hzm-scenario-panel"))$("hzm-scenario-panel").hidden=state.view!=="scenario";
  const nav=$("hzm-lab-nav");
  if(nav)nav.querySelectorAll("[data-hzm-view]").forEach(tab=>{
    const active=tab.dataset.hzmView===state.view;
@@ -367,6 +369,44 @@ function maybeLoadPaid(game,premium,sim,players){
   if(!sim&&state.gamePending!==key){state.gamePending=key;callbacks?.loadGame?.(state.day,game.id,state.model)}
   if(sim&&!sim.error&&!players&&state.playersPending!==key){state.playersPending=key;callbacks?.loadPlayers?.(state.day,game.id,state.model)}
 }
+function showScenario(game,sim,premium){
+ const panel=$("hzm-scenario-panel");
+ if(!panel)return;
+ const paid=premium?.entitled===true;
+ const eligible=paid&&game?.state==="scheduled"&&Date.parse(game?.start||"")>Date.now()&&sim&&!sim.error;
+ const pace=$("hzm-scenario-pace"),run=$("hzm-scenario-run");
+ if(pace&&Number(pace.value)!==state.scenarioPct)pace.value=String(state.scenarioPct);
+ const label=$("hzm-scenario-pace-display");
+ if(label)label.textContent=(state.scenarioPct>0?"+":"")+state.scenarioPct+"%";
+ if(run)run.disabled=!eligible;
+ const baseline=$("hzm-scenario-base"),changed=$("hzm-scenario-whatif"),delta=$("hzm-scenario-delta"),status=$("hzm-scenario-status");
+ if(!baseline||!changed||!delta||!status)return;
+ baseline.textContent=eligible?fmt(sim.total_points)+" pkt":"—";
+ changed.textContent="—";delta.textContent="—";
+ if(!paid){status.textContent="Wymagane aktywne Premium. Scenariusz nie ujawnia danych modelu.";return}
+ if(!game){status.textContent="Wybierz mecz.";return}
+ if(game.state!=="scheduled"||!(Date.parse(game.start||"")>Date.now())){
+   status.textContent="Scenariusze dostępne tylko dla potwierdzonych przyszłych spotkań.";return
+ }
+ if(!sim){status.textContent="Pobieranie bazowej prognozy…";return}
+ if(sim.error){status.textContent=sim.error;return}
+ const data=premium?.scenario;
+ const matched=data&&data.date===state.day&&String(data.game_id)===String(game.id)&&
+   data.model_id===state.model&&data.pace_pct===state.scenarioPct;
+ if(matched){
+   if(data.error){status.textContent=String(data.error).slice(0,180);return}
+   const total=data.scenario?.total_points,base=data.baseline?.total_points;
+   if(Number.isFinite(Number(total))&&Number.isFinite(Number(base))){
+     changed.textContent=fmt(total)+" pkt";
+     delta.textContent=(total-base>0?"+":"")+fmt(total-base)+" pkt";
+     status.textContent="Obliczono 5 000 symulacji dla każdej wersji. Tempo: "+
+       (state.scenarioPct>0?"+":"")+state.scenarioPct+"%.";
+     return;
+   }
+ }
+ status.textContent=state.scenarioPending===state.day+"|"+game.id+"|"+state.model+"|"+state.scenarioPct
+   ?"Trwa przeliczanie scenariusza…":"Zmień założenie i kliknij Przelicz 5 000 symulacji.";
+}
 function render(home,premium){
   state.lastHome=home;state.lastPremium=premium;
   syncModelDropdown();
@@ -377,7 +417,7 @@ function render(home,premium){
   if(data.known&&state.requestedDay===state.day)state.requestedDay="";
   if(!data.games.some(game=>game.id===state.gameId)){
     const next=data.games.find(game=>game.state==="scheduled")||data.games[0];
-    state.gameId=next?.id||"";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;
+    state.gameId=next?.id||"";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.scenarioPending="";
   }
   $("hzm-day-title").textContent=labelDay(state.day);
   $("hzm-day-input").value=state.day;
@@ -422,12 +462,12 @@ function render(home,premium){
     ?"Zweryfikowane Premium wymagane":!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":
       sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji · "+modelLabel());
   $("simulations-pane").classList.toggle("hzm-premium-locked",!premium?.entitled);
-  showChart(sim,game,premium);showPlayers(premium,players,game);
+  showChart(sim,game,premium);showPlayers(premium,players,game);showScenario(game,sim,premium);
   maybeLoadPaid(game,premium,sim,players);
 }
 function navigate(day){
   if(!safeDate(day)||!withinRange(day)||state.day===day)return;
-  state.day=day;state.gameId="";state.chart="match";state.fromProps=null;state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
+  state.day=day;state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.scenarioPending="";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function init(api){
@@ -449,6 +489,23 @@ function init(api){
   });
   // Popup buttons are rerendered in place, but the list container stays
   // mounted. Handle its clicks directly so selecting a game always closes it.
+  $("hzm-scenario-pace")?.addEventListener("input",event=>{
+    const value=Number(event.target.value);
+    if(!Number.isInteger(value)||value< -5||value>5)return;
+    state.scenarioPct=value;state.scenarioPending="";
+    showScenario(gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId),
+      trustedResult(state.lastPremium,gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId)),state.lastPremium);
+  });
+  $("hzm-scenario-run")?.addEventListener("click",()=>{
+    const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+    const sim=trustedResult(state.lastPremium,game);
+    if(!state.lastPremium?.entitled||!sim||sim.error||game?.state!=="scheduled"||
+       !(Date.parse(game.start||"")>Date.now()))return;
+    const key=state.day+"|"+game.id+"|"+state.model+"|"+state.scenarioPct;
+    state.scenarioPending=key;
+    callbacks?.loadScenario?.(state.day,game.id,state.model,state.scenarioPct);
+    showScenario(game,sim,state.lastPremium);
+  });
   $("hzm-player-search").addEventListener("input",event=>{
     state.playerQuery=String(event.target.value||"").slice(0,70);
     state.playerIndex=-1;
@@ -479,7 +536,7 @@ function init(api){
     const selected=event.target.closest("[data-hzm-game]");
     if(!selected)return;
     event.stopPropagation();
-    state.gameId=selected.dataset.hzmGame;state.chart="match";state.playerIndex=-1;state.fromProps=null;
+    state.gameId=selected.dataset.hzmGame;state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.scenarioPending="";
     state.expanded=state.view==="players";
     toggleMatchPicker(false);
     render(state.lastHome,state.lastPremium);
@@ -504,7 +561,7 @@ function init(api){
     if(arrow){navigate(dayShift(state.day,Number(arrow.dataset.hzmShift)));return}
     const gameButton=event.target.closest("[data-hzm-game]");
     if(gameButton){
-      state.gameId=gameButton.dataset.hzmGame;state.chart="match";state.playerIndex=-1;state.fromProps=null;
+      state.gameId=gameButton.dataset.hzmGame;state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.scenarioPending="";
       state.expanded=state.view==="players";toggleMatchPicker(false);
       render(state.lastHome,state.lastPremium);return;
     }
