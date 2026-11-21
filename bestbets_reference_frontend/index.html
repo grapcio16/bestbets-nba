@@ -658,6 +658,22 @@ const marketNames={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made"
 const pages={home:"Centrum",props:"Player Props",games:"Terminarz",simulations:"Symulacje",players:"Zawodnicy",teams:"Drużyny",settings:"Ustawienia",shortcuts:"Skrót wpisywania",admin:"Model Performance"};
 const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",loading:false,lastIdentity:"",homeRequested:false,homeRequestAt:0,homeLastAttempt:0,homeRetryCount:0,homeTimedOut:false,paywallOpen:false,paywallServerErrorSeen:"",adminLoading:false,adminLastRequest:0,playerCatalogRequested:false,playerAveragesRequested:false,teamAnalyticsRequested:false,playerIdentity:""};
 const marketLabels={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PTS + REB + AST"};
+// The server sends each logo once rather than repeating base64 in every game.
+// Keep the original badge markup and image sizing: only resolve references.
+window.hzResolveTeamLogo=function(value){
+  if(typeof value!=="string"||!value.startsWith("team-logo:"))return value;
+  const code=value.slice(10);
+  if(!/^[A-Z]{3}$/.test(code))return "";
+  const home=state.payload.home||{};
+  const original=home.team_logos?.[code];
+  if(typeof original==="string")return original;
+  const extras=home.calendar_extras||{};
+  for(const day of Object.values(extras)){
+    const uri=day?.team_logos?.[code];
+    if(typeof uri==="string")return uri;
+  }
+  return "";
+};
 function syncMarketPicker(){
   $("market").value=state.market;
   text("market-selected-label",marketLabels[state.market]||"Points");
