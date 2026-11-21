@@ -354,3 +354,13 @@
 #simulations-pane .hzm-inspector-metric{cursor:pointer;font:inherit;text-align:left}
 #simulations-pane .hzm-inspector-metric[aria-pressed="true"]{border-color:#13d9eb;box-shadow:0 0 0 1px rgba(19,217,235,.38) inset;background:rgba(12,104,133,.22)}
 #simulations-pane .hzm-inspector-metric:focus-visible{outline:2px solid #25e4f4;outline-offset:2px}
+
+/* Bidirectional navigation: retain the current selectable market/history CTA. */
+#simulations-pane .hzm-return-to-props{
+ margin-top:4px;min-height:28px;padding:5px 9px;width:100%;
+ border:1px solid #9265cf;border-radius:8px;
+ background:linear-gradient(90deg,#211b46,#10354c);
+ color:#e6ddff;font-family:inherit;font-size:9px;font-weight:850;cursor:pointer
+}
+#simulations-pane .hzm-return-to-props:hover{border-color:#ddb3ff;background:#38205f}
+#simulations-pane .hzm-return-to-props:focus-visible{outline:2px solid #6bf2ff;outline-offset:2px}
