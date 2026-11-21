@@ -452,3 +452,87 @@
  #app-shell.hz-mobile-schedule .hzv-season{display:none!important}
  #app-shell.hz-mobile-schedule .hzv-gc-team small{display:none}
 }
+
+/* Compact Terminarz 4.1: controls first, no duplicated date heading.
+   Preserve the approved purple arena, match cards and conference sidebar. */
+#schedule-pane.hzv4 .hzv-main{gap:6px}
+#schedule-pane.hzv4 .hzv-controls{
+  display:flex;flex-direction:column;gap:6px;flex:0 0 auto;min-width:0
+}
+#schedule-pane.hzv4 .hzv-search-row{
+  display:flex;align-items:center;gap:9px;width:100%;min-width:0
+}
+#schedule-pane.hzv4 .hzv-search-row .hzv-search{
+  flex:1 1 auto;min-width:0;height:32px
+}
+#schedule-pane.hzv4 .hzv-search-row .hzv-day-actions{
+  flex:0 0 auto;gap:5px;display:flex;align-items:center
+}
+#schedule-pane.hzv4 .hzv-search-row .hzv-day-actions button{height:30px}
+#schedule-pane.hzv4 .hzv-search-row .hzv-day-nav{width:30px}
+#schedule-pane.hzv4 .hzv-search-row .hzv-day-today{padding:0 12px}
+#schedule-pane.hzv4 .hzv-filterbar{
+  height:25px;flex:0 0 25px;gap:5px
+}
+#schedule-pane.hzv4 .hzv-results-count{
+  flex:0 0 auto;margin-left:auto;padding:0 3px 0 8px;
+  color:#b3cce3;font-size:10px;white-space:nowrap;
+  font-weight:800;font-variant-numeric:tabular-nums
+}
+#schedule-pane.hzv4 .hzv-hero{
+  height:113px;flex:0 0 113px;border-radius:14px
+}
+#schedule-pane.hzv4 .hzv-featured-button{
+  padding:13px 33px 8px;grid-template-columns:1fr 1.3fr 1fr
+}
+#schedule-pane.hzv4 .hzv-featured-team{gap:3px}
+#schedule-pane.hzv4 .hzv-featured-team .hzs-team-mark{
+  width:43px;height:43px;flex:0 0 43px
+}
+#schedule-pane.hzv4 .hzv-featured-team .hzs-team-mark img{width:41px;height:41px}
+#schedule-pane.hzv4 .hzv-featured-team strong{font-size:13px}
+#schedule-pane.hzv4 .hzv-featured-center{gap:3px}
+#schedule-pane.hzv4 .hzv-featured-label{font-size:10px;letter-spacing:1.2px}
+#schedule-pane.hzv4 .hzv-featured-score{font-size:27px}
+#schedule-pane.hzv4 .hzv-featured-status{
+  padding:2px 12px;font-size:9px
+}
+#schedule-pane.hzv4 .hzv-hero-foot{bottom:6px}
+#schedule-pane.hzv4 .hzv-skeleton{margin-top:45px}
+#schedule-pane.hzv4 .hzs-section-title{margin:2px 0 2px;min-height:18px;height:18px}
+@media (max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+  #app-shell.hz-mobile-schedule .hzv-main{gap:7px!important}
+  #app-shell.hz-mobile-schedule .hzv-controls{gap:7px}
+  #app-shell.hz-mobile-schedule .hzv-search-row{gap:5px}
+  #app-shell.hz-mobile-schedule .hzv-search-row .hzv-search{
+    height:35px;flex:1 1 auto;min-width:0
+  }
+  #app-shell.hz-mobile-schedule .hzv-search-row .hzv-day-actions{gap:3px}
+  #app-shell.hz-mobile-schedule .hzv-search-row .hzv-day-nav{
+    width:25px;height:32px
+  }
+  #app-shell.hz-mobile-schedule .hzv-search-row .hzv-day-today{
+    height:32px;padding:0 8px;font-size:9px
+  }
+  #app-shell.hz-mobile-schedule .hzv-filterbar{
+    flex:0 0 28px!important;height:28px!important
+  }
+  #app-shell.hz-mobile-schedule .hzv-results-count{
+    padding:0 8px 0 4px;margin-left:auto;font-size:9px
+  }
+  #app-shell.hz-mobile-schedule .hzv-hero{
+    flex:0 0 110px!important;height:110px!important
+  }
+  #app-shell.hz-mobile-schedule .hzv-featured-button{
+    padding:15px 8px 8px!important
+  }
+  #app-shell.hz-mobile-schedule .hzv-featured-team .hzs-team-mark{
+    width:34px!important;height:34px!important;flex-basis:34px!important
+  }
+  #app-shell.hz-mobile-schedule .hzv-featured-team .hzs-team-mark img{
+    width:32px;height:32px
+  }
+  #app-shell.hz-mobile-schedule .hzv-featured-team strong{font-size:11px}
+  #app-shell.hz-mobile-schedule .hzv-featured-score{font-size:21px}
+  #app-shell.hz-mobile-schedule .hzv-featured-label{font-size:9px}
+}
