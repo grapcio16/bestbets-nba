@@ -126,6 +126,13 @@ assert.equal(elements["hzm-model-trigger"].attributes["aria-expanded"],"false");
 assert.equal(elements["hzm-model-select"].value,"research_form_v74");
 assert.equal(elements["hzm-model-current"].textContent,"V7.4 · FORMA + KONTEKST");
 assert.equal(elements["hzm-model-option-research_form_v74"].attributes["aria-selected"],"true");
+elements["hzm-model-trigger"].on_click({stopPropagation(){}});
+assert.equal(elements["hzm-model-options"].hidden,false,
+  "Direct dropdown trigger works independently of pane delegation");
+elements["hzm-model-option-legacy_v72"].on_click({stopPropagation(){}});
+assert.equal(elements["hzm-model-options"].hidden,true);
+assert.equal(elements["hzm-model-select"].value,"legacy_v72");
+
 // Simulation Lab 2.0: working tabs and match selector, not empty UI controls.
 app.render(home,{entitled:true,game:fakeGame,players:fakePlayers});
 elements["simulations-pane"].on_click({target:{closest(selector){
