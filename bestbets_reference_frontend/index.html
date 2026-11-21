@@ -955,11 +955,12 @@ function renderPlayer(){
   text("hero-grade","—");
   const labels={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PRA"};
   const caption=state.period==="L10"?"Last 10 Games":state.period==="L5"?"Last 5 Games":state.period==="L15"?"Last 15 Games":state.period==="2026"?"2026 Games":"Season Games";
-  text("chart-heading",caption+" — "+labels[state.market]);
+  text("chart-heading",caption+(state.venue==="HOME"?" (Home)":state.venue==="AWAY"?" (Away)":"")+" — "+labels[state.market]);
   renderChart(p);
   const windows=[["rate5","sample5",m&&m.l5],["rate10","sample10",m&&m.l10],["rate15","sample15",m&&m.l15],["rate-season","sample-season",m&&m.season]];
   windows.forEach(function(pair){const r=pair[2];text(pair[0],r?r.label:"—");text(pair[1],r?"("+r.wins+"/"+r.n+")":"—")});
-  text("season-avg",m?fmt(m.avg):"—");text("home-avg",m?fmt(m.home):"—");text("away-avg",m?fmt(m.away):"—");
+  text("season-avg",p?fmt(averageGames(p.games.filter(function(g){return finite(g[state.market])}))):"—");
+  text("home-avg",m?fmt(m.home):"—");text("away-avg",m?fmt(m.away):"—");
   document.querySelectorAll(".avg-box").forEach(function(box,i){
     box.classList.toggle("selected",i===(state.venue==="HOME"?1:state.venue==="AWAY"?2:0));
     box.disabled=!p;
