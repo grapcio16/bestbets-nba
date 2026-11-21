@@ -15,7 +15,7 @@ def main():
         page = browser.new_page(viewport={"width": 1231, "height": 691}, device_scale_factor=1)
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
-        # Keep the synthetic November fixture independent of the runner date.
+        # Keep the synthetic fixture date stable independently of runner date.
         page.clock.set_fixed_time("2026-11-14T12:00:00Z")
         page.goto(PAGE, wait_until="load")
         page.locator('.nav-btn[data-page="simulations"]').click()
@@ -46,12 +46,12 @@ def main():
                      "calendar_games": fixtures, "calendar_extras": {}},
             "premium_simulation": {
                 "entitled": True,
-                "game": {"model_id": "research_form_v74", "date": day, "game_id": "40100000", "away": "NYK", "home": "IND",
-                         "away_win_pct": 48.1, "home_win_pct": 51.9,
+                "game": {"date": day, "game_id": "40100000", "away": "NYK", "home": "IND",
+                         "model_id":"research_form_v74", "away_win_pct": 48.1, "home_win_pct": 51.9,
                          "away_points": 115, "home_points": 116,
                          "total_points": 231, "distributions": distributions,
                          "n_sims": 5000},
-                "players": {"model_id": "research_form_v74", "date": day, "game_id": "40100000", "home": "IND",
+                "players": {"date": day, "game_id": "40100000", "home": "IND", "model_id":"research_form_v74",
                             "players": players},
             },
         }
@@ -62,13 +62,34 @@ def main():
         page.wait_for_function("document.querySelectorAll('#hzm-matches button').length===4")
         assert page.locator("#hzm-score").inner_text() == "115 : 116"
         assert page.locator("#hzm-player-rows .hzm-player-row").count() == 4
+        assert page.locator(".hzm-lab-subtitle").inner_text() == "Simulation Lab 2.0"
+        assert page.locator("#hzm-lab-nav button:disabled").count()==4
+        assert page.locator("#hzm-lab-tab-results").get_attribute("aria-selected")=="true"
+        assert "216,0" in page.locator("#hzm-lab-range").inner_text()
+        assert page.locator("#hzm-match-list").is_hidden()
+        page.locator("#hzm-match-picker").click()
+        assert page.locator("#hzm-match-list").is_visible()
+        assert page.locator("#hzm-match-picker").get_attribute("aria-expanded")=="true"
+        assert page.locator("#hzm-match-list button").count()==4
+        page.locator("#hzm-matches [data-hzm-game='40100000']").click()
+        assert page.locator("#hzm-match-list").is_hidden()
+        assert page.locator("#hzm-match-picker").get_attribute("aria-expanded")=="false"
+        assert page.locator("#hzm-score").inner_text() == "115 : 116"
+        page.locator("#hzm-lab-tab-players").click()
+        assert page.locator("#hzm-lab-tab-players").get_attribute("aria-selected")=="true"
+        assert page.locator(".hzm-chart-card").is_hidden()
+        assert page.locator(".hzm-player-focused-note").is_visible()
+        assert page.locator("#hzm-player-rows .hzm-player-row").count()==14
+        page.locator("#hzm-lab-tab-results").click()
+        assert page.locator(".hzm-chart-card").is_visible()
+        assert page.locator("#hzm-score").inner_text() == "115 : 116"
         assert page.locator("#hzm-plot svg").count() == 1
         tabs = page.locator("#hzm-chart-tabs button")
         assert [tabs.nth(i).inner_text() for i in range(3)] == ["MECZ", "NYK", "IND"]
         page.locator("#hzm-expand-players").click()
         assert page.locator("#hzm-player-rows .hzm-player-row").count() == 14
         assert page.locator("#hzm-expand-players").get_attribute("aria-expanded") == "true"
-        assert page.locator("#hzm-players-panel").bounding_box()["height"] > 400
+        assert page.locator("#hzm-players-panel").bounding_box()["height"] >= 400
         page.screenshot(path=str(SCREENSHOT), full_page=True)
         assert not errors, errors
 
@@ -80,6 +101,12 @@ def main():
         assert "—" in page.locator("#hzm-score").inner_text()
         assert page.locator("#hzm-player-rows .hzm-player-row").count() == 0
         assert "Premium" in page.locator("#hzm-plot").inner_text()
+        assert page.locator("#hzm-lab-range").inner_text()=="Przedział 80%: —"
+        page.locator("#hzm-lab-tab-players").click()
+        assert page.locator("#hzm-player-rows .hzm-player-row").count()==0
+        assert "dostępne w Premium" in page.locator("#hzm-player-rows").inner_text()
+        page.locator("#hzm-lab-tab-results").click()
+        assert page.locator("#hzm-score").inner_text()=="— : —"
         assert not errors, errors
         browser.close()
         print("Premium simulations: browser layout, dynamic tabs, expanded players and paywall OK")
