@@ -36,12 +36,17 @@ def main():
                  "ast": float(5+i%3), "pra": float(26+i+i%2+i%3)}
                 for i in range(7)
             ]
+            phi_logo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGN8ZhPFwMDAxMDAwMDAAAAShgGAryh2VAAAAABJRU5ErkJggg=="
+            mil_logo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGOU29nAwMDAxMDAwMDAAAAP3AFbBNdn1AAAAABJRU5ErkJggg=="
             payload = {
                 "brand": "", "auth": {"role": "premium"},
                 "home": {"calendar_today": day, "calendar_loaded_days": [day],
+                         "team_logos": {"PHI": phi_logo, "MIL": mil_logo},
                          "calendar_games": [
                              {"id": game_id, "day": day, "away": "MIL",
                               "home": "PHI", "state": "scheduled",
+                              "away_logo": "team-logo:MIL",
+                              "home_logo": "team-logo:PHI",
                               "start": "2026-11-23T02:00:00Z"}]},
                 "premium_simulation": {
                     "entitled": True,
@@ -85,6 +90,27 @@ def main():
             assert page.locator("#hzv3-roster .hzv3-player").count() == 2
             assert "Test Guard Alpha" in page.locator("#hzv3-inspector").inner_text()
             assert page.locator("#hzv3-hist svg").count() == 1
+            # Badge behind the portrait follows the selected player's REAL
+            # game team, reusing verified home.team_logos (no separate URL).
+            watermark = page.locator("#hzv3-inspector .hzv3-team-watermark")
+            assert watermark.count() == 1
+            assert watermark.locator("img").get_attribute("src") == phi_logo
+            assert watermark.locator(".hzv3-team-watermark-label").inner_text() == "PHI"
+            assert page.locator("#hzv3-inspector .hzv3-headshot").count() == 0
+            color_style = page.evaluate("""() => {
+                const inspector = document.querySelector("#hzv3-inspector");
+                const mark = document.querySelector(".hzv3-team-watermark");
+                const card = document.querySelector(".hzv3-hist-card");
+                return {
+                    background: getComputedStyle(inspector).backgroundImage,
+                    border: getComputedStyle(inspector).borderTopColor,
+                    watermarkOpacity: Number(getComputedStyle(mark).opacity),
+                    chart: getComputedStyle(card).backgroundImage,
+                };
+            }""")
+            assert "radial-gradient" in color_style["background"], color_style
+            assert "radial-gradient" in color_style["chart"], color_style
+            assert .20 <= color_style["watermarkOpacity"] <= .45, color_style
             assert page.locator("#hzv3-trend svg").count() == 1
             assert page.locator("#hzv3-hist svg rect").count() >= 24
             assert "7 występów" in page.locator("#hzv3-rates-note").inner_text()
@@ -128,6 +154,14 @@ def main():
             assert page.locator('[data-hzv3-window="10"]').get_attribute("aria-pressed") == "true"
             assert page.locator("#hzv3-trend svg").count() == 1
 
+            # Select a different athlete: logo must switch PHI -> MIL
+            # without stale watermark or previous-team background.
+            page.locator('#hzv3-roster [data-hzv3-pick="1"]').click()
+            assert "Test Forward Beta" in page.locator("#hzv3-inspector").inner_text()
+            assert page.locator("#hzv3-inspector .hzv3-team-watermark img").get_attribute("src") == mil_logo
+            assert page.locator("#hzv3-inspector .hzv3-team-watermark-label").inner_text() == "MIL"
+            page.locator('#hzv3-roster [data-hzv3-pick="0"]').click()
+            assert page.locator("#hzv3-inspector .hzv3-team-watermark img").get_attribute("src") == phi_logo
             page.screenshot(path=str(OUT / f"player-simulations-neon-{width}x{height}.png"))
             payload["premium_simulation"] = {"entitled": False, "game": None, "players": None}
             payload["auth"] = {"role": "free"}
