@@ -90,6 +90,12 @@ def _cached_schedule_details_final(game_id: str, away: str, home: str) -> dict:
     return load_game_details(game_id, away, home, "final")
 
 
+@st.cache_data(ttl=600, show_spinner=False)
+def _cached_schedule_history_pregame(game_id: str, away: str, home: str, start: str) -> dict:
+    from bestbets_schedule_details import load_scheduled_game_history
+    return load_scheduled_game_history(game_id, away, home, start)
+
+
 def _safe_centre_live() -> dict:
     """Always give the frontend a complete status, even on backend failures."""
     try:
@@ -731,7 +737,7 @@ def main() -> None:
         trusted = list(original) + list(extra.get("games") or [])
         game = next((g for g in trusted
                      if isinstance(g, dict) and str(g.get("id")) == game_id
-                     and g.get("day") == day and g.get("state") in ("live", "final")), None)
+                     and g.get("day") == day and g.get("state") in ("scheduled", "live", "final")), None)
         if game is None:
             st.session_state["bb10_schedule_game_details"] = {
                 "id": game_id, "day": day, "data": None,
@@ -743,9 +749,12 @@ def main() -> None:
         try:
             if away not in TEAM_FULL or home not in TEAM_FULL or away == home:
                 raise ValueError("Nieprawidłowe drużyny")
-            fetch = (_cached_schedule_details_live if game["state"] == "live"
-                     else _cached_schedule_details_final)
-            details = fetch(game_id, away, home)
+            if game["state"] == "scheduled":
+                details = _cached_schedule_history_pregame(game_id, away, home, str(game.get("start") or ""))
+            else:
+                fetch = (_cached_schedule_details_live if game["state"] == "live"
+                         else _cached_schedule_details_final)
+                details = fetch(game_id, away, home)
             st.session_state["bb10_schedule_game_details"] = {
                 "id": game_id, "day": day, "data": details, "error": ""
             }
@@ -755,7 +764,8 @@ def main() -> None:
                 "Schedule boxscore unavailable: %s", type(exc).__name__)
             st.session_state["bb10_schedule_game_details"] = {
                 "id": game_id, "day": day, "data": None,
-                "error": "Szczegółowe statystyki ESPN są chwilowo niedostępne."
+                "error": ("Historia ESPN jest chwilowo niedostępna." if game["state"] == "scheduled"
+                          else "Szczegółowe statystyki ESPN są chwilowo niedostępne.")
             }
         st.rerun()
         return
