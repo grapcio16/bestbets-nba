@@ -945,7 +945,16 @@ function render(home,premium){
   state.lastHome=home;state.lastPremium=premium;
   syncModelDropdown();
   syncLabView();
-  if(!state.day)state.day=safeDate(home?.calendar_today)?home.calendar_today:localDay(new Date().toISOString());
+  // Streamlit can remount the iframe after a home_date fetch. The server
+  // supplies the last requested day in calendar_requested_day; restoring
+  // calendar_today here silently resets the user to the original date.
+  // Only initialize from the trusted server selection on a fresh mount;
+  // never override an in-progress click in the existing iframe.
+  if(!state.day){
+    const requested=home?.calendar_requested_day;
+    state.day=withinRange(requested)?requested:
+      safeDate(home?.calendar_today)?home.calendar_today:localDay(new Date().toISOString());
+  }
   const data=gamesForDay(home);
   if(!data.known&&home&&state.requestedDay!==state.day){state.requestedDay=state.day;callbacks?.selectDay?.(state.day)}
   if(data.known&&state.requestedDay===state.day)state.requestedDay="";
@@ -1041,7 +1050,23 @@ function init(api){
     if(event.target?.matches?.(".hzm-player-avatar img"))
       event.target.remove();
   },true);
-  $("hzm-model-select").addEventListener("change",event=>chooseModel(event.target.value));
+  // Bind calendar navigation directly to persistent controls. Delegating
+  // through the scrolling premium canvas can miss clicks near its top edge.
+  // stopPropagation avoids a second date shift from older delegated routes.
+  for(const [id,amount] of [["hzm-day-prev",-1],["hzm-day-next",1]]){
+    $(id)?.addEventListener("click",event=>{
+      event.preventDefault();event.stopPropagation();
+      navigate(dayShift(state.day,amount));
+    });
+  }
+  $("hzm-day-title")?.addEventListener("click",event=>{
+    const picker=$("hzm-day-input");
+    if(!picker)return;
+    // Open the native calendar when allowed by the browser/iframe.
+    // A blocked showPicker does not prevent keyboard entry or date changes.
+    try{picker.showPicker?.()}catch(error){picker.focus();}
+  });
+    $("hzm-model-select").addEventListener("change",event=>chooseModel(event.target.value));
   // Give the model dropdown its own control listeners. The new Simulation Lab
   // has a scrollable canvas and overlay fixture picker: model controls must
   // not depend on event delegation through the entire pane.
@@ -1210,8 +1235,7 @@ function init(api){
     }
     const modelOption=event.target.closest("[data-hzm-model]");
     if(modelOption){toggleModelDropdown(false,true);chooseModel(modelOption.dataset.hzmModel);return}
-    const arrow=event.target.closest("[data-hzm-shift]");
-    if(arrow){navigate(dayShift(state.day,Number(arrow.dataset.hzmShift)));return}
+    // The date buttons are wired directly above rather than delegated.
     const gameButton=event.target.closest("[data-hzm-game]");
     if(gameButton){
       state.gameId=gameButton.dataset.hzmGame;state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";
@@ -1249,7 +1273,11 @@ function init(api){
     if(!event.target.closest("#hzm-match-picker")&&!event.target.closest("#hzm-match-list"))
       toggleMatchPicker(false);
   });
-  $("hzm-day-input").addEventListener("change",event=>navigate(event.target.value));
+  $("hzm-day-input").addEventListener("change",event=>{
+    const chosen=event.target.value;
+    if(withinRange(chosen))navigate(chosen);
+    else event.target.value=state.day; // reject invalid or out-of-range dates
+  });
 }
 window.HoopzaroSimulations={init,render,openFromProps,clearBridge};
 })();
