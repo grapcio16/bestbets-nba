@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 430" role="img" aria-label="Stylizowana hala koszykarska w świetle fioletowych reflektorów">
+<defs>
+ <linearGradient id="bg" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#090f29"/><stop offset=".45" stop-color="#271145"/><stop offset="1" stop-color="#040b22"/></linearGradient>
+ <linearGradient id="stand" x1="0" x2=".5" y1="0" y2="1"><stop stop-color="#641caf"/><stop offset=".28" stop-color="#260d54"/><stop offset=".7" stop-color="#0c1131"/><stop offset="1" stop-color="#040718"/></linearGradient>
+ <linearGradient id="floor" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#461c6c"/><stop offset=".65" stop-color="#0e1237"/><stop offset="1" stop-color="#050b1c"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#e279ff" stop-opacity=".63"/><stop offset=".36" stop-color="#8c24d8" stop-opacity=".26"/><stop offset="1" stop-color="#5a17ba" stop-opacity="0"/></radialGradient>
+ <pattern id="crowd" width="15" height="12" patternUnits="userSpaceOnUse"><circle cx="3" cy="4" r="1.4" fill="#c953e8" opacity=".52"/><circle cx="9" cy="10" r="1.15" fill="#38d2ef" opacity=".26"/><circle cx="14" cy="3" r="1" fill="#f2baff" opacity=".24"/></pattern>
+ <filter id="blur"><feGaussianBlur stdDeviation="19"/></filter>
+</defs>
+<rect width="1200" height="430" fill="url(#bg)"/>
+<ellipse cx="600" cy="-10" rx="720" ry="182" fill="#070b1c" stroke="#652aa7" stroke-width="12"/>
+<ellipse cx="600" cy="-28" rx="660" ry="140" fill="none" stroke="#ba58ed" stroke-width="14" opacity=".65"/>
+<ellipse cx="600" cy="-35" rx="660" ry="132" fill="none" stroke="#ee9cff" stroke-width="3" opacity=".52"/>
+<path d="M0 58 Q600 166 1200 58" fill="none" stroke="#da82ff" stroke-width="8" opacity=".65"/>
+<path d="M0 78 Q600 172 1200 78" fill="none" stroke="#7e31bf" stroke-width="23" opacity=".52"/>
+<path d="M0 96 L470 190 L470 330 L0 430Z M1200 96 L730 190 L730 330 L1200 430Z" fill="url(#stand)"/>
+<path d="M0 96 L470 190 L470 330 L0 430Z M1200 96 L730 190 L730 330 L1200 430Z" fill="url(#crowd)" opacity=".75"/>
+<g fill="none" stroke-width="6" opacity=".65">
+<path d="M0 145 L470 215 M0 199 L470 241 M0 259 L470 279 M0 331 L470 320" stroke="#c260ff"/>
+<path d="M1200 145 L730 215 M1200 199 L730 241 M1200 259 L730 279 M1200 331 L730 320" stroke="#c260ff"/>
+<path d="M0 156 L470 219 M1200 156 L730 219" stroke="#2bd7ff" stroke-width="2"/>
+</g>
+<path d="M455 193 L744 193 L1100 430 L92 430Z" fill="url(#floor)" opacity=".73"/>
+<path d="M464 195 L735 195 L942 425 L255 425Z" fill="none" stroke="#df86ff" stroke-width="4" opacity=".3"/>
+<ellipse cx="600" cy="350" rx="120" ry="34" fill="none" stroke="#bb6cff" stroke-width="3" opacity=".36"/>
+<path d="M600 195 V428 M454 288 H747" stroke="#a057d8" stroke-width="3" opacity=".2"/>
+<path d="M526 100 H676 L654 176 H547Z" fill="#130b30" stroke="#c85cff" stroke-width="4" opacity=".9"/>
+<path d="M557 111 H646 L636 157 H569Z" fill="#2f1154" stroke="#e795ff" stroke-width="2"/>
+<path d="M555 168 H648" stroke="#50d7ff" stroke-width="5" opacity=".85"/>
+<rect x="573" y="119" width="61" height="31" rx="6" fill="#ac3cf3" opacity=".62"/>
+<g opacity=".75"><circle cx="194" cy="98" r="120" fill="url(#glow)"/><circle cx="1010" cy="98" r="120" fill="url(#glow)"/><circle cx="590" cy="75" r="170" fill="url(#glow)"/></g>
+<g stroke="#f6beff" stroke-width="2.5" opacity=".85">
+<path d="M82 0 L224 104 M1117 0 L970 104 M310 0 L423 146 M892 0 L783 146"/>
+</g>
+<g fill="#edc4ff" opacity=".8"><circle cx="224" cy="104" r="7"/><circle cx="970" cy="104" r="7"/><circle cx="423" cy="146" r="5"/><circle cx="783" cy="146" r="5"/></g>
+<ellipse cx="600" cy="330" rx="640" ry="160" fill="url(#glow)" opacity=".47" filter="url(#blur)"/>
+<rect width="1200" height="430" fill="#03071b" opacity=".25"/>
+</svg>
