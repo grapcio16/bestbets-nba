@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -99,7 +99,7 @@ function openFromProps(ctx,home){
  const game=games.find(g=>g.id===state.gameId)||games[0];
  if(!game)return {ok:false,message:"Brak potwierdzonego nadchodzącego meczu "+team+
    " w pobranym terminarzu. Możesz wybrać datę w Simulation Lab."};
- state.day=game.day;state.gameId=String(game.id);
+ state.day=game.day;state.localDayIntent=true;state.gameId=String(game.id);
  state.gamePending="";state.playersPending="";
  state.view="players";state.expanded=true;
  state.playerTeam=team===game.away?"away":"home";
@@ -945,19 +945,33 @@ function render(home,premium){
   state.lastHome=home;state.lastPremium=premium;
   syncModelDropdown();
   syncLabView();
-  // Streamlit can remount the iframe after a home_date fetch. The server
-  // supplies the last requested day in calendar_requested_day; restoring
-  // calendar_today here silently resets the user to the original date.
-  // Only initialize from the trusted server selection on a fresh mount;
-  // never override an in-progress click in the existing iframe.
-  if(!state.day){
-    const requested=home?.calendar_requested_day;
-    state.day=withinRange(requested)?requested:
-      safeDate(home?.calendar_today)?home.calendar_today:localDay(new Date().toISOString());
+  // Streamlit may deliver its first payload after the user opens the tab.
+  // A fallback day initialized before that packet must not prevent restoring
+  // the server-confirmed day, even if state.day is already nonempty.
+  // Local clicks win over stale/out-of-order server packets until acknowledged.
+  const serverDay=home?.calendar_requested_day;
+  if(withinRange(serverDay)&&(!state.localDayIntent||serverDay===state.day)){
+    if(serverDay!==state.day){
+      state.day=serverDay;
+      state.gameId="";state.gamePending="";state.playersPending="";
+      state.playerIndex=-1;state.fromProps=null;
+      state.requestedDay="";
+    }
+    state.localDayIntent=false;
   }
+  if(!state.day)
+    state.day=withinRange(home?.calendar_today)?home.calendar_today:localDay(new Date().toISOString());
   const data=gamesForDay(home);
-  if(!data.known&&home&&state.requestedDay!==state.day){state.requestedDay=state.day;callbacks?.selectDay?.(state.day)}
-  if(data.known&&state.requestedDay===state.day)state.requestedDay="";
+  // Persist all user choices, including dates already cached in calendar_extras.
+  // Otherwise a later Streamlit remount silently restores an older date.
+  if(home&&state.requestedDay!==state.day&&
+     ((state.localDayIntent&&serverDay!==state.day)||!data.known)){
+    state.requestedDay=state.day;
+    callbacks?.selectDay?.(state.day);
+  }
+  if(withinRange(serverDay)&&serverDay===state.day){
+    state.requestedDay="";state.localDayIntent=false;
+  }
   if(!data.games.some(game=>game.id===state.gameId)){
     const next=data.games.find(game=>game.state==="scheduled")||data.games[0];
     state.gameId=next?.id||"";state.gamePending="";state.playersPending="";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
@@ -1039,7 +1053,7 @@ function render(home,premium){
 }
 function navigate(day){
   if(!safeDate(day)||!withinRange(day)||state.day===day)return;
-  state.day=day;state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
+  state.day=day;state.localDayIntent=true;state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function init(api){
