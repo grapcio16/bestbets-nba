@@ -58,6 +58,8 @@ jobs:
           python test_match_intelligence_browser.py
           python test_team_comparison_context.py
           python test_team_comparison_browser.py
+          python test_backtest_premium_access.py
+          python test_backtest_browser.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
