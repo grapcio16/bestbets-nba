@@ -98,6 +98,19 @@ def main() -> None:
             assert page.locator("#props-heading").is_visible()
             assert page.locator("#chart-svg .bb-plot-bar").count() == 10
             assert page.locator("#hero-rate").inner_text().endswith("%")
+            # The three existing average cards open a viewport-sized, accessible
+            # comparison without adding permanent UI rows on desktop or mobile.
+            page.locator('[data-avg-details="HOME"]').click()
+            assert page.locator("#hz-avg-breakdown").is_visible()
+            assert page.locator("[data-breakdown-venue]").count() == 3
+            assert page.locator(".hz-avg-breakdown-dialog").is_visible()
+            page.locator('[data-breakdown-venue="AWAY"]').click()
+            assert page.locator("#hz-avg-breakdown").is_hidden()
+            assert page.locator("#chart-svg .bb-plot-bar").count() == 0
+            assert "wyjazdowych" in page.locator("#chart-placeholder").inner_text()
+            page.locator('[data-avg-details="ALL"]').click()
+            page.locator('[data-breakdown-venue="ALL"]').click()
+            assert page.locator("#chart-svg .bb-plot-bar").count() == 10
             # A background payload refresh must leave the existing SVG bars
             # intact instead of restarting every chart animation.
             page.locator("#chart-svg .bb-plot-bar").first.evaluate(
