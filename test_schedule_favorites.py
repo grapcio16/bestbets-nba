@@ -36,6 +36,18 @@ def exercise(page,mobile=False):
     assert page.locator("#hzs-board .hzs-favorite-game").count()==0
     assert page.locator("#hzv-calendar-toggle").get_attribute("aria-expanded")=="false"
     assert page.locator("#hzs-today").is_disabled()
+    assert page.locator("#hzs-today").inner_text()=="Dzisiaj"
+    # The date between arrows describes the selected day, not a permanent
+    # "Dzisiaj" shortcut. The label also works across month boundaries.
+    page.locator('[data-hzs-direction="1"]').click()
+    assert page.locator("#hzs-today").inner_text()=="Jutro"
+    assert page.locator("#hzs-today").is_enabled()
+    page.locator('[data-hzs-direction="-1"]').click()
+    page.locator('[data-hzs-direction="-1"]').click()
+    assert page.locator("#hzs-today").inner_text()=="Wczoraj"
+    page.locator("#hzs-today").click()
+    assert page.locator("#hzs-today").inner_text()=="Dzisiaj"
+    assert page.locator("#hzs-today").is_disabled()
     assert page.locator("#hzs-board .hzs-game").count()==4
     # Mark DEN as favorite without opening game details or hiding other cards.
     page.locator('[data-hzs-shell-id="4018000002"] [data-hzs-star="DEN"]').click()
@@ -65,9 +77,18 @@ def exercise(page,mobile=False):
     page.locator(f'[data-hzv-calendar-day="{future}"]').click()
     assert page.locator("#hzv-calendar-popup").is_hidden()
     assert page.locator(".hzs-date.selected").get_attribute("data-hzs-day")==future
+    expected_months=["stycznia","lutego","marca","kwietnia","maja","czerwca",
+                     "lipca","sierpnia","września","października","listopada","grudnia"]
+    chosen=date.fromisoformat(future)
+    expected=f"{chosen.day} {expected_months[chosen.month-1]}"
+    if chosen.year!=date.fromisoformat(day).year:
+        expected+=f" {chosen.year}"
+    assert page.locator("#hzs-today").inner_text()==expected
+    assert "wrócić do dzisiaj" in page.locator("#hzs-today").get_attribute("aria-label")
     assert page.locator("#hzs-today").is_enabled()
     page.locator("#hzs-today").click()
     assert page.locator(".hzs-date.selected").get_attribute("data-hzs-day")==day
+    assert page.locator("#hzs-today").inner_text()=="Dzisiaj"
     assert page.locator("#hzs-board .hzs-game").count()==4
     if mobile:
         assert page.locator("#app-shell").evaluate("el=>el.classList.contains('hz-mobile-schedule')")
