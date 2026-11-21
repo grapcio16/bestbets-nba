@@ -20,7 +20,8 @@ import streamlit as st
 from teams import TEAM_FULL
 from bestbets_free_analyses import SCHEMA, photo_policy, select_leader
 from bestbets_simulations_canvas import (premium_entitled, simulation_for_entitled_user,
-                                         scenario_for_entitled_user)
+                                         scenario_for_entitled_user,
+                                         player_minutes_scenario_for_entitled_user)
 from access_control import (auth_configured, auth_context, current_principal,
                             current_role, login_provider)
 from checkout_links import validated_checkout_url, is_test_checkout_url
@@ -426,6 +427,7 @@ def main() -> None:
         st.session_state.pop("bb10_premium_game", None)
         st.session_state.pop("bb10_premium_players", None)
         st.session_state.pop("bb10_premium_scenario", None)
+        st.session_state.pop("bb10_premium_minute_scenario", None)
         st.session_state.pop("bb10_premium_player_averages", None)
         st.session_state.pop("bb10_premium_team_analytics", None)
         st.session_state.pop("bb10_team_analytics_attempt_at", None)
@@ -484,6 +486,7 @@ def main() -> None:
             "game": st.session_state.get("bb10_premium_game") if has_premium else None,
             "players": st.session_state.get("bb10_premium_players") if has_premium else None,
             "scenario": st.session_state.get("bb10_premium_scenario") if has_premium else None,
+            "minute_scenario": st.session_state.get("bb10_premium_minute_scenario") if has_premium else None,
         },
     }
     event = COMPONENT(payload=payload, default=None, key="bb10_reference_canvas")
@@ -645,6 +648,33 @@ def main() -> None:
         st.session_state["bb10_premium_team_analytics"] = {**current, "teams": teams}
         st.rerun()
         return
+    if event.get("type") == "premium_sim_player_minutes":
+        # This is a player-level sensitivity only, not a team Monte Carlo.
+        # Client inputs are NEVER trusted without repeating Premium and
+        # verified future-game / V7.5 checks on the server.
+        if not premium_entitled():
+            return
+        import re
+        day = _plain(event.get("date"))
+        game_id = _plain(event.get("game_id"))
+        model_id = _plain(event.get("model_id"))
+        name = _plain(event.get("player_name"))
+        team = _plain(event.get("team"))
+        delta = event.get("minute_delta")
+        if (not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day)
+                or not re.fullmatch(r"\d{1,30}", game_id)
+                or model_id != "research_context_v75"
+                or not name or len(name) > 70
+                or not re.fullmatch(r"[A-Z]{3}", team)
+                or type(delta) is not int or not -5 <= delta <= 5):
+            return
+        result = player_minutes_scenario_for_entitled_user(
+            day, game_id, model_id, name, team, delta)
+        st.session_state["bb10_premium_minute_scenario"] = {
+            "date": day, "game_id": game_id, "model_id": model_id,
+            "name": name, "team": team, "minute_delta": delta, **result}
+        st.rerun()
+        return
     if event.get("type") == "premium_sim_scenario":
         if not premium_entitled():
             return
@@ -698,6 +728,7 @@ def main() -> None:
                                  **result, "model_id": model_id}
         if not is_players:
             st.session_state.pop("bb10_premium_players", None)
+            st.session_state.pop("bb10_premium_minute_scenario", None)
         st.rerun()
         return
     if event.get("type") == "free_leader_details":
