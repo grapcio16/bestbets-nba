@@ -344,11 +344,6 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <div class="control-group" id="period-group"><label>&nbsp;</label><div class="control-box period-control"><button data-period="L5">L5</button><button data-period="L10" class="on">L10</button><button data-period="L15">L15</button><button data-period="2026">2026</button><button data-period="Season">Season</button></div></div>
   </section>
   <section id="chart-panel"><div class="chart-title"><span class="orange-bars">▥</span><span id="chart-heading">Last 10 Games — Points</span></div>
-    <div class="venue-filter" role="group" aria-label="Miejsce rozegrania meczu">
-      <button type="button" data-venue="ALL" class="on" aria-pressed="true" title="Wszystkie mecze">ALL</button>
-      <button type="button" data-venue="HOME" aria-pressed="false" title="Tylko mecze domowe">HOME</button>
-      <button type="button" data-venue="AWAY" aria-pressed="false" title="Tylko mecze wyjazdowe">AWAY</button>
-    </div>
     <svg id="chart-svg" viewBox="0 0 581 185" role="img" aria-label="Wykres statystyk zawodnika"></svg>
     <div id="chart-placeholder" class="chart-placeholder">Wpisz zawodnika, aby zobaczyć historię rzeczywistych meczów.</div>
   </section>
@@ -1066,10 +1061,6 @@ function renderPlayer(){
   document.querySelectorAll("[data-market]").forEach(function(el){el.classList.toggle("on",el.dataset.market===state.market)});
   document.querySelectorAll("[data-side]").forEach(function(el){el.classList.toggle("on",el.dataset.side===state.side)});
   document.querySelectorAll("[data-period]").forEach(function(el){el.classList.toggle("on",el.dataset.period===state.period)});
-  document.querySelectorAll("[data-venue]").forEach(function(el){
-    const active=el.dataset.venue===state.venue;
-    el.classList.toggle("on",active);el.setAttribute("aria-pressed",String(active));
-  });
 }
 function requestHomeData(){
   if(state.page!=="home" || state.payload.home)return;
@@ -1436,7 +1427,6 @@ document.addEventListener("pointerdown",function(e){
 });
 document.querySelectorAll("[data-side]").forEach(function(el){el.addEventListener("click",function(){state.side=el.dataset.side;render()})});
 document.querySelectorAll("[data-period]").forEach(function(el){el.addEventListener("click",function(){state.period=el.dataset.period;render()})});
-document.querySelectorAll("[data-venue]").forEach(function(el){el.addEventListener("click",function(){state.venue=el.dataset.venue;render()})});
 $("line-minus").addEventListener("click",function(){state.line=Math.max(.5,state.line-.5);render()});
 $("line-plus").addEventListener("click",function(){state.line=Math.min(150,state.line+.5);render()});
 $("line").addEventListener("change",function(){const value=Number(this.value);state.line=Number.isFinite(value)?Math.min(150,Math.max(.5,value)):state.line;render()});
