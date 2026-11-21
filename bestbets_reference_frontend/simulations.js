@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -253,51 +253,196 @@ function safeProjection(value){
  return value!==null&&value!==undefined&&value!==""&&Number.isFinite(Number(value))&&Number(value)>=0
   ?Number(value):null;
 }
+
+function playerInitials(item){
+ return String(item?.name||"").split(/\s+/).filter(Boolean).slice(0,2)
+   .map(name=>name[0]).join("").toUpperCase().slice(0,3);
+}
+function playerAvatar(item,large=false){
+ const id=String(item?.espn_id||"");
+ const initials=playerInitials(item);
+ // ESPN ID comes from the same verified historical boxscore as the name and
+ // team; unverified identities use the typographic portrait fallback.
+ const image=/^\d{1,12}$/.test(id)
+    ?'<img src="https://a.espncdn.com/i/headshots/nba/players/full/'+id+
+      '.png" alt="" loading="lazy" referrerpolicy="no-referrer">':"";
+ return '<span class="hzm-player-avatar'+(large?' large':'')+'" aria-hidden="true">'+
+   '<span class="hzm-avatar-fallback">'+esc(initials||"NBA")+'</span>'+image+'</span>';
+}
+function playerMetric(item,market){
+ const a=safeProjection(item?.pts),b=safeProjection(item?.reb),c=safeProjection(item?.ast);
+ if(item?.availability==="Out"&&state.model==="research_context_v75")return null;
+ return market==="PTS"?a:market==="REB"?b:market==="AST"?c:
+   market==="PRA"&&a!==null&&b!==null&&c!==null?a+b+c:null;
+}
+function playerHistory(item,market){
+ const data=Array.isArray(item?.history)?item.history:[];
+ const key=market.toLowerCase();
+ return data.filter(row=>row&&/^\d{4}-\d{2}-\d{2}$/.test(String(row.date||""))&&
+    safeProjection(row[key])!==null).slice(-15).map(row=>({
+     date:row.date,value:Number(row[key])
+   }));
+}
+function historyMean(rows,count){
+ return rows.length>=count?rows.slice(-count).reduce((sum,row)=>sum+row.value,0)/count:null;
+}
 function playerInspector(item,players,game,withMinutes){
  const container=$("hzm-player-inspector");
  if(!container)return;
- if(!item){container.innerHTML='<div class="hzm-inspector-placeholder">Wybierz zawodnika z listy, aby zobaczyć szczegóły jego projekcji.</div>';return}
+ if(!item){
+  container.innerHTML='<div class="hzm-inspector-placeholder">Wybierz zawodnika, aby zobaczyć jego projekcję i historyczne występy.</div>';
+  return;
+ }
  const name=String(item.name||"").slice(0,70),code=String(item.team||"").slice(0,4);
  const status=withMinutes?String(item.availability||"Niezweryfikowany").slice(0,50):"";
  const out=withMinutes&&status==="Out";
- const pts=out?null:safeProjection(item.pts),reb=out?null:safeProjection(item.reb),ast=out?null:safeProjection(item.ast);
- const pra=pts!==null&&reb!==null&&ast!==null?pts+reb+ast:null;
- const forecasts=[["PTS",pts],["REB",reb],["AST",ast],["PRA",pra]];
- const metrics=forecasts
-  .map(([key,value])=>'<div class="hzm-inspector-metric'+(key==="PRA"?' pra':'')+'"><span>'+key+'</span><strong>'+fmt(value)+'</strong></div>').join("");
+ const forecasts=["PTS","REB","AST","PRA"].map(key=>[key,playerMetric(item,key)]);
+ const metrics=forecasts.map(([key,value])=>
+  '<div class="hzm-inspector-metric'+(key==="PRA"?' pra':'')+
+  (key===state.playerMarket?' current':'')+'"><span>'+key+
+  '</span><strong>'+fmt(value)+'</strong></div>').join("");
  const sample=withMinutes&&Number.isInteger(Number(item.minutes_sample))?Math.max(0,Number(item.minutes_sample)):0;
  const minutes=withMinutes?safeProjection(item.minutes):null;
  const minuteLabel=withMinutes
   ?minutes===null?'Brak wiarygodnego szacunku minut':fmt(minutes)+' min · '+sample+' wcześniejszych występów'
   :'Minuty: brak zweryfikowanego szacunku w modelu '+esc(modelLabel());
- const availability=withMinutes
-  ?'<span class="hzm-inspector-status'+(out?' is-out':(["Questionable","Doubtful","Day-to-day"].includes(status)?' is-uncertain':''))+'">'+
-    'ESPN: '+esc(status)+'</span>'
-  :'<span class="hzm-inspector-status">Dostępność: nieoceniana w tym modelu</span>';
+ const recent=playerHistory(item,"PTS");
+ const l5=historyMean(recent,5);
+ const statusText=withMinutes?("ESPN: "+status):"Dostępność: nieoceniana w tym modelu";
+ const statusClass=out?" is-out":["Questionable","Doubtful","Day-to-day","Sprzeczne"].includes(status)?" is-uncertain":"";
+ const playerPosition=["PG","SG","SF","PF","C","G","F"].includes(item.position)?item.position:"";
  container.innerHTML=
-  '<div class="hzm-inspector-top"><span>PLAYER FORECAST · '+esc(modelLabel())+'</span><strong>'+esc(code)+'</strong></div>'+
-  '<h3>'+esc(name)+'</h3><div class="hzm-inspector-sub">'+esc(game?.away||"NBA")+
-  ' vs '+esc(game?.home||"NBA")+' · szacunki na wybrany mecz</div>'+
-  availability+
+  '<div class="hzm-inspector-identity">'+playerAvatar(item,true)+
+  '<div class="hzm-inspector-identity-copy"><div class="hzm-inspector-top"><span>PLAYER FORECAST · '+esc(modelLabel())+'</span><strong>'+esc(code)+'</strong></div>'+
+  '<h3>'+esc(name)+'</h3><div class="hzm-inspector-sub">'+esc(code)+
+  (playerPosition?' · '+esc(playerPosition):'')+' · szacunek na wybrany mecz</div></div></div>'+
   '<div class="hzm-inspector-metrics">'+metrics+'</div>'+
-  '<div class="hzm-inspector-minutes">'+(withMinutes?'◷ ':'')+minuteLabel+'</div>'+
+  '<span class="hzm-inspector-status'+statusClass+'">'+esc(statusText)+'</span>'+
+  '<div class="hzm-inspector-facts"><div><span>◷</span> Minuty (prognoza)<strong>'+minuteLabel+'</strong></div>'+
+  '<div><span>⌁</span> Forma (L5) <strong>'+(l5!==null?fmt(l5)+' PTS':'Brak pełnej próby L5')+'</strong></div>'+
+  '<div><span>▥</span> Historyczne mecze ESPN<strong>'+recent.length+' potwierdzonych</strong></div>'+
+  '<div><span>ⓘ</span> Model <strong>'+esc(modelLabel())+'</strong></div></div>'+
   '<p class="hzm-inspector-disclaimer">'+(out?
-    'ESPN zgłasza OUT — model nie wyświetla projekcji produkcji zawodnika.':
-    'PRA to suma średnich prognoz PTS, REB i AST. Nie jest osobną symulacją ani rozkładem prawdopodobieństwa.')+
-  '</p>'+
-  (withMinutes&&players?.minutes_warning?
+    'ESPN: OUT — model nie pokazuje projekcji aktywnego występu.':
+    'PRA to suma średnich PTS + REB + AST, nie odrębny rozkład. Historia to rzeczywiste wyniki, a nie prognoza.')+
+  '</p>'+(withMinutes&&players?.minutes_warning?
     '<small class="hzm-inspector-warning">'+esc(players.minutes_warning)+'</small>':'')+
-  '<div class="hzm-inspector-actions" role="group" aria-label="Przejdź do historii zawodnika w Player Props">'+
-  (out?'':forecasts.map(([key,value])=>value===null?"":'<button type="button" data-hzm-history-market="'+key+'"'+
-    (state.fromProps?.market===key?' class="is-related"':'')+' title="Historia '+key+' w Player Props">'+
-    'Historia '+key+' ›</button>').join(""))+
-  '</div>'+
+  '<div class="hzm-inspector-actions" role="group" aria-label="Historia w Player Props">'+
+  (out?'':forecasts.map(([key,value])=>value===null?'':'<button type="button" data-hzm-history-market="'+key+'"'+
+    (state.fromProps?.market===key?' class="is-related"':'')+
+    '>Historia '+key+' ›</button>').join(""))+'</div>'+
   (state.fromProps?.name===name&&state.fromProps?.team===code?
-    '<button type="button" class="hzm-return-to-props" data-hzm-return-props>← Wróć do poprzedniej analizy Player Props</button>':"");
+    '<button type="button" class="hzm-return-to-props" data-hzm-return-props>← Wróć do Player Props</button>':'');
+}
+function playerHistogramMarkup(item,market){
+ const history=playerHistory(item,market);
+ const model=playerMetric(item,market);
+ if(history.length<3)return '<div class="hzm-player-plot-empty">Za mało potwierdzonych występów do wykresu (min. 3).</div>';
+ const values=history.map(row=>row.value);
+ const lo=Math.max(0,Math.floor(Math.min(...values,model??Infinity)-3));
+ const hi=Math.max(lo+6,Math.ceil(Math.max(...values,model??0)+3));
+ const count=Math.min(17,Math.max(7,Math.ceil((hi-lo)/3)));
+ const step=(hi-lo)/count,bins=Array(count).fill(0);
+ values.forEach(v=>{const index=Math.min(count-1,Math.max(0,Math.floor((v-lo)/step)));bins[index]++});
+ const max=Math.max(...bins,1),x0=34,x1=552,y0=22,y1=164;
+ const toX=v=>x0+((v-lo)/(hi-lo))*(x1-x0);
+ const bars=bins.map((c,i)=>{
+  const x=x0+i*(x1-x0)/count+1.4,w=(x1-x0)/count-2.8;
+  const y=y1-c/max*117;
+  return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+Math.max(1,w).toFixed(1)+
+   '" height="'+(y1-y).toFixed(1)+'" rx="2" fill="'+(i<count*.55?'url(#hzm-hist-blue)':'url(#hzm-hist-purple)')+'"/>';
+ }).join("");
+ const tickValues=Array.from({length:6},(_,i)=>lo+(hi-lo)*i/5);
+ const ticks=tickValues.map(v=>'<text x="'+toX(v).toFixed(1)+'" y="188" fill="#a2bdd9" font-size="12" text-anchor="middle">'+
+  Math.round(v)+'</text>').join("");
+ const grids=Array.from({length:4},(_,i)=>'<line x1="'+x0+'" y1="'+(y1-i*35)+'" x2="'+x1+
+  '" y2="'+(y1-i*35)+'" stroke="#365179" opacity=".55" stroke-width=".7"/>').join("");
+ const projection=model===null?'':('<line x1="'+toX(Math.max(lo,Math.min(hi,model))).toFixed(1)+
+  '" y1="17" x2="'+toX(Math.max(lo,Math.min(hi,model))).toFixed(1)+
+  '" y2="'+y1+'" stroke="#f0c2ff" stroke-width="2" stroke-dasharray="5 4"/>'+
+  '<text x="'+Math.min(x1-50,Math.max(x0+54,toX(model))).toFixed(1)+
+  '" y="14" text-anchor="middle" fill="#f4ddff" font-weight="900" font-size="11">Proj. '+fmt(model)+'</text>');
+ return '<svg viewBox="0 0 574 205" role="img" aria-label="'+esc('Historyczny histogram '+market+', '+history.length+' meczów')+'">'+
+  '<defs><linearGradient id="hzm-hist-blue" x2="0" y2="1"><stop stop-color="#14efff"/><stop offset="1" stop-color="#1460ad"/></linearGradient>'+
+  '<linearGradient id="hzm-hist-purple" x2="0" y2="1"><stop stop-color="#f369f6"/><stop offset="1" stop-color="#5d35b2"/></linearGradient></defs>'+
+  grids+bars+projection+ticks+'</svg>';
+}
+function playerTrendMarkup(item,market,n){
+ const history=playerHistory(item,market);
+ if(history.length<3)return '<div class="hzm-player-plot-empty">Brak przynajmniej 3 potwierdzonych występów ESPN.</div>';
+ const rows=history.slice(-n),values=rows.map(row=>row.value);
+ const low=Math.max(0,Math.floor(Math.min(...values)-3));
+ const high=Math.max(low+4,Math.ceil(Math.max(...values)+3));
+ const x0=38,x1=526,y0=20,y1=154;
+ const xy=(v,i)=>[x0+(rows.length<2?0:i/(rows.length-1)*(x1-x0)),
+   y1-(v-low)/(high-low)*(y1-y0)];
+ const points=values.map((v,i)=>xy(v,i));
+ const line=points.map(([x,y])=>x.toFixed(2)+','+y.toFixed(2)).join(' ');
+ const area='M '+points[0][0]+','+y1+' L '+points.map(([x,y])=>x.toFixed(1)+','+y.toFixed(1)).join(' L ')+
+  ' L '+points[points.length-1][0]+','+y1+' Z';
+ const circles=points.map(([x,y],i)=>'<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4.2" fill="#f4fcff" stroke="#48eaff" stroke-width="2"/>'+
+  '<text x="'+x.toFixed(1)+'" y="'+Math.max(13,y-11).toFixed(1)+'" font-size="10" font-weight="800" text-anchor="middle" fill="#e8dcff">'+fmt(values[i])+'</text>').join("");
+ const grids=Array.from({length:4},(_,i)=>'<line x1="'+x0+'" x2="'+x1+'" y1="'+(y1-38*i)+'" y2="'+(y1-38*i)+'" stroke="#365179" stroke-width=".7" opacity=".55"/>').join("");
+ return '<svg viewBox="0 0 552 184" role="img" aria-label="'+esc('Forma historyczna '+market+', '+rows.length+' z '+n+' meczów')+'">'+
+  '<defs><linearGradient id="hzm-trend-glow" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#bc6eff" stop-opacity=".38"/><stop offset="1" stop-color="#0a2446" stop-opacity="0"/></linearGradient></defs>'+
+  grids+'<path d="'+area+'" fill="url(#hzm-trend-glow)"/><polyline points="'+line+
+  '" fill="none" stroke="#18eafa" stroke-width="2.3"/>'+circles+
+  '<text x="'+x1+'" y="179" fill="#91b9d5" text-anchor="end" font-size="10">ESPN · '+rows.length+' obserwacji</text></svg>';
+}
+function showPlayerAnalytics(item){
+ const hist=$("hzm-player-histogram"),trend=$("hzm-player-trend"),rates=$("hzm-player-rates"),averages=$("hzm-player-averages");
+ if(!hist||!trend||!rates||!averages)return;
+ const market=state.playerMarket;
+ $("hzm-player-chart-name").textContent=item?.name||"wybrany zawodnik";
+ $("hzm-player-rate-metric").textContent=market;
+ $("hzm-player-trend-metric").textContent=market;
+ $("hzm-player-average-metric").textContent=market;
+ for(const b of document.querySelectorAll("[data-hzm-player-market]")){
+  const active=b.dataset.hzmPlayerMarket===market;
+  b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));
+ }
+ for(const b of document.querySelectorAll("[data-hzm-history-window]")){
+  const active=b.dataset.hzmHistoryWindow==="season"
+     ?state.playerHistoryWindow==="season"
+     :Number(b.dataset.hzmHistoryWindow)===state.playerHistoryWindow;
+  b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));
+ }
+ if(!item){
+  hist.innerHTML='<div class="hzm-player-plot-empty">Wybierz zawodnika z listy.</div>';
+  trend.innerHTML='<div class="hzm-player-plot-empty">Brak wybranego zawodnika.</div>';
+  rates.innerHTML='<div class="hzm-player-plot-empty">—</div>';
+  averages.innerHTML='<div class="hzm-player-plot-empty">—</div>';
+  $("hzm-player-rates-source").textContent="Źródło: wcześniejsze mecze ESPN";
+  return;
+ }
+ const rows=playerHistory(item,market);
+ hist.innerHTML=playerHistogramMarkup(item,market);
+ trend.innerHTML=playerTrendMarkup(item,market,
+  state.playerHistoryWindow==="season"?rows.length:state.playerHistoryWindow);
+ $("hzm-player-rates-source").textContent="Historyczna częstość · "+rows.length+" meczów (nie prawdopodobieństwo modelu)";
+ const projection=playerMetric(item,market);
+ if(projection!==null&&rows.length>=3){
+  const anchor=Math.max(0.5,Math.round(projection/5)*5-7.5);
+  rates.innerHTML=[0,5,10,15].map(k=>{
+   const line=anchor+k;
+   const over=rows.filter(r=>r.value>line).length;
+   const pct=over/rows.length*100;
+   return '<div><span>&gt; '+fmt(line)+'</span><strong>'+fmt(pct)+'%</strong></div>';
+  }).join('');
+ }else rates.innerHTML='<div class="hzm-player-plot-empty">Niepełna próba historyczna.</div>';
+ averages.innerHTML=[5,10,15].map(n=>{
+  const mean=historyMean(rows,n);
+  return '<div><span>L'+n+'</span><strong>'+fmt(mean)+'</strong>'+
+    '<small>'+(rows.length>=n?n+' meczów':'próba '+rows.length+'/'+n)+'</small></div>';
+ }).join('')+'<div><span>Sezon</span><strong>—</strong><small>brak pełnej próby</small></div>';
+ $("hzm-player-averages-source").textContent="Przed wybranym meczem · "+rows.length+
+  " potwierdzonych występów; niepełne okna i sezon oznaczono —.";
 }
 function showPlayers(premium,players,game){
  const panel=$("hzm-players-panel"),button=$("hzm-expand-players"),rows=$("hzm-player-rows");
  const focused=state.view==="players",withMinutes=state.model==="research_context_v75";
+ const version=$("hzm-player-version");
+ if(version)version.textContent=state.model==="research_context_v75"?"V7.5":state.model==="research_form_v74"?"V7.4":"V7.2";
  const headings=$("hzm-player-headings");
  headings.classList.toggle("with-min",withMinutes);
  headings.innerHTML=(withMinutes?'<span>MIN</span>':'')+'<span>PTS</span><span>REB</span><span>AST</span>';
@@ -319,51 +464,70 @@ function showPlayers(premium,players,game){
      :'Projekcje PTS, REB i AST są dostępne w Premium.')+'</div>';
    if(count)count.textContent="";
    if(inspector)inspector.innerHTML='<div class="hzm-inspector-placeholder">Dane zawodników dostępne wyłącznie z aktywnym Premium.</div>';
+   showPlayerAnalytics(null);
    return;
  }
  if(!players){
    rows.innerHTML='<div class="hzm-no-players">Pobieranie projekcji zawodników z ESPN…</div>';
    if(count)count.textContent="";
-   playerInspector(null,players,game,withMinutes);return;
+   playerInspector(null,players,game,withMinutes);showPlayerAnalytics(null);return;
  }
  if(!Array.isArray(players.players)||!players.players.length){
    rows.innerHTML='<div class="hzm-no-players">'+esc(players.error||'Brak zweryfikowanych danych zawodników.')+'</div>';
    if(count)count.textContent="0 zawodników";
-   playerInspector(null,players,game,withMinutes);return;
+   playerInspector(null,players,game,withMinutes);showPlayerAnalytics(null);return;
  }
- // Team-scoped row identities prevent a mismatched roster record appearing
- // for the selected matchup. All rows come from the Premium-protected payload.
+ // Team and fixture identities come from the server-entitled selected game.
  const athletes=players.players.map((item,index)=>({item,index})).filter(({item})=>
-   item&&String(item.team||"").toUpperCase()===String(game?.away||"").toUpperCase()||
-   item&&String(item.team||"").toUpperCase()===String(game?.home||"").toUpperCase());
+   item&&[String(game?.away||"").toUpperCase(),String(game?.home||"").toUpperCase()]
+     .includes(String(item.team||"").toUpperCase()));
  const query=state.playerQuery.trim().toLocaleLowerCase("pl");
  const filtered=focused?athletes.filter(({item})=>
    (state.playerTeam==="all"||String(item.team).toUpperCase()===String(codes[state.playerTeam]||"").toUpperCase())&&
    (!query||String(item.name||"").toLocaleLowerCase("pl").includes(query))):athletes;
+ if(focused){
+   const market=state.playerMarket;
+   filtered.sort((a,b)=>(playerMetric(b.item,market)??-1)-(playerMetric(a.item,market)??-1));
+ }
  const visible=focused?filtered:(state.expanded?filtered:filtered.slice(0,4));
  if(count)count.textContent=focused?filtered.length+" z "+athletes.length+" zawodników":"";
  if(focused&&!filtered.some(p=>p.index===state.playerIndex))state.playerIndex=filtered[0]?.index??-1;
  if(!visible.length){
    rows.innerHTML='<div class="hzm-no-players">Brak zawodników spełniających wybrane filtry.</div>';
-   playerInspector(null,players,game,withMinutes);return;
+   playerInspector(null,players,game,withMinutes);showPlayerAnalytics(null);return;
  }
+ const lastScroll=rows.scrollTop;
  rows.innerHTML=visible.map(({item,index})=>{
-   const initials=String(item.name||'').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();
+   const initials=playerInitials(item);
    const status=withMinutes?String(item.availability||''):'';
-   const atRisk=["Questionable","Doubtful","Day-to-day"].includes(status);
+   const atRisk=["Questionable","Doubtful","Day-to-day","Sprzeczne"].includes(status);
    const statusHtml=status==="Out"?'<small class="hzm-injured">'+esc(item.team)+' · OUT (ESPN)</small>':
      atRisk?'<small class="hzm-uncertain">'+esc(item.team)+' · '+esc(status)+' (ESPN)</small>':
      '<small class="'+(item.team===players.home?'home':'')+'">'+esc(item.team)+'</small>';
-   return '<button type="button" class="hzm-player-row" data-hzm-player-index="'+index+'" aria-pressed="'+(focused&&index===state.playerIndex)+'" aria-label="'+esc('Szczegóły prognozy '+item.name+', '+item.team)+'">'+
-     '<span class="hzm-player-initials">'+esc(initials)+'</span>'+
-     '<span class="hzm-player-info"><strong>'+esc(item.name)+'</strong>'+statusHtml+'</span>'+
+   const avatar=focused?playerAvatar(item):'<span class="hzm-player-initials">'+esc(initials)+'</span>';
+   if(focused){
+     const market=state.playerMarket;
+     const scores=["PTS","REB","AST","PRA"].map(key=>
+       '<span class="hzm-focus-stat'+(key===market?' active':'')+'">'+fmt(playerMetric(item,key))+'</span>').join("");
+     return '<button type="button" class="hzm-player-row hzm-player-row-rich" data-hzm-player-index="'+index+
+       '" aria-pressed="'+(index===state.playerIndex)+'" aria-label="'+esc('Projekcja '+item.name+', '+item.team)+'">'+
+       avatar+'<span class="hzm-player-info"><strong>'+esc(item.name)+'</strong>'+statusHtml+'</span>'+
+       '<span class="hzm-player-stats">'+scores+'</span></button>';
+   }
+   return '<button type="button" class="hzm-player-row" data-hzm-player-index="'+index+
+      '" aria-pressed="false" aria-label="'+esc('Szczegóły prognozy '+item.name+', '+item.team)+'">'+
+     avatar+'<span class="hzm-player-info"><strong>'+esc(item.name)+'</strong>'+statusHtml+'</span>'+
      '<span class="hzm-player-stats'+(withMinutes?' with-min':'')+'">'+
      (withMinutes?'<span title="Szacowane minuty z '+esc(item.minutes_sample||0)+' występów">'+fmt(item.minutes)+'</span>':'')+
      '<span>'+fmt(item.pts)+'</span><span>'+fmt(item.reb)+'</span><span>'+fmt(item.ast)+'</span></span></button>';
  }).join("");
+ if(focused)rows.scrollTop=lastScroll;
  if(!state.expanded&&athletes.length>4)button.textContent='Pokaż wszystkich zawodników ('+athletes.length+') ▾';
- if(focused)playerInspector(filtered.find(p=>p.index===state.playerIndex)?.item||null,players,game,withMinutes);
- else if(inspector)inspector.innerHTML='';
+ if(focused){
+   const item=filtered.find(p=>p.index===state.playerIndex)?.item||null;
+   playerInspector(item,players,game,withMinutes);
+   showPlayerAnalytics(item);
+ }else if(inspector)inspector.innerHTML='';
 }
 
 function maybeLoadPaid(game,premium,sim,players){
@@ -854,6 +1018,12 @@ function navigate(day){
 }
 function init(api){
   callbacks=api;
+  // Keep the verified ESPN photo optional: network and CDN errors should
+  // reveal the local initials fallback, not a broken-image icon.
+  $("simulations-pane")?.addEventListener("error",event=>{
+    if(event.target?.matches?.(".hzm-player-avatar img"))
+      event.target.remove();
+  },true);
   $("hzm-model-select").addEventListener("change",event=>chooseModel(event.target.value));
   // Give the model dropdown its own control listeners. The new Simulation Lab
   // has a scrollable canvas and overlay fixture picker: model controls must
@@ -983,7 +1153,29 @@ function init(api){
       }
       return;
     }
-    const comparison=event.target.closest("[data-hzm-comparison-window]");
+    const marketButton=event.target.closest("[data-hzm-player-market]");
+    if(marketButton){
+      const next=marketButton.dataset.hzmPlayerMarket;
+      if(state.view==="players"&&["PTS","REB","AST","PRA"].includes(next)){
+        state.playerMarket=next;
+        render(state.lastHome,state.lastPremium);
+      }
+      return;
+    }
+    const historyButton=event.target.closest("[data-hzm-history-window]");
+    if(historyButton){
+      const raw=historyButton.dataset.hzmHistoryWindow;
+      const next=raw==="season"?"season":Number(raw);
+      if(state.view==="players"&&(next==="season"||[5,10,15].includes(next))){
+        state.playerHistoryWindow=next;
+        const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+        const pack=trustedPlayers(state.lastPremium,game);
+        const item=pack?.players?.[state.playerIndex];
+        showPlayerAnalytics(item);
+      }
+      return;
+    }
+        const comparison=event.target.closest("[data-hzm-comparison-window]");
     if(comparison){
       const n=Number(comparison.dataset.hzmComparisonWindow);
       if(n===5||n===10){

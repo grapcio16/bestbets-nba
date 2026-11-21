@@ -72,12 +72,12 @@ assert.equal(elements["hzm-home-average"].textContent,"111,6");
 assert.match(elements["hzm-plot"].innerHTML,/<svg/);
 assert.match(elements["hzm-lab-range"].textContent,/102,0 – 131,0 pkt/,
   "Premium range derives from verified model P10/P90");
-assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,4);
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,4);
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="#hzm-expand-players"?{}:null;
 }}});
 assert.equal(elements["hzm-expand-players"].attributes["aria-expanded"],"true");
-assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,14,
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,14,
   "Expanded panel contains all 14 verified test players");
 assert.equal(requests,0,"Matching cached data does not trigger a network request");
 
@@ -92,9 +92,9 @@ assert.match(elements["hzm-player-inspector"].innerHTML,/Minuty: brak zweryfikow
 elements["hzm-player-tools"].on_click({target:{closest(selector){
   return selector==="[data-hzm-player-team]"?{dataset:{hzmPlayerTeam:"home"}}:null;
 }}});
-assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,7);
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,7);
 elements["hzm-player-search"].on_input({target:{value:"Test Athlete 14"}});
-assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,1);
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,1);
 assert.match(elements["hzm-player-inspector"].innerHTML,/Test Athlete 14/);
 assert.match(elements["hzm-player-inspector"].innerHTML,/26,2/);
 elements["hzm-player-search"].on_input({target:{value:""}});
@@ -140,10 +140,15 @@ assert.match(elements["hzm-player-rows"].innerHTML,/Questionable/);
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="[data-hzm-view]"?{dataset:{hzmView:"players"}}:null;
 }}});
+// The new roster sorts by the active market: OUT has no projection and
+// therefore appears last, but remains explicitly selectable from the list.
+elements["hzm-player-rows"].on_click({target:{closest(selector){
+  return selector==="[data-hzm-player-index]"?{dataset:{hzmPlayerIndex:"0"}}:null;
+}}});
 assert.match(elements["hzm-player-inspector"].innerHTML,/Sample Star/);
 assert.match(elements["hzm-player-inspector"].innerHTML,/ESPN: Out/);
 assert.match(elements["hzm-player-inspector"].innerHTML,/0,0 min/);
-assert.match(elements["hzm-player-inspector"].innerHTML,/OUT — model nie wyświetla/);
+assert.match(elements["hzm-player-inspector"].innerHTML,/OUT — model nie pokazuje/);
 assert.doesNotMatch(elements["hzm-player-inspector"].innerHTML,/>0,0<\/strong>/,
   "No fake zero-point production for OUT player");
 elements["simulations-pane"].on_click({target:{closest(selector){
@@ -190,16 +195,16 @@ assert.equal(elements["simulations-pane"].dataset.hzmView,"players");
 assert.equal(elements["hzm-lab-main"].attributes["aria-labelledby"],"hzm-lab-tab-players");
 assert.equal(labTabs[1].attributes["aria-selected"],"true");
 assert.equal(elements["hzm-expand-players"].attributes["aria-expanded"],"true");
-assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,14);
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,14);
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="[data-hzm-view]"?{dataset:{hzmView:"results"}}:null;
 }}});
 assert.equal(elements["simulations-pane"].dataset.hzmView,"results");
 assert.equal(elements["hzm-lab-main"].attributes["aria-labelledby"],"hzm-lab-tab-results");
-assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,4);
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,4);
 elements["hzm-expand-players"].on_click({stopPropagation(){}});
 assert.equal(elements["hzm-expand-players"].attributes["aria-expanded"],"true");
-assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,14);
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,14);
 elements["hzm-expand-players"].on_click({stopPropagation(){}});
 assert.equal(elements["hzm-expand-players"].attributes["aria-expanded"],"false");
 elements["simulations-pane"].on_click({target:{closest(selector){
