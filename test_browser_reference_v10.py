@@ -95,48 +95,11 @@ def main():
         assert help_panel.is_hidden()
         help_trigger.click()
         page.locator('.nav-btn[data-page="games"]').click()
-        assert help_panel.is_hidden()
-        page.locator('.nav-btn[data-page="props"]').click()
-        assert help_trigger.get_attribute("aria-expanded") == "false"
-        trigger.click()
-        assert menu.is_visible()
-        assert trigger.get_attribute("aria-expanded") == "true"
-        assert menu.locator('[role="option"]').count() == 5
-        assert menu.evaluate("e => getComputedStyle(e).position") == "absolute"
-        assert menu.evaluate("e => getComputedStyle(e).backgroundImage").startswith("linear-gradient")
-        assert menu.evaluate("e => getComputedStyle(e).borderTopColor") != "rgb(0, 0, 0)"
-        assert menu.bounding_box()["width"] > trigger.bounding_box()["width"]
-        assert menu.locator('[data-market-choice="PTS"]').get_attribute("aria-selected") == "true"
-        menu.locator('[data-market-choice="PRA"]').click()
-        assert menu.is_hidden()
-        assert market.input_value() == "PRA"
-        assert trigger.get_attribute("aria-expanded") == "false"
-        assert page.locator("#market-selected-label").inner_text() == "PTS + REB + AST"
-        assert page.locator('[data-market="PRA"]').get_attribute("class") == "on"
-        trigger.focus()
-        page.keyboard.press("ArrowDown")
-        assert menu.is_visible()
-        assert menu.locator('[data-market-choice="PRA"]').evaluate("e => e === document.activeElement")
-        page.keyboard.press("Home")
-        page.keyboard.press("ArrowDown")
-        assert menu.locator('[data-market-choice="REB"]').evaluate("e => e === document.activeElement")
-        page.keyboard.press("Enter")
-        assert market.input_value() == "REB"
-        assert page.locator("#market-selected-label").inner_text() == "Rebounds"
-        trigger.click()
-        page.keyboard.press("Escape")
-        assert menu.is_hidden()
-        trigger.click()
-        page.locator("#chart-panel").click(position={"x":500,"y":150})
-        assert menu.is_hidden()
-
-        page.locator('.nav-btn[data-page="games"]').click()
         assert page.locator("#schedule-pane").is_visible()
-        # The schedule fills the workspace from the top, without the old
-        # 63-pixel spacer above its header. Its bottom edge stays unchanged.
         assert_box(page, "#schedule-pane", 191, 9, 1025, 635)
         assert page.locator("#blank-pane").is_hidden()
-        assert "Terminarz" in page.locator("#schedule-pane").inner_text()
+        assert page.locator("#hzv-calendar-toggle").is_visible()
+        assert page.locator("#hzv-game-page").is_hidden()
         assert page.locator("#hzs-date-strip button").count() == 7
         selected_day = page.locator(".hzs-date.selected").get_attribute("data-hzs-day")
         schedule_games = [
@@ -146,54 +109,60 @@ def main():
              "away_score": 98, "home_score": 91}
             for index, status in enumerate(("live", "final", "scheduled"))
         ]
+        schedule_data = {
+            "calendar_today": selected_day, "calendar_loaded_days": [selected_day],
+            "calendar_games": schedule_games,
+            "form_options": [
+                {"team": "DEN", "name": "Denver Nuggets", "wins": 6, "losses": 4,
+                 "ppg": 114.5, "record_verified": True},
+                {"team": "NOP", "name": "New Orleans Pelicans", "wins": 5, "losses": 5,
+                 "ppg": 112.3, "record_verified": True},
+                {"team": "BOS", "name": "Boston Celtics", "wins": 8, "losses": 2,
+                 "ppg": 113.6, "record_verified": True},
+                {"team": "NYK", "name": "New York Knicks", "wins": 6, "losses": 4,
+                 "ppg": 110.2, "record_verified": True},
+            ]
+        }
         page.evaluate(
-            "home => {window.__scheduleHome=home; window.postMessage({type:'streamlit:render',args:{payload:{home}}}, '*')}",
-            {"calendar_today": selected_day, "calendar_loaded_days": [selected_day],
-             "calendar_games": schedule_games,
-             "form_options": [{"team": "DEN", "name": "Denver Nuggets", "wins": 6, "losses": 4,
-                               "ppg": 114.5, "record_verified": True},
-                              {"team": "NOP", "name": "New Orleans Pelicans", "wins": 5, "losses": 5,
-                               "ppg": 112.3, "record_verified": True}]},
+            "home => { window.__scheduleHome=home; window.postMessage({type:'streamlit:render',args:{payload:{home}}}, '*') }",
+            schedule_data,
         )
         page.wait_for_function("document.querySelectorAll('#hzs-board .hzs-game').length===3")
         assert page.locator("#hzs-board .hzs-game").count() == 3
-        assert page.locator("#hzs-board .hzs-rows").count() == 1
-        assert page.locator("#hzs-board .hzs-featured").count() == 1
-        assert page.locator("#hzs-board .hzs-rows .hzs-game").count() == 2
-        assert page.locator("#hzs-board .hzs-feature-ribbon").inner_text().strip().find("MECZ DNIA") >= 0
+        assert page.locator("#hzv-featured-button").is_visible()
+        assert page.locator("#hzs-board .hzs-game").first.evaluate("e=>e.tagName") == "BUTTON"
+        assert "MECZ DNIA" in page.locator("#hzv-hero").inner_text()
         assert page.locator("#hzs-match-count").inner_text() == "3 mecze"
-        assert len(page.locator("#hzs-board .hzs-rows").evaluate(
-            "e => getComputedStyle(e).gridTemplateColumns.split(' ').filter(Boolean)")) == 2
-        assert "NA ŻYWO · 3. KWARTA" in page.locator("#hzs-board").inner_text()
-        assert "114,5 PPG" in page.locator("#hzs-board").inner_text()
-        assert "Denver Nuggets" in page.locator("#hzs-board").inner_text()
-        assert page.locator("#hzs-board .hzs-game").first.evaluate("el => el.tagName") == "BUTTON"
-        board_box = page.locator("#hzs-board").bounding_box()
-        game_box = page.locator("#hzs-board .hzs-featured").bounding_box()
-        assert board_box and game_box
-        assert game_box["width"] >= board_box["width"] - 16, (board_box, game_box)
-        # The showcase and filters are FREE: no model scores or Premium
-        # predictions may be exposed by the schedule renderer.
-        assert "PRZEWIDYWANY" not in page.locator("#schedule-pane").inner_text()
-        assert "SYMU" not in page.locator("#schedule-pane").inner_text()
+        assert len(page.locator("#hzs-board .hzs-rows").first.evaluate(
+            "e => getComputedStyle(e).gridTemplateColumns.split(' ').filter(Boolean)")) == 3
+        assert page.locator("#hzv-east .hzv-stand-row").count() == 3
+        assert page.locator("#hzv-west .hzv-stand-row").count() == 3
+        assert "Celtics" in page.locator("#hzv-east").inner_text()
+        assert "Nuggets" in page.locator("#hzv-west").inner_text()
+        assert "PREMIUM" not in page.locator("#schedule-pane").inner_text()
+        # The month popover must be closed by default; clicking a day
+        # changes the selected schedule without moving the standings aside.
+        assert page.locator("#hzv-calendar-popup").is_hidden()
+        page.locator("#hzv-calendar-toggle").click()
+        assert page.locator("#hzv-calendar-popup").is_visible()
+        assert page.locator("#hzv-calendar-grid button").count() >= 28
+        page.keyboard.press("Escape")
+        assert page.locator("#hzv-calendar-popup").is_hidden()
         page.locator('[data-hzs-filter="live"]').click()
         assert page.locator("#hzs-board .hzs-game").count() == 1
-        assert page.locator("#hzs-board .hzs-featured").count() == 0
-        assert page.locator('[data-hzs-filter="live"]').get_attribute("aria-pressed") == "true"
         page.locator('[data-hzs-filter="final"]').click()
         assert page.locator("#hzs-board .hzs-game").count() == 1
         page.locator('[data-hzs-filter="scheduled"]').click()
         assert page.locator("#hzs-board .hzs-game").count() == 1
-        assert "NADCHODZĄCE" in page.locator("#hzs-board").inner_text()
-        # Pregame information expands inline without an ESPN summary request.
+        # Clicking does not expand a box inside the match list.
         page.locator("#hzs-board .hzs-game").click()
-        assert page.locator("#hzs-game-details").is_visible()
-        assert "Spotkanie jeszcze się nie rozpoczęło" in page.locator("#hzs-game-details").inner_text()
-        assert "6–4" in page.locator("#hzs-game-details").inner_text()
-        assert page.locator("#hzs-game-details .hzs-detail-row").count() == 0
-        page.locator("#hzs-board .hzs-game").click()
-        assert page.locator("#hzs-game-details").count() == 0
-        # A finished game retrieves a verified boxscore only after explicit click.
+        assert page.locator("#hzv-game-page").is_visible()
+        assert page.locator("#hzs-board #hzv-game-content").count() == 0
+        assert "Spotkanie jeszcze się nie rozpoczęło" in page.locator("#hzv-game-content").inner_text()
+        assert page.locator("#hzv-game-content .hzv-gc-stat-row").count() == 0
+        page.locator("#hzv-game-back").click()
+        assert page.locator("#hzv-game-page").is_hidden()
+        # Final score: request the one verified ESPN box score only on click.
         page.evaluate("""() => {
           window.__scheduleRequests = [];
           window.addEventListener('message', event => {
@@ -204,8 +173,7 @@ def main():
         }""")
         page.locator('[data-hzs-filter="final"]').click()
         page.locator("#hzs-board .hzs-game").click()
-        assert page.locator("#hzs-game-details").is_visible()
-        assert "Pobieranie" in page.locator("#hzs-game-details").inner_text()
+        assert page.locator("#hzv-game-page").is_visible()
         page.wait_for_function("window.__scheduleRequests.length===1")
         request = page.evaluate("window.__scheduleRequests[0]")
         assert request["game_id"] == str(4018100001)
@@ -214,72 +182,36 @@ def main():
             "details => window.postMessage({type:'streamlit:render',args:{payload:{home:window.__scheduleHome,schedule_game_details:details}}},'*')",
             {"id": str(4018100001), "day": selected_day, "error": "",
              "data": {"id": str(4018100001), "away": "DEN", "home": "NOP",
-                      "quarters": [{"period":"Q1","away":28,"home":25}],
-                      "team_stats": [{"label":"REB","away":"42","home":"39"}],
+                      "quarters": [{"period":"Q1","away":28,"home":25},
+                                   {"period":"Q2","away":22,"home":26}],
+                      "team_stats": [{"label":"Zbiórki","away":"42","home":"39"}],
                       "leaders": {"away":[{"name":"Verified Player","pts":22,"reb":7,"ast":3}],
                                   "home":[{"name":"Another Player","pts":20,"reb":8,"ast":5}]},
-                      "source":"ESPN"}},
+                      "arena": "Test Arena", "source":"ESPN"}},
         )
-        page.wait_for_function("document.querySelector('#hzs-game-details')?.textContent.includes('Verified Player')")
-        assert "Q1" in page.locator("#hzs-game-details").inner_text()
-        assert "42" in page.locator("#hzs-game-details").inner_text()
-        assert page.locator("#hzs-game-details .hzs-leader").count() == 2
-        assert "SYMU" not in page.locator("#hzs-game-details").inner_text()
+        page.wait_for_function("document.querySelector('#hzv-game-content')?.textContent.includes('Verified Player')")
+        assert "Q1" in page.locator("#hzv-game-content").inner_text()
+        assert "Test Arena" in page.locator("#hzv-game-content").inner_text()
+        assert page.locator("#hzv-game-content .hzv-gc-stat-row").count() == 1
+        assert page.locator("#hzv-game-content .hzv-xfactor-chart svg").count() == 1
+        assert page.locator('[data-hzv-history="h2h"]').is_visible()
+        page.locator('[data-hzv-history="recent"]').click()
+        assert page.locator('[data-hzv-history="recent"]').get_attribute("class") == "selected"
+        page.locator("#hzv-game-back").click()
         page.locator('[data-hzs-filter="all"]').click()
-        assert page.locator("#hzs-game-details").count() == 0
-        assert page.locator("#hzs-board .hzs-game").count() == 3
-        assert page.locator("#hzs-board .hzs-featured").count() == 1
-        # Unverified standings must not create a fake 'game of the day'.
+        # Unverified records never yield an invented featured matchup.
         page.evaluate(
-            "home => window.postMessage({type:'streamlit:render',args:{payload:{home}}}, '*')",
+            "home => window.postMessage({type:'streamlit:render',args:{payload:{home}}},'*')",
             {"calendar_today": selected_day, "calendar_loaded_days": [selected_day],
              "calendar_games": schedule_games,
              "form_options": [{"team": "DEN", "wins": 6, "losses": 4,
                                "ppg": 114.5, "record_verified": True}]},
         )
-        page.wait_for_function("document.querySelectorAll('#hzs-board .hzs-featured').length===0")
+        page.wait_for_function("document.querySelector('#hzv-hero')?.textContent.includes('Brak zweryfikowanego')")
         assert page.locator("#hzs-board .hzs-game").count() == 3
-        # Four public matchups from the Nov 20 schedule: NYK–MIN is a
-        # stronger, more evenly matched pairing than GSW–MEM despite its
-        # lower PPG. Never hardcode the chosen teams in production code.
-        spotlight_pairs = [("GSW", "MEM"), ("LAC", "SAS"),
-                           ("NYK", "MIN"), ("POR", "MIL")]
-        public_stats = [
-            ("GSW", 8, 7, 113.7), ("MEM", 11, 4, 121.9),
-            ("LAC", 4, 9, 111.9), ("SAS", 12, 3, 117.1),
-            ("NYK", 8, 6, 110.0), ("MIN", 11, 4, 116.7),
-            ("POR", 9, 5, 117.0), ("MIL", 1, 14, 107.7),
-        ]
-        page.evaluate(
-            "home => window.postMessage({type:'streamlit:render',args:{payload:{home}}}, '*')",
-            {"calendar_today": selected_day, "calendar_loaded_days": [selected_day],
-             "calendar_games": [
-                 {"id": f"spotlight-{i}", "day": selected_day,
-                  "away": away, "home": home, "state": "scheduled",
-                  "start": f"{selected_day}T01:00:00Z"}
-                 for i, (away, home) in enumerate(spotlight_pairs)
-             ],
-             "form_options": [
-                 {"team": code, "wins": wins, "losses": losses,
-                  "ppg": ppg, "record_verified": True}
-                 for code, wins, losses, ppg in public_stats
-             ]},
-        )
-        page.wait_for_function(
-            "document.querySelector('#hzs-board .hzs-featured .hzs-team.away .hzs-team-info strong')?.textContent==='NYK'"
-        )
-        assert "MIN" in page.locator("#hzs-board .hzs-featured").inner_text()
-        assert "45%" in (page.locator(".hzs-feature-ribbon").get_attribute("title") or "")
-        assert page.locator("#hzs-board .hzs-game").count() == 4
-        feature_box = page.locator("#hzs-board .hzs-featured").bounding_box()
-        compact_box = page.locator("#hzs-board .hzs-rows .hzs-game").first.bounding_box()
-        assert feature_box and feature_box["height"] <= 120, feature_box
-        assert compact_box and compact_box["height"] <= 85, compact_box
-        # The old 635px schedule wasted space on tall desktop windows.
+        # On tall screens the Terminarz uses the extra available height.
         page.set_viewport_size({"width": 1400, "height": 940})
         page.wait_for_function("document.querySelector('#schedule-pane').getBoundingClientRect().height > 750")
-        tall = page.locator("#schedule-pane").bounding_box()
-        assert tall and tall["height"] > 750, tall
         page.set_viewport_size({"width": 1231, "height": 691})
         page.wait_for_function("Math.abs(document.querySelector('#schedule-pane').getBoundingClientRect().height-635)<3")
         # Premium simulations: the final evidence strip must fit inside

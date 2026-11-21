@@ -46,7 +46,7 @@ class ScheduleDetailsTests(unittest.TestCase):
             {"period":"Q1","away":26,"home":29},
             {"period":"Q2","away":28,"home":33}
         ])
-        self.assertEqual(result["team_stats"][0], {"label":"FG%","away":"45.1%","home":"49.5%"})
+        self.assertEqual(result["team_stats"][0], {"label":"Celne z gry %","away":"45.1%","home":"49.5%"})
         self.assertEqual(result["leaders"]["home"][0]["name"],"Demo Starter")
         self.assertEqual(result["leaders"]["away"][0]["pts"],22)
         self.assertEqual(result["leaders"]["away"][0]["reb"],7)

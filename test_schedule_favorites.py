@@ -34,16 +34,16 @@ def exercise(page,mobile=False):
     inject(page,day)
     assert page.locator(".hzs-favorite-star").count()==8
     assert page.locator("#hzs-board .hzs-favorite-game").count()==0
-    assert page.locator("#hzs-date-picker").get_attribute("type")=="date"
+    assert page.locator("#hzv-calendar-toggle").get_attribute("aria-expanded")=="false"
     assert page.locator("#hzs-today").is_disabled()
     assert page.locator("#hzs-board .hzs-game").count()==4
     # Mark DEN as favorite without opening game details or hiding other cards.
     page.locator('[data-hzs-shell-id="4018000002"] [data-hzs-star="DEN"]').click()
     assert page.locator("#hzs-board .hzs-game").count()==4
     assert page.locator("#hzs-board .hzs-favorite-game").count()==1
-    assert page.locator("#hzs-game-details").count()==0
+    assert page.locator("#hzv-game-page").is_hidden()
     assert page.locator('.hzs-rows').first.locator('[data-hzs-shell-id]').first.get_attribute("data-hzs-shell-id")=="4018000002"
-    assert page.locator(".hzs-favorite-section-title").count()==1
+    assert "★ ULUBIONE" in page.locator("#hzs-board").inner_text()
     assert page.locator('[data-hzs-shell-id="4018000002"] [data-hzs-star="DEN"]').get_attribute("aria-pressed")=="true"
     assert "★" in page.locator('[data-hzs-shell-id="4018000002"] [data-hzs-star="DEN"]').inner_text()
     assert "PREMIUM" not in page.locator("#schedule-pane").inner_text()
@@ -58,9 +58,12 @@ def exercise(page,mobile=False):
     assert page.locator("#hzs-board .hzs-game").count()==4
     # Choosing a date does not require Premium or an extra tab.
     future=(date.fromisoformat(day)+timedelta(days=5)).isoformat()
-    page.locator("#hzs-date-picker").evaluate("""(el,value)=>{
-      el.value=value;el.dispatchEvent(new Event('change',{bubbles:true}))
-    }""",future)
+    page.locator("#hzv-calendar-toggle").click()
+    assert page.locator("#hzv-calendar-popup").is_visible()
+    if future[:7]!=day[:7]:
+        page.locator('[data-hzv-month="1"]').click()
+    page.locator(f'[data-hzv-calendar-day="{future}"]').click()
+    assert page.locator("#hzv-calendar-popup").is_hidden()
     assert page.locator(".hzs-date.selected").get_attribute("data-hzs-day")==future
     assert page.locator("#hzs-today").is_enabled()
     page.locator("#hzs-today").click()
@@ -68,7 +71,7 @@ def exercise(page,mobile=False):
     assert page.locator("#hzs-board .hzs-game").count()==4
     if mobile:
         assert page.locator("#app-shell").evaluate("el=>el.classList.contains('hz-mobile-schedule')")
-        assert page.locator(".hzs-rows").first.evaluate("e=>getComputedStyle(e).gridTemplateColumns.split(' ').length")==1
+        assert page.locator(".hzs-rows").first.evaluate("e=>getComputedStyle(e).gridTemplateColumns.split(' ').length")==2
         assert page.locator("#hzs-board .hzs-favorite-game").count()==1
     if persistence:
         page.reload(wait_until="load")

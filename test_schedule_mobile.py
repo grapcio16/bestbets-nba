@@ -1,4 +1,4 @@
-"""Mobile FREE schedule smoke: native scrolling and readable single-column games."""
+"""Mobile FREE schedule v4 smoke: native scrolling, calendar and separate Game Center."""
 from __future__ import annotations
 from pathlib import Path
 
@@ -36,7 +36,7 @@ def main():
         assert page.locator("#stage").evaluate("el=>getComputedStyle(el).transform") == "none"
         assert page.locator("#hzs-board .hzs-game").count() == 10
         assert len(page.locator("#hzs-board .hzs-rows").evaluate(
-            "el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean)")) == 1
+            "el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean)")) == 2
         assert page.locator(".hz-mobile-nav").is_visible()
         assert page.locator("#hzs-board").evaluate("el=>getComputedStyle(el).overflowY") == "visible"
         heights = page.evaluate("""() => ({
@@ -55,9 +55,16 @@ def main():
         })""")
         print("Mobile schedule horizontal geometry:",widths)
         assert max(widths["document"],widths["body"]) <= widths["viewport"]+4, widths
+        page.locator("#hzv-calendar-toggle").click()
+        assert page.locator("#hzv-calendar-popup").is_visible()
+        page.keyboard.press("Escape")
+        assert page.locator("#hzv-calendar-popup").is_hidden()
         page.locator("#hzs-board .hzs-game").first.click()
-        assert page.locator("#hzs-game-details").is_visible()
-        assert "Pobieranie" in page.locator("#hzs-game-details").inner_text()
+        assert page.locator("#hzv-game-page").is_visible()
+        assert "Pobieranie" in page.locator("#hzv-game-content").inner_text()
+        assert page.locator("#hzs-board .hzs-game").first.is_hidden()
+        page.locator("#hzv-game-back").click()
+        assert page.locator("#hzv-game-page").is_hidden()
         page.mouse.wheel(0,850)
         page.wait_for_timeout(120)
         scroll = page.evaluate("Math.max(window.scrollY,document.body.scrollTop,document.documentElement.scrollTop)")
