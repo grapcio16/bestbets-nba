@@ -63,8 +63,8 @@ class DashboardPerformanceTest(unittest.TestCase):
             time.sleep(0.04)
             return {"events": [{"id": "123"}]}
 
-        with tempfile.TemporaryDirectory() as tmp, \\
-             mock.patch.object(sources, "CACHE", Path(tmp)), \\
+        with tempfile.TemporaryDirectory() as tmp, \
+             mock.patch.object(sources, "CACHE", Path(tmp)), \
              mock.patch.object(sources, "http_json", side_effect=fake_http):
             with ThreadPoolExecutor(max_workers=8) as pool:
                 results = list(pool.map(
