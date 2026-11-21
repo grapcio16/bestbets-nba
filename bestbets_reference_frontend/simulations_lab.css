@@ -18,7 +18,7 @@
  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent
 }
 #simulations-pane .hzm-premium{
- height:32px;margin-top:7px;padding:0 10px 0 8px;
+ height:36px;margin-top:5px;padding:0 10px 0 8px;
  border-color:#d07bfa;box-shadow:0 0 15px rgba(152,51,211,.3);
  letter-spacing:1.1px
 }
@@ -38,7 +38,7 @@
 #simulations-pane .hzm-model-choice{margin-top:0;flex:0 0 182px}
 #simulations-pane .hzm-model-dropdown{width:182px}
 #simulations-pane .hzm-model-trigger{font-size:9px}
-#simulations-pane .hzm-day-control{flex:0 0 auto;max-width:245px;height:37px;margin-top:5px}
+#simulations-pane .hzm-day-control{flex:0 0 auto;max-width:245px;height:39px;margin-top:3px}
 #simulations-pane .hzm-day-control label{gap:5px;padding:0 5px;font-size:9px;letter-spacing:.1px}
 #simulations-pane .hzm-day-control input{width:94px}
 #simulations-pane .hzm-day-control button{width:27px;flex-basis:27px}
