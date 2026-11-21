@@ -130,7 +130,8 @@ def _v75_player_evidence(day: str, game_id: str):
 
 @st.cache_data(ttl=600, max_entries=90, show_spinner=False)
 def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74",
-                     pace_pct: int = 0):
+                     pace_pct: int = 0, off_away_pct: int = 0,
+                     off_home_pct: int = 0):
     """Future model, or clearly labeled retrospective model for a final game."""
     from espn_player_data import prefetch_matchup_boxscores
     from simulation_engine import (advanced_ratings, completed_team_scores,
@@ -182,17 +183,20 @@ def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"
         if model_id == "legacy_v72" else context["means"])
     if means is None:
         return {"error": "Za mało historycznych spotkań do wiarygodnej symulacji."}
-    # Scenario Builder changes only one explicitly hypothetical pregame input.
-    # No injury / minutes assumptions are silently inferred from pace.
-    if pace_pct:
-        if type(pace_pct) is not int or not -5 <= pace_pct <= 5:
-            return {"error": "Nieprawidłowa korekta tempa."}
-        factor = 1 + pace_pct / 100
-        means = {**means, "home": float(means["home"]) * factor,
-                 "away": float(means["away"]) * factor,
-                 "source": str(means.get("source") or "ESPN") + " · hipotetyczne tempo"}
+    # What-if changes only expected points. No injuries, rotations or
+    # verified team form is fabricated or silently re-estimated.
+    params = (pace_pct, off_away_pct, off_home_pct)
+    if any(type(v) is not int or not -5 <= v <= 5 for v in params):
+        return {"error": "Parametry scenariusza muszą wynosić od −5% do +5%."}
+    if any(params):
+        tempo = 1 + pace_pct / 100
+        means = {**means,
+                 "home": float(means["home"]) * tempo * (1 + off_home_pct / 100),
+                 "away": float(means["away"]) * tempo * (1 + off_away_pct / 100),
+                 "source": str(means.get("source") or "ESPN") +
+                           " · hipotetyczne tempo i efektywność ofensywna"}
         if any(not 60 < means[k] < 170 for k in ("home", "away")):
-            return {"error": "Korekta tempa wykracza poza zakres modelu."}
+            return {"error": "Założenia scenariusza przekraczają zakres modelu."}
     summary, _, home_scores, away_scores = simulate_game(
         game, means, score_noise=(context["score_noise"]
                                  if model_id != "legacy_v72" else None))
@@ -300,16 +304,20 @@ def simulation_for_entitled_user(day: str, game_id: str, players: bool = False,
 
 
 def scenario_for_entitled_user(day: str, game_id: str, model_id: str,
-                               pace_pct: int) -> dict:
+                               pace_pct: int, off_away_pct: int = 0,
+                               off_home_pct: int = 0) -> dict:
     """Server-side Premium-only what-if model. Never treated as injury news.
 
-    The hypothesis is a uniform percent change to both teams' projected
-    possessions/scoring means, with observed score variance held constant.
-    An input of +3 means a +3% *hypothetical* pace scenario, not verified pace.
+    Tempo applies a common percent multiplier to both teams' scoring means.
+    Each offense adjustment applies a separate, independent percent multiplier
+    to that team's scoring mean. The score variance is held constant.
+    These are user assumptions, NOT measured team form, possessions,
+    official injury status or player-level production.
     """
     if not premium_entitled():
         return {"error": "Wymagana jest zweryfikowana subskrypcja Premium."}
-    if (type(pace_pct) is not int or not -5 <= pace_pct <= 5
+    if (any(type(v) is not int or not -5 <= v <= 5
+            for v in (pace_pct, off_away_pct, off_home_pct))
             or model_id not in SIMULATION_MODELS or not isinstance(day, str)
             or not isinstance(game_id, str)
             or len(day) != 10 or not game_id.isdigit() or len(game_id) > 30):
@@ -331,20 +339,27 @@ def scenario_for_entitled_user(day: str, game_id: str, model_id: str,
         baseline = _game_simulation(day, game_id, model_id)
         if baseline.get("error"):
             return {"error": baseline["error"]}
-        modified = (_game_simulation(day, game_id, model_id, pace_pct=pace_pct)
-                    if pace_pct else baseline)
+        modified = (_game_simulation(
+            day, game_id, model_id, pace_pct=pace_pct,
+            off_away_pct=off_away_pct, off_home_pct=off_home_pct)
+            if any((pace_pct, off_away_pct, off_home_pct)) else baseline)
         if modified.get("error"):
             return {"error": modified["error"]}
         keys = ("away_points", "home_points", "total_points",
                 "away_win_pct", "home_win_pct")
         return {
             "date": day, "game_id": game_id, "model_id": model_id,
-            "pace_pct": pace_pct, "n_sims": 5000,
+            "pace_pct": pace_pct, "off_away_pct": off_away_pct,
+            "off_home_pct": off_home_pct, "n_sims": 5000,
             "baseline": {key: baseline[key] for key in keys},
             "scenario": {key: modified[key] for key in keys},
             "hypothetical": True,
-            "description": "Korekta oczekiwanej liczby posiadań obu drużyn o "
-                           f"{pace_pct:+d}%. Bez symulacji zmian składu i minut.",
+            "description": (
+                f"Hipotetyczne tempo {pace_pct:+d}%; "
+                f"ofensywa gości {off_away_pct:+d}%; "
+                f"ofensywa gospodarzy {off_home_pct:+d}%. "
+                "Bez symulacji zmian składu, minut i kontuzji."),
+
         }
     except (ValueError, TypeError, KeyError, RuntimeError, OverflowError) as exc:
         import logging
