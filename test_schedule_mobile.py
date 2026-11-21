@@ -36,6 +36,7 @@ def main():
         assert page.locator("#stage").evaluate("el=>getComputedStyle(el).transform") == "none"
         assert page.locator("#hzs-board .hzs-game").count() == 10
         assert page.locator("#hzv-day-title").count() == 0
+        assert page.locator("#schedule-pane .hzv-sport-nav").count() == 0
         mobile_controls = page.locator(".hzv-controls").bounding_box()
         mobile_hero = page.locator("#hzv-hero").bounding_box()
         assert mobile_controls and mobile_hero
