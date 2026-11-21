@@ -40,12 +40,27 @@ function safeId(player){
 function initials(name){
  return String(name||"").trim().split(/\s+/).slice(0,2).map(v=>v.charAt(0)).join("").toUpperCase();
 }
+// Reuse the verified team badge already delivered for the selected fixture
+// (the same image displayed in the match hero). No external logo request and
+// no hardcoded roster-to-team mapping. Require an actual player/game match.
+function playerTeamLogo(player){
+ const team=teamOf(player),game=active?.game;
+ if(!game||![String(game.away||"").toUpperCase(),String(game.home||"").toUpperCase()].includes(team))return "";
+ const token=team===String(game.home||"").toUpperCase()?game.home_logo:game.away_logo;
+ const resolved=window.hzResolveTeamLogo?.(token||"team-logo:"+team)||"";
+ return typeof resolved==="string"&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(resolved)?resolved:"";
+}
 function portrait(player,large){
  const id=safeId(player);
  const caption=esc(initials(player?.name));
+ const logo=large?playerTeamLogo(player):"";
+ const team=esc(teamOf(player));
+ const mark=large?'<span class="hzv3-team-watermark'+(logo?' has-logo':'')+'" aria-hidden="true">'+
+   '<span class="hzv3-team-watermark-label">'+team+'</span>'+
+   (logo?'<img alt="" src="'+logo+'" loading="lazy">':"")+'</span>':"";
  return '<span class="'+(large?"hzv3-athlete-photo":"hzv3-face")+'" aria-hidden="true">'+
-  '<span class="hzv3-avatar-fallback">'+caption+'</span>'+
-  (id?'<img loading="lazy" referrerpolicy="no-referrer" src="https://a.espncdn.com/i/headshots/nba/players/full/'+id+'.png" alt="">':"")+
+  mark+'<span class="hzv3-avatar-fallback">'+caption+'</span>'+
+  (id?'<img class="hzv3-headshot" loading="lazy" referrerpolicy="no-referrer" src="https://a.espncdn.com/i/headshots/nba/players/full/'+id+'.png" alt="">':"")+
   '</span>';
 }
 function fullList(){
@@ -330,7 +345,12 @@ $("hzv3-query").addEventListener("input",event=>{
  $("hzv3-query").focus();
 });
 root.addEventListener("error",event=>{
- if(event.target?.matches?.(".hzv3-face img,.hzv3-athlete-photo img"))event.target.remove();
+ if(event.target?.matches?.(".hzv3-team-watermark img")){
+   event.target.closest(".hzv3-team-watermark")?.classList.remove("has-logo");
+   event.target.remove();
+ }else if(event.target?.matches?.(".hzv3-face img,.hzv3-athlete-photo img")){
+   event.target.remove();
+ }
 },true);
 window.HoopzaroPlayerV3={render,clear(){
  active=null;
