@@ -1324,13 +1324,14 @@ if(window.HoopzaroSimulations){
     },
     openProps:function(details){
       if(state.page!=="simulations"||premiumRequired())return;
-      if(!details||typeof details.name!=="string"||details.market!=="PTS"||
+      const markets={PTS:"points",REB:"rebounds",AST:"assists",PRA:"PRA"};
+      if(!details||typeof details.name!=="string"||!markets[details.market]||
          !Number.isFinite(details.line)||details.line<.5||details.line>150)return;
       const name=details.name.trim().slice(0,80);
       if(!name||/[<>]/.test(name))return;
-      const query=name+" over "+details.line.toFixed(1)+" points";
+      const query=name+" over "+details.line.toFixed(1)+" "+markets[details.market];
       state.page="props";
-      state.market="PTS";state.line=details.line;state.side="OVER";state.period="L10";state.venue="ALL";
+      state.market=details.market;state.line=details.line;state.side="OVER";state.period="L10";state.venue="ALL";
       state.payload.player=null;state.payload.error="";state.lastIdentity="";state.query=query;
       $("query").value=query;
       render();
