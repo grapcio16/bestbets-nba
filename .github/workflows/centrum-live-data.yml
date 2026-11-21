@@ -26,37 +26,6 @@ jobs:
         run: |
           python -m py_compile bestbets_centre_live.py bestbets_centre_data.py bestbets_custom_screen.py sources.py global_player_catalog.py test_centre_live_data.py test_dashboard_performance.py bestbets_schedule_details.py test_schedule_details.py
           python -m unittest -v test_centre_live_data test_centre_data test_free_analyses test_dashboard_performance test_calculator_catalog test_schedule_details
-      - name: Probe ESPN history and scoreboard schemas (diagnostic only)
-        continue-on-error: true
-        run: |
-          python - <<'PY'
-          import requests
-          from bestbets_schedule_details import _verified_schedule_event
-          endpoints = [
-              ('CHA 2027', 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/30/schedule', {'season':2027}),
-              ('CHA 2026', 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams/30/schedule', {'season':2026}),
-              ('Scoreboard 20261120', 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard', {'dates':'20261120','limit':100}),
-          ]
-          for label,url,params in endpoints:
-              try:
-                  response=requests.get(url,params=params,timeout=7)
-                  data=response.json() if response.ok else {}
-                  events=data.get('events') if isinstance(data,dict) else None
-                  verified=[g for ev in (events or []) if (g:=_verified_schedule_event(ev))]
-                  h2h=[g for g in verified if {g['away'],g['home']}=={'CHA','ATL'}]
-                  print(label,'http=',response.status_code,'events=',len(events or []),
-                        'final_verified=',len(verified),'h2h=',len(h2h),
-                        'top_keys=',list(data)[:8] if isinstance(data,dict) else type(data).__name__,
-                        flush=True)
-                  if events:
-                      ev=events[0]
-                      comp=(ev.get('competitions') or [{}])[0]
-                      print('event_sample_keys=',list(ev)[:14],
-                            'competition_keys=',list(comp)[:14],
-                            'status=',ev.get('status'),flush=True)
-              except Exception as exc:
-                  print(label,'not available:',type(exc).__name__,flush=True)
-          PY
       - name: Free leaders, safe details and opt-in photos in Playwright
         run: python test_free_analyses_browser.py
       - name: Pixel baseline, browser fixture and unchanged Props
