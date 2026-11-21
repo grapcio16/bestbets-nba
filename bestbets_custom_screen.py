@@ -360,15 +360,17 @@ def main() -> None:
         [data-testid="stMain"] iframe{
             display:block!important;border:0!important;
             width:100%!important;background:#020713!important;
-            /* Preserve the approved proportional stage, including its full
-               height when wider screens require vertical page scrolling. */
+            /* Desktop: viewport-height iframe so the right content region
+               can scroll independently from the left navigation. */
             height:calc(100vh - 4px)!important;
             height:calc(100dvh - 4px)!important;
-            /* Keep the exact full-width canvas and let the Streamlit page
-               scroll vertically when that canvas is taller than the window.
-               Never squeeze or crop the Players/Teams bottom panels. */
-            height:max(calc(100dvh - 4px), 56.1332vw)!important;
             min-height:0!important;
+        }
+        /* Retain the previous mobile sizing and touch-scroll behavior. */
+        @media (max-width:767px){
+            [data-testid="stMain"] iframe{
+                height:max(calc(100dvh - 4px), 56.1332vw)!important;
+            }
         }
         /* A phone held horizontally must keep its iframe within the visible
            viewport so the fixed mobile tab bar remains reachable. */
