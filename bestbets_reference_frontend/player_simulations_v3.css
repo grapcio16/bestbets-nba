@@ -241,3 +241,9 @@
  #hzv3 .hzv3-player-stat{font-size:11px}
  #hzv3 .hzv3-titlebar{gap:6px}
 }
+
+#hzv3 .hzv3-return-props{flex:0 0 auto;margin-top:6px;min-height:27px;width:100%;
+ border:1px solid #327cad;background:#0b3354;border-radius:8px;
+ color:#defaff;font-size:10px;font-weight:800}
+#hzv3 .hzv3-return-props:hover{background:#185b81}
+#hzv3 .hzv3-history-actions button:disabled{opacity:.38;cursor:not-allowed}
