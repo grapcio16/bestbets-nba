@@ -120,7 +120,9 @@ function drawInspector(player){
    '<div class="hzv3-fact"><span>▥</span><span>Próba ESPN</span><strong>'+rows.length+' występów</strong></div>'+
    '<div class="hzv3-fact"><span>ⓘ</span><span>Model</span><strong>'+version(model)+'</strong></div></div>'+
    '<p class="hzv3-inspector-note">PRA jest sumą średnich PTS, REB i AST. Historyczne częstości nie są prawdopodobieństwem prognozy.</p>'+
-   '<div class="hzv3-history-actions">'+actions+'</div>';
+   '<div class="hzv3-history-actions">'+actions+'</div>'+
+   (state.fromProps?.name===player.name&&state.fromProps?.team===teamOf(player)?
+      '<button type="button" class="hzv3-return-props" data-hzv3-return>← Wróć do Player Props</button>':'');
 }
 function empty(label){
  return '<p class="hzv3-muted">'+esc(label)+'</p>';
@@ -293,6 +295,10 @@ function render(args){
 root.addEventListener("click",event=>{
  if(!active)return;
  const target=event.target;
+ if(target.closest("[data-hzv3-return]")){
+   if(active.premium?.entitled===true&&active.state.fromProps)active.onReturn?.();
+   return;
+ }
  const m=target.closest("[data-hzv3-market]");
  if(m){const v=m.dataset.hzv3Market;
   if(["PTS","REB","AST","PRA"].includes(v)){active.state.playerMarket=v;refresh();}return;}
