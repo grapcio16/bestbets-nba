@@ -112,8 +112,12 @@ def main():
              "away_score": 98, "home_score": 91}
             for index, status in enumerate(("live", "final", "scheduled"))
         ]
+        tiny_logo = ("data:image/png;base64,"
+                     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwC"
+                     "AAAAC0lEQVR42mP8/x8AAwMCAO+a3s8AAAAASUVORK5CYII=")
         schedule_data = {
             "calendar_today": selected_day, "calendar_loaded_days": [selected_day],
+            "team_logos": {code:tiny_logo for code in ("DEN","NOP","LAL","DAL")},
             "calendar_games": schedule_games,
             "form_options": [
                 {"team": "DEN", "name": "Denver Nuggets", "wins": 6, "losses": 4,
@@ -182,12 +186,54 @@ def main():
         assert page.locator("#hzs-board .hzs-game").count() == 1
         page.locator('[data-hzs-filter="scheduled"]').click()
         assert page.locator("#hzs-board .hzs-game").count() == 1
-        # Clicking does not expand a box inside the match list.
+        # A future event shows NO fabricated stats/X-Factor, but asks the
+        # trusted Streamlit backend for genuine H2H and recent results.
+        page.evaluate("""() => {
+            window.__pregameScheduleRequests=[];
+            window.addEventListener('message', event => {
+              if(event.data?.type==='streamlit:setComponentValue' &&
+                 event.data.value?.type==='schedule_game_details')
+                 window.__pregameScheduleRequests.push(event.data.value);
+            });
+        }""")
         page.locator("#hzs-board .hzs-game").click()
         assert page.locator("#hzv-game-page").is_visible()
         assert page.locator("#hzs-board #hzv-game-content").count() == 0
-        assert "Spotkanie jeszcze się nie rozpoczęło" in page.locator("#hzv-game-content").inner_text()
-        assert page.locator("#hzv-game-content .hzv-gc-stat-row").count() == 0
+        assert "Mecz jeszcze się nie rozpoczął" in page.locator("#hzv-game-content").inner_text()
+        assert "będą dostępne po meczu" in page.locator("#hzv-game-content").inner_text()
+        assert page.locator("#hzv-game-content .hzv-compare-panel").count() == 0
+        assert page.locator("#hzv-game-content .hzv-gc-xfactor").count() == 0
+        assert page.locator('[data-hzv-history="h2h"]').is_visible()
+        assert page.locator('[data-hzv-history="recent"]').is_visible()
+        page.wait_for_function("window.__pregameScheduleRequests.length===1")
+        assert page.evaluate("window.__pregameScheduleRequests[0].game_id")==str(4018100002)
+        page.evaluate(
+            "details => window.postMessage({type:'streamlit:render',args:{payload:{home:window.__scheduleHome,schedule_game_details:details}}},'*')",
+            {"id":str(4018100002),"day":selected_day,"error":"",
+             "data":{"id":str(4018100002),"away":"DEN","home":"NOP","pregame":True,
+                     "quarters":[],"team_stats":[],"leaders":{"away":[],"home":[]},
+                     "history":{
+                         "h2h":[{"id":"4018100998","start":"2025-12-10T02:00:00Z",
+                                 "away":"DEN","home":"NOP","away_score":103,"home_score":99,
+                                 "state":"final"}],
+                         "recent":{
+                             "DEN":[{"id":"4018100997","start":"2026-11-10T02:00:00Z",
+                                     "away":"DEN","home":"LAL","away_score":111,
+                                     "home_score":104,"state":"final"}],
+                             "NOP":[{"id":"4018100996","start":"2026-11-12T02:00:00Z",
+                                     "away":"NOP","home":"DAL","away_score":107,
+                                     "home_score":118,"state":"final"}]
+                         },"coverage":[{"team":"DEN","season":2026}],"error":""}}}
+        )
+        page.wait_for_function("document.querySelector('#hzv-history-results')?.textContent.includes('2025')")
+        assert "10 grudnia 2025" in page.locator("#hzv-history-results").inner_text()
+        assert page.locator("#hzv-history-results .hzv-history-participant img").count()==2
+        page.locator('[data-hzv-history="recent"]').click()
+        assert page.locator("#hzv-history-results .hzv-history-row").count()==2
+        assert "2026" in page.locator("#hzv-history-results").inner_text()
+        assert page.locator("#hzv-history-results .hzv-history-participant img").count()==4
+        assert page.locator("#hzv-history-results .hzv-history-team h3 img").count()==2
+        assert page.locator("#hzv-game-content .hzv-gc-xfactor").count()==0
         page.locator("#hzv-game-back").click()
         assert page.locator("#hzv-game-page").is_hidden()
         # Final score: request the one verified ESPN box score only on click.
@@ -259,6 +305,8 @@ def main():
         assert page.locator('[data-hzv-history="h2h"]').is_visible()
         assert page.locator("#hzv-history-results .hzv-history-row").count() == 1
         assert "108 : 99" in page.locator("#hzv-history-results").inner_text()
+        assert "11 lutego 2026" in page.locator("#hzv-history-results").inner_text()
+        assert page.locator("#hzv-history-results .hzv-history-participant img").count()==2
         page.locator('[data-hzv-history="recent"]').click()
         assert page.locator('[data-hzv-history="recent"]').get_attribute("class") == "selected"
         assert page.locator("#hzv-history-results .hzv-history-team").count() == 2

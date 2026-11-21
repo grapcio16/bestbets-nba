@@ -323,6 +323,34 @@ def parse_game_details(payload, game_id, away, home):
             "arena":arena, "source":"ESPN"}
 
 
+
+def load_scheduled_game_history(game_id, away, home, game_start):
+    """A scheduled fixture has no box score; only its verified history is fetched.
+
+    The caller first verifies the event ID, date, teams and scheduled state against
+    its trusted server-side ESPN fixture. This function accepts no arbitrary URL.
+    """
+    from datetime import datetime
+    if not re.fullmatch(r"\d{6,15}", str(game_id)):
+        raise ValueError("Nieobsługiwany mecz")
+    if away not in TEAM_FULL or home not in TEAM_FULL or away == home:
+        raise ValueError("Nieprawidłowe drużyny")
+    try:
+        start=datetime.fromisoformat(str(game_start).replace("Z","+00:00"))
+        if start.tzinfo is None:
+            raise ValueError("Brak strefy czasowej")
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError("Nieprawidłowa data meczu") from exc
+    try:
+        history=fetch_game_history(away,home,str(game_start),str(game_id))
+    except Exception:
+        history={"h2h":[],"recent":{},"coverage":[],
+                 "error":"Historia spotkań ESPN jest chwilowo niedostępna"}
+    return {"id":str(game_id),"away":away,"home":home,"pregame":True,
+            "quarters":[],"team_stats":[],"leaders":{"away":[],"home":[]},
+            "history":history,"source":"ESPN"}
+
+
 def load_game_details(game_id, away, home, state):
     """Fetch a single, already-verified scoreboard event after explicit click."""
     if not re.fullmatch(r"\d{6,15}", str(game_id)) or state not in ("live", "final"):
