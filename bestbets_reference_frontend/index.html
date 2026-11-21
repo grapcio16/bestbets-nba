@@ -554,7 +554,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <nav id="hzm-lab-nav" class="hzm-lab-nav" role="tablist" aria-label="Moduły Simulation Lab">
       <button type="button" id="hzm-lab-tab-results" role="tab" data-hzm-view="results" aria-controls="hzm-lab-main" aria-selected="true" class="selected"><span aria-hidden="true">▥</span> Wyniki i rozkłady</button>
       <button type="button" id="hzm-lab-tab-players" role="tab" data-hzm-view="players" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">♙</span> Player Simulations</button>
-      <button type="button" role="tab" disabled aria-disabled="true" title="Scenario Builder — kolejny etap wdrożenia"><span aria-hidden="true">☷</span> Scenariusze <small>Wkrótce</small></button>
+      <button type="button" id="hzm-lab-tab-scenario" role="tab" data-hzm-view="scenario" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">☷</span> Scenariusze</button>
       <button type="button" role="tab" disabled aria-disabled="true" title="Analiza meczu — kolejny etap wdrożenia"><span aria-hidden="true">✧</span> Analiza meczu <small>Wkrótce</small></button>
       <button type="button" role="tab" disabled aria-disabled="true" title="Porównanie drużyn — kolejny etap wdrożenia"><span aria-hidden="true">⇄</span> Porównanie drużyn <small>Wkrótce</small></button>
       <button type="button" role="tab" disabled aria-disabled="true" title="Model i Backtest — kolejny etap wdrożenia"><span aria-hidden="true">▤</span> Model &amp; Backtest <small>Wkrótce</small></button>
@@ -588,6 +588,26 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <button type="button" id="hzm-expand-players" class="hzm-expand" aria-expanded="false" aria-controls="hzm-player-rows">Rozwiń pełną listę zawodników <span aria-hidden="true">⌄</span></button>
           </section>
         </div>
+        <section id="hzm-scenario-panel" class="hzm-scenario-panel" aria-label="Scenario Builder — symulacja hipotetyczna" hidden>
+          <div class="hzm-scenario-control">
+            <header><span aria-hidden="true">☷</span><strong>Scenario Builder</strong><small>Wariant eksperymentalny · tylko Premium</small></header>
+            <label for="hzm-scenario-pace">Zmiana tempa gry (oba zespoły)</label>
+            <div class="hzm-scenario-slider-line"><input type="range" id="hzm-scenario-pace" min="-5" max="5" step="1" value="0" aria-label="Hipotetyczna zmiana tempa gry w procentach"><output id="hzm-scenario-pace-display" for="hzm-scenario-pace">0%</output></div>
+            <div class="hzm-scenario-ticks"><span>−5% · wolniej</span><span>0% · bazowo</span><span>+5% · szybciej</span></div>
+            <button id="hzm-scenario-run" type="button">Przelicz 5 000 symulacji</button>
+            <p>Zmiana tempa to założenie użytkownika, nie informacja z NBA. Minuty, kontuzje i forma pozostają bez zmian.</p>
+          </div>
+          <div class="hzm-scenario-output" aria-live="polite">
+            <header><strong>Porównanie prognoz</strong><span>BAZA VS WHAT-IF</span></header>
+            <div class="hzm-scenario-compare">
+              <div><small>Model bazowy · suma pkt</small><strong id="hzm-scenario-base">—</strong></div>
+              <div><small>Nowy scenariusz · suma pkt</small><strong id="hzm-scenario-whatif">—</strong></div>
+            </div>
+            <div class="hzm-scenario-delta">Zmiana średniej sumy punktów: <strong id="hzm-scenario-delta">—</strong></div>
+            <p id="hzm-scenario-status">Wybierz tempo i uruchom symulację.</p>
+            <small id="hzm-scenario-context">Wyniki hipotetyczne · 5 000 niezależnych symulacji na wariant · nie są kursem bukmachera.</small>
+          </div>
+        </section>
       </div>
     </div>
     <div class="hzm-insights"><div class="hzm-insight-title">DANE MODELU <span>I OGRANICZENIA</span></div><div><span class="hzm-insight-icon">↗</span><strong>Forma drużyn</strong><small id="hzm-evidence-form">Ostatnie potwierdzone mecze</small></div><div><span class="hzm-insight-icon">◷</span><strong>Tempo i zmienność</strong><small id="hzm-evidence-pace">Heurystyczna zmienność punktów</small></div><div><span class="hzm-insight-icon">▣</span><strong>Odpoczynek i składy</strong><small id="hzm-evidence-rest">Kontuzje wymagają potwierdzenia</small></div></div>
