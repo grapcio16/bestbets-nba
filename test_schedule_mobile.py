@@ -90,6 +90,8 @@ def main():
         )
         page.wait_for_function("document.querySelectorAll('.hzv-compare-row').length===3")
         assert page.locator(".hzv-compare-panel").is_visible()
+        assert page.locator(".hzv-xfactor-final").is_visible()
+        assert "112" in page.locator(".hzv-xfactor-final").inner_text()
         assert page.locator('[data-hzv-metric="Straty"]').get_attribute("data-hzv-advantage") == "away"
         geometry = page.evaluate("""() => ({
             viewport: innerWidth,
@@ -106,6 +108,18 @@ def main():
         assert geometry["tracks"], geometry
         page.locator("#hzv-game-back").click()
         assert page.locator("#hzv-game-page").is_hidden()
+        # Same mobile Game Center must keep history available before tipoff.
+        page.evaluate("""() => {
+            window.__mobileScheduleHome.calendar_games[9].state="scheduled";
+            window.postMessage({type:'streamlit:render',
+              args:{payload:{home:window.__mobileScheduleHome}}},'*');
+        }""")
+        page.locator("#hzs-board .hzs-game").last.click()
+        assert page.locator("#hzv-game-page").is_visible()
+        assert "będą dostępne po meczu" in page.locator("#hzv-game-content").inner_text()
+        assert page.locator(".hzv-gc-xfactor").count()==0
+        assert page.locator('[data-hzv-history="recent"]').is_visible()
+        page.locator("#hzv-game-back").click()
         page.mouse.wheel(0,850)
         page.wait_for_timeout(120)
         scroll = page.evaluate("Math.max(window.scrollY,document.body.scrollTop,document.documentElement.scrollTop)")
