@@ -121,7 +121,13 @@ def check(page, width, height):
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.clock.set_fixed_time("2026-11-21T12:00:00Z")
     page.goto(PAGE, wait_until="load")
-    page.locator('.nav-btn[data-page="simulations"]').click()
+    # The native mobile tab bar replaces desktop sidebar navigation.
+    mobile = page.locator('#hz-mobile-nav [data-page="simulations"]')
+    desktop = page.locator('.nav-btn[data-page="simulations"]')
+    if mobile.is_visible():
+        mobile.click()
+    else:
+        desktop.click()
     data = payload()
     page.evaluate(
         "d => window.postMessage({type:'streamlit:render',args:{payload:d}}, '*')",
