@@ -45,6 +45,12 @@ def main():
         assert mobile_hero["height"] <= 115, mobile_hero
         assert len(page.locator("#hzs-board .hzs-rows").evaluate(
             "el=>getComputedStyle(el).gridTemplateColumns.split(' ').filter(Boolean)")) == 2
+        assert page.locator("#hzs-board .hzs-mini-bottom").first.evaluate(
+            "el => el.scrollHeight <= el.clientHeight + 2")
+        first_card = page.locator("#hzs-board .hzs-game").first.bounding_box()
+        first_caption = page.locator("#hzs-board .hzs-mini-bottom").first.bounding_box()
+        assert first_card and first_caption
+        assert first_caption["y"] + first_caption["height"] <= first_card["y"] + first_card["height"] - 3
         assert page.locator(".hz-mobile-nav").is_visible()
         assert page.locator("#hzs-board").evaluate("el=>getComputedStyle(el).overflowY") == "visible"
         heights = page.evaluate("""() => ({
