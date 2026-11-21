@@ -113,7 +113,7 @@ def main():
             assert .20 <= color_style["watermarkOpacity"] <= .45, color_style
             assert page.locator("#hzv3-trend svg").count() == 1
             assert page.locator("#hzv3-hist svg rect").count() >= 24
-            assert "7 występów" in page.locator("#hzv3-rates-note").inner_text()
+            assert "7 meczów" in page.locator("#hzv3-rates-note").inner_text()
             assert "—" in page.locator("#hzv3-averages").inner_text()
             assert "20,0" in page.locator('#hzv3-inspector [data-hzv3-metric="PTS"]').inner_text()
             assert page.locator("[data-hzv3-market]").count() == 4
