@@ -285,6 +285,41 @@ def _compact_pregame_player_history(raw, tipoff, away: str, home: str) -> dict:
     return histories
 
 
+def _complete_player_team_coverage(historical, logs, tipoff, teams) -> set[str]:
+    """Only assert season-to-date coverage when every ESPN final ID matches.
+
+    Counting n distinct boxscores is insufficient: skipped games could be
+    hidden by unrelated fixtures. Missing or malformed provider data makes
+    coverage incomplete, never a fabricated full-season average.
+    """
+    need = {"game_id", "start_utc", "home", "away", "status_code"}
+    have = {"GAME_ID", "TEAM_ABBREVIATION"}
+    if (not isinstance(historical, pd.DataFrame) or
+            not isinstance(logs, pd.DataFrame) or
+            not need.issubset(historical.columns) or
+            not have.issubset(logs.columns) or
+            historical.empty or logs.empty):
+        return set()
+    previous = historical.copy()
+    previous["start_utc"] = pd.to_datetime(
+        previous["start_utc"], utc=True, errors="coerce")
+    previous = previous[
+        (pd.to_numeric(previous["status_code"], errors="coerce") == 3)
+        & (previous["start_utc"] < tipoff)
+    ]
+    verified = set()
+    for team in teams:
+        played = previous[
+            (previous["away"] == team) | (previous["home"] == team)
+        ]
+        expected = {str(x) for x in played["game_id"].dropna()}
+        seen = {str(x) for x in logs.loc[
+            logs["TEAM_ABBREVIATION"] == team, "GAME_ID"].dropna()}
+        if expected and expected.issubset(seen):
+            verified.add(team)
+    return verified
+
+
 @st.cache_data(ttl=600, max_entries=50, show_spinner=False)
 def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     """Lazily fetch only the selected matchup's two actual ESPN player histories."""
@@ -326,31 +361,10 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
         historical_logs, _ = matchup_espn_logs(historical, game, games_per_team=20)
     evidence_by_player = _compact_pregame_player_history(
         historical_logs, tipoff, str(match["away"]), str(match["home"]))
-    # "Season" requires the complete set of selected team's pregame ESPN
-    # game boxscores. A 20-game window must not masquerade as a full season.
-    expected_team_games = {}
-    available_team_games = {}
-    if isinstance(historical, pd.DataFrame) and not historical.empty:
-        previous = historical.copy()
-        previous["start_utc"] = pd.to_datetime(
-            previous["start_utc"], utc=True, errors="coerce")
-        previous = previous[
-            (pd.to_numeric(previous["status_code"], errors="coerce") == 3)
-            & (previous["start_utc"] < tipoff)
-        ]
-        for code in (str(match["away"]), str(match["home"])):
-            selected_games = previous[
-                (previous["away"] == code) | (previous["home"] == code)]
-            expected_team_games[code] = int(selected_games["game_id"].nunique())
-    if isinstance(historical_logs, pd.DataFrame) and not historical_logs.empty:
-        for code in (str(match["away"]), str(match["home"])):
-            available_team_games[code] = int(historical_logs.loc[
-                historical_logs["TEAM_ABBREVIATION"] == code, "GAME_ID"
-            ].nunique())
-    complete_teams = {
-        code for code, expected in expected_team_games.items()
-        if expected > 0 and available_team_games.get(code, 0) >= expected
-    }
+    complete_teams = _complete_player_team_coverage(
+        historical, historical_logs, tipoff,
+        (str(match["away"]), str(match["home"]))
+    )
     if table is None or table.empty:
         return {"players": [], "error": "ESPN nie dostarczył projekcji graczy dla tego spotkania."}
     required = {"Zawodnik", "Drużyna", "PTS", "REB", "AST"}
