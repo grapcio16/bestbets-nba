@@ -653,3 +653,68 @@
  #simulations-pane .hzm-compare-row strong{font-size:13px}
  #simulations-pane .hzm-compare-row span{font-size:9px}
 }
+
+/* Stage 7A: bounded walk-forward research report, intentionally on demand. */
+#simulations-pane #hzm-backtest-panel[hidden]{display:none!important}
+#simulations-pane[data-hzm-view="backtest"] .hzm-content{height:auto;min-height:0}
+#simulations-pane .hzm-backtest-panel{
+ display:flex;flex-direction:column;gap:12px;min-width:0;padding:17px;
+ border:1px solid #337aa8;border-radius:13px;color:#f0faff;
+ background:radial-gradient(ellipse at 100% 0%,#753cba3c,transparent 58%),#091b34
+}
+#simulations-pane .hzm-backtest-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#simulations-pane .hzm-backtest-head small{color:#4aeaf4;font-size:9px;font-weight:900;letter-spacing:1px}
+#simulations-pane .hzm-backtest-head h2{margin:2px 0;font-size:22px;line-height:1.1;font-weight:950}
+#simulations-pane .hzm-backtest-head p{margin:4px 0 0;color:#a5bcd5;font-size:10px}
+#simulations-pane #hzm-backtest-run{
+ min-height:37px;min-width:157px;padding:8px 12px;border-radius:9px;
+ border:1px solid #32e7ef;background:linear-gradient(105deg,#075773,#41216e);
+ color:#fff;font-family:inherit;font-weight:900;font-size:11px;cursor:pointer
+}
+#simulations-pane #hzm-backtest-run:disabled{opacity:.5;cursor:not-allowed}
+#simulations-pane #hzm-backtest-run:focus-visible{outline:2px solid #91e9fa;outline-offset:3px}
+#simulations-pane .hzm-backtest-status{font-size:10px;color:#bbd7eb;line-height:1.5;margin:0}
+#simulations-pane .hzm-backtest-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+#simulations-pane .hzm-backtest-summary>div{
+ display:flex;flex-direction:column;justify-content:center;gap:7px;padding:11px;
+ border:1px solid #277ea5;border-radius:9px;background:#0a2b4b
+}
+#simulations-pane .hzm-backtest-summary>div:nth-child(2){background:#231b43;border-color:#9650c4}
+#simulations-pane .hzm-backtest-summary small{color:#aac6e1;font-size:10px}
+#simulations-pane .hzm-backtest-summary strong{color:#68ebf9;font-size:17px;font-weight:950;overflow-wrap:anywhere}
+#simulations-pane .hzm-backtest-summary>div:nth-child(2) strong{color:#e0a9ff}
+#simulations-pane .hzm-backtest-metrics-head,
+#simulations-pane .hzm-backtest-model{
+ display:grid;grid-template-columns:minmax(0,1.55fr) repeat(4,minmax(0,.75fr));gap:8px;
+ align-items:center;padding:10px 12px;font-variant-numeric:tabular-nums
+}
+#simulations-pane .hzm-backtest-metrics-head{
+ font-size:9px;font-weight:900;color:#9bcce1;border:1px solid #346789;
+ border-radius:10px 10px 0 0;background:#102443
+}
+#simulations-pane .hzm-backtest-metrics-head span:not(:first-child){text-align:right}
+#simulations-pane .hzm-backtest-results{border:1px solid #2e6091;border-top:0;border-radius:0 0 10px 10px;overflow:hidden}
+#simulations-pane .hzm-backtest-model{min-height:42px;background:#09243f;border-bottom:1px solid #2b527b}
+#simulations-pane .hzm-backtest-model:nth-child(2n){background:#151e40}
+#simulations-pane .hzm-backtest-model:last-child{border-bottom:0;background:linear-gradient(105deg,#123352,#321c53)}
+#simulations-pane .hzm-backtest-model strong{font-size:10px;color:#f0f9ff;font-weight:850}
+#simulations-pane .hzm-backtest-model b{text-align:right;font-size:14px;color:#54e8f9;font-weight:950}
+#simulations-pane .hzm-backtest-model b:last-child{color:#daa3fa}
+#simulations-pane .hzm-backtest-metric-notes{color:#a4c0d9;font-size:10px;line-height:1.55}
+#simulations-pane .hzm-backtest-roi{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap;border:1px solid #8456ac;border-radius:9px;background:#23183d;padding:10px}
+#simulations-pane .hzm-backtest-roi strong{font-size:11px;color:#dab1ff}
+#simulations-pane .hzm-backtest-roi span{font-size:10px;color:#bcc5de}
+#simulations-pane .hzm-backtest-caveat{margin:0;padding-top:8px;border-top:1px solid #385981;color:#bcaccf;font-size:10px;line-height:1.45}
+@media(max-width:767px){
+ #simulations-pane .hzm-backtest-panel{padding:11px}
+ #simulations-pane .hzm-backtest-head{align-items:flex-start;flex-wrap:wrap}
+ #simulations-pane #hzm-backtest-run{width:100%}
+ #simulations-pane .hzm-backtest-summary{grid-template-columns:minmax(0,1fr)}
+ #simulations-pane .hzm-backtest-metrics-head,
+ #simulations-pane .hzm-backtest-model{
+   grid-template-columns:minmax(0,1.35fr) repeat(4,minmax(0,.68fr));gap:3px;padding:8px 4px
+ }
+ #simulations-pane .hzm-backtest-metrics-head{font-size:7px}
+ #simulations-pane .hzm-backtest-model strong{font-size:9px}
+ #simulations-pane .hzm-backtest-model b{font-size:11px}
+}
