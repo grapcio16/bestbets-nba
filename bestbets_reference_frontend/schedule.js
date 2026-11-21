@@ -102,7 +102,9 @@ function logo(code,value){const url=window.hzResolveTeamLogo?.(value)||"";
  return '<span class="hzs-team-mark">'+(safe?'<img src="'+url+'" alt="" loading="lazy">':'<b>'+esc(code)+'</b>')+'</span>';
 }
 function teamLogo(data,code,game,side){
- return logo(code,game?.[side+"_logo"]||seasonRow(data,code)?.logo||"");
+ const value=game?.[side+"_logo"]||seasonRow(data,code)?.logo||
+  (typeof data?.team_logos?.[code]==="string"&&data.team_logos[code]?"team-logo:"+code:"");
+ return logo(code,value);
 }
 function codeLabel(data,code){const name=seasonRow(data,code)?.name||code;return String(name||code)}
 function score(g){if(g.state==="scheduled")return localTime(g.start);
