@@ -282,7 +282,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
   <button class="sidebar-premium hz-premium-cta" id="hz-premium" type="button" aria-label="Otwórz Premium"><span class="hz-premium-gem" aria-hidden="true"></span><span class="hz-premium-text">PREMIUM</span><span class="hz-premium-arrow" aria-hidden="true">›</span></button>
 </aside>
 <div id="work">
-  <header class="props-heading" id="props-heading"><div class="props-heading-icon" aria-hidden="true"><svg class="hz-ui-icon"><use href="#hz-icon-props"/></svg></div><div><h1>Player <em>Props</em></h1><p>Player prop analysis, stats &amp; context</p></div><div class="props-orbit" aria-hidden="true"></div></header>
+  <header class="props-heading" id="props-heading"><div class="props-heading-icon" aria-hidden="true"><svg class="hz-ui-icon"><use href="#hz-icon-props"/></svg></div><div><h1>Player <em>Props</em></h1><p>Player prop analysis, stats &amp; context</p></div><button type="button" id="hz-props-open-simulation" class="hz-props-to-sim" hidden>◈ Zobacz prognozę w Simulation Lab <span aria-hidden="true">›</span></button><span id="hz-props-bridge-note" class="hz-props-bridge-note" role="status" aria-live="polite" hidden></span><div class="props-orbit" aria-hidden="true"></div></header>
   <form class="topsearch" id="search-form"><span class="glass">⌕</span><input id="query" autocomplete="off" placeholder="Jayson Tatum over 25.5 points" aria-label="Wyszukaj zawodnika, linię i rynek"><button id="props-help-trigger" type="button" aria-label="Jak korzystać z wyszukiwarki Player Props" aria-controls="props-help-panel" aria-haspopup="dialog" aria-expanded="false" title="Jak wyszukiwać?">i</button><button id="search-btn" type="submit" aria-label="Wyszukaj">⌕</button></form>
   <section id="props-help-panel" class="props-help-panel" role="dialog" aria-labelledby="props-help-title" aria-modal="false" hidden>
     <div class="props-help-heading">
@@ -730,7 +730,7 @@ const $=function(id){return document.getElementById(id)};
 const root=$("stage"),shell=$("app-shell");
 const marketNames={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PTS + REB + AST"};
 const pages={home:"Centrum",props:"Player Props",games:"Terminarz",simulations:"Symulacje",players:"Zawodnicy",teams:"Drużyny",settings:"Ustawienia",shortcuts:"Skrót wpisywania",admin:"Model Performance"};
-const state={page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",venue:"ALL",loading:false,lastIdentity:"",homeRequested:false,homeRequestAt:0,homeLastAttempt:0,homeRetryCount:0,homeTimedOut:false,paywallOpen:false,paywallServerErrorSeen:"",adminLoading:false,adminLastRequest:0,playerCatalogRequested:false,playerAveragesRequested:false,teamAnalyticsRequested:false,playerIdentity:""};
+const state={propsReturn:null,propsBridgeNote:"",page:"home",payload:{player:null,error:"",brand:"",home:null},query:"",market:"PTS",line:25.5,side:"OVER",period:"L10",venue:"ALL",loading:false,lastIdentity:"",homeRequested:false,homeRequestAt:0,homeLastAttempt:0,homeRetryCount:0,homeTimedOut:false,paywallOpen:false,paywallServerErrorSeen:"",adminLoading:false,adminLastRequest:0,playerCatalogRequested:false,playerAveragesRequested:false,teamAnalyticsRequested:false,playerIdentity:""};
 const marketLabels={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PTS + REB + AST"};
 // The server sends each logo once rather than repeating base64 in every game.
 // Keep the original badge markup and image sizing: only resolve references.
@@ -1001,6 +1001,10 @@ function renderPlayer(){
   if(signature===lastPlayerRenderSignature)return;
   lastPlayerRenderSignature=signature;
   const p=state.payload.player,m=p?measures(p):null;
+  const simLink=$("hz-props-open-simulation");
+  if(simLink)simLink.hidden=!(p&&typeof p.name==="string"&&/^[A-Z]{3}$/.test(String(p.team||"")));
+  const bridgeNote=$("hz-props-bridge-note");
+  if(bridgeNote){bridgeNote.hidden=!state.propsBridgeNote;bridgeNote.textContent=state.propsBridgeNote}
   syncSearchWithAnalysis(p);
   text("player-name",p?p.name:"Wyszukaj zawodnika");
   text("team",p?p.team:"NBA");
@@ -1196,6 +1200,75 @@ function search(query){
   state.payload.error="";state.loading=true;render();
   notify("streamlit:setComponentValue",{dataType:"json",value:{type:"search",query:query,id:String(Date.now())+"-"+String(Math.random()).slice(2)}});
 }
+// Player Props ↔ Simulation Lab share player identity, never share cached
+// model predictions across routes, models or Premium login sessions.
+function openSimulationForProp(){
+  const p=state.payload.player;
+  if(!p||!p.name||!/^[A-Z]{3}$/.test(String(p.team||"")))return;
+  if(premiumRequired()){showPremiumPaywall();return;}
+  const result=window.HoopzaroSimulations?.openFromProps?.({
+    name:String(p.name),team:String(p.team),market:state.market
+  },state.payload.home||null);
+  if(!result?.ok){
+    state.propsBridgeNote=result?.message||
+      "Brak potwierdzonego najbliższego meczu tego zawodnika w pobranym terminarzu.";
+    lastPlayerRenderSignature=null;renderPlayer();return;
+  }
+  state.propsReturn={
+    name:String(p.name),team:String(p.team),
+    query:state.query||currentSearchText(p),
+    market:state.market,line:state.line,side:state.side,
+    period:state.period,venue:state.venue
+  };
+  state.propsBridgeNote="";
+  state.page="simulations";render();
+}
+function returnFromSimulations(){
+  const from=state.propsReturn;
+  if(!from)return;
+  state.page="props";state.market=from.market;state.line=from.line;
+  state.side=from.side;state.period=from.period;state.venue=from.venue;
+  state.propsBridgeNote="";
+  render();
+  const p=state.payload.player;
+  if(!p||p.name!==from.name||p.team!==from.team){
+    search(from.query);return;
+  }
+  state.query=from.query;$("query").value=from.query;
+  lastPlayerRenderSignature=null;renderPlayer();
+}
+function openHistoryForSimulatedPlayer(selection){
+  const paid=state.payload.premium_simulation;
+  if(premiumRequired()||paid?.entitled!==true){showPremiumPaywall();return;}
+  const {name,team,market,gameId,day,model}=selection||{};
+  if(typeof name!=="string"||!name.trim()||typeof team!=="string"||
+     !["PTS","REB","AST","PRA"].includes(market)||
+     !/^\d{6,15}$/.test(String(gameId||""))||
+     !/^\d{4}-\d{2}-\d{2}$/.test(String(day||""))||
+     !["legacy_v72","research_form_v74","research_context_v75"].includes(model))return;
+  const data=paid.players,sim=paid.game;
+  if(data?.game_id!==String(gameId)||data?.date!==day||data?.model_id!==model||
+     sim?.game_id!==String(gameId)||sim?.date!==day||sim?.model_id!==model)return;
+  const chosen=(Array.isArray(data.players)?data.players:[]).find(p=>p.name===name&&p.team===team);
+  if(!chosen)return;
+  const getNumber=v=>v!==null&&v!==undefined&&v!==""&&Number.isFinite(Number(v))&&Number(v)>=0?Number(v):null;
+  const projected=market==="PRA"
+    ?[chosen.pts,chosen.reb,chosen.ast].map(getNumber)
+    :[getNumber(chosen[market.toLowerCase()])];
+  if(projected.some(x=>x===null))return;
+  const sum=projected.reduce((a,b)=>a+b,0);
+  // A half-point *starter* derived from an authorized model mean. It is never
+  // claimed to be a bookmaker quote and remains user editable in Props.
+  const line=Math.min(149.5,Math.max(.5,Math.floor(sum)+.5));
+  const token={PTS:"points",REB:"rebounds",AST:"assists",PRA:"PRA"}[market];
+  const query=name+" over "+line.toFixed(1)+" "+token;
+  state.propsBridgeNote="Linia "+line.toFixed(1).replace(".",",")+
+    " to edytowalny punkt wyjścia z prognozy "+model+
+    " · nie jest kursem ani linią bukmachera.";
+  state.page="props";state.propsReturn=null;
+  // Existing validated search() enforces Premium and session limits server-side.
+  search(query);
+}
 function requestPlayersData(){
   if(state.page!=="players")return;
   if(!state.payload.player_catalog&&!state.playerCatalogRequested){
@@ -1322,22 +1395,6 @@ if(window.HoopzaroSimulations){
         id:String(Date.now())+"-premium-game-"+id+"-"+Math.random().toString(36).slice(2)
       }});
     },
-    openProps:function(details){
-      if(state.page!=="simulations"||premiumRequired())return;
-      const markets={PTS:"points",REB:"rebounds",AST:"assists",PRA:"PRA"};
-      if(!details||typeof details.name!=="string"||!markets[details.market]||
-         !Number.isFinite(details.line)||details.line<.5||details.line>150)return;
-      const name=details.name.trim().slice(0,80);
-      if(!name||/[<>]/.test(name))return;
-      const query=name+" over "+details.line.toFixed(1)+" "+markets[details.market];
-      state.page="props";
-      state.market=details.market;state.line=details.line;state.side="OVER";state.period="L10";state.venue="ALL";
-      state.payload.player=null;state.payload.error="";state.lastIdentity="";state.query=query;
-      $("query").value=query;
-      render();
-      if(shell.classList.contains("hz-independent-scroll"))$("work").scrollTop=0;
-      search(query);
-    },
     loadPlayers:function(day,id,modelId){
       if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled)return;
       notify("streamlit:setComponentValue",{dataType:"json",value:{
@@ -1345,12 +1402,15 @@ if(window.HoopzaroSimulations){
         id:String(Date.now())+"-premium-players-"+id+"-"+Math.random().toString(36).slice(2)
       }});
     },
-    premium:function(){state.page="settings";render()}
+    premium:function(){state.page="settings";render()},
+    openProps:openHistoryForSimulatedPlayer,
+    backToProps:returnFromSimulations
   });
 }
 $("hz-account-login").addEventListener("click",function(){sendAuth("auth_login")});
 $("hz-account-logout").addEventListener("click",function(){sendAuth("auth_logout")});
-$("search-form").addEventListener("submit",function(e){e.preventDefault();search($("query").value)});
+$("search-form").addEventListener("submit",function(e){e.preventDefault();state.propsBridgeNote="";search($("query").value)});
+$("hz-props-open-simulation").addEventListener("click",openSimulationForProp);
 $("props-help-trigger").addEventListener("click",function(){setPropsHelpOpen($("props-help-panel").hidden)});
 $("props-help-close").addEventListener("click",function(){setPropsHelpOpen(false,true)});
 document.querySelectorAll("[data-help-query]").forEach(function(button){button.addEventListener("click",function(){
@@ -1497,6 +1557,8 @@ window.addEventListener("message",function(event){
     if(state.playerIdentity!==""){
       state.query="";$('query').value="";
       state.lastIdentity="";state.paywallServerErrorSeen="";
+      state.propsReturn=null;state.propsBridgeNote="";
+      window.HoopzaroSimulations?.clearBridge?.();
     }
     state.playerIdentity=currentIdentity;
     state.playerAveragesRequested=false;state.teamAnalyticsRequested=false;

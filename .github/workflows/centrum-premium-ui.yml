@@ -49,6 +49,7 @@ jobs:
         run: |
           node test_simulations_canvas.js
           python test_simulations_browser.py
+          python test_simulations_props_bridge.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
