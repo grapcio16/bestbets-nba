@@ -477,11 +477,18 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
         <button type="button" class="hzs-filter" data-hzs-filter="live" aria-pressed="false"><span class="hzs-live-dot" aria-hidden="true"></span> Na żywo</button>
         <button type="button" class="hzs-filter" data-hzs-filter="scheduled" aria-pressed="false"><span aria-hidden="true">◷</span> Nadchodzące</button>
         <button type="button" class="hzs-filter" data-hzs-filter="final" aria-pressed="false"><span aria-hidden="true">✓</span> Zakończone</button>
+        <button type="button" class="hzs-filter hzs-filter-favorites" data-hzs-filter="favorites" aria-pressed="false" title="Pokaż mecze ulubionych drużyn"><span aria-hidden="true">☆</span> Ulubione</button>
       </div>
-      <div class="hzs-match-count" id="hzs-match-count" aria-live="polite">— meczów</div>
+      <div class="hzs-toolbar-right">
+        <div class="hzs-quick-date" aria-label="Szybki wybór daty">
+          <button type="button" id="hzs-today" class="hzs-today" title="Przejdź do dzisiejszych meczów">Dzisiaj</button>
+          <label class="hzs-date-picker-label" for="hzs-date-picker" title="Wybierz dowolną datę w zakresie ±366 dni"><span aria-hidden="true">▦</span><span>Kalendarz</span><input type="date" id="hzs-date-picker" aria-label="Wybierz datę meczów NBA"></label>
+        </div>
+        <div class="hzs-match-count" id="hzs-match-count" aria-live="polite">— meczów</div>
+      </div>
     </div>
     <div class="hzs-board" id="hzs-board" aria-live="polite"><div class="hzs-empty">Wczytywanie terminarza NBA…</div></div>
-    <div class="hzs-footnote"><span id="hzs-source-note">Rzeczywiste mecze NBA / ESPN</span><span>Kliknij mecz, aby rozwinąć szczegóły · przewiń ↓</span></div>
+    <div class="hzs-footnote"><span id="hzs-source-note">Rzeczywiste mecze NBA / ESPN</span><span>☆ Ulubione zapisane w tej przeglądarce · kliknij mecz po szczegóły</span></div>
   </section>
   <section id="simulations-pane" class="hzm" hidden aria-label="Symulacje NBA Premium">
     <header class="hzm-header">
