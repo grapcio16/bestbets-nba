@@ -6,6 +6,7 @@ from unittest.mock import patch
 from bestbets_schedule_details import (
     parse_game_details, load_game_details, _verified_schedule_event,
     _periods_from_plays, _verified_scoreboard_quarters, fetch_game_history,
+    load_scheduled_game_history,
 )
 
 EVENT = "4018100123"
@@ -187,6 +188,34 @@ class ScheduleDetailsTests(unittest.TestCase):
             result=load_game_details(EVENT,"NYK","BOS","final")
         self.assertEqual(result["quarters"],[{"period":"Q1","away":26,"home":29}])
         self.assertEqual(result["history"],history)
+
+    def test_future_fixture_loads_history_without_boxscore(self):
+        history={"h2h":[{"id":"4018100000","start":"2026-02-11T01:00:00Z",
+                         "away":"NYK","home":"BOS","away_score":108,
+                         "home_score":99,"state":"final"}],
+                 "recent":{"NYK":[],"BOS":[]},"coverage":[],"error":""}
+        with patch("bestbets_schedule_details.fetch_game_history",return_value=history) as get_history, \
+             patch("sources.memoized_json",side_effect=AssertionError("no pregame boxscore")):
+            details=load_scheduled_game_history(EVENT,"NYK","BOS","2026-11-25T00:30:00Z")
+        self.assertTrue(details["pregame"])
+        self.assertEqual(details["quarters"],[])
+        self.assertEqual(details["team_stats"],[])
+        self.assertEqual(details["leaders"],{"away":[],"home":[]})
+        self.assertEqual(details["history"],history)
+        get_history.assert_called_once_with("NYK","BOS","2026-11-25T00:30:00Z",EVENT)
+
+    def test_scheduled_history_validates_team_event_and_start(self):
+        for event_id in ("evil","../../event","1234x789012"):
+            with self.assertRaises(ValueError):
+                load_scheduled_game_history(event_id,"NYK","BOS","2026-11-25T00:30:00Z")
+        with self.assertRaises(ValueError):
+            load_scheduled_game_history(EVENT,"NYK","NYK","2026-11-25T00:30:00Z")
+        with self.assertRaises(ValueError):
+            load_scheduled_game_history(EVENT,"NYK","BOS","2026-11-25")
+        with patch("bestbets_schedule_details.fetch_game_history",side_effect=TimeoutError()):
+            data=load_scheduled_game_history(EVENT,"NYK","BOS","2026-11-25T00:30:00Z")
+        self.assertEqual(data["history"]["h2h"],[])
+        self.assertTrue(data["history"]["error"])
 
 
 if __name__ == "__main__":
