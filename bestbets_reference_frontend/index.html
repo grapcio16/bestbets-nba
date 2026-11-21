@@ -1460,6 +1460,21 @@ if(window.HoopzaroSimulations){
         id:String(Date.now())+"-scenario-"+id+"-"+Math.random().toString(36).slice(2)
       }});
     },
+    loadMinuteScenario:function(args){
+      const a=args||{};
+      if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled||
+         a.modelId!=="research_context_v75"||
+         !/^\d{4}-\d{2}-\d{2}$/.test(String(a.day||""))||
+         !/^\d{6,15}$/.test(String(a.gameId||""))||
+         typeof a.playerName!=="string"||!a.playerName.trim()||a.playerName.length>70||
+         !/^[A-Z]{3}$/.test(String(a.team||""))||
+         !Number.isInteger(a.minuteDelta)||a.minuteDelta< -5||a.minuteDelta>5)return;
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"premium_sim_player_minutes",date:a.day,game_id:a.gameId,
+        model_id:a.modelId,player_name:a.playerName,team:a.team,minute_delta:a.minuteDelta,
+        id:String(Date.now())+"-minute-"+a.gameId+"-"+Math.random().toString(36).slice(2)
+      }});
+    },
     loadPlayers:function(day,id,modelId){
       if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled)return;
       notify("streamlit:setComponentValue",{dataType:"json",value:{
