@@ -614,3 +614,29 @@ button.avg-box:disabled{opacity:.75;cursor:default}
 .hz-account-actions button[hidden]{display:none!important}
 .hz-account-actions button:hover{background:#0e597f}
 #hz-account-note{color:#9dbee0;font-size:11px}
+
+/* Premium bridge: independent history in Props ↔ future model in Simulation Lab. */
+#props-heading #hz-props-open-simulation{
+ pointer-events:auto;position:absolute;z-index:5;left:415px;top:10px;
+ min-height:32px;max-width:345px;display:inline-flex;align-items:center;
+ justify-content:center;gap:10px;padding:6px 14px;border-radius:10px;
+ border:1px solid #42def0;
+ color:#f2fcff;font-size:11px;font-weight:900;letter-spacing:.1px;
+ background:linear-gradient(100deg,#0e5065,#14305f 72%,#301c5f);
+ box-shadow:0 0 14px rgba(19,218,247,.22);
+ cursor:pointer
+}
+#props-heading #hz-props-open-simulation[hidden],
+#props-heading #hz-props-bridge-note[hidden]{display:none!important}
+#props-heading #hz-props-open-simulation:hover{
+ border-color:#51f7ff;box-shadow:0 0 18px rgba(19,218,247,.42)
+}
+#props-heading #hz-props-open-simulation:focus-visible{
+ outline:2px solid #c9faff;outline-offset:2px
+}
+#props-heading #hz-props-bridge-note{
+ pointer-events:none;position:absolute;left:415px;top:45px;
+ max-width:492px;white-space:normal;line-height:1.15;
+ color:#e7c5ff;font-size:9px;font-weight:700;
+ text-shadow:0 1px 5px #020b1e
+}
