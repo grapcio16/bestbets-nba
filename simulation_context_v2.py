@@ -49,14 +49,21 @@ def verified_team_comparison(earlier: pd.DataFrame, home: str, away: str,
     full_advanced = home in ratings and away in ratings
 
     def one(code: str, snapshot: dict, venue: str) -> dict:
-        games = earlier[(earlier["home"] == code) |
-                        (earlier["away"] == code)].tail(10)
-        wins = sum(
-            (r["home"] == code and r["home_score"] > r["away_score"]) or
-            (r["away"] == code and r["away_score"] > r["home_score"])
-            for _, r in games.iterrows()
-        )
-        observations = len(games)
+        own = earlier[(earlier["home"] == code) |
+                      (earlier["away"] == code)]
+        def record(n):
+            games = own.tail(n)
+            wins = sum(
+                (r["home"] == code and r["home_score"] > r["away_score"]) or
+                (r["away"] == code and r["away_score"] > r["home_score"])
+                for _, r in games.iterrows()
+            )
+            observed = len(games)
+            return (int(wins) if observed else None,
+                    int(observed-wins) if observed else None,
+                    round(100 * wins / observed, 1) if observed else None)
+        w5, l5, wp5 = record(5)
+        w10, l10, wp10 = record(10)
         adv = ratings[code] if full_advanced else {}
         return {
             "team": code,
@@ -65,12 +72,13 @@ def verified_team_comparison(earlier: pd.DataFrame, home: str, away: str,
             "n10": snapshot.get("n10", 0),
             "n20": snapshot.get("n20", 0),
             "pts5": snapshot.get("pts5"),
+            "allowed5": snapshot.get("allowed5"),
+            "margin5": snapshot.get("margin5"),
+            "wins5": w5, "losses5": l5, "win_pct5": wp5,
             "pts10": snapshot.get("pts10"),
             "allowed10": snapshot.get("allowed10"),
             "margin10": snapshot.get("margin10"),
-            "wins10": int(wins) if observations else None,
-            "losses10": int(observations - wins) if observations else None,
-            "win_pct10": round(100 * wins / observations, 1) if observations else None,
+            "wins10": w10, "losses10": l10, "win_pct10": wp10,
             "venue": venue,
             "venue_sample": snapshot.get("venue_sample", 0),
             "venue_scored": snapshot.get("venue_scored"),
