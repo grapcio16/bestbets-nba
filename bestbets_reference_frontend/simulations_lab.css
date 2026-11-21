@@ -167,7 +167,7 @@
 #simulations-pane .hzm-player-focused-note{display:none}
 #simulations-pane .hzm-expand{height:28px;bottom:6px}
 #simulations-pane .hzm-players-panel.expanded{
- height:400px;z-index:12;box-shadow:0 16px 38px #000a,0 0 16px #aa58e84b
+ height:410px;z-index:12;box-shadow:0 16px 38px #000a,0 0 16px #aa58e84b
 }
 #simulations-pane .hzm-players-panel.expanded .hzm-player-rows{height:319px;overflow-y:auto}
 #simulations-pane[data-hzm-view="players"] .hzm-chart-card{display:none}
