@@ -87,7 +87,7 @@ def main():
             assert "7 meczów" in page.locator("#hzm-player-rates-source").inner_text()
             assert "—" in page.locator("#hzm-player-averages").inner_text(), "L10/L15 must be hidden with only 7 ESPN games"
             assert "20,0" in page.locator(".hzm-inspector-metric.current").inner_text()
-            assert page.locator('#hzm-player-market-switch button').count() == 4 if False else True
+            assert page.locator("[data-hzm-player-market]").count() == 4
             page.locator('[data-hzm-player-market="REB"]').click()
             assert page.locator("#hzm-player-rate-metric").inner_text() == "REB"
             assert "2,4" in page.locator(".hzm-inspector-metric.current").inner_text()
