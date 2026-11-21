@@ -224,4 +224,27 @@ assert.equal(elements["hzm-match-list"].hidden,true,
 app.render(home,{entitled:false,game:fakeGame,players:fakePlayers});
 assert.equal(elements["hzm-lab-range"].textContent,"Przedział 80%: —");
 assert.doesNotMatch(elements["hzm-player-rows"].innerHTML,/Test Athlete/);
+// Stage 3: a Player Props deep link never selects an unrelated fixture or a
+// game which already started. No fabricated scheduled matchup.
+let link=app.openFromProps({name:"Test Athlete 1",team:"NYK",market:"PTS"},home);
+assert.equal(link.ok,false,"A past fixture cannot be used as a future game");
+const futureStart=new Date(Date.now()+4*86400000).toISOString();
+const futureDay=futureStart.slice(0,10);
+const futureGame={id:"401900111",day:futureDay,away:"NYK",home:"BOS",
+ state:"scheduled",start:futureStart};
+const futureHome={
+ calendar_today:futureDay,calendar_games:[futureGame],calendar_loaded_days:[futureDay]
+};
+link=app.openFromProps({name:"Test Athlete 1",team:"LAL",market:"PTS"},futureHome);
+assert.equal(link.ok,false,"Other-team matches cannot be linked");
+link=app.openFromProps({name:"Test Athlete 1",team:"NYK",market:"PTS"},futureHome);
+assert.equal(link.ok,true);
+assert.equal(link.gameId,futureGame.id);
+app.render(futureHome,{entitled:false,game:fakeGame,players:fakePlayers});
+assert.equal(elements["simulations-pane"].dataset.hzmView,"players");
+assert.equal(elements["hzm-player-search"].value,"Test Athlete 1");
+assert.equal(elements["hzm-player-team-away"].textContent,"NYK");
+assert.doesNotMatch(elements["hzm-player-inspector"].innerHTML,/Test Athlete 1/,
+  "Deep linking must not bypass the Premium gate");
+app.clearBridge();
 console.log("Simulation Lab 2.0: premium-only results, honest ranges, functional tabs and match picker OK");
