@@ -17,6 +17,7 @@ def main():
         errors = []
         page.on("pageerror", lambda exc: errors.append(str(exc)))
         page.goto(PAGE, wait_until="load")
+        page.locator('.nav-btn[data-page="simulations"]').click()
         day = "2026-11-23"
         game_id = "401999444"
         home = {
@@ -43,9 +44,10 @@ def main():
             "data => window.postMessage({type:'streamlit:render',args:{payload:data}}, '*')",
             payload,
         )
-        # Load the verified future fixture before opening Simulation Lab,
-        # so the date selection is initialized from the same ESPN calendar.
-        page.locator('.nav-btn[data-page="simulations"]').click()
+        # The fixture day may differ from the app's local current day.
+        # Select it explicitly, as a user would in the date control.
+        page.locator("#hzm-day-input").fill(day)
+        page.locator("#hzm-day-input").dispatch_event("change")
         page.locator("#hzm-lab-tab-scenario").click()
         assert page.locator("#hzm-scenario-panel").is_visible()
         assert page.locator("#hzm-scenario-base").inner_text() == "230,0 pkt"
