@@ -17,6 +17,7 @@ const ids=[
   "hzm-home-average","hzm-total-average","hzm-chart-context","hzm-chart-source",
   "hzm-plot","hzm-players-panel","hzm-player-headings","hzm-expand-players","hzm-player-rows",
   "hzm-evidence-form","hzm-evidence-pace","hzm-evidence-rest",
+  "hzm-match-list","hzm-match-picker","hzm-match-picker-label","hzm-lab-main","hzm-lab-range",
 ];
 for(const id of ids){
   elements[id]={innerHTML:"",textContent:"",value:"",style:{},dataset:{},attributes:{},
@@ -25,9 +26,13 @@ for(const id of ids){
     focus(){this.focused=true}};
 }
 elements["hzm-model-options"].hidden=true;
+elements["hzm-match-list"].hidden=true;
 const tabs=["match","away","home"].map(chart=>({dataset:{hzmChart:chart},textContent:"",attributes:{},
   classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v}}));
 elements["hzm-chart-tabs"]={querySelectorAll(){return tabs}};
+const labTabs=["results","players"].map(view=>({dataset:{hzmView:view},attributes:{},
+  classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v}}));
+elements["hzm-lab-nav"]={querySelectorAll(){return labTabs}};
 const context={window:{},document:{getElementById(id){return elements[id]||null}},Date,Intl,Number,Math,Map,String,Array};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,"bestbets_reference_frontend/simulations.js"),"utf8"),context);
 const app=context.window.HoopzaroSimulations;
@@ -50,12 +55,17 @@ assert.match(elements["hzm-player-rows"].innerHTML,/dostępne w Premium/);
 assert.equal(requests,0,"Guest requests no paid data");
 assert.equal(tabs[1].textContent,"NYK");
 assert.equal(tabs[2].textContent,"IND");
+assert.equal(elements["simulations-pane"].dataset.hzmView,"results");
+assert.equal(elements["hzm-lab-range"].textContent,"Przedział 80%: —",
+  "Guest must never receive Premium percentiles");
 
 app.render(home,{entitled:true,game:fakeGame,players:fakePlayers});
 assert.equal(elements["hzm-score"].textContent,"117 : 112");
 assert.equal(elements["hzm-away-average"].textContent,"116,8");
 assert.equal(elements["hzm-home-average"].textContent,"111,6");
 assert.match(elements["hzm-plot"].innerHTML,/<svg/);
+assert.match(elements["hzm-lab-range"].textContent,/102,0 – 131,0 pkt/,
+  "Premium range derives from verified model P10/P90");
 assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,4);
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="#hzm-expand-players"?{}:null;
@@ -116,4 +126,39 @@ assert.equal(elements["hzm-model-trigger"].attributes["aria-expanded"],"false");
 assert.equal(elements["hzm-model-select"].value,"research_form_v74");
 assert.equal(elements["hzm-model-current"].textContent,"V7.4 · FORMA + KONTEKST");
 assert.equal(elements["hzm-model-option-research_form_v74"].attributes["aria-selected"],"true");
-console.log("Premium canvas: tabs, verified data, expandable 14-player list, guest gate OK");
+elements["hzm-model-trigger"].on_click({stopPropagation(){}});
+assert.equal(elements["hzm-model-options"].hidden,false,
+  "Direct dropdown trigger works independently of pane delegation");
+elements["hzm-model-option-legacy_v72"].on_click({stopPropagation(){}});
+assert.equal(elements["hzm-model-options"].hidden,true);
+assert.equal(elements["hzm-model-select"].value,"legacy_v72");
+
+// Simulation Lab 2.0: working tabs and match selector, not empty UI controls.
+app.render(home,{entitled:true,game:fakeGame,players:fakePlayers});
+elements["simulations-pane"].on_click({target:{closest(selector){
+  return selector==="[data-hzm-view]"?{dataset:{hzmView:"players"}}:null;
+}}});
+assert.equal(elements["simulations-pane"].dataset.hzmView,"players");
+assert.equal(elements["hzm-lab-main"].attributes["aria-labelledby"],"hzm-lab-tab-players");
+assert.equal(labTabs[1].attributes["aria-selected"],"true");
+assert.equal(elements["hzm-expand-players"].attributes["aria-expanded"],"true");
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row"/g)||[]).length,14);
+elements["simulations-pane"].on_click({target:{closest(selector){
+  return selector==="[data-hzm-view]"?{dataset:{hzmView:"results"}}:null;
+}}});
+assert.equal(elements["simulations-pane"].dataset.hzmView,"results");
+assert.equal(elements["hzm-lab-main"].attributes["aria-labelledby"],"hzm-lab-tab-results");
+elements["simulations-pane"].on_click({target:{closest(selector){
+  return selector==="#hzm-match-picker"?{}:null;
+}}});
+assert.equal(elements["hzm-match-list"].hidden,false);
+assert.equal(elements["hzm-match-picker"].attributes["aria-expanded"],"true");
+elements["simulations-pane"].on_click({target:{closest(selector){
+  return selector==="[data-hzm-game]"?{dataset:{hzmGame:game.id}}:null;
+}}});
+assert.equal(elements["hzm-match-list"].hidden,true);
+assert.equal(elements["hzm-match-picker"].attributes["aria-expanded"],"false");
+app.render(home,{entitled:false,game:fakeGame,players:fakePlayers});
+assert.equal(elements["hzm-lab-range"].textContent,"Przedział 80%: —");
+assert.doesNotMatch(elements["hzm-player-rows"].innerHTML,/Test Athlete/);
+console.log("Simulation Lab 2.0: premium-only results, honest ranges, functional tabs and match picker OK");

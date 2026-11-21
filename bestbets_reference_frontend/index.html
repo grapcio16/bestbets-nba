@@ -228,6 +228,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="schedule.css">
 <link rel="stylesheet" href="schedule_v4.css">
 <link rel="stylesheet" href="simulations.css">
+<link rel="stylesheet" href="simulations_lab.css">
 <link rel="stylesheet" href="premium_modal.css">
 <link rel="stylesheet" href="admin_model_performance.css">
 <link rel="stylesheet" href="players.css">
@@ -529,7 +530,8 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
   </section>
   <section id="simulations-pane" class="hzm" hidden aria-label="Symulacje NBA Premium">
     <header class="hzm-header">
-      <div class="hzm-title"><h1>Centrum symulacji</h1><span class="hzm-premium"><span class="hz-premium-gem" aria-hidden="true"></span> PREMIUM</span></div>
+      <div class="hzm-title"><div class="hzm-title-copy"><h1>Centrum symulacji</h1><strong class="hzm-lab-subtitle">Simulation Lab 2.0</strong></div><span class="hzm-premium"><span class="hz-premium-gem" aria-hidden="true"></span> PREMIUM</span></div>
+      <button type="button" id="hzm-match-picker" class="hzm-match-picker" aria-expanded="false" aria-controls="hzm-match-list" aria-label="Wybierz mecz do symulacji"><span aria-hidden="true">🏀</span><span id="hzm-match-picker-label">Wybierz mecz</span><span aria-hidden="true">⌄</span></button>
       <div class="hzm-model-choice">
         <span class="hzm-model-caption" id="hzm-model-caption">MODEL</span>
         <div class="hzm-model-dropdown">
@@ -544,23 +546,32 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       </div>
       <div class="hzm-day-control"><button type="button" data-hzm-shift="-1" aria-label="Poprzedni dzień">‹</button><label><span id="hzm-day-title">Dzisiaj</span><input id="hzm-day-input" type="date" aria-label="Wybierz datę spotkań NBA"></label><button type="button" data-hzm-shift="1" aria-label="Następny dzień">›</button></div>
     </header>
-    <div class="hzm-content">
-      <section class="hzm-match-list" aria-label="Wybierz spotkanie"><h2>Wybierz mecz</h2><div id="hzm-matches" class="hzm-matches"></div></section>
-      <div class="hzm-analysis">
         <section class="hzm-hero" aria-label="Wynik symulacji">
-          <div class="hzm-match-identity"><span class="hzm-eyebrow">5 000 SYMULACJI</span><div id="hzm-match-label" class="hzm-versus">NBA <span>VS</span> NBA</div><small>Model Monte Carlo • nie jest wynikiem na żywo</small></div>
+          <div class="hzm-match-identity"><span class="hzm-eyebrow">NBA · SIMULATION LAB</span><div id="hzm-match-label" class="hzm-versus">NBA <span>VS</span> NBA</div><small>Symulacja Monte Carlo · prognoza, nie wynik na żywo</small></div>
           <div class="hzm-projected"><small>PROJEKTOWANY WYNIK</small><strong id="hzm-score">— : —</strong><span id="hzm-simulation-message">Dane dostępne w Premium</span></div>
           <div class="hzm-win"><div class="hzm-prob-label"><strong id="hzm-away-win">—</strong><span id="hzm-away-code">NBA</span></div><div id="hzm-donut" class="hzm-donut"><span>Szanse<br>wygranej</span></div><div class="hzm-prob-label violet"><strong id="hzm-home-win">—</strong><span id="hzm-home-code">NBA</span></div></div>
         </section>
+    <nav id="hzm-lab-nav" class="hzm-lab-nav" role="tablist" aria-label="Moduły Simulation Lab">
+      <button type="button" id="hzm-lab-tab-results" role="tab" data-hzm-view="results" aria-controls="hzm-lab-main" aria-selected="true" class="selected"><span aria-hidden="true">▥</span> Wyniki i rozkłady</button>
+      <button type="button" id="hzm-lab-tab-players" role="tab" data-hzm-view="players" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">♙</span> Player Simulations</button>
+      <button type="button" role="tab" disabled aria-disabled="true" title="Scenario Builder — kolejny etap wdrożenia"><span aria-hidden="true">☷</span> Scenariusze <small>Wkrótce</small></button>
+      <button type="button" role="tab" disabled aria-disabled="true" title="Analiza meczu — kolejny etap wdrożenia"><span aria-hidden="true">✧</span> Analiza meczu <small>Wkrótce</small></button>
+      <button type="button" role="tab" disabled aria-disabled="true" title="Porównanie drużyn — kolejny etap wdrożenia"><span aria-hidden="true">⇄</span> Porównanie drużyn <small>Wkrótce</small></button>
+      <button type="button" role="tab" disabled aria-disabled="true" title="Model i Backtest — kolejny etap wdrożenia"><span aria-hidden="true">▤</span> Model &amp; Backtest <small>Wkrótce</small></button>
+    </nav>
+    <div class="hzm-content">
+      <section id="hzm-match-list" class="hzm-match-list" aria-label="Wybierz spotkanie" hidden><h2>Wybierz mecz</h2><div id="hzm-matches" class="hzm-matches"></div></section>
+      <div id="hzm-lab-main" class="hzm-analysis" role="tabpanel" aria-labelledby="hzm-lab-tab-results">
         <div class="hzm-detail-grid">
           <section class="hzm-chart-card" aria-label="Rozkład punktów">
             <header><div><h2>Rozkład punktów</h2><span id="hzm-chart-context">5000 symulacji · model punktowy</span></div><div id="hzm-chart-tabs" class="hzm-chart-tabs" role="group" aria-label="Wybierz rozkład punktów"><button type="button" data-hzm-chart="match" class="active">MECZ</button><button type="button" data-hzm-chart="away">GOŚCIE</button><button type="button" data-hzm-chart="home">GOSPODARZE</button></div></header>
             <div id="hzm-plot" class="hzm-plot" aria-live="polite"><div class="hzm-no-chart">Wybierz spotkanie, aby zobaczyć rozkład punktów.</div></div>
             <div class="hzm-averages"><div class="hzm-avg cyan"><span id="hzm-away-average-label">Śr. goście</span><strong id="hzm-away-average">—</strong></div><div class="hzm-avg purple"><span id="hzm-home-average-label">Śr. gospodarze</span><strong id="hzm-home-average">—</strong></div><div class="hzm-avg gold"><span>Suma meczu</span><strong id="hzm-total-average">—</strong></div></div>
-            <div class="hzm-chart-source" id="hzm-chart-source">Średnie wyłącznie z wykonanych symulacji.</div>
+            <div class="hzm-chart-source"><span id="hzm-chart-source">Średnie wyłącznie z wykonanych symulacji.</span><strong id="hzm-lab-range">Przedział 80%: —</strong></div>
           </section>
-          <section id="hzm-players-panel" class="hzm-players-panel" aria-label="Projekcje zawodników">
-            <header><h2>Projekcje zawodników</h2><div id="hzm-player-headings" class="hzm-player-headings"><span>PTS</span><span>REB</span><span>AST</span></div></header>
+          <section id="hzm-players-panel" class="hzm-players-panel" aria-label="Player Simulations — projekcje modelu">
+            <header><h2>Player Simulations</h2><div id="hzm-player-headings" class="hzm-player-headings"><span>PTS</span><span>REB</span><span>AST</span></div></header>
+            <p class="hzm-player-focused-note">Prognozy PTS, REB i AST dla wybranego meczu. Historyczne L5/L10/L15 pozostają w Player Props; pozostałe rynki dodamy po weryfikacji danych.</p>
             <div id="hzm-player-rows" class="hzm-player-rows"><div class="hzm-no-players">Pełne projekcje dostępne w Premium.</div></div>
             <button type="button" id="hzm-expand-players" class="hzm-expand" aria-expanded="false" aria-controls="hzm-player-rows">Rozwiń pełną listę zawodników <span aria-hidden="true">⌄</span></button>
           </section>
