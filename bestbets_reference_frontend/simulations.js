@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,scenarioPending:"",requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",requestedDay:"",gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -62,7 +62,7 @@ function toggleModelDropdown(open,restoreFocus=false){
 }
 function chooseModel(model){
   if(!MODEL_CHOICES.some(item=>item.id===model)||model===state.model)return;
-  state.model=model;state.gamePending="";state.playersPending="";state.scenarioPct=0;state.scenarioPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
+  state.model=model;state.gamePending="";state.playersPending="";state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function toggleMatchPicker(open){
@@ -378,6 +378,13 @@ function showScenario(game,sim,premium){
  if(pace&&Number(pace.value)!==state.scenarioPct)pace.value=String(state.scenarioPct);
  const label=$("hzm-scenario-pace-display");
  if(label)label.textContent=(state.scenarioPct>0?"+":"")+state.scenarioPct+"%";
+ for(const side of ["away","home"]){
+   const val=side==="away"?state.offAwayPct:state.offHomePct;
+   const input=$("hzm-scenario-off-"+side),value=$("hzm-scenario-off-"+side+"-display"),code=$("hzm-scenario-off-"+side+"-code");
+   if(input&&Number(input.value)!==val)input.value=String(val);
+   if(value)value.textContent=(val>0?"+":"")+val+"%";
+   if(code)code.textContent=game?.[side]||(side==="away"?"GOŚCIE":"GOSPODARZE");
+ }
  if(run)run.disabled=!eligible;
  const baseline=$("hzm-scenario-base"),changed=$("hzm-scenario-whatif"),delta=$("hzm-scenario-delta"),status=$("hzm-scenario-status");
  if(!baseline||!changed||!delta||!status)return;
@@ -401,7 +408,9 @@ function showScenario(game,sim,premium){
  if(sim.error){status.textContent=sim.error;return}
  const data=premium?.scenario;
  const matched=data&&data.date===state.day&&String(data.game_id)===String(game.id)&&
-   data.model_id===state.model&&data.pace_pct===state.scenarioPct;
+   data.model_id===state.model&&data.pace_pct===state.scenarioPct&&
+   Number(data.off_away_pct??0)===state.offAwayPct&&
+   Number(data.off_home_pct??0)===state.offHomePct;
  if(matched){
    if(data.error){status.textContent=String(data.error).slice(0,180);return}
    const total=data.scenario?.total_points,base=data.baseline?.total_points;
@@ -417,12 +426,13 @@ function showScenario(game,sim,premium){
          (valid(aw)&&valid(bw)&&Number(aw)<=100&&Number(bw)<=100
            ?" ("+(bw-aw>0?"+":"")+fmt(bw-aw)+" pp)":"");
      }
-     status.textContent="Obliczono 5 000 symulacji dla każdej wersji. Tempo: "+
-       (state.scenarioPct>0?"+":"")+state.scenarioPct+"%.";
+     status.textContent="5 000 symulacji · tempo: "+(state.scenarioPct>0?"+":"")+state.scenarioPct+
+       "% · ofensywa "+esc(game.away)+": "+(state.offAwayPct>0?"+":"")+state.offAwayPct+
+       "% / "+esc(game.home)+": "+(state.offHomePct>0?"+":"")+state.offHomePct+"%.";
      return;
    }
  }
- status.textContent=state.scenarioPending===state.day+"|"+game.id+"|"+state.model+"|"+state.scenarioPct
+ status.textContent=state.scenarioPending===state.day+"|"+game.id+"|"+state.model+"|"+state.scenarioPct+"|"+state.offAwayPct+"|"+state.offHomePct
    ?"Trwa przeliczanie scenariusza…":"Zmień założenie i kliknij Przelicz 5 000 symulacji.";
 }
 function render(home,premium){
@@ -435,7 +445,7 @@ function render(home,premium){
   if(data.known&&state.requestedDay===state.day)state.requestedDay="";
   if(!data.games.some(game=>game.id===state.gameId)){
     const next=data.games.find(game=>game.state==="scheduled")||data.games[0];
-    state.gameId=next?.id||"";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.scenarioPending="";
+    state.gameId=next?.id||"";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";
   }
   $("hzm-day-title").textContent=labelDay(state.day);
   $("hzm-day-input").value=state.day;
@@ -485,7 +495,7 @@ function render(home,premium){
 }
 function navigate(day){
   if(!safeDate(day)||!withinRange(day)||state.day===day)return;
-  state.day=day;state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.scenarioPending="";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
+  state.day=day;state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function init(api){
@@ -514,14 +524,24 @@ function init(api){
     showScenario(gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId),
       trustedResult(state.lastPremium,gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId)),state.lastPremium);
   });
+  for(const side of ["away","home"]){
+    $("hzm-scenario-off-"+side)?.addEventListener("input",event=>{
+      const value=Number(event.target.value);
+      if(!Number.isInteger(value)||value < -5||value>5)return;
+      if(side==="away")state.offAwayPct=value;else state.offHomePct=value;
+      state.scenarioPending="";
+      const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+      showScenario(game,trustedResult(state.lastPremium,game),state.lastPremium);
+    });
+  }
   $("hzm-scenario-run")?.addEventListener("click",()=>{
     const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
     const sim=trustedResult(state.lastPremium,game);
     if(!state.lastPremium?.entitled||!sim||sim.error||game?.state!=="scheduled"||
        !(Date.parse(game.start||"")>Date.now()))return;
-    const key=state.day+"|"+game.id+"|"+state.model+"|"+state.scenarioPct;
+    const key=state.day+"|"+game.id+"|"+state.model+"|"+state.scenarioPct+"|"+state.offAwayPct+"|"+state.offHomePct;
     state.scenarioPending=key;
-    callbacks?.loadScenario?.(state.day,game.id,state.model,state.scenarioPct);
+    callbacks?.loadScenario?.(state.day,game.id,state.model,state.scenarioPct,state.offAwayPct,state.offHomePct);
     showScenario(game,sim,state.lastPremium);
   });
   $("hzm-player-search").addEventListener("input",event=>{
@@ -554,7 +574,7 @@ function init(api){
     const selected=event.target.closest("[data-hzm-game]");
     if(!selected)return;
     event.stopPropagation();
-    state.gameId=selected.dataset.hzmGame;state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.scenarioPending="";
+    state.gameId=selected.dataset.hzmGame;state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";
     state.expanded=state.view==="players";
     toggleMatchPicker(false);
     render(state.lastHome,state.lastPremium);
@@ -579,7 +599,7 @@ function init(api){
     if(arrow){navigate(dayShift(state.day,Number(arrow.dataset.hzmShift)));return}
     const gameButton=event.target.closest("[data-hzm-game]");
     if(gameButton){
-      state.gameId=gameButton.dataset.hzmGame;state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.scenarioPending="";
+      state.gameId=gameButton.dataset.hzmGame;state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";
       state.expanded=state.view==="players";toggleMatchPicker(false);
       render(state.lastHome,state.lastPremium);return;
     }
