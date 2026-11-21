@@ -326,7 +326,6 @@ function render(data,packet){
  lastData=data;lastDetails=packet||null;
  if(!selectedDay)selectedDay=safeDay(data?.calendar_today)?data.calendar_today:today();
  dateNavigation();syncFilters();standings(data,"east");standings(data,"west");
- const f=$("hzs-source-note");if(f)f.textContent="ESPN · potwierdzone wyniki i bilanse sezonu 2026/27";
  if(selectedGameId)renderGamePage();else{
   const pane=$("schedule-pane");pane?.classList.remove("hzv-show-game");
   if($("hzv-game-page"))$("hzv-game-page").hidden=true;
