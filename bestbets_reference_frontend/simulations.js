@@ -498,6 +498,82 @@ function showPlayerMinutes(game,players,premium){
     "Wariant hipotetyczny: "+fmt(item.minutes)+" → "+fmt(newMinutes)+" min · ESPN: "+
     String(item.availability||"niezweryfikowany")+". Kliknij Oblicz projekcję.";
 }
+function showAvailability(game,players,sim,premium){
+ const message=$("hzm-availability-message"),freshness=$("hzm-availability-freshness");
+ if(!message||!freshness)return;
+ const reset=()=>{
+   for(const side of ["away","home"]){
+     $("hzm-availability-"+side+"-code").textContent=game?.[side]||
+       (side==="away"?"GOŚCIE":"GOSPODARZE");
+     $("hzm-availability-"+side+"-count").textContent="—";
+     $("hzm-availability-"+side+"-list").textContent="Brak zweryfikowanego raportu.";
+     $("hzm-availability-"+side+"-impact").textContent="Korekta modelu V7.5: —";
+   }
+ };
+ reset();
+ freshness.textContent="BRAK POTWIERDZENIA";
+ if(premium?.entitled!==true){
+   message.textContent="Wymagane Premium. Dane dostępności nie są udostępniane w wersji darmowej.";
+   return;
+ }
+ if(state.model!=="research_context_v75"){
+   message.textContent="Wybierz model V7.5 — w V7.2 i V7.4 nie ma weryfikowanych statusów kontuzji.";
+   return;
+ }
+ if(game?.state!=="scheduled"||!(Date.parse(game.start||"")>Date.now())){
+   message.textContent="Injury Watch obejmuje tylko potwierdzone przyszłe spotkania.";
+   return;
+ }
+ if(!players||!sim){
+   message.textContent="Pobieranie danych zawodników oraz czynników modelu V7.5…";
+   return;
+ }
+ if(players.error||sim.error){
+   message.textContent=String(players.error||sim.error).slice(0,160);
+   return;
+ }
+ const factors=sim.model_context?.v75_factors;
+ const validUntil=Date.parse(String(players.injury_report_valid_until||""));
+ const fresh=players.injury_report_fresh===true&&
+   factors?.injuries_espn_fresh===true&&
+   Number.isFinite(validUntil)&&validUntil>Date.now();
+ if(!fresh){
+   message.textContent="Brak raportu ESPN z aktualną oceną świeżości (do 90 minut od publikacji). Nie można potwierdzić statusów.";
+   freshness.textContent="DANE NIEAKTUALNE LUB BRAK RAPORTU";
+   return;
+ }
+ freshness.textContent="RAPORT ESPN · W OKNIE 90 MIN";
+ message.textContent="Statusy z raportu ESPN powiązane z zawodnikami wybranego meczu. Wpływ punktowy to wcześniejsza ograniczona korekta modelu V7.5.";
+ const statuses=new Set(["Out","Questionable","Doubtful","Day-to-day","Probable","Sprzeczne"]);
+ for(const side of ["away","home"]){
+   const team=game[side];
+   const rows=(Array.isArray(players.players)?players.players:[])
+      .filter(p=>p&&p.team===team&&statuses.has(p.availability)).slice(0,24);
+   const out=rows.filter(p=>p.availability==="Out").length;
+   const uncertain=rows.filter(p=>["Questionable","Doubtful","Day-to-day","Sprzeczne"].includes(p.availability)).length;
+   $("hzm-availability-"+side+"-count").textContent=
+      "OUT "+out+" · NIEPEWNI "+uncertain;
+   const list=$("hzm-availability-"+side+"-list");
+   if(!rows.length){list.textContent="Brak powiązanych wpisów statusowych ESPN; nie oznacza to potwierdzonego pełnego składu.";}
+   else{
+     list.innerHTML=rows.map(p=>{
+       const severity=p.availability==="Out"?"out":
+         ["Questionable","Doubtful","Day-to-day","Sprzeczne"].includes(p.availability)?"uncertain":"probable";
+       const mins=safeProjection(p.minutes);
+       const label=mins!==null&&mins>0?" · szacunek "+fmt(mins)+" min":"";
+       return '<div class="hzm-availability-row"><span class="hzm-availability-name">'+
+         esc(String(p.name||""))+'</span><span class="hzm-availability-status '+severity+'">'+
+         esc(p.availability)+ '</span><small>'+esc(label)+'</small></div>';
+     }).join("");
+   }
+   const val=Number(factors["injury_"+side+"_pts"]);
+   const applied=Number(factors["injury_out_"+side]);
+   $("hzm-availability-"+side+"-impact").textContent=
+     Number.isFinite(val)&&val>=-3.5&&val<=0&&Number.isInteger(applied)&&applied>=0
+      ?"Korekta V7.5: "+fmt(val)+" pkt · uwzględnione w modelu OUT: "+applied
+      :"Korekta modelu V7.5: brak wiarygodnych danych.";
+ }
+}
 function render(home,premium){
   state.lastHome=home;state.lastPremium=premium;
   syncModelDropdown();
@@ -553,7 +629,7 @@ function render(home,premium){
     ?"Zweryfikowane Premium wymagane":!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":
       sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji · "+modelLabel());
   $("simulations-pane").classList.toggle("hzm-premium-locked",!premium?.entitled);
-  showChart(sim,game,premium);showPlayers(premium,players,game);showScenario(game,sim,premium);showPlayerMinutes(game,players,premium);
+  showChart(sim,game,premium);showPlayers(premium,players,game);showScenario(game,sim,premium);showPlayerMinutes(game,players,premium);showAvailability(game,players,sim,premium);
   maybeLoadPaid(game,premium,sim,players);
 }
 function navigate(day){
