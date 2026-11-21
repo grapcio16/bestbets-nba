@@ -17,7 +17,7 @@ def main():
         executable = which("chromium") or which("google-chrome")
         browser = p.chromium.launch(headless=True, args=["--no-sandbox"],
                                     **({"executable_path": executable} if executable else {}))
-        for width, height in ((1440, 900), (390, 844)):
+        for width, height in ((1672, 941), (390, 844)):
             page = browser.new_page(viewport={"width": width, "height": height},
                                     device_scale_factor=1)
             page.clock.set_fixed_time("2026-11-21T12:00:00Z")
@@ -74,88 +74,68 @@ def main():
             page.locator("#hzm-day-input").fill(day)
             page.locator("#hzm-day-input").dispatch_event("change")
             page.locator("#hzm-lab-tab-players").click()
-            panel = page.locator("#hzm-players-panel")
+            assert page.locator("#hzm-detail-grid").is_hidden()
+            panel = page.locator("#hzv3")
             assert panel.is_visible()
-            assert page.locator("#hzm-player-analytics").is_visible()
-            assert page.locator("#hzm-player-inspector").is_visible()
-            assert page.locator("#hzm-player-list-wrap").is_visible()
-            assert page.locator("#hzm-player-version").inner_text() == "V7.4"
-            assert page.locator(".hzm-player-row-rich").count() == 2
-            assert "Test Guard Alpha" in page.locator("#hzm-player-inspector").inner_text()
-            assert page.locator("#hzm-player-histogram svg").count() == 1
-            assert page.locator("#hzm-player-trend svg").count() == 1
-            # Geometry matters: the first release overflowed the left card
-            # down onto the three evidence tiles. Compare real rectangles,
-            # not only whether elements exist in the DOM.
-            layout = page.evaluate("""() => {
-                const rect = selector => {
-                    const el = document.querySelector(selector);
-                    const r = el.getBoundingClientRect();
-                    return {top:r.top, bottom:r.bottom, height:r.height,
-                            scrollHeight:el.scrollHeight, clientHeight:el.clientHeight};
-                };
-                return {
-                    inspector:rect('#hzm-player-inspector'),
-                    roster:rect('#hzm-player-list-wrap'),
-                    charts:rect('#hzm-player-analytics'),
-                    footer:rect('#simulations-pane .hzm-insights'),
-                };
-            }""")
-            if width >= 1261:
-                # The previous ~350px roster made PTS/REB/AST/PRA collide.
-                # Verify that the actual rendered table is >=420px and each
-                # numeric cell is independently readable and non-overlapping.
-                widths = page.evaluate("""() => {
-                    const row = document.querySelector('.hzm-player-row-rich');
-                    const cells = [...row.querySelectorAll('.hzm-player-stats > span')];
-                    const box = el => {
-                        const r = el.getBoundingClientRect();
-                        return {left:r.left, right:r.right, width:r.width};
+            assert page.locator("#hzv3-roster").is_visible()
+            assert page.locator("#hzv3-inspector").is_visible()
+            assert page.locator("#hzv3-analytics").count() == 0  # semantic section uses a class
+            assert page.locator("#hzv3 .hzv3-analytics").is_visible()
+            assert page.locator("#hzv3-version").inner_text() == "V7.4"
+            assert page.locator("#hzv3-roster .hzv3-player").count() == 2
+            assert "Test Guard Alpha" in page.locator("#hzv3-inspector").inner_text()
+            assert page.locator("#hzv3-hist svg").count() == 1
+            assert page.locator("#hzv3-trend svg").count() == 1
+            assert page.locator("#hzv3-hist svg rect").count() >= 24
+            assert "7 występów" in page.locator("#hzv3-rates-note").inner_text()
+            assert "—" in page.locator("#hzv3-averages").inner_text()
+            assert "20,0" in page.locator('#hzv3-inspector [data-hzv3-metric="PTS"]').inner_text()
+            assert page.locator("[data-hzv3-market]").count() == 4
+            if width >= 1600:
+                bounds = page.evaluate("""() => {
+                    const rect = q => {
+                        const r=document.querySelector(q).getBoundingClientRect();
+                        return {x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom};
                     };
+                    const row=document.querySelector('.hzv3-player');
+                    const cells=[...row.querySelectorAll('.hzv3-player-stat')];
+                    const values=cells.map(el=>{
+                        const r=el.getBoundingClientRect();
+                        return {left:r.left,right:r.right,width:r.width,scroll:el.scrollWidth,client:el.clientWidth};
+                    });
                     return {
-                        roster: box(document.querySelector('#hzm-player-list-wrap')),
-                        row:box(row), name:box(row.querySelector('.hzm-player-info')),
-                        stats:cells.map(box),
-                        textFits:cells.map(el=>el.scrollWidth<=el.clientWidth+1),
+                        card:rect('#hzv3-inspector'),
+                        roster:rect('.hzv3-roster-card'),
+                        analytics:rect('.hzv3-analytics'),
+                        summary:rect('.hzv3-summary'),
+                        cells:values
                     };
                 }""")
-                assert widths["roster"]["width"] >= 499, widths
-                assert len(widths["stats"]) == 4, widths
-                assert all(cell["width"] >= 64 for cell in widths["stats"]), widths
-                assert all(widths["textFits"]), widths
-                assert widths["name"]["right"] <= widths["stats"][0]["left"] + 2, widths
-                assert all(a["right"] <= b["left"] + 1
-                           for a,b in zip(widths["stats"],widths["stats"][1:])), widths
-                assert widths["stats"][-1]["right"] <= widths["row"]["right"] + 2, widths
-                assert abs(layout["inspector"]["top"]-layout["roster"]["top"]) < 9, layout
-                assert abs(layout["roster"]["top"]-layout["charts"]["top"]) < 9, layout
-                assert abs(layout["inspector"]["height"]-layout["roster"]["height"]) < 9, layout
-                assert abs(layout["roster"]["height"]-layout["charts"]["height"]) < 9, layout
-            assert layout["footer"]["top"] >= max(
-                layout["inspector"]["bottom"],
-                layout["roster"]["bottom"],
-                layout["charts"]["bottom"]) - 9, layout
-            assert "7 meczów" in page.locator("#hzm-player-rates-source").inner_text()
-            assert "—" in page.locator("#hzm-player-averages").inner_text(), "L10/L15 must be hidden with only 7 ESPN games"
-            assert "20,0" in page.locator(".hzm-inspector-metric.current").inner_text()
-            assert "Minuty Minuty" not in page.locator("#hzm-player-inspector").inner_text()
-            assert page.locator("[data-hzm-player-market]").count() == 4
-            page.locator('[data-hzm-player-market="REB"]').click()
-            assert page.locator("#hzm-player-rate-metric").inner_text() == "REB"
-            assert "2,4" in page.locator(".hzm-inspector-metric.current").inner_text()
-            assert page.locator('[data-hzm-player-market="REB"]').get_attribute("aria-pressed") == "true"
-            page.locator('[data-hzm-history-window="10"]').click()
-            assert page.locator('[data-hzm-history-window="10"]').get_attribute("aria-pressed") == "true"
-            assert page.locator("#hzm-player-trend svg").count() == 1
+                assert abs(bounds["card"]["width"]-278) < 2, bounds
+                assert abs(bounds["roster"]["width"]-390) < 2, bounds
+                assert abs(bounds["card"]["y"]-bounds["roster"]["y"]) < 2, bounds
+                assert abs(bounds["analytics"]["y"]-bounds["roster"]["y"]) < 2, bounds
+                assert bounds["summary"]["x"] >= bounds["roster"]["x"]-2, bounds
+                assert abs(bounds["summary"]["bottom"]-bounds["card"]["bottom"]) < 3, bounds
+                assert all(v["width"] >= 44 for v in bounds["cells"]), bounds
+                assert all(v["scroll"] <= v["client"]+2 for v in bounds["cells"]), bounds
+                assert all(l["right"] <= r["left"]+1 for l,r in zip(bounds["cells"],bounds["cells"][1:])),bounds
+            page.locator('[data-hzv3-market="REB"]').click()
+            assert page.locator("#hzv3-rates-title").inner_text() == "Historyczne over (REB)"
+            assert "2,4" in page.locator('#hzv3-inspector [data-hzv3-metric="REB"]').inner_text()
+            assert page.locator('[data-hzv3-market="REB"]').get_attribute("aria-pressed") == "true"
+            page.locator('[data-hzv3-window="10"]').click()
+            assert page.locator('[data-hzv3-window="10"]').get_attribute("aria-pressed") == "true"
+            assert page.locator("#hzv3-trend svg").count() == 1
 
             page.screenshot(path=str(OUT / f"player-simulations-neon-{width}x{height}.png"))
             payload["premium_simulation"] = {"entitled": False, "game": None, "players": None}
             payload["auth"] = {"role": "free"}
             push()
-            assert page.locator("#hzm-player-rows .hzm-player-row").count() == 0
-            assert "Test Guard Alpha" not in page.locator("#hzm-player-inspector").inner_text()
-            assert page.locator("#hzm-player-histogram svg").count() == 0
-            assert "Premium" in page.locator("#hzm-player-rows").inner_text()
+            assert page.locator("#hzv3-roster .hzv3-player").count() == 0
+            assert "Test Guard Alpha" not in page.locator("#hzv3-inspector").inner_text()
+            assert page.locator("#hzv3-hist svg").count() == 0
+            assert "Premium" in page.locator("#hzv3-roster").inner_text()
             assert not errors, (width, height, errors)
             page.close()
         browser.close()

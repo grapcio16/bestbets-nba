@@ -126,7 +126,8 @@ function bridgeToHistory(market){
 function syncLabView(){
  const pane=$("simulations-pane");
  if(pane)pane.dataset.hzmView=state.view;
- if($("hzm-detail-grid"))$("hzm-detail-grid").hidden=["scenario","intelligence","comparison","backtest"].includes(state.view);
+ if($("hzm-detail-grid"))$("hzm-detail-grid").hidden=["players","scenario","intelligence","comparison","backtest"].includes(state.view);
+ if($("hzv3"))$("hzv3").hidden=state.view!=="players";
  if($("hzm-scenario-panel"))$("hzm-scenario-panel").hidden=state.view!=="scenario";
  if($("hzm-intel-panel"))$("hzm-intel-panel").hidden=state.view!=="intelligence";
  if($("hzm-compare-panel"))$("hzm-compare-panel").hidden=state.view!=="comparison";
@@ -999,8 +1000,24 @@ function render(home,premium){
   // visible. On entitlement revocation update everything so hidden Premium
   // panes cannot retain a paid result in the in-memory DOM.
   const revoking=premium?.entitled!==true;
-  if(revoking||state.view==="results"||state.view==="players"){
+  if(revoking||state.view==="results"||
+     (state.view==="players"&&!window.HoopzaroPlayerV3)){
+    // Legacy Results view stays intact; the Node mock harness intentionally
+    // runs without the browser-only Player V3 module.
     showChart(sim,game,premium);showPlayers(premium,players,game);
+  }
+  if(state.view==="players"){
+    window.HoopzaroPlayerV3?.render({
+      game,sim,players,premium,model:state.model,state,
+      onReturn:()=>callbacks?.backToProps?.(),
+      onHistory:(item,market)=>{
+        if(!premium?.entitled||!game||!players||!item)return;
+        if(players.players?.[state.playerIndex]!==item)return;
+        bridgeToHistory(market);
+      }
+    });
+  }else if(revoking){
+    window.HoopzaroPlayerV3?.clear();
   }
   if(revoking||state.view==="scenario"){
     showScenario(game,sim,premium);showPlayerMinutes(game,players,premium);

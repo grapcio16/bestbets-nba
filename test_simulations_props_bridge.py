@@ -61,10 +61,10 @@ def main():
         )
         page.wait_for_function("document.querySelector('#hzm-score')?.textContent==='115 : 116'")
         page.locator("#hzm-lab-tab-players").click()
-        assert "Test Player 0" in page.locator("#hzm-player-inspector").inner_text()
+        assert "Test Player 0" in page.locator("#hzv3-inspector").inner_text()
         # From model forecast to the historical analysis, with a visibly
         # hypothetical editable half-point starting line.
-        page.locator('[data-hzm-history-market="PTS"]').click()
+        page.locator('[data-hzv3-props="PTS"]').click()
         # Props container has absolutely positioned children and no intrinsic
         # box height. Verify the actually visible Props hero and route instead.
         assert page.locator("#hero").is_visible()
@@ -90,19 +90,19 @@ def main():
         assert page.locator("#simulations-pane").is_visible()
         assert page.locator("#hzm-lab-tab-players").get_attribute("aria-selected") == "true"
         assert page.locator("#hzm-match-picker-label").inner_text() == "IND – BOS"
-        assert page.locator("#hzm-player-search").input_value() == "Test Player 0"
+        assert page.locator("#hzv3-query").input_value() == "Test Player 0"
         assert page.locator("#hzm-score").inner_text() == "— : —", \
             "The prior final game's model may not leak into the future fixture"
-        assert "Test Player 0" not in page.locator("#hzm-player-inspector").inner_text()
+        assert "Test Player 0" not in page.locator("#hzv3-inspector").inner_text()
 
         payload["premium_simulation"] = premium_for(future_game, future_day)
         page.evaluate(
             "data => window.postMessage({type:'streamlit:render',args:{payload:data}}, '*')",
             payload
         )
-        assert "Test Player 0" in page.locator("#hzm-player-inspector").inner_text()
-        assert page.locator("[data-hzm-return-props]").is_visible()
-        page.locator("[data-hzm-return-props]").click()
+        assert "Test Player 0" in page.locator("#hzv3-inspector").inner_text()
+        assert page.locator("[data-hzv3-return]").is_visible()
+        page.locator("[data-hzv3-return]").click()
         assert page.locator("#hero").is_visible()
         assert page.locator("#simulations-pane").is_hidden()
         assert page.locator("#query").input_value() == "Test Player 0 over 26.5 points"

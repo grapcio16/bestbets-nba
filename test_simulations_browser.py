@@ -80,28 +80,26 @@ def main():
         assert page.locator("#hzm-match-picker").get_attribute("aria-expanded")=="false"
         assert page.locator("#hzm-score").inner_text() == "115 : 116"
         page.locator("#hzm-lab-tab-players").click()
-        assert page.locator("#hzm-lab-tab-players").get_attribute("aria-selected")=="true"
-        assert page.locator(".hzm-chart-card").is_hidden()
-        assert page.locator(".hzm-player-focused-note").is_visible()
-        assert page.locator("#hzm-player-rows .hzm-player-row").count()==14
-        assert page.locator("#hzm-player-inspector").is_visible()
-        assert "Test Player 0" in page.locator("#hzm-player-inspector").inner_text()
-        assert "36,9" in page.locator(".hzm-inspector-metric.pra").inner_text()
-        assert "— · V7.4" in page.locator("#hzm-player-inspector").inner_text()
-        # Team filtering and a specific athlete name must narrow the real
-        # Premium payload, not display the previous team's projections.
-        page.locator('[data-hzm-player-team="away"]').click()
-        assert page.locator("#hzm-player-rows .hzm-player-row").count()==7
-        assert page.locator("#hzm-player-count").inner_text()=="7 z 14 zawodników"
-        page.locator("#hzm-player-search").fill("Test Player 13")
-        assert page.locator("#hzm-player-rows .hzm-player-row").count()==1
-        assert "Test Player 13" in page.locator("#hzm-player-inspector").inner_text()
-        assert "29,1" in page.locator(".hzm-inspector-metric.pra").inner_text()
-        page.locator("#hzm-player-rows .hzm-player-row").first.click()
-        assert page.locator("#hzm-player-rows .hzm-player-row").first.get_attribute("aria-pressed")=="true"
-        page.locator("#hzm-player-search").fill("")
-        page.locator('[data-hzm-player-team="all"]').click()
-        assert page.locator("#hzm-player-rows .hzm-player-row").count()==14
+        assert page.locator("#hzm-lab-tab-players").get_attribute("aria-selected") == "true"
+        assert page.locator("#hzm-detail-grid").is_hidden()
+        assert page.locator("#hzv3").is_visible()
+        assert page.locator("#hzv3-roster .hzv3-player").count() == 14
+        assert page.locator("#hzv3-inspector").is_visible()
+        assert "Test Player 0" in page.locator("#hzv3-inspector").inner_text()
+        assert "36,9" in page.locator('#hzv3-inspector [data-hzv3-metric="PRA"]').inner_text()
+        assert "V7.4" in page.locator("#hzv3-inspector").inner_text()
+        page.locator('[data-hzv3-team="away"]').click()
+        assert page.locator("#hzv3-roster .hzv3-player").count() == 7
+        assert page.locator("#hzv3-count").inner_text() == "7 z 14 zawodników"
+        page.locator("#hzv3-query").fill("Test Player 13")
+        assert page.locator("#hzv3-roster .hzv3-player").count() == 1
+        assert "Test Player 13" in page.locator("#hzv3-inspector").inner_text()
+        assert "29,1" in page.locator('#hzv3-inspector [data-hzv3-metric="PRA"]').inner_text()
+        page.locator("#hzv3-roster .hzv3-player").first.click()
+        assert page.locator("#hzv3-roster .hzv3-player").first.get_attribute("aria-pressed") == "true"
+        page.locator("#hzv3-query").fill("")
+        page.locator('[data-hzv3-team="all"]').click()
+        assert page.locator("#hzv3-roster .hzv3-player").count() == 14
         page.locator("#hzm-lab-tab-results").click()
         assert page.locator(".hzm-chart-card").is_visible()
         assert page.locator("#hzm-score").inner_text() == "115 : 116"
@@ -125,12 +123,11 @@ def main():
         assert "Premium" in page.locator("#hzm-plot").inner_text()
         assert page.locator("#hzm-lab-range").inner_text()=="Przedział 80%: —"
         page.locator("#hzm-lab-tab-players").click()
-        assert page.locator("#hzm-player-rows .hzm-player-row").count()==0
-        assert "Premium" in page.locator("#hzm-player-rows").inner_text()
-        assert "subskrypcji" in page.locator("#hzm-player-rows").inner_text()
-        assert "Test Player" not in page.locator("#hzm-player-rows").inner_text()
-        assert "Test Player" not in page.locator("#hzm-player-inspector").inner_text()
-        assert "Premium" in page.locator("#hzm-player-inspector").inner_text()
+        assert page.locator("#hzv3-roster .hzv3-player").count()==0
+        assert "Premium" in page.locator("#hzv3-roster").inner_text()
+        assert "Test Player" not in page.locator("#hzv3-roster").inner_text()
+        assert "Test Player" not in page.locator("#hzv3-inspector").inner_text()
+        assert "Premium" in page.locator("#hzv3-inspector").inner_text()
         page.locator("#hzm-lab-tab-results").click()
         assert page.locator("#hzm-score").inner_text()=="— : —"
         assert not errors, errors
