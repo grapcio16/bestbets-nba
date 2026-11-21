@@ -212,8 +212,9 @@ function playerInspector(item,players,game,withMinutes){
  const out=withMinutes&&status==="Out";
  const pts=out?null:safeProjection(item.pts),reb=out?null:safeProjection(item.reb),ast=out?null:safeProjection(item.ast);
  const pra=pts!==null&&reb!==null&&ast!==null?pts+reb+ast:null;
- const metrics=[["PTS",pts],["REB",reb],["AST",ast],["PRA",pra]]
-  .map(([key,value])=>'<div class="hzm-inspector-metric'+(key==="PRA"?' pra':'')+'"><span>'+key+'</span><strong>'+fmt(value)+'</strong></div>').join("");
+ const projection={PTS:pts,REB:reb,AST:ast,PRA:pra};
+ const metrics=Object.entries(projection)
+  .map(([key,value])=>'<button type="button" data-hzm-props-metric="'+key+'" aria-pressed="'+(state.playerMetric===key)+'" class="hzm-inspector-metric'+(key==="PRA"?' pra':'')+'"><span>'+key+'</span><strong>'+fmt(value)+'</strong></button>').join("");
  const sample=withMinutes&&Number.isInteger(Number(item.minutes_sample))?Math.max(0,Number(item.minutes_sample)):0;
  const minutes=withMinutes?safeProjection(item.minutes):null;
  const minuteLabel=withMinutes
@@ -230,7 +231,7 @@ function playerInspector(item,players,game,withMinutes){
   availability+
   '<div class="hzm-inspector-metrics">'+metrics+'</div>'+
   '<div class="hzm-inspector-minutes">'+(withMinutes?'◷ ':'')+minuteLabel+'</div>'+
-  '<button type="button" id="hzm-open-player-props" class="hzm-open-player-props"'+(pts===null?' disabled':'')+'>Historia PTS w Player Props ↗</button>'+
+  '<button type="button" id="hzm-open-player-props" class="hzm-open-player-props"'+(projection[state.playerMetric]===null?' disabled':'')+'>Historia '+esc(state.playerMetric)+' w Player Props ↗</button>'+
   '<small class="hzm-inspector-link-note">Linia startowa pochodzi z projekcji modelu, a nie od bukmachera.</small>'+
   '<p class="hzm-inspector-disclaimer">'+(out?
     'ESPN zgłasza OUT — model nie wyświetla projekcji produkcji zawodnika.':
@@ -404,16 +405,23 @@ function init(api){
     render(state.lastHome,state.lastPremium);
   });
   $("hzm-player-inspector").addEventListener("click",event=>{
+    const metric=event.target.closest("[data-hzm-props-metric]");
+    if(metric&&["PTS","REB","AST","PRA"].includes(metric.dataset.hzmPropsMetric)){
+      state.playerMetric=metric.dataset.hzmPropsMetric;
+      render(state.lastHome,state.lastPremium);return;
+    }
     if(!event.target.closest("#hzm-open-player-props")||!state.lastPremium?.entitled)return;
     const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
     const roster=trustedPlayers(state.lastPremium,game);
     const item=roster?.players?.[state.playerIndex];
     if(!item||![game?.away,game?.home].includes(item.team))return;
     if(state.model==="research_context_v75"&&item.availability==="Out")return;
-    const pts=safeProjection(item.pts);
-    if(pts===null)return;
-    const line=Math.max(.5,Math.min(149.5,Math.floor(pts)+.5));
-    callbacks?.openProps?.({name:String(item.name||""),market:"PTS",line});
+    const values=[safeProjection(item.pts),safeProjection(item.reb),safeProjection(item.ast)];
+    const projection=state.playerMetric==="PRA"?(values.every(v=>v!==null)?values.reduce((a,b)=>a+b,0):null)
+      :values[["PTS","REB","AST"].indexOf(state.playerMetric)];
+    if(projection===null||projection===undefined)return;
+    const line=Math.max(.5,Math.min(149.5,Math.floor(projection)+.5));
+    callbacks?.openProps?.({name:String(item.name||""),market:state.playerMetric,line});
   });
   $("hzm-player-tools").addEventListener("click",event=>{
     const button=event.target.closest("[data-hzm-player-team]");
