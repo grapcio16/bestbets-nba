@@ -265,7 +265,8 @@ function detailsMarkup(data,game,packet){
  '<div class="hzv-gc-team">'+teamLogo(data,home,game,"home")+
  '<strong>'+esc(home)+'</strong><small>'+esc(codeLabel(data,home))+'</small><span>'+esc(statsHome?statsHome.wins+"–"+statsHome.losses:"—")+' W–L</span></div></div>'+
  '<div class="hzv-game-meta"><span>◷ '+esc(game.state==="scheduled"?"Rozpoczęcie "+localTime(game.start):"Czas "+localTime(game.start))+'</span>'+
- '<span>▦ '+esc(shortDate(game.day||selectedDay))+'</span></div>'+
+ '<span>▦ '+esc(shortDate(game.day||selectedDay))+'</span>'+
+ (details?.arena?'<span>⌖ '+esc(details.arena)+'</span>':'')+'</div>'+
  (quarters.length?'<div class="hzv-quarter-table"><h3>Przebieg meczu · kwarty</h3><div style="--quarter-count:'+Math.min(quarters.length+1,9)+'" class="hzv-quarter-row hzv-quarter-head"><span>Drużyna</span>'+quarters.map(q=>'<span>'+esc(q.period)+'</span>').join("")+'<span>SUMA</span></div>'+
  ['away','home'].map(side=>'<div style="--quarter-count:'+Math.min(quarters.length+1,9)+'" class="hzv-quarter-row"><strong>'+esc(game[side])+'</strong>'+quarters.map(q=>'<span>'+esc(q[side])+'</span>').join("")+
  '<span>'+quarters.reduce((sum,q)=>sum+q[side],0)+'</span></div>').join("")+'</div>':'')+
