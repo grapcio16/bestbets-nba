@@ -62,6 +62,8 @@ jobs:
           python test_backtest_browser.py
           python test_simulation_lazy_loading_browser.py
           python test_simulation_lab_six_views_responsive.py
+          python test_player_simulations_visual_data.py
+          python test_player_simulations_neon_browser.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
