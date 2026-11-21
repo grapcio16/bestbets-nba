@@ -319,6 +319,17 @@ function init(api){
       chooseModel(choice.id);
     });
   });
+  // Popup buttons are rerendered in place, but the list container stays
+  // mounted. Handle its clicks directly so selecting a game always closes it.
+  $("hzm-matches").addEventListener("click",event=>{
+    const selected=event.target.closest("[data-hzm-game]");
+    if(!selected)return;
+    event.stopPropagation();
+    state.gameId=selected.dataset.hzmGame;state.chart="match";
+    state.expanded=state.view==="players";
+    toggleMatchPicker(false);
+    render(state.lastHome,state.lastPremium);
+  });
   $("simulations-pane").addEventListener("click",event=>{
     if(event.target.closest("#hzm-match-picker")){toggleMatchPicker();return}
     const viewButton=event.target.closest("[data-hzm-view]");
