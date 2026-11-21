@@ -1415,6 +1415,15 @@ if(window.HoopzaroSimulations){
         id:String(Date.now())+"-premium-game-"+id+"-"+Math.random().toString(36).slice(2)
       }});
     },
+    loadScenario:function(day,id,modelId,pacePct){
+      if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled||
+         !Number.isInteger(pacePct)||pacePct< -5||pacePct>5)return;
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"premium_sim_scenario",date:day,game_id:id,model_id:modelId,
+        pace_pct:pacePct,
+        id:String(Date.now())+"-scenario-"+id+"-"+Math.random().toString(36).slice(2)
+      }});
+    },
     loadPlayers:function(day,id,modelId){
       if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled)return;
       notify("streamlit:setComponentValue",{dataType:"json",value:{
