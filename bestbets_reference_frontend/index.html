@@ -344,17 +344,16 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <div class="control-group" id="period-group"><label>&nbsp;</label><div class="control-box period-control"><button data-period="L5">L5</button><button data-period="L10" class="on">L10</button><button data-period="L15">L15</button><button data-period="2026">2026</button><button data-period="Season">Season</button></div></div>
   </section>
   <section id="chart-panel"><div class="chart-title"><span class="orange-bars">▥</span><span id="chart-heading">Last 10 Games — Points</span></div>
-    <div class="venue-filter" role="group" aria-label="Miejsce rozegrania meczu">
-      <button type="button" data-venue="ALL" class="on" aria-pressed="true" title="Wszystkie mecze">ALL</button>
-      <button type="button" data-venue="HOME" aria-pressed="false" title="Tylko mecze domowe">HOME</button>
-      <button type="button" data-venue="AWAY" aria-pressed="false" title="Tylko mecze wyjazdowe">AWAY</button>
-    </div>
     <svg id="chart-svg" viewBox="0 0 581 185" role="img" aria-label="Wykres statystyk zawodnika"></svg>
     <div id="chart-placeholder" class="chart-placeholder">Wpisz zawodnika, aby zobaczyć historię rzeczywistych meczów.</div>
   </section>
   <section id="side-stats">
     <div class="rates"><div class="rate"><div class="rate-title">L5<br>Hit Rate</div><strong id="rate5">—</strong><small id="sample5">—</small></div><div class="rate"><div class="rate-title">L10<br>Hit Rate</div><strong id="rate10">—</strong><small id="sample10">—</small></div><div class="rate"><div class="rate-title">L15<br>Hit Rate</div><strong id="rate15">—</strong><small id="sample15">—</small></div><div class="rate"><div class="rate-title">Season<br>Hit Rate</div><strong id="rate-season">—</strong><small id="sample-season">—</small></div></div>
-    <div class="averages"><div class="avg-box"><small>Season AVG</small><strong id="season-avg">—</strong></div><div class="avg-box selected"><small>⌂ Home</small><strong id="home-avg">—</strong></div><div class="avg-box"><small>➤ Away</small><strong id="away-avg">—</strong></div></div>
+    <div class="averages">
+      <button type="button" class="avg-box" data-venue="ALL" aria-pressed="true" aria-label="Pokaż wszystkie mecze na wykresie"><small>Season AVG</small><strong id="season-avg">—</strong></button>
+      <button type="button" class="avg-box" data-venue="HOME" aria-pressed="false" aria-label="Pokaż tylko mecze domowe na wykresie"><small>⌂ Home</small><strong id="home-avg">—</strong></button>
+      <button type="button" class="avg-box" data-venue="AWAY" aria-pressed="false" aria-label="Pokaż tylko mecze wyjazdowe na wykresie"><small>➤ Away</small><strong id="away-avg">—</strong></button>
+    </div>
     <div class="defense-box"><div class="defense-heading"><span class="shield">⬡</span> <span id="defense-title">Matchup Defense</span></div><div class="defense-badge"><span id="defense-logo">◈</span></div><div class="defense-details" id="defense-details"><div>Weryfikacja danych obrony rywala</div><div>Bez niepotwierdzonych rankingów</div><div>Statystyki tylko z rzeczywistych meczów</div></div></div>
   </section>
   <section id="take"><div class="take-title"><span class="target-icon">▥</span>HOOP<span>ZARO</span> Insight</div><div class="take-text" id="take-text">Wyszukaj zawodnika i linię, aby zobaczyć analizę.</div></section>
@@ -956,13 +955,15 @@ function renderPlayer(){
   text("hero-grade","—");
   const labels={PTS:"Points",REB:"Rebounds",AST:"Assists",FG3M:"3-Point Made",PRA:"PRA"};
   const caption=state.period==="L10"?"Last 10 Games":state.period==="L5"?"Last 5 Games":state.period==="L15"?"Last 15 Games":state.period==="2026"?"2026 Games":"Season Games";
-  text("chart-heading",caption+" — "+labels[state.market]);
+  text("chart-heading",caption+(state.venue==="HOME"?" (Home)":state.venue==="AWAY"?" (Away)":"")+" — "+labels[state.market]);
   renderChart(p);
   const windows=[["rate5","sample5",m&&m.l5],["rate10","sample10",m&&m.l10],["rate15","sample15",m&&m.l15],["rate-season","sample-season",m&&m.season]];
   windows.forEach(function(pair){const r=pair[2];text(pair[0],r?r.label:"—");text(pair[1],r?"("+r.wins+"/"+r.n+")":"—")});
-  text("season-avg",m?fmt(m.avg):"—");text("home-avg",m?fmt(m.home):"—");text("away-avg",m?fmt(m.away):"—");
+  text("season-avg",p?fmt(averageGames(p.games.filter(function(g){return finite(g[state.market])}))):"—");
+  text("home-avg",m?fmt(m.home):"—");text("away-avg",m?fmt(m.away):"—");
   document.querySelectorAll(".avg-box").forEach(function(box,i){
     box.classList.toggle("selected",i===(state.venue==="HOME"?1:state.venue==="AWAY"?2:0));
+    box.disabled=!p;
   });
   text("defense-title",p&&p.opponent?"vs "+p.opponent+" Defense":"Matchup Defense");
   const defense=$("defense-details");

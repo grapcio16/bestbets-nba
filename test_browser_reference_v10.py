@@ -315,13 +315,19 @@ def main():
         assert page.locator("#chart-svg rect").count() >= 4
         # Filter must operate on verified venue before calculating all windows.
         assert page.locator("#chart-svg .bb-venue-label").all_text_contents() == ["A", "H", "A"]
+        # Existing average tiles, without popup or additional chart filters.
+        assert page.locator(".venue-filter").count() == 0
+        assert page.locator("#hz-avg-breakdown").count() == 0
         assert page.locator('[data-venue="ALL"]').get_attribute("aria-pressed") == "true"
         page.locator('[data-venue="HOME"]').click()
         assert page.locator("#chart-svg .bb-plot-bar").count() == 1
         assert page.locator("#chart-svg .bb-venue-label").all_text_contents() == ["H"]
         assert page.locator("#hero-avg").inner_text() == "27.0"
-        assert page.locator("#season-avg").inner_text() == "27.0"
+        assert page.locator("#season-avg").inner_text() == "25.3"
         assert page.locator("#rate10").inner_text() == "100%"
+        assert page.locator("#home-avg").inner_text() == "27.0"
+        assert page.locator("#away-avg").inner_text() == "24.5"
+        assert "(Home)" in page.locator("#chart-heading").inner_text()
         assert page.locator("#sample10").inner_text() == "(1/1)"
         assert "meczów domowych" in page.locator("#take-text").inner_text()
         assert page.locator('[data-venue="HOME"]').get_attribute("aria-pressed") == "true"
@@ -329,14 +335,19 @@ def main():
         assert page.locator("#chart-svg .bb-plot-bar").count() == 2
         assert page.locator("#chart-svg .bb-venue-label").all_text_contents() == ["A", "A"]
         assert page.locator("#hero-avg").inner_text() == "24.5"
-        assert page.locator("#season-avg").inner_text() == "24.5"
+        assert page.locator("#season-avg").inner_text() == "25.3"
         assert page.locator("#rate10").inner_text() == "50%"
+        assert page.locator("#home-avg").inner_text() == "27.0"
+        assert page.locator("#away-avg").inner_text() == "24.5"
+        assert "(Away)" in page.locator("#chart-heading").inner_text()
         assert page.locator("#sample10").inner_text() == "(1/2)"
         assert "meczów wyjazdowych" in page.locator("#take-text").inner_text()
         page.locator('[data-period="L5"]').click()
         assert page.locator("#chart-svg .bb-plot-bar").count() == 2
         page.locator('[data-venue="ALL"]').click()
         page.locator('[data-period="L10"]').click()
+        assert "(Home)" not in page.locator("#chart-heading").inner_text()
+        assert "(Away)" not in page.locator("#chart-heading").inner_text()
         assert page.locator("#chart-svg .bb-plot-bar").count() == 3
         assert page.locator("#hero-avg").inner_text() == "25.3"
         assert page.locator("#rate10").inner_text() == "67%"

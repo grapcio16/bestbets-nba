@@ -98,6 +98,16 @@ def main() -> None:
             assert page.locator("#props-heading").is_visible()
             assert page.locator("#chart-svg .bb-plot-bar").count() == 10
             assert page.locator("#hero-rate").inner_text().endswith("%")
+            # Existing average cards directly control the chart; no popup.
+            assert page.locator(".venue-filter").count() == 0
+            assert page.locator("#hz-avg-breakdown").count() == 0
+            page.locator('[data-venue="AWAY"]').click()
+            assert page.locator("#chart-svg .bb-plot-bar").count() == 0
+            assert "wyjazdowych" in page.locator("#chart-placeholder").inner_text()
+            assert page.locator("#season-avg").inner_text() != "—"
+            page.locator('[data-venue="ALL"]').click()
+            assert page.locator("#chart-svg .bb-plot-bar").count() == 10
+            assert page.locator('[data-venue="ALL"]').get_attribute("aria-pressed") == "true"
             # A background payload refresh must leave the existing SVG bars
             # intact instead of restarting every chart animation.
             page.locator("#chart-svg .bb-plot-bar").first.evaluate(

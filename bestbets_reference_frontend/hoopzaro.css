@@ -558,29 +558,6 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
 #chart-panel:before{background:#c55bfd;box-shadow:0 0 10px #a332fc}
 .chart-title{top:12px;font-size:16px}
 .chart-title .orange-bars{color:#ce7aff}
-/* Compact venue selection in the chart header; no changes to layout geometry. */
-#chart-panel .chart-title{max-width:346px;white-space:nowrap}
-.venue-filter{
-  position:absolute;right:12px;top:10px;z-index:2;
-  width:190px;height:26px;display:flex;align-items:center;gap:2px;
-  padding:2px;border:1px solid #395a92;border-radius:9px;
-  background:linear-gradient(115deg,#0c2241,#111632);
-  box-shadow:inset 0 1px rgba(122,184,255,.15);
-}
-.venue-filter button{
-  flex:1;height:20px;min-width:0;padding:0 2px;
-  border:1px solid transparent;border-radius:6px;
-  background:transparent;color:#bbd0ea;
-  font-family:inherit;font-size:9px;line-height:19px;font-weight:900;
-  letter-spacing:.28px;cursor:pointer;
-}
-.venue-filter button:hover{color:#fff;background:rgba(14,122,184,.2)}
-.venue-filter button.on{
-  color:#f4ffff;border-color:#19def4;
-  background:linear-gradient(135deg,#0b658e,#14346b);
-  box-shadow:0 0 9px rgba(1,218,247,.35);
-}
-.venue-filter button:focus-visible{outline:2px solid #60ebff;outline-offset:2px}
 #chart-svg{top:40px;height:185px}
 .chart-placeholder{top:118px}
 #side-stats{top:328px;height:235px}
@@ -591,6 +568,12 @@ aside:after{left:-80px;top:520px;width:310px;height:155px;transform:rotate(-13de
 .rate:last-child{border-color:#9c46ea}
 .avg-box{border-color:#4065a8;background:linear-gradient(#0b203b,#10152d)}
 .avg-box.selected{border-color:#11e5f2;background:#082c4a}
+/* Average tiles are the venue picker. No extra tab, table or overlay. */
+button.avg-box{width:100%;min-width:0;appearance:none;-webkit-appearance:none;color:#fff;font:inherit;cursor:pointer;
+  transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
+button.avg-box:hover:not(:disabled){border-color:#32dbef;box-shadow:0 0 10px rgba(21,203,249,.25)}
+button.avg-box:focus-visible{outline:2px solid #47e8fa;outline-offset:2px}
+button.avg-box:disabled{opacity:.75;cursor:default}
 .defense-box{
   height:95px;margin-top:8px;border-color:#ff9c47;
   background:radial-gradient(ellipse 49% 87% at 100% 0%,rgba(234,74,159,.24),transparent),linear-gradient(100deg,#121329,#0b192e);
