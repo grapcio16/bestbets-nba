@@ -1110,3 +1110,261 @@
 @media(max-width:767px){
  #simulations-pane[data-hzm-view="players"] .hzm-insights{grid-template-columns:minmax(0,1fr)}
 }
+
+
+/* Player Simulations · approved reference geometry correction (PR follow-up).
+   The first visual release let the inspector's intrinsic content height leak
+   into the footer, covering cards and producing inconsistent column heights.
+   Hard bounding boxes apply only in the players view; other modules untouched. */
+#simulations-pane[data-hzm-view="players"] #hzm-players-panel,
+#simulations-pane[data-hzm-view="players"] #hzm-players-panel.expanded{
+  display:flex!important;flex-direction:column!important;
+  min-height:0!important;max-height:none!important;height:auto!important;
+  overflow:hidden!important;isolation:isolate;
+  padding:14px 14px 10px!important;gap:0;
+}
+#simulations-pane[data-hzm-view="players"] #hzm-players-panel>header{
+  flex:0 0 auto;min-height:44px!important;margin:0!important;
+  padding:0 0 8px!important;align-items:center;
+  border-bottom:1px solid rgba(49,113,156,.45)
+}
+#simulations-pane[data-hzm-view="players"] #hzm-players-panel>header h2{
+  font-size:19px!important;letter-spacing:-.4px!important;line-height:1.1;
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-focused-note{
+  flex:0 0 auto;margin:8px 2px 10px!important;font-size:10px!important;
+  color:#a4c6dd;line-height:1.3!important;
+}
+#simulations-pane[data-hzm-view="players"] #hzm-player-tools{
+  flex:0 0 auto;margin:0 0 12px!important;min-height:37px;
+  grid-template-columns:minmax(0,1.05fr) minmax(0,1.35fr) minmax(82px,.54fr);
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-lab-body{
+  display:grid!important;
+  grid-template-columns:minmax(239px,1.04fr) minmax(268px,1.18fr) minmax(0,2.04fr)!important;
+  grid-template-areas:"inspector roster analytics"!important;
+  grid-template-rows:minmax(0,1fr)!important;
+  height:432px!important;min-height:0!important;max-height:432px!important;
+  align-items:stretch!important;overflow:visible;
+  gap:11px!important;
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-lab-body > *{
+  box-sizing:border-box!important;min-height:0!important;max-height:432px!important;
+  align-self:stretch!important;
+}
+#simulations-pane[data-hzm-view="players"] #hzm-player-inspector{
+  box-sizing:border-box!important;min-width:0!important;
+  height:432px!important;max-height:432px!important;min-height:0!important;
+  padding:11px 12px!important;gap:7px!important;
+  overflow-x:hidden!important;overflow-y:auto!important;
+  overscroll-behavior:contain;
+  border-radius:12px;border:1px solid #a04fe5;
+  scrollbar-width:thin;scrollbar-color:#8d4ed4 #0f1d3f;
+  background:
+    radial-gradient(ellipse 75% 48% at 35% 0%,rgba(153,58,215,.26),transparent 78%),
+    linear-gradient(160deg,#1b2049 0%,#101c3d 65%,#091a35 100%);
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-identity{
+  min-height:93px!important;height:auto;
+  display:grid;grid-template-columns:85px minmax(0,1fr);
+  align-items:center;gap:10px;flex:0 0 auto;
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-avatar.large{
+  height:92px;width:85px;min-width:0;align-self:start;
+  background:radial-gradient(ellipse at 58% 80%,#8e3889,#132849 77%);
+  box-shadow:inset 0 -2px #32ddea,0 0 12px #4953bf55;
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-identity-copy{
+  min-width:0;gap:6px;align-self:center;
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-identity .hzm-inspector-top{
+  gap:3px;line-height:1.2;
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-identity .hzm-inspector-top>span{
+  font-size:9px;letter-spacing:.5px
+}
+#simulations-pane[data-hzm-view="players"] #hzm-player-inspector h3{
+  font-size:20px!important;line-height:1.12;letter-spacing:-.3px;overflow-wrap:normal;
+  word-break:normal;hyphens:none;
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-identity .hzm-inspector-sub{
+  font-size:9px;line-height:1.25
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-metrics{
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:5px;flex:0 0 auto
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-metric{
+  min-height:51px!important;padding:4px 2px!important;gap:3px;
+  background:linear-gradient(150deg,#0b4a68,#112647);
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-metric strong{
+  font-size:15px;font-weight:900;line-height:1.1
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-status{
+  flex:0 0 auto;min-height:26px;padding:5px 6px;line-height:1.25;
+  border-radius:8px;font-weight:750;overflow-wrap:anywhere
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-facts{
+  display:flex;flex-direction:column;gap:6px!important;
+  border-top:1px solid rgba(84,114,160,.45);padding-top:8px;flex:0 0 auto
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-facts>div{
+  display:grid;
+  grid-template-columns:15px minmax(0,1fr) minmax(0,1.05fr)!important;
+  gap:4px;align-items:start;font-size:10px;line-height:1.25;
+  min-width:0;overflow-wrap:break-word
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-facts>div strong{
+  min-width:0;max-width:100%;font-size:10px;font-weight:800;
+  line-height:1.25;word-break:normal;overflow-wrap:anywhere
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-disclaimer{
+  flex:0 0 auto;font-size:9px;line-height:1.4;padding:6px 0 0;
+  border-top:1px solid rgba(84,114,160,.45)
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-actions{
+  margin-top:0!important;flex:0 0 auto;
+  padding-top:6px;grid-template-columns:repeat(2,minmax(0,1fr));
+}
+#simulations-pane[data-hzm-view="players"] .hzm-inspector-actions button{
+  min-height:27px!important;padding:4px 6px;line-height:1.2
+}
+#simulations-pane[data-hzm-view="players"] #hzm-player-list-wrap{
+  box-sizing:border-box!important;height:432px!important;max-height:432px!important;
+  min-height:0!important;padding:8px!important;
+  border-radius:12px;border-color:#20ddec;
+  box-shadow:inset 0 1px rgba(79,242,252,.22);
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-column-header{
+  grid-template-columns:minmax(110px,1fr) repeat(4,37px)!important;
+  font-size:9px;line-height:1.1;flex:0 0 31px;
+  padding:0 6px 0 7px!important;gap:0!important
+}
+#simulations-pane[data-hzm-view="players"] #hzm-player-rows{
+  overflow-y:auto!important;overflow-x:hidden!important;
+  overscroll-behavior:contain;
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-row-rich{
+  display:grid!important;
+  grid-template-columns:31px minmax(84px,1fr) minmax(0,154px)!important;
+  gap:6px!important;min-width:0!important;
+  padding:5px 6px!important;min-height:52px!important;
+  border-radius:7px;
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-row-rich .hzm-player-info strong{
+  font-size:11px!important;line-height:1.2;letter-spacing:-.2px
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-row-rich .hzm-player-stats{
+  min-width:0;display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr));gap:0;
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-row-rich .hzm-player-stats span{
+  text-align:right;font-size:10.5px!important;font-weight:900
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-analytics{
+  height:432px!important;max-height:432px!important;min-height:0!important;
+  overflow:hidden;grid-template-rows:minmax(0,1.04fr) minmax(0,.96fr);
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-analytics-upper,
+#simulations-pane[data-hzm-view="players"] .hzm-player-analytics-lower{
+  grid-template-columns:minmax(0,2.05fr) minmax(140px,.97fr)!important;
+  min-height:0!important;grid-template-rows:minmax(0,1fr);
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-histogram-card,
+#simulations-pane[data-hzm-view="players"] .hzm-player-trend-card,
+#simulations-pane[data-hzm-view="players"] .hzm-player-rates-card,
+#simulations-pane[data-hzm-view="players"] .hzm-player-averages-card{
+  box-sizing:border-box!important;min-width:0;min-height:0!important;
+  padding:11px!important;overflow:hidden;
+  background:
+    radial-gradient(ellipse 80% 65% at 100% 100%,rgba(112,43,173,.15),transparent 78%),
+    linear-gradient(140deg,#0d1f40,#101633);
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-histogram-card,
+#simulations-pane[data-hzm-view="players"] .hzm-player-trend-card{
+  border-color:#a45be8;
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-analytics h3{
+  font-size:11.5px;line-height:1.3;white-space:normal;
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-rates>div,
+#simulations-pane[data-hzm-view="players"] .hzm-player-averages>div{
+  padding:5px 0!important
+}
+#simulations-pane[data-hzm-view="players"] .hzm-player-rates>div strong,
+#simulations-pane[data-hzm-view="players"] .hzm-player-averages>div strong{
+  font-size:13px
+}
+#simulations-pane[data-hzm-view="players"] .hzm-insights{
+  margin-top:9px!important;gap:9px;min-height:0!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important
+}
+#simulations-pane[data-hzm-view="players"] .hzm-insights>div:not(:first-child){
+  box-sizing:border-box;min-height:63px!important;max-height:70px;
+  border-radius:9px;padding:8px 10px 8px 37px!important;overflow:hidden
+}
+#simulations-pane[data-hzm-view="players"] .hzm-insights strong{font-size:11px!important}
+#simulations-pane[data-hzm-view="players"] .hzm-insights small{
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;font-size:9px!important;line-height:1.2!important
+}
+@media(max-width:1260px){
+  #simulations-pane[data-hzm-view="players"] .hzm-player-lab-body{
+    grid-template-columns:minmax(220px,1fr) minmax(260px,1.3fr)!important;
+    grid-template-areas:"inspector roster" "analytics analytics"!important;
+    grid-template-rows:auto auto!important;
+    height:auto!important;max-height:none!important;
+  }
+  #simulations-pane[data-hzm-view="players"] .hzm-player-lab-body > *{
+    max-height:none!important;
+  }
+  #simulations-pane[data-hzm-view="players"] #hzm-player-inspector,
+  #simulations-pane[data-hzm-view="players"] #hzm-player-list-wrap{
+    height:380px!important;max-height:380px!important;min-height:0!important
+  }
+  #simulations-pane[data-hzm-view="players"] .hzm-player-analytics{
+    height:344px!important;max-height:344px!important;min-height:0!important;
+  }
+  #simulations-pane[data-hzm-view="players"] .hzm-player-analytics-upper,
+  #simulations-pane[data-hzm-view="players"] .hzm-player-analytics-lower{
+    grid-template-rows:minmax(0,1fr)
+  }
+}
+@media(max-width:767px){
+  #simulations-pane[data-hzm-view="players"] #hzm-players-panel{
+    overflow:visible!important;padding:11px!important
+  }
+  #simulations-pane[data-hzm-view="players"] .hzm-player-lab-body{
+    grid-template-columns:minmax(0,1fr)!important;
+    grid-template-areas:"inspector" "roster" "analytics"!important;
+    grid-template-rows:auto auto auto!important;
+    height:auto!important;max-height:none!important
+  }
+  #simulations-pane[data-hzm-view="players"] #hzm-player-inspector{
+    height:auto!important;min-height:0!important;max-height:none!important;
+    overflow-y:visible!important
+  }
+  #simulations-pane[data-hzm-view="players"] #hzm-player-list-wrap{
+    height:290px!important;max-height:290px!important
+  }
+  #simulations-pane[data-hzm-view="players"] .hzm-player-analytics{
+    height:auto!important;max-height:none!important;min-height:0!important;
+    grid-template-rows:auto auto!important
+  }
+  #simulations-pane[data-hzm-view="players"] .hzm-player-analytics-upper,
+  #simulations-pane[data-hzm-view="players"] .hzm-player-analytics-lower{
+    grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto auto!important;
+  }
+  #simulations-pane[data-hzm-view="players"] .hzm-player-histogram-card,
+  #simulations-pane[data-hzm-view="players"] .hzm-player-trend-card{
+    height:220px!important;min-height:220px!important
+  }
+  #simulations-pane[data-hzm-view="players"] .hzm-player-rates-card,
+  #simulations-pane[data-hzm-view="players"] .hzm-player-averages-card{
+    height:auto!important;min-height:144px!important
+  }
+  #simulations-pane[data-hzm-view="players"] .hzm-insights{
+    grid-template-columns:minmax(0,1fr)!important
+  }
+}
