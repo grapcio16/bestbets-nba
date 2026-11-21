@@ -368,9 +368,21 @@ function showPlayers(premium,players,game){
 
 function maybeLoadPaid(game,premium,sim,players){
   if(!premium?.entitled||!game||!["scheduled","final"].includes(game.state))return;
+  // The Backtest panel has its own server endpoint and needs no selected-game
+  // simulation. Match Intelligence / Team Comparison need team-level results,
+  // but must not trigger expensive player-roster projections.
+  if(state.view==="backtest")return;
   const key=state.day+"|"+game.id+"|"+state.model;
-  if(!sim&&state.gamePending!==key){state.gamePending=key;callbacks?.loadGame?.(state.day,game.id,state.model)}
-  if(sim&&!sim.error&&!players&&state.playersPending!==key){state.playersPending=key;callbacks?.loadPlayers?.(state.day,game.id,state.model)}
+  if(!sim&&state.gamePending!==key){
+    state.gamePending=key;
+    callbacks?.loadGame?.(state.day,game.id,state.model);
+  }
+  const needsPlayers=state.view==="players"||state.view==="results"||
+    (state.view==="scenario"&&state.model==="research_context_v75");
+  if(needsPlayers&&sim&&!sim.error&&!players&&state.playersPending!==key){
+    state.playersPending=key;
+    callbacks?.loadPlayers?.(state.day,game.id,state.model);
+  }
 }
 function showScenario(game,sim,premium){
  const panel=$("hzm-scenario-panel");
@@ -774,7 +786,7 @@ function render(home,premium){
   if(data.known&&state.requestedDay===state.day)state.requestedDay="";
   if(!data.games.some(game=>game.id===state.gameId)){
     const next=data.games.find(game=>game.state==="scheduled")||data.games[0];
-    state.gameId=next?.id||"";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
+    state.gameId=next?.id||"";state.gamePending="";state.playersPending="";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
   }
   $("hzm-day-title").textContent=labelDay(state.day);
   $("hzm-day-input").value=state.day;
@@ -819,7 +831,20 @@ function render(home,premium){
     ?"Zweryfikowane Premium wymagane":!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":
       sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji · "+modelLabel());
   $("simulations-pane").classList.toggle("hzm-premium-locked",!premium?.entitled);
-  showChart(sim,game,premium);showPlayers(premium,players,game);showScenario(game,sim,premium);showPlayerMinutes(game,players,premium);showAvailability(game,players,sim,premium);showMatchIntelligence(game,sim,premium);showTeamComparison(game,sim,premium);showModelBacktest(premium);
+  // Heavy charts, player lists and scenario cards are only rebuilt while
+  // visible. On entitlement revocation update everything so hidden Premium
+  // panes cannot retain a paid result in the in-memory DOM.
+  const revoking=premium?.entitled!==true;
+  if(revoking||state.view==="results"||state.view==="players"){
+    showChart(sim,game,premium);showPlayers(premium,players,game);
+  }
+  if(revoking||state.view==="scenario"){
+    showScenario(game,sim,premium);showPlayerMinutes(game,players,premium);
+    showAvailability(game,players,sim,premium);
+  }
+  if(revoking||state.view==="intelligence")showMatchIntelligence(game,sim,premium);
+  if(revoking||state.view==="comparison")showTeamComparison(game,sim,premium);
+  if(revoking||state.view==="backtest")showModelBacktest(premium);
   maybeLoadPaid(game,premium,sim,players);
 }
 function navigate(day){
@@ -937,7 +962,7 @@ function init(api){
     const selected=event.target.closest("[data-hzm-game]");
     if(!selected)return;
     event.stopPropagation();
-    state.gameId=selected.dataset.hzmGame;state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
+    state.gameId=selected.dataset.hzmGame;state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
     state.expanded=state.view==="players";
     toggleMatchPicker(false);
     render(state.lastHome,state.lastPremium);
@@ -980,7 +1005,7 @@ function init(api){
     if(arrow){navigate(dayShift(state.day,Number(arrow.dataset.hzmShift)));return}
     const gameButton=event.target.closest("[data-hzm-game]");
     if(gameButton){
-      state.gameId=gameButton.dataset.hzmGame;state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";
+      state.gameId=gameButton.dataset.hzmGame;state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";
       state.expanded=state.view==="players";toggleMatchPicker(false);
       render(state.lastHome,state.lastPremium);return;
     }
