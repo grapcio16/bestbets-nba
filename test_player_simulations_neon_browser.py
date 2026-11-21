@@ -33,8 +33,9 @@ def main():
             history = [
                 {"date": "2026-11-%02d" % (i + 3),
                  "pts": float(18+i), "reb": float(3+i%2),
-                 "ast": float(5+i%3), "pra": float(26+i+i%2+i%3)}
-                for i in range(7)
+                 "ast": float(5+i%3), "pra": float(26+i+i%2+i%3),
+                 "min": float(29+i%4)}
+                for i in range(15)
             ]
             phi_logo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGN8ZhPFwMDAxMDAwMDAAAAShgGAryh2VAAAAABJRU5ErkJggg=="
             mil_logo = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGOU29nAwMDAxMDAwMDAAAAP3AFbBNdn1AAAAABJRU5ErkJggg=="
@@ -56,6 +57,12 @@ def main():
                         "total_points": 231.0, "away_win_pct": 28.6,
                         "home_win_pct": 71.4, "distributions": {},
                         "n_sims": 5000,
+                        "model_context": {
+                            "score_sd_samples": [19, 20],
+                            "score_sd_points": [11.6, 12.9],
+                            "rest_days": [1, 0],
+                            "team_comparison": {},
+                        },
                     },
                     "players": {
                         "date": day, "game_id": game_id, "model_id": "research_form_v74",
@@ -63,7 +70,10 @@ def main():
                             {"name": "Test Guard Alpha", "team": "PHI",
                              "pts": 20, "reb": 2.4, "ast": 6.5,
                              "position": "PG", "espn_id": "",
-                             "history": history},
+                             "history": history,
+                             "season_team_mean": {"pts": 25.0, "reb": 3.47,
+                                                  "ast": 5.93, "pra": 34.4},
+                             "season_team_games": 15},
                             {"name": "Test Forward Beta", "team": "MIL",
                              "pts": 17, "reb": 7.5, "ast": 3.2,
                              "espn_id": "", "history": []},
@@ -113,8 +123,33 @@ def main():
             assert .20 <= color_style["watermarkOpacity"] <= .45, color_style
             assert page.locator("#hzv3-trend svg").count() == 1
             assert page.locator("#hzv3-hist svg rect").count() >= 24
-            assert "7 występów" in page.locator("#hzv3-rates-note").inner_text()
-            assert "—" in page.locator("#hzv3-averages").inner_text()
+            assert "15 meczów" in page.locator("#hzv3-rates-note").inner_text()
+            averages = page.locator("#hzv3-averages").inner_text()
+            assert "Sezon · PHI" in averages, averages
+            assert "25,0" in averages, averages
+            assert "—" not in averages, averages
+            assert "Minuty (ESPN L5)" in page.locator("#hzv3-inspector").inner_text()
+            assert "30,6" in page.locator("#hzv3-inspector").inner_text()
+            assert "Model SD" in page.locator("#hzv3-pace").inner_text()
+            assert "12,3" in page.locator("#hzv3-pace").inner_text()
+            assert page.locator("#hzv3-rates>div").count() == 4
+            # All four historical threshold rows and history buttons must
+            # actually fit the desktop visual reference, not be clipped.
+            if width >= 1600:
+                positions = page.evaluate("""() => {
+                    const area=document.querySelector('.hzv3-rates-card').getBoundingClientRect();
+                    const rows=[...document.querySelectorAll('#hzv3-rates>div')];
+                    const card=document.querySelector('#hzv3-inspector').getBoundingClientRect();
+                    const buttons=[...document.querySelectorAll('#hzv3-inspector [data-hzv3-props]')];
+                    return {
+                      lastRate:rows[rows.length-1].getBoundingClientRect().bottom,
+                      rateBottom:area.bottom,
+                      lastButton:buttons[buttons.length-1].getBoundingClientRect().bottom,
+                      inspectorBottom:card.bottom,
+                    }
+                }""")
+                assert positions["lastRate"] <= positions["rateBottom"]+1, positions
+                assert positions["lastButton"] <= positions["inspectorBottom"]+1, positions
             assert "20,0" in page.locator('#hzv3-inspector [data-hzv3-metric="PTS"]').inner_text()
             assert page.locator("[data-hzv3-market]").count() == 4
             if width >= 1600:

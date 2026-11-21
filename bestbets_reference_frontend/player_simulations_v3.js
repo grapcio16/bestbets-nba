@@ -10,7 +10,7 @@ const $=id=>document.getElementById(id);
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const num=v=>v!==null&&v!==undefined&&v!==""&&Number.isFinite(Number(v))?Number(v):null;
 const fmt=v=>num(v)===null?"—":Number(v).toLocaleString("pl-PL",{minimumFractionDigits:1,maximumFractionDigits:1});
-const int=v=>Number.isInteger(Number(v))&&Number(v)>=0?Number(v):null;
+const int=v=>v!==null&&v!==undefined&&v!==""&&Number.isInteger(Number(v))&&Number(v)>=0?Number(v):null;
 const version=id=>id==="research_context_v75"?"V7.5":id==="research_form_v74"?"V7.4":"V7.2";
 let active=null;
 
@@ -39,6 +39,14 @@ function safeId(player){
 }
 function initials(name){
  return String(name||"").trim().split(/\s+/).slice(0,2).map(v=>v.charAt(0)).join("").toUpperCase();
+}
+// Preserve a readable surname instead of trimming both the name AND the
+// team abbreviation to a handful of characters in the 390px roster card.
+// The complete identity remains in the row title and aria-label.
+function rosterName(name){
+ const parts=String(name||"").trim().split(/\s+/);
+ if(parts.length<2)return parts[0]||"";
+ return parts[0].slice(0,1)+". "+parts.slice(1).join(" ");
 }
 // Reuse the verified team badge already delivered for the selected fixture
 // (the same image displayed in the match hero). No external logo request and
@@ -93,8 +101,8 @@ function showList(entries){
    '<span class="hzv3-player-stat" title="'+m+': '+esc(fmt(metric(player,m)))+'">'+fmt(metric(player,m))+'</span>').join("");
   const selected=index===state.playerIndex;
   return '<button class="hzv3-player" type="button" data-hzv3-pick="'+index+'" aria-pressed="'+selected+
-    '" title="'+esc(player.name)+' · '+esc(team)+'">'+portrait(player,false)+
-    '<span class="hzv3-player-name"><strong>'+esc(player.name)+'</strong><small>'+esc(team)+'</small></span>'+
+    '" aria-label="'+esc(player.name)+' · '+esc(team)+'" title="'+esc(player.name)+' · '+esc(team)+'">'+portrait(player,false)+
+    '<span class="hzv3-player-name"><strong>'+esc(rosterName(player.name))+'</strong><small>'+esc(team)+'</small></span>'+
     vals+'</button>';
  }).join("");
  roster.scrollTop=scroll;
@@ -113,9 +121,19 @@ function drawInspector(player){
  const pane=$("hzv3-inspector"),{model,state,players}=active;
  if(!player){pane.innerHTML='<div class="hzv3-muted">Wybierz zawodnika, aby zobaczyć projekcje i historię ESPN.</div>';return;}
  const badge=status(player),rows=history(player,state.playerMarket),avg=mean(rows,5);
+ const minuteRows=history(player,"MIN");
+ const verifiedMinutes=mean(minuteRows,5);
  const position=["PG","SG","SF","PF","C","G","F"].includes(player.position)?player.position:"";
  const minutes=model==="research_context_v75"?num(player.minutes):null;
- const minutesLabel=minutes===null?"—":fmt(minutes)+" min";
+ const projectedMinutes=minutes!==null&&player.availability!=="Out";
+ // V7.2/V7.4 have NO predicted minutes; display actual ESPN L5 minutes,
+ // clearly labeled as history, rather than a misleading empty projection.
+ const minutesLabel=projectedMinutes?fmt(minutes)+" min":
+   verifiedMinutes!==null?fmt(verifiedMinutes)+" min":"—";
+ const minutesType=projectedMinutes?"Minuty (proj.)":"Minuty (ESPN L5)";
+ const minutesSample=projectedMinutes
+   ?int(player.minutes_sample)
+   :minuteRows.length;
  const metrics=["PTS","REB","AST","PRA"].map(k=>
    '<div class="hzv3-metric" data-hzv3-metric="'+k+'" data-active="'+(k===state.playerMarket)+'">'+
    '<small>'+k+'</small><strong>'+fmt(metric(player,k))+'</strong></div>').join("");
@@ -130,11 +148,11 @@ function drawInspector(player){
    '<div class="hzv3-status" data-kind="'+badge.kind+'"><span class="hzv3-status-dot">'+badge.icon+'</span>'+
    '<span>'+esc(badge.text)+'</span></div>'+
    '<div class="hzv3-facts">'+
-   '<div class="hzv3-fact"><span>◷</span><span>Minuty (proj.)</span><strong>'+minutesLabel+'</strong></div>'+
+   '<div class="hzv3-fact" title="'+esc(projectedMinutes?"Minuty prognozowane przez "+version(model)+", próba: "+(minutesSample??"brak"):"Średnie rzeczywiste minuty z ostatnich 5 potwierdzonych meczów ESPN, nie prognoza")+'"><span>◷</span><span>'+minutesType+'</span><strong>'+minutesLabel+'</strong></div>'+
    '<div class="hzv3-fact"><span>⌁</span><span>Forma L5 ('+state.playerMarket+')</span><strong>'+fmt(avg)+'</strong></div>'+
    '<div class="hzv3-fact"><span>▥</span><span>Próba ESPN</span><strong>'+rows.length+' występów</strong></div>'+
    '<div class="hzv3-fact"><span>ⓘ</span><span>Model</span><strong>'+version(model)+'</strong></div></div>'+
-   '<p class="hzv3-inspector-note">PRA jest sumą średnich PTS, REB i AST. Historyczne częstości nie są prawdopodobieństwem prognozy.</p>'+
+   '<p class="hzv3-inspector-note">PRA = średnie PTS + REB + AST. Wykresy i over to wyłącznie wcześniejsze mecze ESPN.</p>'+
    '<div class="hzv3-history-actions">'+actions+'</div>'+
    (state.fromProps?.name===player.name&&state.fromProps?.team===teamOf(player)?
       '<button type="button" class="hzv3-return-props" data-hzv3-return>← Wróć do Player Props</button>':'');
@@ -238,16 +256,21 @@ function drawCharts(player){
  }
  const rows=history(player,m),model=metric(player,m);
  histogram(player,m);trendChart(player,m);
- $("hzv3-rates-note").textContent="Wyniki ESPN · "+rows.length+" występów, nie prawdopodobieństwa modelu";
+ $("hzv3-rates-note").textContent="ESPN · "+rows.length+" meczów · tylko historia";
+ $("hzv3-rates-note").title="Odsetki osiągnięte w rzeczywistych wcześniejszych meczach dla progów wyznaczonych na podstawie projekcji. To nie są skalibrowane szanse na kolejny mecz ani linie bukmachera.";
  if(rows.length>=3&&model!==null){
   const values=[model-4.5,model+.5,model+4.5,model+9.5].map(v=>Math.max(.5,Math.round(v*2)/2));
   $("hzv3-rates").innerHTML=values.map(v=>
     '<div><span>&gt; '+fmt(v)+'</span><strong>'+fmt(100*rows.filter(r=>r.value>v).length/rows.length)+'%</strong></div>').join("");
  }else $("hzv3-rates").innerHTML=empty("Za mało danych historycznych.");
+ const complete=player.season_team_mean&&typeof player.season_team_mean==="object";
+ const seasonValue=complete?num(player.season_team_mean[m.toLowerCase()]):null;
+ const seasonGames=int(player.season_team_games);
  $("hzv3-averages").innerHTML=[5,10,15].map(n=>
-   '<div title="'+(rows.length<n?'Próba '+rows.length+'/'+n+' — średnia niedostępna':'Średnia z '+n+' meczów')+
-   '"><span>L'+n+'</span><strong>'+fmt(mean(rows,n))+'</strong></div>').join("")+
-   '<div title="Brak pełnego archiwum sezonu"><span>Sezon</span><strong>—</strong></div>';
+   '<div title="'+(rows.length<n?'Zarejestrowano tylko '+rows.length+' występów — minimum '+n+' potrzebnych do L'+n:'Średnia z ostatnich '+n+' rzeczywiście rozegranych meczów ESPN')+
+   '"><span>L'+n+(rows.length<n?' ('+rows.length+'/'+n+')':'')+'</span><strong>'+fmt(mean(rows,n))+'</strong></div>').join("")+
+   '<div title="'+(seasonValue!==null?'Zweryfikowana średnia sezonu w tej drużynie z '+seasonGames+' meczów ESPN. Nie obejmuje poprzednich drużyn zawodnika.':'Nie mamy pełnego archiwum wszystkich dotychczasowych spotkań tej drużyny. Nie pokazujemy średniej z części danych jako całego sezonu.')+
+   '"><span>Sezon'+(seasonValue!==null?' · '+esc(teamOf(player)):'')+'</span><strong>'+fmt(seasonValue)+'</strong></div>';
 }
 function drawSummary(){
  const {game,sim,premium}=active,ctx=sim?.model_context||{};
@@ -262,15 +285,20 @@ function drawSummary(){
   '<strong>'+fmt(t?.pts10)+' PTS</strong><span>'+fmt(t?.allowed10)+' STR</span></div>').join("");
  const pace=(c.advanced_available===true&&num(c.away?.pace)!==null&&num(c.home?.pace)!==null)
   ?fmt((Number(c.away.pace)+Number(c.home.pace))/2):"—";
- const volatility=ctx.score_sd_samples?.every(n=>int(n)!==null&&n>0)?
-  ctx.score_sd_samples.join(" / "):"—";
- $("hzv3-pace").innerHTML='<div class="hzv3-pace-cols"><div><small>PACE</small><strong>'+pace+
-  '</strong></div><div><small>Próba SD</small><strong>'+esc(volatility)+
-  '</strong></div><div><small>Total (proj.)</small><strong>'+fmt(sim.total_points)+'</strong></div></div>';
+ const sd=Array.isArray(ctx.score_sd_points)?ctx.score_sd_points:[];
+ const sample=Array.isArray(ctx.score_sd_samples)?ctx.score_sd_samples:[];
+ const sdValid=active.model!=="legacy_v72"&&sd.length===2&&sd.every(v=>num(v)!==null&&num(v)>=0);
+ const deviation=sdValid?"±"+fmt(Math.sqrt((Number(sd[0])**2+Number(sd[1])**2)/2)):"—";
+ const sampleLabel=sample.length===2&&sample.every(n=>int(n)!==null)
+   ?'Próby: '+sample.join(" / "):"Brak potwierdzonej próby";
+ $("hzv3-pace").innerHTML='<div class="hzv3-pace-cols">'+
+  '<div title="PACE wyłącznie z aktualnego NBA Advanced dla obu drużyn"><small>PACE</small><strong>'+pace+'</strong></div>'+
+  '<div title="Orientacyjne modelowe SD punktów drużyn; '+esc(sampleLabel)+'. To nie jest liczba meczów ani pewny zakres."><small>Model SD</small><strong>'+deviation+'</strong></div>'+
+  '<div title="Prognozowana suma punktów z modelu '+version(active.model)+'"><small>Total (proj.)</small><strong>'+fmt(sim.total_points)+'</strong></div></div>';
  const rest=Array.isArray(ctx.rest_days)?ctx.rest_days:[];
  const injury=ctx.v75_factors;
  $("hzv3-rest").innerHTML=[game?.away,game?.home].map((code,i)=>{
-  const day=int(rest[i]);const label=day===null?"brak danych":day+" dni";
+  const day=int(rest[i]);const label=day===null?"brak danych":day===0?"B2B · 0 dni":day===1?"1 dzień":day+" dni";
   const fresh=injury?.injuries_espn_fresh===true;
   const uncertain=fresh?(i===0?int(injury.injury_uncertain_away):int(injury.injury_uncertain_home)):null;
   const stat=fresh?(uncertain===null?"raport ESPN":uncertain+" niepewnych"):"raport niezweryfikowany";
@@ -298,7 +326,7 @@ function refresh(){
  }
  const all=Array.isArray(players?.players)?players.players:[];
  const entries=fullList();
- $("hzv3-count").textContent=players?entries.length+" z "+all.length+" zawodników":"Ładowanie zawodników…";
+ $("hzv3-count").textContent=players?entries.length+" z "+all.length+" projekcji":"Ładowanie zawodników…";
  const chosen=selected(entries);
  showList(entries);drawInspector(chosen);drawCharts(chosen);drawSummary();
 }

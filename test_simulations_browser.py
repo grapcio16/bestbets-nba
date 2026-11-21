@@ -90,7 +90,7 @@ def main():
         assert "V7.4" in page.locator("#hzv3-inspector").inner_text()
         page.locator('[data-hzv3-team="away"]').click()
         assert page.locator("#hzv3-roster .hzv3-player").count() == 7
-        assert page.locator("#hzv3-count").inner_text() == "7 z 14 zawodników"
+        assert page.locator("#hzv3-count").inner_text() == "7 z 14 projekcji"
         page.locator("#hzv3-query").fill("Test Player 13")
         assert page.locator("#hzv3-roster .hzv3-player").count() == 1
         assert "Test Player 13" in page.locator("#hzv3-inspector").inner_text()

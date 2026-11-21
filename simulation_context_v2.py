@@ -139,6 +139,10 @@ def simulation_inputs(completed: pd.DataFrame, game: dict,
         "rest_days": [rest["away"].get("rest_days"),
                       rest["home"].get("rest_days")],
         "score_sd_samples": [away_sd["sample"], home_sd["sample"]],
+        # These are model-shrunk scoring standard deviations (points), NOT
+        # counts and NOT an observed distribution of player projections.
+        # Insufficient samples produce nulls, never a made-up 12.5-point SD.
+        "score_sd_points": [away_sd["sd"], home_sd["sd"]],
         "advanced_available": home in ratings and away in ratings,
         "team_comparison": verified_team_comparison(
             earlier, home, away, home_stats, away_stats, ratings),

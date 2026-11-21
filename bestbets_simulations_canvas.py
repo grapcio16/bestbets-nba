@@ -260,6 +260,8 @@ def _compact_pregame_player_history(raw, tipoff, away: str, home: str) -> dict:
             "game_id": str(row["GAME_ID"]),
             "pts": pts, "reb": reb, "ast": ast,
             "pra": round(pts + reb + ast, 1),
+            # Observed ESPN playing time, NEVER a model minute projection.
+            "min": _clean_float(row.get("MIN")),
         }
         if key not in histories:
             histories[key] = {"history": [], "espn_id": "", "position": position}
@@ -269,8 +271,53 @@ def _compact_pregame_player_history(raw, tipoff, away: str, home: str) -> dict:
         if position:
             histories[key]["position"] = position
     for data in histories.values():
-        data["history"] = data["history"][-15:]
+        # Exact arithmetic means from every verified boxscore we received,
+        # before limiting the frontend L5/L10/L15 trend to 15 observations.
+        # Label as "Season for current team" ONLY if every previous team
+        # fixture has a verified boxscore (computed by the caller).
+        rows = data["history"]
+        data["observed_mean"] = {
+            metric: round(sum(float(r[metric]) for r in rows) / len(rows), 2)
+            for metric in ("pts", "reb", "ast", "pra")
+        } if rows else {}
+        data["observed_games"] = len(rows)
+        data["history"] = rows[-15:]
     return histories
+
+
+def _complete_player_team_coverage(historical, logs, tipoff, teams) -> set[str]:
+    """Only assert season-to-date coverage when every ESPN final ID matches.
+
+    Counting n distinct boxscores is insufficient: skipped games could be
+    hidden by unrelated fixtures. Missing or malformed provider data makes
+    coverage incomplete, never a fabricated full-season average.
+    """
+    need = {"game_id", "start_utc", "home", "away", "status_code"}
+    have = {"GAME_ID", "TEAM_ABBREVIATION"}
+    if (not isinstance(historical, pd.DataFrame) or
+            not isinstance(logs, pd.DataFrame) or
+            not need.issubset(historical.columns) or
+            not have.issubset(logs.columns) or
+            historical.empty or logs.empty):
+        return set()
+    previous = historical.copy()
+    previous["start_utc"] = pd.to_datetime(
+        previous["start_utc"], utc=True, errors="coerce")
+    previous = previous[
+        (pd.to_numeric(previous["status_code"], errors="coerce") == 3)
+        & (previous["start_utc"] < tipoff)
+    ]
+    verified = set()
+    for team in teams:
+        played = previous[
+            (previous["away"] == team) | (previous["home"] == team)
+        ]
+        expected = {str(x) for x in played["game_id"].dropna()}
+        seen = {str(x) for x in logs.loc[
+            logs["TEAM_ABBREVIATION"] == team, "GAME_ID"].dropna()}
+        if expected and expected.issubset(seen):
+            verified.add(team)
+    return verified
 
 
 @st.cache_data(ttl=600, max_entries=50, show_spinner=False)
@@ -302,9 +349,22 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
                                           research_mode=model_id != "legacy_v72")
         # This reads the boxscores already fetched/cached by the projector.
         from espn_player_data import matchup_espn_logs
-        historical_logs, _ = matchup_espn_logs(historical, game)
+        # Player evidence extends beyond the 7 game projection engine sample.
+        # This is on-demand for an ENTITLED, selected match only; per-event
+        # ESPN boxscores are cached and fetched concurrently. When fewer than
+        # 10/15 played games exist, the UI says so rather than inventing data.
+        historical_logs, _ = matchup_espn_logs(historical, game, games_per_team=20)
+    # For V7.5 the medical/rotation evidence shares the seven-game projector,
+    # but the historical charts may still use up to 20 previous team games.
+    if model_id == "research_context_v75":
+        from espn_player_data import matchup_espn_logs
+        historical_logs, _ = matchup_espn_logs(historical, game, games_per_team=20)
     evidence_by_player = _compact_pregame_player_history(
         historical_logs, tipoff, str(match["away"]), str(match["home"]))
+    complete_teams = _complete_player_team_coverage(
+        historical, historical_logs, tipoff,
+        (str(match["away"]), str(match["home"]))
+    )
     if table is None or table.empty:
         return {"players": [], "error": "ESPN nie dostarczył projekcji graczy dla tego spotkania."}
     required = {"Zawodnik", "Drużyna", "PTS", "REB", "AST"}
@@ -329,7 +389,16 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
                   # distributions or bookmakers' pregame player lines.
                   "history": observed.get("history", []),
                   "espn_id": observed.get("espn_id", ""),
-                  "position": observed.get("position", "")}
+                  "position": observed.get("position", ""),
+                  "history_games": observed.get("observed_games", 0),
+                  "season_team_mean": (
+                      observed.get("observed_mean", {})
+                      if team in complete_teams else None
+                  ),
+                  "season_team_games": (
+                      observed.get("observed_games", 0)
+                      if team in complete_teams else None
+                  )}
         if model_id == "research_context_v75":
             pctx = (availability.get("players") or {}).get((team, norm_name(name)), {})
             player["minutes"] = pctx.get("minutes")
