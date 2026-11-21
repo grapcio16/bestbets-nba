@@ -1281,6 +1281,9 @@ if(window.HoopzaroSchedule){
     }
   });
 }
+// Recover the public Game Center selection after Streamlit remounts its
+// iframe during an ESPN summary request; users can still go Back normally.
+if(window.HoopzaroSchedule?.hasRestorableGame?.())state.page="games";
 if(window.HoopzaroSimulations){
   window.HoopzaroSimulations.init({
     selectDay:function(day){
@@ -1324,6 +1327,7 @@ document.addEventListener("keydown",function(e){
 });
 document.querySelectorAll("[data-query]").forEach(function(b){b.addEventListener("click",function(){state.page="props";search(b.dataset.query)})});
 document.querySelectorAll("[data-page]").forEach(function(el){el.addEventListener("click",function(){
+  if(state.page==="games"&&el.dataset.page!=="games")window.HoopzaroSchedule?.dismissOnNavigation?.();
   state.page=el.dataset.page;state.payload.error="";render();
    if(shell.classList.contains("hz-independent-scroll"))$("work").scrollTop=0;
   if(state.page==="admin"&&!state.payload.admin_report)requestAdminReport();

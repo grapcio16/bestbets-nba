@@ -119,11 +119,11 @@
 }
 #schedule-pane.hzv4 .hzs-section-title{height:20px;min-height:20px;margin:6px 0 4px;font-size:10px;letter-spacing:.75px}
 #schedule-pane.hzv4 .hzs-game-shell,
-#schedule-pane.hzv4 .hzs-game-shell.hzs-featured-shell{height:95px;min-height:95px}
+#schedule-pane.hzv4 .hzs-game-shell.hzs-featured-shell{height:105px;min-height:105px}
 #schedule-pane.hzv4 .hzs-game-shell>.hzs-game,
 #schedule-pane.hzv4 .hzs-game-shell.hzs-featured-shell>.hzs-game{
- width:100%;height:95px!important;min-height:95px;display:flex;flex-direction:column;
- gap:5px;padding:7px 9px 8px;border-radius:14px;border:1px solid #244e77;
+ width:100%;height:105px!important;min-height:105px;display:flex;flex-direction:column;
+ gap:3px;padding:7px 9px 7px;border-radius:14px;border:1px solid #244e77;
  background:linear-gradient(135deg,rgba(12,24,50,.97),rgba(8,18,39,.97));
  box-shadow:inset 0 1px rgba(107,173,234,.10);color:#fff;position:relative
 }
@@ -138,8 +138,8 @@
  border:1px solid #00d8bc;background:#061f31;color:#2af9df;font-size:8px
 }
 #schedule-pane.hzv4 .hzs-mini-middle{
- flex:1;display:grid;width:100%;grid-template-columns:1fr minmax(66px,1.15fr) 1fr;
- gap:3px;align-items:center;min-width:0
+ flex:1 1 auto;display:grid;width:100%;grid-template-columns:1fr minmax(66px,1.15fr) 1fr;
+ gap:3px;align-items:center;min-height:0;min-width:0
 }
 #schedule-pane.hzv4 .hzs-mini-team{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
 #schedule-pane.hzv4 .hzs-mini-team .hzs-team-mark{width:28px;height:28px;flex:0 0 28px;overflow:hidden}
@@ -147,8 +147,9 @@
 #schedule-pane.hzv4 .hzs-mini-team strong{font-size:9px;color:#e3f2ff;max-width:100%;text-overflow:ellipsis;overflow:hidden}
 #schedule-pane.hzv4 .hzs-mini-score{font-size:16px;font-weight:950;white-space:nowrap;text-align:center;letter-spacing:-.5px}
 #schedule-pane.hzv4 .hzs-mini-bottom{
- width:100%;border-top:1px solid #233754;padding-top:4px;text-align:center;
- color:#789cba;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+ width:100%;border-top:1px solid #233754;padding-top:3px;text-align:center;
+ color:#b8d5e8;font-size:9px;line-height:13px;font-weight:650;
+ min-height:18px;flex:0 0 auto;white-space:normal;overflow:visible;overflow-wrap:break-word
 }
 #schedule-pane.hzv4 .hzs-favorite-star{
  position:absolute;top:28px;z-index:3;border-radius:7px;opacity:.75;font-size:15px;
@@ -397,8 +398,8 @@
  #app-shell.hz-mobile-schedule .hzs-board{overflow:visible!important;min-height:0!important}
  #app-shell.hz-mobile-schedule .hzs-rows{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px}
  #app-shell.hz-mobile-schedule .hzs-game-shell,
- #app-shell.hz-mobile-schedule .hzs-game-shell.hzs-featured-shell{height:107px!important}
- #app-shell.hz-mobile-schedule .hzs-game-shell>.hzs-game{height:107px!important;min-height:107px!important}
+ #app-shell.hz-mobile-schedule .hzs-game-shell.hzs-featured-shell{height:117px!important}
+ #app-shell.hz-mobile-schedule .hzs-game-shell>.hzs-game{height:117px!important;min-height:117px!important}
  #app-shell.hz-mobile-schedule .hzs-mini-score{font-size:13px}
  #app-shell.hz-mobile-schedule .hzs-mini-team .hzs-team-mark{width:25px;height:25px;flex-basis:25px}
  #app-shell.hz-mobile-schedule .hzs-mini-team .hzs-team-mark img{width:23px;height:23px}
@@ -505,3 +506,7 @@
   #app-shell.hz-mobile-schedule .hzv-featured-score{font-size:21px}
   #app-shell.hz-mobile-schedule .hzv-featured-label{font-size:9px}
 }
+
+/* Recover from transient ESPN failures without leaving Game Center. */
+#schedule-pane.hzv4 .hzv-retry-button{margin-top:10px;padding:8px 13px;color:#ecfcff;font:inherit;font-size:11px;border:1px solid #19dbe8;border-radius:10px;background:#0a3650;cursor:pointer}
+#schedule-pane.hzv4 .hzv-retry-button:hover{background:#095073}

@@ -4,6 +4,7 @@
 const $=id=>document.getElementById(id);
 const esc=value=>String(value==null?"":value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 const WARSAW="Europe/Warsaw",FAV_KEY="hoopzaro.schedule.favoriteTeams.v1";
+const OPEN_GAME_KEY="hoopzaro.schedule.openGame.v1";
 const VALID=new Set("ATL BOS BKN CHA CHI CLE DAL DEN DET GSW HOU IND LAC LAL MEM MIA MIL MIN NOP NYK OKC ORL PHI PHX POR SAC SAS TOR UTA WAS".split(" "));
 const EAST=new Set("ATL BOS BKN CHA CHI CLE DET IND MIA MIL NYK ORL PHI TOR WAS".split(" "));
 const WEST=new Set([...VALID].filter(t=>!EAST.has(t)));
@@ -11,6 +12,7 @@ const MONTHS=["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","s
 const MONTH_CAP=["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
 let callback=null,selectedDay="",selectedGameId="",selectedFilter="all",requestedDay="";
 let requestedDetailsId="",lastData=null,lastDetails=null,monthView="",searchText="",historyTab="h2h";
+let renderedGameId="";
 const expandedTables=new Set();
 const readFavorites=()=>{try{const obj=JSON.parse(localStorage.getItem(FAV_KEY)||"[]");return Array.isArray(obj)?obj.filter(x=>VALID.has(x)):[];}catch(_){return [];}};
 const favorites=new Set(readFavorites());
@@ -23,6 +25,22 @@ function localDay(value){const d=new Date(value);if(!Number.isFinite(d.getTime()
 }
 function today(){return localDay(new Date().toISOString())}
 function withinRange(day){return safeDay(day)&&Math.abs((noon(day)-noon(today()))/86400000)<=366}
+/* Streamlit can remount a custom component after a server rerun (for example
+   while loading ESPN box scores). Preserve ONLY the public selected game ID,
+   never player data, and guard browsers that disallow iframe sessionStorage. */
+function readOpenGame(){
+ try{
+  const item=JSON.parse(sessionStorage.getItem(OPEN_GAME_KEY)||"null");
+  return item&&/^\d{6,15}$/.test(String(item.id||""))&&withinRange(item.day)?item:null;
+ }catch(_){return null;}
+}
+function saveOpenGame(game){
+ try{if(game)sessionStorage.setItem(OPEN_GAME_KEY,JSON.stringify(game));
+     else sessionStorage.removeItem(OPEN_GAME_KEY);}catch(_){}
+}
+const previousGame=readOpenGame();
+if(previousGame){selectedGameId=String(previousGame.id);selectedDay=previousGame.day;}
+
 function shortDate(day){const d=noon(day);return d.getUTCDate()+" "+MONTHS[d.getUTCMonth()]}
 function localTime(value){const d=new Date(value);return Number.isFinite(d.getTime())?
  new Intl.DateTimeFormat("pl-PL",{timeZone:WARSAW,hour:"2-digit",minute:"2-digit",hour12:false}).format(d):"—"}
@@ -217,7 +235,8 @@ function selectDay(day){
  if(!withinRange(day))return;
  toggleCalendar(false);
  if(day===selectedDay)return;
- selectedDay=day;selectedFilter="all";selectedGameId="";requestedDetailsId="";requestedDay="";searchText="";
+ selectedDay=day;selectedFilter="all";selectedGameId="";renderedGameId="";requestedDetailsId="";requestedDay="";searchText="";
+ saveOpenGame(null);
  if($("hzv-search"))$("hzv-search").value="";
  $("hzv-game-page").hidden=true;$("schedule-pane").classList.remove("hzv-show-game");
  render(lastData,lastDetails);
@@ -260,8 +279,9 @@ function historyMarkup(data,game){
 function detailsMarkup(data,game,packet){
  const away=String(game.away||""),home=String(game.home||"");
  const statsAway=verified(data,away),statsHome=verified(data,home);
- const details=packet?.id===String(game.id)&&packet?.day===selectedDay&&packet.data?.away===away&&packet.data?.home===home?packet.data:null;
- const loading=game.state!=="scheduled"&&!details&&!packet?.error;
+ const packetForGame=packet?.id===String(game.id)&&packet?.day===selectedDay?packet:null;
+ const details=packetForGame?.data?.away===away&&packetForGame?.data?.home===home?packetForGame.data:null;
+ const loading=game.state!=="scheduled"&&!details&&!packetForGame?.error;
  const quarters=Array.isArray(details?.quarters)?details.quarters.filter(q=>Number.isInteger(q.away)&&Number.isInteger(q.home)):[];
  const metrics=Array.isArray(details?.team_stats)?details.team_stats:[];
  const leaderRows=[...(details?.leaders?.away||[]).map(p=>({...p,team:away})),...(details?.leaders?.home||[]).map(p=>({...p,team:home}))];
@@ -290,7 +310,8 @@ function detailsMarkup(data,game,packet){
  '<h3 class="hzv-gc-subheading">▥ Statystyki drużyn</h3>'+
  (metrics.length?'<div class="hzv-gc-stats">'+metrics.map(q=>
  '<div class="hzv-gc-stat-row"><strong>'+esc(q.away)+'</strong><span>'+esc(q.label)+'</span><strong>'+esc(q.home)+'</strong></div>').join("")+'</div>':
- '<p class="hzv-history-empty">'+(game.state==="scheduled"?"Spotkanie jeszcze się nie rozpoczęło — statystyki będą dostępne po ich publikacji przez ESPN.":packet?.error?esc(packet.error):loading?"Pobieranie zweryfikowanego box score ESPN…":"Brak potwierdzonych statystyk drużyn.")+'</p>')+
+ '<div class="hzv-history-empty">'+(game.state==="scheduled"?"Spotkanie jeszcze się nie rozpoczęło — statystyki będą dostępne po ich publikacji przez ESPN.":packetForGame?.error?esc(packetForGame.error):loading?"Pobieranie zweryfikowanego box score ESPN…":"Brak potwierdzonych statystyk drużyn.")+
+ (packetForGame?.error?'<div><button type="button" class="hzv-retry-button" data-hzv-retry-game="'+esc(game.id)+'">Ponów pobieranie statystyk</button></div>':"")+'</div>')+
  '<p class="hzv-game-source">Źródło: ESPN · statystyki historyczne, bez symulacji i prognoz'+(details?.stale?' · dane opóźnione':'')+'</p>'+
  '</section>';
  const right='<div class="hzv-gc-right"><section class="hzv-game-card hzv-gc-xfactor">'+
@@ -318,9 +339,18 @@ function renderGamePage(){
  const active=Boolean(game);
  pane.classList.toggle("hzv-show-game",active);page.hidden=!active;
  if(active){
-  content.innerHTML=detailsMarkup(lastData,game,lastDetails);
-  const container=$("hzv-game-page");if(container&&container.scrollTop>0)container.scrollTop=0;
- }
+  try{
+   content.innerHTML=detailsMarkup(lastData,game,lastDetails);
+  }catch(_){
+   // Never leave a blank screen without a working Back button.
+   content.innerHTML='<section class="hzv-game-card"><h2 class="hzv-gc-subheading">Szczegóły meczu</h2>'+
+    '<p class="hzv-history-empty">Nie udało się wyświetlić wszystkich szczegółów. Wróć do Terminarza i spróbuj ponownie.</p></section>';
+  }
+  if(renderedGameId!==selectedGameId){
+   renderedGameId=selectedGameId;
+   const container=$("hzv-game-page");if(container)container.scrollTop=0;
+  }
+ }else{renderedGameId="";}
 }
 function render(data,packet){
  lastData=data;lastDetails=packet||null;
@@ -335,12 +365,13 @@ function render(data,packet){
 function openGame(id){
  if(!lastData)return;const game=selectedGames(lastData).games.find(g=>String(g.id||"")===id);if(!game)return;
  selectedGameId=id;historyTab="h2h";toggleCalendar(false);
+ saveOpenGame({id,day:selectedDay});
  if(game.state!=="scheduled"&&(!lastDetails||lastDetails.id!==id||lastDetails.day!==selectedDay)){
   if(requestedDetailsId!==id){requestedDetailsId=id;callback?.gameDetails?.({game_id:id,date:selectedDay});}
  }
  renderGamePage();const page=$("hzv-game-page");if(page)page.scrollTop=0;
 }
-function closeGame(){selectedGameId="";requestedDetailsId="";$("schedule-pane")?.classList.remove("hzv-show-game");
+function closeGame(){selectedGameId="";requestedDetailsId="";renderedGameId="";saveOpenGame(null);$("schedule-pane")?.classList.remove("hzv-show-game");
  $("hzv-game-page").hidden=true;renderBoard(lastData);$("hzv-featured-button")?.focus({preventScroll:true});}
 function init(api){
  callback=api;
@@ -358,6 +389,14 @@ function init(api){
  $("hzv-hero")?.addEventListener("click",event=>{const btn=event.target.closest("[data-hzs-game]");if(btn)openGame(btn.dataset.hzsGame)});
  $("hzv-game-back")?.addEventListener("click",closeGame);
  $("hzv-game-content")?.addEventListener("click",event=>{
+  const retry=event.target.closest("[data-hzv-retry-game]");
+  if(retry&&retry.dataset.hzvRetryGame===selectedGameId&&withinRange(selectedDay)){
+   requestedDetailsId=selectedGameId;
+   lastDetails=null;
+   renderGamePage();
+   callback?.gameDetails?.({game_id:selectedGameId,date:selectedDay});
+   return;
+  }
   const button=event.target.closest("[data-hzv-history]");if(!button)return;
   if(!["h2h","recent"].includes(button.dataset.hzvHistory))return;
   historyTab=button.dataset.hzvHistory;
@@ -397,5 +436,9 @@ function init(api){
   else if(event.key==="Escape"&&selectedGameId&&$("schedule-pane")&&!$("schedule-pane").hidden)closeGame();
  });
 }
-window.HoopzaroSchedule={init,render};
+window.HoopzaroSchedule={
+ init,render,
+ hasRestorableGame:()=>Boolean(readOpenGame()),
+ dismissOnNavigation:()=>{selectedGameId="";requestedDetailsId="";renderedGameId="";saveOpenGame(null);}
+};
 })();
