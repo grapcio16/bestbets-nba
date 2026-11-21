@@ -268,3 +268,11 @@
  #hzv3 .hzv3-grid{grid-template-columns:205px 287px minmax(0,1fr)}
  #hzv3 .hzv3-analytics{grid-template-rows:151px 143px}
 }
+
+#stage.bb-home-active #hzv3 aside.hzv3-inspector,
+#app-shell.hz-independent-scroll #stage.bb-home-active #hzv3 aside.hzv3-inspector{
+  display:flex!important;position:relative!important;left:auto!important;top:auto!important;
+  width:auto!important;height:auto!important;min-height:0!important;
+  max-height:none!important;z-index:auto!important;overflow:hidden!important;
+  transform:none!important
+}
