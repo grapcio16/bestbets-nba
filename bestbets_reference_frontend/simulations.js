@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",chartLine:{match:null,away:null,home:null},intervalWidth:20,view:"results",resultTeam:"all",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",scenarioOuLine:null,scenarioOuContext:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null,lastAuth:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",chartLine:{match:null,away:null,home:null},intervalWidth:20,view:"results",resultTeam:"all",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",scenarioOuLine:null,scenarioOuContext:"",minuteIndex:-1,minuteDelta:0,minutePending:"",minuteMenuOpen:false,minuteQuery:"",minuteTeam:"all",minuteUnavailable:null,requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null,lastAuth:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -1639,6 +1639,104 @@ function showScenario(game,sim,premium){
    ?"Trwa przeliczanie scenariusza…":"Zmień założenie i kliknij Przelicz 5 000 symulacji.";
 }
 
+
+/* The selected fixture roster is informational. Never turn a roster
+   membership or an unverified OUT/DTD status into projected production. */
+function minuteCanProject(p,game){
+ return !!p&&p.availability!=="Out"&&[game?.away,game?.home].includes(p.team)&&
+  Number.isInteger(Number(p.minutes_sample))&&Number(p.minutes_sample)>=3&&
+  safeProjection(p.minutes)!==null&&Number(p.minutes)>=5&&Number(p.minutes)<=44&&
+  ["pts","reb","ast"].every(k=>safeProjection(p[k])!==null);
+}
+function minuteRosterRows(game,players){
+ const projections=Array.isArray(players?.players)?players.players:[];
+ const catalog=Array.isArray(players?.minute_roster)&&players.minute_roster.length
+  ?players.minute_roster
+  :projections.map((p,i)=>({name:p.name,team:p.team,position:p.position||"",
+     availability:p.availability,projection_index:i}));
+ const seen=new Set();
+ return catalog.filter(p=>p&&typeof p.name==="string"&&p.name.trim()&&
+   [game?.away,game?.home].includes(p.team)).filter(p=>{
+     const key=p.team+"|"+p.name.toLocaleLowerCase("pl-PL").trim();
+     if(seen.has(key))return false;seen.add(key);return true;
+   }).map(p=>{
+     const i=Number.isInteger(p.projection_index)&&p.projection_index>=0&&
+       projections[p.projection_index]?.team===p.team &&
+       projections[p.projection_index]?.name===p.name
+       ?p.projection_index:-1;
+     const model=i>=0?projections[i]:null;
+     const possible=minuteCanProject(model,game);
+     const isOut=p.availability==="Out"||model?.availability==="Out";
+     const label=isOut?"OUT":possible?"Analiza ✓":
+       model&&Number(model.minutes_sample)<3?"Za mało gier":"Brak danych";
+     return {name:p.name,team:p.team,position:p.position||model?.position||"",
+       i,possible,label,historicalOnly:p.historical_only===true};
+   });
+}
+function renderMinutePicker(game,players,allowed){
+ const menu=$("hzm-minute-picker-menu"),trigger=$("hzm-minute-picker-trigger");
+ if(!menu||!trigger)return;
+ const rows=allowed?minuteRosterRows(game,players):[];
+ const selected=players?.players?.[state.minuteIndex];
+ const caption=$("hzm-minute-picker-value");
+ if(caption)caption.textContent=state.minuteUnavailable
+  ?state.minuteUnavailable.name+" · "+state.minuteUnavailable.team
+  :selected?.name?selected.name+" · "+selected.team:
+   !allowed?"Wybierz przyszły mecz":"Brak dostępnych zawodników";
+ trigger.disabled=!allowed||!rows.length;
+ menu.hidden=trigger.disabled||!state.minuteMenuOpen;
+ trigger.setAttribute("aria-expanded",String(!menu.hidden));
+ const input=$("hzm-minute-search");if(input&&input.value!==state.minuteQuery)input.value=state.minuteQuery;
+ (menu.querySelectorAll?.("[data-hzm-minute-team]")||[]).forEach(b=>{
+   const mode=b.dataset.hzmMinuteTeam,active=mode===state.minuteTeam;
+   b.classList.toggle("selected",active);b.setAttribute("aria-pressed",String(active));
+   if(mode==="away")b.textContent=game?.away||"Goście";
+   if(mode==="home")b.textContent=game?.home||"Gospodarze";
+ });
+ const q=state.minuteQuery.toLocaleLowerCase("pl-PL").trim();
+ const filtered=rows.filter(r=>(state.minuteTeam==="all"||
+      r.team===game?.[state.minuteTeam])&&
+      (!q||(r.name+" "+r.team).toLocaleLowerCase("pl-PL").includes(q)));
+ const counter=$("hzm-minute-menu-count");
+ if(counter)counter.textContent=filtered.length+" / "+rows.length+" zawodników";
+ const warning=$("hzm-minute-menu-footnote");
+ if(warning)warning.textContent=String(players?.minute_roster_warning||
+   "ESPN — składy informacyjne. Analiza przy ≥3 występach z minutami; status OUT bez projekcji.").slice(0,250);
+ const list=$("hzm-minute-menu-list");if(!list)return;
+ if(!filtered.length){list.innerHTML='<p class="hzm-minute-menu-empty">Brak zawodników dla wybranego filtra.</p>';return}
+ list.innerHTML=[game?.away,game?.home].map(team=>{
+   const group=filtered.filter(r=>r.team===team);
+   if(!group.length)return "";
+   const count=group.filter(r=>r.possible).length;
+   const markup=group.map(r=>{
+     const initials=r.name.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase().slice(0,3);
+     const active=state.minuteUnavailable
+       ?r.name===state.minuteUnavailable.name&&r.team===state.minuteUnavailable.team
+       :r.i>=0&&r.i===state.minuteIndex;
+     return '<button type="button" role="option" aria-selected="'+active+
+       '" class="hzm-minute-option '+(team===game.home?"home ":"")+
+       (!r.possible?"no-model":"")+'" data-hzm-minute-index="'+r.i+
+       '" data-hzm-minute-name="'+esc(r.name)+'" data-hzm-minute-team-code="'+esc(team)+'">'+
+       '<span class="hzm-minute-initials" aria-hidden="true">'+esc(initials)+'</span>'+
+       '<span class="hzm-minute-option-identity"><strong>'+esc(r.name)+'</strong>'+
+       '<small>'+esc(team)+(r.position?' · '+esc(r.position):'')+
+       (r.historicalOnly?' · historia ESPN':'')+'</small></span>'+
+       '<span class="hzm-minute-option-flag '+(r.label==="OUT"?"out":!r.possible?"unavailable":"")+'">'+
+       esc(r.label)+'</span></button>';
+   }).join("");
+   return '<div class="hzm-minute-team-title '+(team===game.home?"home":"")+'"><span>'+
+      esc(team)+' · '+group.length+' zawodników</span><small>'+count+
+      ' z projekcją</small></div>'+markup;
+ }).join("");
+}
+function closeMinutePicker(focus=false){
+ state.minuteMenuOpen=false;
+ const menu=$("hzm-minute-picker-menu"),trigger=$("hzm-minute-picker-trigger");
+ if(menu)menu.hidden=true;
+ if(trigger)trigger.setAttribute("aria-expanded","false");
+ if(focus)trigger?.focus();
+}
+
 function showPlayerMinutes(game,players,premium){
  const select=$("hzm-minute-player"),slider=$("hzm-minute-delta"),run=$("hzm-minute-run");
  const status=$("hzm-minute-status"),display=$("hzm-minute-delta-output");
@@ -1656,22 +1754,18 @@ function showPlayerMinutes(game,players,premium){
  const allowed=entitled&&validGame;
  const list=allowed&&Array.isArray(players?.players)?players.players:[];
  const validMetric=p=>safeProjection(p?.pts)!==null&&safeProjection(p?.reb)!==null&&safeProjection(p?.ast)!==null;
- const good=(p)=>p&&p.availability!=="Out"&&
-   [game?.away,game?.home].includes(p.team)&&Number.isInteger(Number(p.minutes_sample))&&
-   Number(p.minutes_sample)>=3&&safeProjection(p.minutes)!==null&&
-   Number(p.minutes)>=5&&Number(p.minutes)<=44&&validMetric(p);
- const eligible=list.map((p,i)=>({p,i})).filter(x=>good(x.p));
- if(!eligible.some(x=>x.i===state.minuteIndex)){
+ const eligible=list.map((p,i)=>({p,i})).filter(x=>minuteCanProject(x.p,game));
+ if(!eligible.some(x=>x.i===state.minuteIndex)&&!state.minuteUnavailable){
    state.minuteIndex=eligible.length?eligible[0].i:-1;
-   state.minuteDelta=0;
-   state.minutePending="";
+   state.minuteDelta=0;state.minutePending="";
  }
+ renderMinutePicker(game,players,allowed);
  select.innerHTML=eligible.length
   ?eligible.map(({p,i})=>'<option value="'+i+'">'+esc(p.name)+' · '+esc(p.team)+'</option>').join("")
   :'<option value="">Brak dostępnych minut</option>';
  select.disabled=!eligible.length;
  select.value=state.minuteIndex<0?"":String(state.minuteIndex);
- slider.disabled=!eligible.length;
+ slider.disabled=!eligible.length||!!state.minuteUnavailable;
  slider.value=String(state.minuteDelta);
  display.textContent=(state.minuteDelta>0?"+":"")+state.minuteDelta+" min";
  const item=list[state.minuteIndex];
@@ -1682,11 +1776,16 @@ function showPlayerMinutes(game,players,premium){
      if(values[metric]!==null)$("hzm-minute-base-"+metric).textContent=fmt(values[metric]);
  }
  const newMinutes=item?Number(item.minutes)+state.minuteDelta:null;
- run.disabled=!item||newMinutes<5||newMinutes>44;
+ run.disabled=!minuteCanProject(item,game)||!!state.minuteUnavailable||newMinutes<5||newMinutes>44;
  if(!entitled){status.textContent="Dostępne tylko w Premium.";return}
  if(!validGame){status.textContent="Analiza minut dostępna wyłącznie przed potwierdzonym meczem.";return}
- if(!players){status.textContent="Pobieranie historii minut i projekcji z ESPN…";return}
- if(!eligible.length){status.textContent="Brak zawodnika z ≥3 zweryfikowanymi minutami ESPN oraz kompletem PTS/REB/AST. Status OUT wyklucza analizę.";return}
+ if(!players){status.textContent="Pobieranie historii minut i składów ESPN…";return}
+ if(state.minuteUnavailable){
+   status.textContent=state.minuteUnavailable.name+" · "+state.minuteUnavailable.team+
+     ": "+state.minuteUnavailable.reason+". Bez wystarczających danych nie wykonujemy projekcji.";
+   return;
+ }
+ if(!eligible.length){status.textContent="Brak zawodnika z ≥3 zweryfikowanymi występami i kompletem PTS/REB/AST. Składy można przejrzeć bez wymyślania minut.";return}
  if(run.disabled){status.textContent="Zakładany czas gry musi mieścić się w zakresie 5–44 minut.";return}
  const record=premium?.minute_scenario;
  const matched=record&&record.date===state.day&&record.game_id===String(game.id)&&
