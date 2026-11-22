@@ -30,6 +30,13 @@ def flow():
                        "final_spread_p90": 25.0,
                        "final_spread_sd": 17.5},
         "rotation_available": False, "scoring_runs_available": False,
+        "sample_path": [
+            {"minute": i*3, "away_minus_home": round(i*.3+(-1)**i*2, 2) if i else 0}
+            for i in range(17)],
+        "run_proxy": {"method": "neutral_order_two_point_events_v1", "n_sims": 5000,
+                      "at_least_6_pct": 81.1, "at_least_8_pct": 52.3,
+                      "at_least_10_pct": 29.4},
+        "neutral_scoring_window_sd": 6.4,
     }
 
 
@@ -47,10 +54,14 @@ def fixture(entitled=True):
               "players": [
                   {"name": "Synthetic Away", "team": "NYK", "minutes": 32.0,
                    "minutes_sample": 5, "availability": "Unknown",
-                   "pts": 20.0, "reb": 3.0, "ast": 6.0},
+                   "pts": 20.0, "reb": 3.0, "ast": 6.0,
+                   "position": "PG",
+                   "history": [{"min": 30.0}, {"min": 35.0}, {"min": 32.0}]},
                   {"name": "Synthetic Home", "team": "BOS", "minutes": 31.0,
                    "minutes_sample": 6, "availability": "Unknown",
-                   "pts": 23.0, "reb": 4.0, "ast": 5.0},
+                   "pts": 23.0, "reb": 4.0, "ast": 5.0,
+                   "position": "SG",
+                   "history": [{"min": 31.0}, {"min": 28.0}, {"min": 34.0}]},
               ]}
     return {
         "brand": "", "auth": {"role": "premium" if entitled else "free"},
@@ -90,7 +101,13 @@ def check(page):
     assert page.locator(".hzm-flow-quarter-row").count() == 4
     assert "32,0" in page.locator("#hzm-flow-roster").inner_text()
     assert "Synthetic Away" in page.locator("#hzm-flow-roster").inner_text()
-    assert page.locator("#hzm-flow-runrisk").inner_text() == "Brak play-by-play"
+    assert "52,3%" in page.locator("#hzm-flow-runrisk").inner_text()
+    assert page.locator("#hzm-flow-run-data .hzm-flow-run-row").count() == 3
+    assert page.locator("#hzm-flow-plot svg").get_attribute("aria-label").startswith(
+        "Przykładowy scenariusz")
+    assert page.locator(".hzm-flow-history-grid .hzm-flow-player-row").count() == 2
+    assert page.locator(".hzm-flow-heat-cell").count() == 32
+    assert page.locator(".hzm-flow-matchups .hzm-flow-duel").count() == 3
     assert page.locator("#hzm-flow-scenario").is_disabled()
 
     page.locator('[data-flow-quarter="3"]').click()
