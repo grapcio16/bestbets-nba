@@ -139,12 +139,18 @@
 }
 #simulations-pane #hzm-compare-panel .hzm-compare-row span small{font-size:9px}
 #simulations-pane .hzm-compare-v2-profile{
+  /* Reset the app's GLOBAL aside positioning: this is a nested data card,
+     never the page navigation sidebar. */
+  position:relative!important;inset:auto!important;z-index:auto!important;
+  width:100%!important;height:auto!important;max-height:none!important;
   display:flex;flex-direction:column;gap:10px;min-width:0;padding:13px 11px 10px;
   border:1px solid rgba(177,87,241,.64);border-radius:11px;
   background:radial-gradient(ellipse at 80% 30%,rgba(111,43,206,.20),transparent 67%),
     linear-gradient(138deg,#0b2243 5%,#201741 75%,#161639);
   box-shadow:0 0 20px rgba(155,78,232,.1),inset 0 1px rgba(222,165,255,.14)
 }
+#simulations-pane .hzm-compare-v2-profile::before,
+#simulations-pane .hzm-compare-v2-profile::after{content:none!important;display:none!important}
 #simulations-pane .hzm-compare-v2-profile-title{
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding-bottom:9px;border-bottom:1px solid rgba(134,107,213,.32)
