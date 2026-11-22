@@ -126,5 +126,22 @@ class QuarterShadowTest(unittest.TestCase):
         self.assertTrue((metrics["brier_3way"] >= 0).all())
 
 
+    def test_admin_report_compares_identical_finished_games(self):
+        from admin_model_performance import build_quarter_report
+        records = []
+        for model in MODEL_IDS:
+            rows = forecast_game_quarters(
+                self.past, GAME, self.home, self.away, model)
+            records.extend({
+                **row, "forecast_time_utc": pd.Timestamp("2026-11-22T10:00:00Z"),
+                "home_actual": 30, "away_actual": 27,
+            } for row in rows)
+        report = build_quarter_report(pd.DataFrame(records))
+        self.assertEqual(report["paired_games"], 1)
+        self.assertEqual(len(report["models"]), 4)
+        self.assertEqual(len(report["paired"]), 4)
+        self.assertTrue(all(m["n_quarters"] == 4 for m in report["paired"]))
+
+
 if __name__ == "__main__":
     unittest.main()
