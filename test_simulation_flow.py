@@ -41,10 +41,16 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(flow["timeline"][0]["margin_mean"], 0.0)
         self.assertAlmostEqual(flow["timeline"][-1]["margin_mean"],
                                np.mean(home-away), delta=.011)
+        # Each quarter mean must be the mean of two adjacent six-minute
+        # windows, and four quarters must conserve the original final totals.
         self.assertAlmostEqual(sum(q["away_mean"] for q in flow["quarters"]),
-                               away.mean(), delta=.06)
+                               away.mean(), delta=.045)
         self.assertAlmostEqual(sum(q["home_mean"] for q in flow["quarters"]),
-                               home.mean(), delta=.06)
+                               home.mean(), delta=.045)
+        self.assertEqual([q["quarter"] for q in flow["quarters"]], [1,2,3,4])
+        for q in flow["quarters"]:
+            self.assertTrue(0 <= q["away_mean"] <= 100)
+            self.assertTrue(0 <= q["home_mean"] <= 100)
         for q in flow["quarters"]:
             self.assertAlmostEqual(q["away_outscores_pct"]+
                                    q["home_outscores_pct"]+
@@ -61,6 +67,22 @@ class FlowTests(unittest.TestCase):
         allocation = _allocate(points, weights, rng)
         np.testing.assert_array_equal(allocation.sum(axis=1), points)
         self.assertTrue((allocation >= 0).all())
+
+    def test_quarter_means_come_from_existing_five_thousand_end_results(self):
+        away = np.full(5000, 100)
+        home = np.full(5000, 120)
+        result = conditional_flow(away, home, game_id="401777001",
+                                  model_id="legacy_v72")
+        self.assertTrue(result["available"])
+        self.assertEqual(len(result["quarters"]), 4)
+        self.assertAlmostEqual(sum(q["away_mean"] for q in result["quarters"]),
+                               100, delta=.04)
+        self.assertAlmostEqual(sum(q["home_mean"] for q in result["quarters"]),
+                               120, delta=.04)
+        self.assertAlmostEqual(result["timeline"][-1]["margin_mean"],
+                               20, delta=.01)
+        self.assertEqual(result, conditional_flow(away, home,
+            game_id="401777001", model_id="legacy_v72"))
 
     def test_incomplete_or_invalid_draws_fail_closed(self):
         a, h = self.sample()
