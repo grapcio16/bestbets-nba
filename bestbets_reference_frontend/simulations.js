@@ -223,7 +223,22 @@ function chartProbabilityProfile(dist,bins,index){
  const first=over(start-.5),second=over(start+4.5);
  const probBin=hasExact?100*counts.reduce((n,item)=>
     n+(item[0]>=start&&item[0]<start+5?item[1]:0),0)/countTotal:row.p;
+ // Fixed-width (20 point) sliding interval, centred on the histogram
+ // selection. Inclusive endpoints: e.g. 217-237 covers 21 integer scores,
+ // whose maximum minus minimum is 20. The frequency comes from existing
+ // simulation scores, not the game's p10/p90 80% prediction interval.
+ const centre=start+2,windowFrom=centre-10,windowTo=centre+10;
+ const exactWindow=hasExact?100*counts.reduce((n,item)=>
+   n+(item[0]>=windowFrom&&item[0]<=windowTo?item[1]:0),0)/countTotal:null;
+ // Stale cached server payload: interpolate within five-point histogram
+ // buckets. Clearly mark approximate, never show as exact.
+ const approximateWindow=binsTotal>0?bins.reduce((n,bin)=>{
+   const low=Math.max(windowFrom,bin.x),high=Math.min(windowTo,bin.x+4);
+   return n+(high>=low?bin.p*(high-low+1)/5:0);
+ },0)/binsTotal*100:null;
+ const windowPct=hasExact?exactWindow:approximateWindow;
  return {start,end:start+4,binPct:probBin,exact:hasExact,
+   windowFrom,windowTo,windowPct,windowApprox:!hasExact,
    lines:[
      {line:start-.5,over:first,under:first===null?null:100-first,approx:!hasExact},
      {line:start+4.5,over:second,under:second===null?null:100-second,approx:!hasExact}
@@ -371,9 +386,12 @@ function showDistributionOverview(sim,game,premium){
  set("hzm-result-favorite",paid?(sim.home_win_pct>=sim.away_win_pct?
     String(game.home)+" "+percent(sim.home_win_pct):String(game.away)+" "+percent(sim.away_win_pct)):"—");
  set("hzm-result-total",paid?fmt(sim.total_points):"—");
- const range=dist&&Number.isFinite(Number(dist.p10))&&Number.isFinite(Number(dist.p90))&&dist.p10!==null&&dist.p90!==null
-  ?Math.round(Number(dist.p10))+"–"+Math.round(Number(dist.p90)):"—";
- set("hzm-result-range",paid?range:"—");
+ const sorted=paid?chartBins(dist):[];
+ const selection=sorted.length?chartProbabilityProfile(dist,sorted,chartBinIndex(sorted,dist)):null;
+ set("hzm-result-range",paid&&selection?
+   selection.windowFrom+"–"+selection.windowTo:"—");
+ set("hzm-result-range-pct",paid&&selection&&selection.windowPct!==null?
+   (selection.windowApprox?"≈":"")+percent(selection.windowPct)+" szans":"—");
  const variance=count>0&&Number.isFinite(average)?
    bins.reduce((sum,row)=>sum+Math.pow(Number(row.x)+2.5-average,2)*Number(row.p),0)/count:null;
  set("hzm-result-sd",paid&&variance!==null?"±"+fmt(Math.sqrt(variance)):"—");
