@@ -30,3 +30,11 @@ jobs:
         run: python -m unittest -v test_simulation_flow
       - name: Chromium Premium Flow smoke on desktop and mobile
         run: python test_flow_match_browser.py
+      - name: Responsive visual reachability for seven Premium modules
+        run: python test_simulation_lab_six_views_responsive.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hoopzaro-flow-visual-review
+          path: test-results/hoopzaro-responsive/simlab-flow-*.png
+          if-no-files-found: ignore
