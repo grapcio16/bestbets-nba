@@ -237,6 +237,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="players.css">
 <link rel="stylesheet" href="teams.css">
 <link rel="stylesheet" href="mobile.css">
+<link rel="stylesheet" href="match_intelligence_premium.css">
 </head>
 <body>
 <!-- Original, reusable HOOPZARO icons: one visual language on desktop and mobile. -->
@@ -969,42 +970,107 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
           <p id="hzm-flow-method" class="hzm-flow-method">Flow jest rekonstrukcją warunkową wyników końcowych, nie prognozą play-by-play, rotacji ani obietnicą wyniku.</p>
         </section>
 
-        <section id="hzm-intel-panel" class="hzm-intel-panel" aria-label="Match Intelligence — czynniki modelu" hidden>
+        <!-- Premium Match Intelligence V2. Fidelity: approved dark/navy neon
+             concept; every numerical field is fed by pre-tipoff model context.
+             V7.5 attribution has its own evidence gate, never fake values. -->
+        <section id="hzm-intel-panel" class="hzm-intel-panel hzm-intel-premium-v2" aria-label="Analiza meczu Premium — zweryfikowane czynniki modelu" hidden>
+          <div class="hzm-intel-ambient" aria-hidden="true"></div>
           <header class="hzm-intel-head">
-            <div><small>HOOPZARO · MODEL EXPLAINABILITY</small><h2>Match Intelligence</h2><p>Co naprawdę wpływa na prognozę meczu?</p></div>
-            <span id="hzm-intel-model" class="hzm-intel-model">WYBIERZ MODEL</span>
+            <div class="hzm-intel-head-copy">
+              <small><span class="hzm-intel-glint" aria-hidden="true">✦</span> HOOPZARO · MODEL EXPLAINABILITY</small>
+              <h2>Match <span>Intelligence</span></h2>
+              <p>Co naprawdę wpływa na prognozę meczu?</p>
+            </div>
+            <div class="hzm-intel-head-actions">
+              <span class="hzm-intel-research-tag">PREGAME DATA LAB</span>
+              <span id="hzm-intel-model" class="hzm-intel-model">WYBIERZ MODEL</span>
+            </div>
           </header>
-          <p id="hzm-intel-status" class="hzm-intel-status" role="status">Pobieranie danych modelu Premium…</p>
-          <div class="hzm-intel-evidence">
-            <div class="hzm-intel-kpi"><small>Zweryfikowane mecze przed tip-off</small><strong id="hzm-intel-completed">—</strong></div>
-            <div class="hzm-intel-kpi"><small>Źródło modelu</small><strong id="hzm-intel-source">—</strong></div>
-            <div class="hzm-intel-kpi"><small>NBA Advanced (obie drużyny)</small><strong id="hzm-intel-advanced">—</strong></div>
+          <p id="hzm-intel-status" class="hzm-intel-status" role="status">Pobieranie zweryfikowanych danych modelu Premium…</p>
+
+          <div class="hzm-intel-evidence" aria-label="Wiarygodność i źródła danych">
+            <article class="hzm-intel-kpi">
+              <span class="hzm-intel-kpi-icon" aria-hidden="true">▦</span>
+              <div class="hzm-intel-kpi-copy">
+                <small>Zweryfikowane mecze przed tip-off</small>
+                <strong id="hzm-intel-completed">—</strong>
+                <span>Historia dostępna w chwili prognozy</span>
+              </div>
+            </article>
+            <article class="hzm-intel-kpi">
+              <span class="hzm-intel-kpi-icon" aria-hidden="true">✧</span>
+              <div class="hzm-intel-kpi-copy">
+                <small>Źródło modelu</small>
+                <strong id="hzm-intel-source">—</strong>
+                <span>Źródła rzeczywiście użyte w analizie</span>
+              </div>
+            </article>
+            <article class="hzm-intel-kpi">
+              <span class="hzm-intel-kpi-icon" aria-hidden="true">▥</span>
+              <div class="hzm-intel-kpi-copy">
+                <small>NBA Advanced (obie drużyny)</small>
+                <strong id="hzm-intel-advanced">—</strong>
+                <span id="hzm-intel-advanced-note">Bez zastępowania braków danymi szacowanymi</span>
+              </div>
+            </article>
           </div>
-          <div class="hzm-intel-teams">
+
+          <div class="hzm-intel-teams" aria-label="Rzeczywiste statystyki obu drużyn przed rozpoczęciem meczu">
             <article class="hzm-intel-team away">
-              <header><strong id="hzm-intel-away-name">GOŚCIE</strong><small>AWAY</small></header>
-              <div><span>Próba drużyny</span><strong id="hzm-intel-away-sample">—</strong></div>
-              <div><span>Mecze na wyjeździe</span><strong id="hzm-intel-away-venue-sample">—</strong></div>
-              <div><span>Odpoczynek</span><strong id="hzm-intel-away-rest">—</strong></div>
-              <div><span>Próba zmienności punktów</span><strong id="hzm-intel-away-sd-sample">—</strong></div>
+              <header>
+                <div class="hzm-intel-team-identity"><small>GOŚCIE · HISTORIA ESPN</small><strong id="hzm-intel-away-name">GOŚCIE</strong></div>
+                <span class="hzm-intel-side-badge">AWAY</span>
+              </header>
+              <div class="hzm-intel-team-sample"><span>Próba drużyny przed meczem</span><strong id="hzm-intel-away-sample">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Forma ostatnich 10 meczów</span><strong id="hzm-intel-away-form">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Śr. zdobyte punkty · L10</span><strong id="hzm-intel-away-scored">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Śr. stracone punkty · L10</span><strong id="hzm-intel-away-allowed">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Mecze na wyjeździe</span><strong id="hzm-intel-away-venue-sample">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Odpoczynek przed meczem</span><strong id="hzm-intel-away-rest">—</strong></div>
+              <details class="hzm-intel-evidence-details">
+                <summary>Metodologia próby <span aria-hidden="true">⌄</span></summary>
+                <div class="hzm-intel-method-detail"><span>Próba zmienności punktów</span><strong id="hzm-intel-away-sd-sample">—</strong></div>
+              </details>
             </article>
             <article class="hzm-intel-team home">
-              <header><strong id="hzm-intel-home-name">GOSPODARZE</strong><small>HOME</small></header>
-              <div><span>Próba drużyny</span><strong id="hzm-intel-home-sample">—</strong></div>
-              <div><span>Mecze u siebie</span><strong id="hzm-intel-home-venue-sample">—</strong></div>
-              <div><span>Odpoczynek</span><strong id="hzm-intel-home-rest">—</strong></div>
-              <div><span>Próba zmienności punktów</span><strong id="hzm-intel-home-sd-sample">—</strong></div>
+              <header>
+                <div class="hzm-intel-team-identity"><small>GOSPODARZE · HISTORIA ESPN</small><strong id="hzm-intel-home-name">GOSPODARZE</strong></div>
+                <span class="hzm-intel-side-badge">HOME</span>
+              </header>
+              <div class="hzm-intel-team-sample"><span>Próba drużyny przed meczem</span><strong id="hzm-intel-home-sample">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Forma ostatnich 10 meczów</span><strong id="hzm-intel-home-form">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Śr. zdobyte punkty · L10</span><strong id="hzm-intel-home-scored">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Śr. stracone punkty · L10</span><strong id="hzm-intel-home-allowed">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Mecze u siebie</span><strong id="hzm-intel-home-venue-sample">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Odpoczynek przed meczem</span><strong id="hzm-intel-home-rest">—</strong></div>
+              <details class="hzm-intel-evidence-details">
+                <summary>Metodologia próby <span aria-hidden="true">⌄</span></summary>
+                <div class="hzm-intel-method-detail"><span>Próba zmienności punktów</span><strong id="hzm-intel-home-sd-sample">—</strong></div>
+              </details>
             </article>
           </div>
-          <section class="hzm-intel-factors" aria-label="Składniki korekty modelu V7.5">
-            <header><strong>Rozbicie korekty średniej liczby punktów</strong><small>V7.5 · eksperymentalne, nieskalibrowane</small></header>
-            <div class="hzm-intel-factor-head"><span>Czynnik</span><span id="hzm-intel-factor-away">GOŚCIE</span><span id="hzm-intel-factor-home">GOSPODARZE</span></div>
-            <div class="hzm-intel-factor-row"><span>Dom / wyjazd</span><strong id="hzm-intel-venue-away">—</strong><strong id="hzm-intel-venue-home">—</strong></div>
-            <div class="hzm-intel-factor-row"><span>Odpoczynek / B2B</span><strong id="hzm-intel-rest-away">—</strong><strong id="hzm-intel-rest-home">—</strong></div>
-            <div class="hzm-intel-factor-row"><span>ESPN OUT (modelowa korekta)</span><strong id="hzm-intel-injury-away">—</strong><strong id="hzm-intel-injury-home">—</strong></div>
-            <div class="hzm-intel-factor-row total"><span>Łącznie względem bazowej średniej V7.4</span><strong id="hzm-intel-total-away">—</strong><strong id="hzm-intel-total-home">—</strong></div>
+
+          <section class="hzm-intel-factors" aria-label="Modelowe czynniki wpływające na średnią punktów">
+            <header>
+              <div class="hzm-intel-factors-title">
+                <span class="hzm-intel-factor-emblem" aria-hidden="true">◈</span>
+                <div><strong id="hzm-intel-factor-title">Składniki modelu</strong><p id="hzm-intel-factor-description">Pokazujemy tylko obliczenia dostępne w wybranym modelu.</p></div>
+              </div>
+              <small id="hzm-intel-factor-label">DANE PRZED MECZEM</small>
+            </header>
+            <div id="hzm-intel-factors-v75" class="hzm-intel-factors-body" hidden>
+              <div class="hzm-intel-factor-head"><span>Czynnik</span><span id="hzm-intel-factor-away">GOŚCIE</span><span id="hzm-intel-factor-home">GOSPODARZE</span></div>
+              <div class="hzm-intel-factor-row"><span><i aria-hidden="true">⌂</i> Dom / wyjazd</span><strong id="hzm-intel-venue-away">—</strong><strong id="hzm-intel-venue-home">—</strong></div>
+              <div class="hzm-intel-factor-row"><span><i aria-hidden="true">◷</i> Odpoczynek / B2B</span><strong id="hzm-intel-rest-away">—</strong><strong id="hzm-intel-rest-home">—</strong></div>
+              <div class="hzm-intel-factor-row"><span><i aria-hidden="true">✚</i> ESPN OUT (modelowa korekta)</span><strong id="hzm-intel-injury-away">—</strong><strong id="hzm-intel-injury-home">—</strong></div>
+              <div class="hzm-intel-factor-row total"><span><i aria-hidden="true">◇</i> Łącznie względem bazowej średniej V7.4</span><strong id="hzm-intel-total-away">—</strong><strong id="hzm-intel-total-home">—</strong></div>
+            </div>
+            <div id="hzm-intel-factors-info" class="hzm-intel-factors-info">
+              <span class="hzm-intel-info-symbol" aria-hidden="true">ⓘ</span>
+              <div><strong id="hzm-intel-factors-info-title">Uczciwa analiza modelu</strong><p id="hzm-intel-factors-info-copy">Ten model nie udostępnia rozliczenia korekt punktowych. Zamiast fikcyjnej tabeli pokazujemy zweryfikowaną formę drużyn powyżej.</p></div>
+            </div>
           </section>
-          <p id="hzm-intel-caveat" class="hzm-intel-caveat">Model nie jest skalibrowany. Historia i kontekst nie gwarantują zwycięstwa. Wartości nie są rekomendacją bukmacherską.</p>
+          <p id="hzm-intel-caveat" class="hzm-intel-caveat">Prognoza eksperymentalna, nieskalibrowana. Historia i kontekst nie gwarantują wyniku ani zysku z zakładów.</p>
         </section>
         <section id="hzm-compare-panel" class="hzm-compare-panel" aria-label="Team Comparison — porównanie zweryfikowanych statystyk NBA" hidden>
           <header class="hzm-compare-header">
