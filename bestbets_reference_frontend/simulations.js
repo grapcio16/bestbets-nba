@@ -181,7 +181,7 @@ function verifiedTeamRecord(ctx,side,code){
  if(!Number.isInteger(sample)||sample<1||sample>10||
    !Number.isInteger(wins)||!Number.isInteger(losses)||wins<0||losses<0||
    wins+losses>sample)return "";
- return "L10: "+wins+" W – "+losses+" L";
+ return "L"+sample+": "+wins+" W – "+losses+" L";
 }
 function matchupTeamHTML(code,url,side,ctx){
  const team=String(code||"NBA").toUpperCase();
