@@ -899,8 +899,8 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <p class="hzm-availability-warning">Wpisy ESPN są nieoficjalne i mogą się zmieniać. Brak wpisu nie potwierdza dostępności zawodnika. V7.2 i V7.4 nie zmieniają prognozy na podstawie tych statusów; ewentualna ograniczona korekta OUT dotyczy tylko V7.5 i wyłącznie świeżego raportu.</p>
           </section>
         </section>
-        <!-- Flow meczu: conditional snapshots from the SAME 5,000 final
-             Monte Carlo scores. No official play-by-play / quarter forecasts. -->
+        <!-- Flow: conditional quarter-score estimates from the SAME 5,000 final
+             game draws, not calibrated forecasts or official NBA PBP. -->
         <section id="hzm-flow-panel" class="hzm-flow-panel" aria-label="Flow meczu — warunkowa rekonstrukcja przebiegu meczu" hidden>
           <div class="hzm-flow-controls">
             <div class="hzm-flow-toggle" role="group" aria-label="Wariant wyniku">
@@ -923,8 +923,8 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
           <div id="hzm-flow-feedback" class="hzm-flow-feedback" role="status">Wybierz mecz, aby wyświetlić przebieg modelu.</div>
           <div class="hzm-flow-upper">
             <article class="hzm-flow-card hzm-flow-timeline">
-              <header><div><h2>Przebieg meczu · Timeline przewagi <span title="Warunkowa rekonstrukcja 5000 wyników końcowych, a nie rzeczywiste play-by-play">ⓘ</span></h2>
-              <p id="hzm-flow-timeline-desc">Przykładowy przebieg pojedynczego losowania; średnia z 5 000 zaznaczona linią przerywaną</p></div><strong id="hzm-flow-selected-period">ALL · 48 MIN</strong></header>
+              <header><div><h2>Przebieg meczu · Timeline przewagi <span title="Punkty Q1–Q4 są warunkową rekonstrukcją z 5 000 wyników końcowych, nie osobnym skalibrowanym modelem kwart ani prawdziwym play-by-play.">ⓘ</span></h2>
+              <p id="hzm-flow-timeline-desc">Przebieg 1 z 5 000; nad Q1–Q4 szacowane punkty obu drużyn</p></div><strong id="hzm-flow-selected-period">ALL · 48 MIN</strong></header>
               <div id="hzm-flow-plot" class="hzm-flow-plot" aria-live="polite"><p>Przebieg będzie dostępny po symulacji.</p></div>
               <div class="hzm-flow-legend"><span><i class="purple"></i> Fioletowy = gospodarze</span><span><i class="cyan"></i> Niebieski = goście</span><span>+ = przewaga gospodarzy</span><span>− = przewaga gości</span><strong id="hzm-flow-final-margin">—</strong></div>
             </article>
