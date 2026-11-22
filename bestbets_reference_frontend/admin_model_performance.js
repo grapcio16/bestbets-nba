@@ -153,6 +153,46 @@
    order.addEventListener("change",()=>{playerOrder=order.value;update()});
    update();
  }
+ function quarterAudit(report){
+   const models=Array.isArray(report?.models)?report.models:[];
+   const paired=Array.isArray(report?.paired)?report.paired:[];
+   const common=Number(report?.paired_games)||0;
+   const pct=v=>typeof v==="number"&&Number.isFinite(v)?v.toFixed(1).replace(".",",")+"%":"—";
+   const head='<section class="hz-admin-players-audit"><div class="hz-admin-players-head">'+
+     '<span>TRACKER BADAWCZY · KWARTY Q1–Q4</span><h2>Modele kwart · porównanie V7.2–V7.6</h2>'+
+     '<p>Każda prognoza kwart dzieli te same 5 000 losowań co prognoza całego meczu. '+ 
+     'Nie pokazujemy tego modułu klientom Premium przed niezależną walidacją.</p></div>';
+   const coverageRows=models.map(m=>'<tr><td>'+escapeHtml(m.label||m.id)+'</td>'+
+      '<td>'+number(m.games_saved)+'</td><td>'+number(m.games_settled)+'</td>'+
+      '<td>'+number(m.n_quarters)+'</td><td>'+signed(m.team_mae)+'</td>'+
+      '<td>'+pct(m.winner_accuracy)+'</td></tr>').join("");
+   const coverage='<div class="hz-admin-player-table"><table><thead><tr>'+
+     '<th>Model kwart</th><th>Zapisane mecze</th><th>Rozliczone</th><th>Q ocenione</th>'+
+     '<th>MAE drużyny</th><th>Zwycięzca Q</th></tr></thead><tbody>'+
+     coverageRows+'</tbody></table></div>';
+   const pairedRows=paired.map(m=>'<tr><td>'+escapeHtml(m.label||m.id)+'</td>'+
+       '<td>'+signed(m.team_mae)+'</td><td>'+pct(m.winner_accuracy)+'</td>'+
+       '<td>'+signed(m.brier_3way)+'</td><td>'+signedBias(m.team_bias)+'</td></tr>').join("");
+   const compare='<h3>Uczciwe porównanie · wspólne mecze: '+number(common)+'</h3>'+
+      (common?'<div class="hz-admin-player-table"><table><thead><tr>'+
+        '<th>Model</th><th>MAE drużyny/Q</th><th>Zwycięzca Q</th><th>Brier (3 wyniki)</th><th>Bias</th>'+
+        '</tr></thead><tbody>'+pairedRows+'</tbody></table></div>':
+       '<p class="hz-admin-players-note">Czekamy na mecze z kompletnym rozliczeniem wszystkich czterech modeli.</p>');
+   const detail=paired.flatMap(m=>(m.quarters||[]).map(q=>'<tr><td>'+
+      escapeHtml(m.label||m.id)+'</td><td>Q'+number(q.quarter)+'</td>'+
+      '<td>'+number(q.n)+'</td><td>'+signed(q.team_mae)+'</td>'+
+      '<td>'+pct(q.winner_accuracy)+'</td></tr>')).join("");
+   const quarters=common?'<details><summary>Szczegóły porównania Q1–Q4</summary>'+
+      '<div class="hz-admin-player-table"><table><thead><tr><th>Model</th><th>Kwarta</th>'+
+      '<th>Próba</th><th>MAE</th><th>Zwycięzca</th></tr></thead>'+
+      '<tbody>'+detail+'</tbody></table></div></details>':"";
+   return head+(report?.error?'<p class="hz-admin-players-note">'+escapeHtml(report.error)+'</p>':"")+
+     (models.length?coverage:'<p class="hz-admin-players-note">Czekamy na pierwsze prognozy kwart z Trackera.</p>')+
+     compare+quarters+'<p class="hz-admin-players-note">'+
+     'Niska liczba meczów nie dowodzi przewagi modelu. MAE i Brier: mniej znaczy lepiej; '+
+     'w zestawieniu nie uwzględniamy dogrywek ani prognoz po tip-off. '+ 
+     'Model jest warunkowym rozkładem punktów, nie play-by-play i nie jest skalibrowany.</p></section>';
+ }
  function pairedAudit(comparison){
    const models=Array.isArray(comparison?.models)?comparison.models:[];
    const n=Number(comparison?.games)||0;
@@ -207,6 +247,7 @@
      trackerMonitor(report.tracker_monitor)+
      '<div class="hz-admin-models">'+models.map(modelCard).join("")+'</div>'+
      pairedAudit(report.paired_comparison)+
+     quarterAudit(report.quarter_tracking)+
      playerAudit(report.player_tracking)+
      playerHistory()+
      '<section class="hz-admin-history"><header><h2>Historia prognoz</h2><label>Model <select id="hz-admin-history-model">'+options+'</select></label></header>'+
