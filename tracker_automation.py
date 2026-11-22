@@ -62,7 +62,7 @@ def upcoming_events(schedule, now, horizon_hours=36, min_lead_minutes=15):
 
 
 def build_automatic_forecasts(upcoming, completed, now, *, availability_provider=None,
-                              include_shadow_v76=False):
+                              include_shadow_v76=False, quarter_sink=None):
     """Forecast only on verified pregame evidence, one V7.5 per match.
 
     V7.2 and V7.4 retain their independent snapshots. V7.5 is frozen near
@@ -89,12 +89,15 @@ def build_automatic_forecasts(upcoming, completed, now, *, availability_provider
                 if mean is None:
                     skipped += 1
                     continue
-                outcome, _, _, _ = simulate_game(g, mean)
+                outcome, _, home_draws, away_draws = simulate_game(g, mean)
             except (KeyError, TypeError, ValueError):
                 skipped += 1
                 continue
             outcome["model_id"] = model_id
             stored.append(outcome)
+            if quarter_sink is not None:
+                quarter_sink.append({"game": g.copy(), "base_model_id": model_id,
+                                     "home_draws": home_draws, "away_draws": away_draws})
         # The new combined V7.5 is saved only once, inside the same pregame
         # window used to fetch fresh injuries. Otherwise the first (up to 36h
         # early) venue-only snapshot would permanently block an injury-aware
@@ -119,7 +122,7 @@ def build_automatic_forecasts(upcoming, completed, now, *, availability_provider
             if enriched["means"] is None:
                 skipped += 1
                 continue
-            outcome, _, _, _ = simulate_game(
+            outcome, _, home_draws, away_draws = simulate_game(
                 g, enriched["means"], score_noise=enriched["score_noise"])
             impact = enriched["context"]["v75_factors"]
             provenance = ("V7.5 pełny kontekst: dom/wyjazd + odpoczynek; "
@@ -134,11 +137,14 @@ def build_automatic_forecasts(upcoming, completed, now, *, availability_provider
             outcome["model_id"] = UNIFIED_V75_MODEL_ID
             outcome["warning"] = provenance
             stored.append(outcome)
+            if quarter_sink is not None:
+                quarter_sink.append({"game": g.copy(), "base_model_id": UNIFIED_V75_MODEL_ID,
+                                     "home_draws": home_draws, "away_draws": away_draws})
             if include_shadow_v76:
                 # Independent model ID and identical pregame evidence. Never
                 # overwrite the V7.5 snapshot or show shadow results publicly.
                 try:
-                    alternative, _, _, _ = simulate_game(
+                    alternative, _, shadow_home, shadow_away = simulate_game(
                         g, shadow_home_means(enriched["means"]),
                         score_noise=enriched["score_noise"])
                     alternative["model_id"] = SHADOW_TEAM_MODEL_ID
@@ -146,6 +152,9 @@ def build_automatic_forecasts(upcoming, completed, now, *, availability_provider
                         "V7.6 shadow: zmniejszona stała korekta parkietu; "
                         "pozostałe dane identyczne jak w V7.5; niekalibrowane")
                     stored.append(alternative)
+                    if quarter_sink is not None:
+                        quarter_sink.append({"game": g.copy(), "base_model_id": SHADOW_TEAM_MODEL_ID,
+                                             "home_draws": shadow_home, "away_draws": shadow_away})
                 except (KeyError, TypeError, ValueError, RuntimeError, OSError):
                     skipped += 1
         except (KeyError, TypeError, ValueError, RuntimeError, OSError):
@@ -155,7 +164,7 @@ def build_automatic_forecasts(upcoming, completed, now, *, availability_provider
 
 def run_cycle(schedule, history, now, save_forecasts, settle_results,
               season=None, horizon_hours=36, availability_provider=None,
-              include_shadow_v76=False):
+              include_shadow_v76=False, quarter_sink=None):
     """One idempotent worker cycle; persistence is dependency-injected."""
     stamp = pd.to_datetime(now, utc=True, errors="coerce")
     if pd.isna(stamp):
@@ -168,7 +177,8 @@ def run_cycle(schedule, history, now, save_forecasts, settle_results,
     candidates, skipped = build_automatic_forecasts(
         upcoming, completed, stamp,
         availability_provider=availability_provider,
-        include_shadow_v76=include_shadow_v76)
+        include_shadow_v76=include_shadow_v76,
+        quarter_sink=quarter_sink)
     saved_result = (save_forecasts(candidates, season)
                     if candidates else {"saved": 0, "duplicates_or_rejected": 0})
     return {
@@ -187,9 +197,9 @@ def run_cycle(schedule, history, now, save_forecasts, settle_results,
 
 
 def run_quarter_cycle(schedule, history, now, save_quarter_forecasts,
-                      settle_quarter_results, season=None):
-    """Independent, research-only Q1-Q4 archival; cannot change game models."""
-    from simulation_quarter_shadow import build_quarter_forecasts, MODEL_ID
+                      settle_quarter_results, season=None, parent_scenarios=None):
+    """Archive conditional Q1-Q4 only from the same actual parent 5k draws."""
+    from simulation_quarter_shadow import build_quarter_forecasts, MODEL_IDS
 
     stamp = pd.to_datetime(now, utc=True, errors="coerce")
     if pd.isna(stamp):
@@ -197,15 +207,15 @@ def run_quarter_cycle(schedule, history, now, save_quarter_forecasts,
     season = season or active_nba_season(stamp)
     completed = verified_history(history, stamp)
     settled = int(settle_quarter_results(completed))
-    upcoming = upcoming_events(schedule, stamp)
-    forecasts = build_quarter_forecasts(upcoming, completed)
+    scenarios = parent_scenarios or []
+    forecasts = build_quarter_forecasts(completed, scenarios)
     saved = (save_quarter_forecasts(forecasts, season) if forecasts
              else {"saved": 0, "duplicates_or_rejected": 0})
     return {
         "status": "research_only",
-        "model_id": MODEL_ID,
-        "games_checked": len(upcoming),
-        "games_forecastable": len(forecasts) // 4,
+        "quarter_model_ids": list(MODEL_IDS.values()),
+        "parent_game_models_checked": len(scenarios),
+        "parent_models_with_quarter_forecasts": len(forecasts) // 4,
         "candidate_quarter_rows": len(forecasts),
         "new_quarter_rows": int(saved["saved"]),
         "quarter_rows_settled": settled,
@@ -283,6 +293,7 @@ def run_scheduled_job():
     # must not turn an already started game into a new pregame prediction.
     now = pd.Timestamp.now(tz="UTC")
     # No DB URL/credentials in printed summaries, logs, or thrown errors.
+    parent_scenarios = []
     result = run_cycle(
         upcoming, finals, now,
         save_forecasts=lambda snapshots, target_season: save(
@@ -291,6 +302,7 @@ def run_scheduled_job():
         season=season,
         availability_provider=PregameAvailabilityFeed(),
         include_shadow_v76=shadow_enabled,
+        quarter_sink=parent_scenarios,
     )
     try:
         result["player_tracking"] = run_player_cycle(
@@ -316,6 +328,7 @@ def run_scheduled_job():
             settle_quarter_results=lambda completed: settle_quarters(
                 completed, config=cfg),
             season=season,
+            parent_scenarios=parent_scenarios,
         )
     except (ValueError, TypeError, KeyError, RuntimeError, OSError,
             ConnectionError, TimeoutError) as exc:
