@@ -1483,10 +1483,10 @@ function resize(){
   const mobileLayout=viewportWidth<=767 || shortLandscape;
   const mobileHome=mobileLayout && state.page==="home";
   const mobileSchedule=mobileLayout && state.page==="games";
-  // Only the approved Match Intelligence panel gets native-width phone UI.
-  // Other premium modules retain their current viewport behavior.
+  // Match Intelligence and Team Comparison get native-width phone UI.
+  // All other existing Premium modules keep their current viewport behavior.
   const mobileIntelligence=mobileLayout && state.page==="simulations" &&
-    $("simulations-pane")?.dataset.hzmView==="intelligence";
+    ["intelligence","comparison"].includes($("simulations-pane")?.dataset.hzmView);
   shell.classList.toggle("hz-mobile-intelligence",mobileIntelligence);
   shell.classList.toggle("hz-mobile-centre",mobileHome);
   shell.classList.toggle("hz-mobile-schedule",mobileSchedule);
