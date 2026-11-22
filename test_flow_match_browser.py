@@ -254,7 +254,7 @@ def check_timeline(page):
     assert "DET +8 pkt" in svg.text_content()
     mean_y = float(svg.locator(".flow-mean").get_attribute("d").split()[-1])
     assert mean_y > zero
-    assert "ATL" in page.locator("#hzm-flow-final-margin").inner_text()
+    assert "DET" in page.locator("#hzm-flow-final-margin").inner_text()
     card = page.locator(".hzm-flow-timeline")
     legend = card.locator(".hzm-flow-legend")
     assert legend.evaluate("""el => [...el.children].every(child => {
