@@ -37,13 +37,13 @@ function drawChart(data,period,away,home){
  if(!Array.isArray(rows)||rows.length!==9||
     !rows.every(r=>[r.minute,r.margin_mean].every(v=>number(v)!==null)))
    return '<p>Brak pełnej trajektorii z 5 000 wyników.</p>';
- const hasSample=validSample(data);
- // The mean is a conditional allocation, whereas the highlighted jagged
- // stroke is ONE deterministic individual draw, not a fake 5k mean.
+ if(data?.quarter_model?.available!==true)
+   return '<p>Brak potwierdzonego profilu kwart ESPN. Nie wyświetlamy sztucznej prognozy Q1–Q4.</p>';
+ // The visible advantage line and Q labels MUST show the same expectation
+ // over 5,000 draws, not one dramatic but unrelated sample path.
  const avg=rows.map(r=>({minute:Number(r.minute),diff:Number(r.margin_mean)}));
- const series=hasSample?
-   data.sample_path.map(r=>({minute:Number(r.minute),diff:-Number(r.away_minus_home)})):avg;
- const maxAbs=Math.max(5,...series.map(p=>Math.abs(p.diff)),...avg.map(p=>Math.abs(p.diff)));
+ const series=avg;
+ const maxAbs=Math.max(5,...series.map(p=>Math.abs(p.diff)));
  const limit=Math.max(10,Math.ceil((maxAbs+2)/5)*5);
  const left=48,top=66,right=882,bottom=198,center=(top+bottom)/2;
  const x=m=>left+Number(m)/48*(right-left);
@@ -62,7 +62,8 @@ function drawChart(data,period,away,home){
  // Conditional quarter point estimates from the exact same 5,000 final-score
  // Monte Carlo draws. Not calibrated quarter forecasts or NBA play-by-play.
  const quarterPoints=[0,1,2,3].map(i=>{
-   const q=Array.isArray(data.quarters)?data.quarters[i]:null;
+   const q=data.quarter_model?.available===true&&Array.isArray(data.quarters)?
+     data.quarters[i]:null;
    const homePts=number(q?.home_mean),awayPts=number(q?.away_mean);
    if(Number(q?.quarter)!==i+1||homePts===null||awayPts===null||
       homePts<0||awayPts<0||homePts>100||awayPts>100)return "";
@@ -70,7 +71,7 @@ function drawChart(data,period,away,home){
    const picked=period==="all"||period===String(i+1)||(period==="clutch"&&i===3);
    const note="Q"+(i+1)+": "+home+" gospodarze "+fmt(homePts)+" pkt, "+
      away+" goście "+fmt(awayPts)+
-     " pkt. Szacunek warunkowy z 5 000 wyników końcowych, bez osobnego modelu kwart.";
+     " pkt. Historyczne punkty kwartowe ESPN dopasowane do 5 000 wyników meczu; model eksperymentalny.";
    return '<g class="hzm-flow-quarter-points'+(picked?" selected":"")+
      '" data-flow-quarter-points="'+(i+1)+'" role="group" aria-label="'+esc(note)+'">'+
      '<title>'+esc(note)+'</title>'+
@@ -112,17 +113,17 @@ function drawChart(data,period,away,home){
  }
  const end=series[series.length-1];
  const color=leadColor(end.diff), finalLabel=leadLabel(end.diff);
- const src=hasSample?sampleLabel:"Średnia modelu z 5 000";
+ const src="Średnia przewaga z 5 000 losowań z historycznym profilem kwart";
  const description=src+". Powyżej zera: gospodarze ("+home+
    "), poniżej: goście ("+away+"), zero: remis. Koniec: "+finalLabel+
-   (hasSample?". Linia przerywana: średnia modelu.":"");
+   ". Prognozy Q1–Q4 i linia wyliczone z tych samych losowań.";
  const labelX=x(end.minute)-5,labelY=Math.max(top+2,y(end.diff)-23);
  const labelWidth=finalLabel.length*7.5+12;
  return '<svg viewBox="0 0 910 234" role="img" aria-label="'+esc(description)+'">'+
    '<title>'+esc(description)+'</title>'+
    '<defs><filter id="hzm-flow-glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter></defs>'+
    zone+shaded+fills.join("")+grid+dividers+quarter+quarterPoints+marks+
-   (hasSample?'<path class="flow-mean" d="'+line(avg)+'" fill="none" stroke="#a3c9df" stroke-opacity=".7" stroke-dasharray="5 5" stroke-width="1.5"/>':'')+
+   '<path class="flow-mean" d="'+line(avg)+'" fill="none" stroke="#a3c9df" stroke-opacity=".14" stroke-width="1.5"/>'+
    '<g id="hzm-flow-strokes">'+strokes.join("")+'</g>'+
    '<use href="#hzm-flow-strokes" opacity=".45" filter="url(#hzm-flow-glow)"/>'+
    `<circle cx="${x(end.minute)}" cy="${y(end.diff)}" r="4.4" fill="${color}" stroke="#f7ebff" stroke-width="1.3"/>`+
@@ -161,7 +162,10 @@ function render(d){
    !d?.sim?"Wczytaj bazowe 5 000 symulacji, aby otworzyć Flow meczu.":
    d.sim.error?String(d.sim.error).slice(0,180):
    !ready?"Dane Flow niedostępne. Nie przedstawiamy prognoz z niepełnych losowań.":
-   "Warunkowa rekonstrukcja z tego samego modelu 5 000 wyników — nie dane play-by-play."+
+   (data?.quarter_model?.available===true?
+      "Q1–Q4: historyczny profil ESPN, dopasowany do 5 000 symulacji (bez osobnej kalibracji). ":
+      "Brak potwierdzonych kwart ESPN. "+String(data?.quarter_model?.basis||"").slice(0,150))+
+   " Nie jest to rzeczywisty przebieg play-by-play."+
    (!context.scenario?" Scenariusz obliczysz w zakładce Scenariusze.":"");
  if(saved?.date===d.day&&saved?.game_id===String(d?.game?.id)&&saved?.model_id===d.model)
    feedback.textContent+=" · Zapisano "+esc(String(saved.variant||"bazowy"))+" w tej sesji.";
@@ -176,11 +180,12 @@ function render(d){
    a.setAttribute("aria-label","Pobierz zweryfikowany raport PDF dla meczu");
    feedback.append(" · ");feedback.appendChild(a);
  }
- $("hzm-flow-timeline-desc").textContent=ready?
-   (validSample(data)?
-     sampleLabel+" · linia przerywana = średnia modelu":
-     "Warunkowa średnia z 5 000 wyników · dodatnie = przewaga gospodarzy"):
-   "Brak kompletnych danych symulacji dla wybranego meczu.";
+ const hasQuarterProof=ready&&data?.quarter_model?.available===true;
+ $("hzm-flow-timeline-desc").textContent=hasQuarterProof?
+   "Średnia przewaga z 5 000 symulacji · profil Q1–Q4 z wcześniejszych meczów ESPN ("+
+   d.game.away+": "+data.quarter_model.away_sample+", "+
+   d.game.home+": "+data.quarter_model.home_sample+")":
+   "Brak wystarczającej historii kwart ESPN — sztucznych prognoz nie wyświetlamy.";
  $("hzm-flow-plot").innerHTML=ready?
    drawChart(data,cfg.period,d.game.away,d.game.home):
    '<p>Brak danych Premium dla wybranego meczu.</p>';
@@ -188,7 +193,7 @@ function render(d){
    "Śr. przewaga "+(number(data.timeline[8].margin_mean)>0?d.game.home:
      number(data.timeline[8].margin_mean)<0?d.game.away:"remis")+
    ": "+fmt(Math.abs(Number(data.timeline[8].margin_mean)))+" pkt":"—";
- $("hzm-flow-quarter-data").innerHTML=ready&&Array.isArray(data.quarters)?
+ const quarterMarkup=hasQuarterProof&&Array.isArray(data.quarters)?
    data.quarters.map(q=>{
      const a=number(q.away_outscores_pct),h=number(q.home_outscores_pct),tie=number(q.tie_pct);
      if(a===null||h===null||tie===null||a+h+tie>100.3)return "";
@@ -201,7 +206,9 @@ function render(d){
        '<div class="hzm-flow-quarter-track"><i style="width:'+a+
        '%"></i><i style="width:'+h+'%"></i></div></div>'+
        '<small class="hzm-flow-tie">Remis '+pct(tie)+'</small></div>';
-   }).join(""):'<p class="hzm-flow-empty">Brak danych kwart.</p>';
+   }).join(""):"";
+ $("hzm-flow-quarter-data").innerHTML=quarterMarkup||
+   '<p class="hzm-flow-empty">Brak zweryfikowanej historii Q1–Q4 ESPN. Nie pokazujemy sztucznych szans ani punktów kwart.</p>';
  const clutch=ready?data.clutch:null;
  const clutchDiff=number(clutch?.home_margin_mean);
  $("hzm-flow-clutch").textContent=clutchDiff!==null?
