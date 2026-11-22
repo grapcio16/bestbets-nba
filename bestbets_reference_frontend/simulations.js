@@ -1709,8 +1709,14 @@ function renderMinutePicker(game,players,allowed){
    "ESPN — składy informacyjne. Analiza przy ≥3 występach z minutami; status OUT bez projekcji.").slice(0,250);
  const list=$("hzm-minute-menu-list");if(!list)return;
  if(!filtered.length){list.innerHTML='<p class="hzm-minute-menu-empty">Brak zawodników dla wybranego filtra.</p>';return}
- list.innerHTML=[game?.away,game?.home].map(team=>{
-   const group=filtered.filter(r=>r.team===team);
+ // Only athletes with a verified minute scenario belong in the top group.
+ // Sort across BOTH teams, so an OUT player from the away team never appears
+ // above a projectable player from the home team.
+ const sections=[
+   {key:"eligible",name:"Dostępni do analizy",items:filtered.filter(r=>r.possible)},
+   {key:"unavailable",name:"Bez dostępnej analizy",items:filtered.filter(r=>!r.possible)}
+ ];
+ const renderTeam=(team,group)=>{
    if(!group.length)return "";
    const count=group.filter(r=>r.possible).length;
    const markup=group.map(r=>{
@@ -1732,6 +1738,17 @@ function renderMinutePicker(game,players,allowed){
    return '<div class="hzm-minute-team-title '+(team===game.home?"home":"")+'"><span>'+
       esc(team)+' · '+group.length+' zawodników</span><small>'+count+
       ' z projekcją</small></div>'+markup;
+ };
+ list.innerHTML=sections.filter(section=>section.items.length).map(section=>{
+   const separated=section.items.slice().sort((a,b)=>{
+     // OUT at the very bottom, preceded by missing data and insufficient history.
+     const priority=r=>r.label==="OUT"?3:r.label==="Brak danych"?2:1;
+     return (priority(a)-priority(b))||
+       a.name.localeCompare(b.name,"pl",{sensitivity:"base"});
+   });
+   return '<div class="hzm-minute-group-title '+section.key+'">'+
+      esc(section.name)+' <small>'+separated.length+'</small></div>'+
+      [game?.away,game?.home].map(team=>renderTeam(team,separated.filter(r=>r.team===team))).join("");
  }).join("");
 }
 function closeMinutePicker(focus=false){
