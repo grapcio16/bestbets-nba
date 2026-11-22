@@ -924,9 +924,9 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
           <div class="hzm-flow-upper">
             <article class="hzm-flow-card hzm-flow-timeline">
               <header><div><h2>Przebieg meczu · Timeline przewagi <span title="Warunkowa rekonstrukcja 5000 wyników końcowych, a nie rzeczywiste play-by-play">ⓘ</span></h2>
-              <p id="hzm-flow-timeline-desc">Średnia przewaga punktowa w czasie gry · warunkowa rekonstrukcja</p></div><strong id="hzm-flow-selected-period">ALL · 48 MIN</strong></header>
+              <p id="hzm-flow-timeline-desc">Przykładowy przebieg pojedynczego losowania; średnia z 5 000 zaznaczona linią przerywaną</p></div><strong id="hzm-flow-selected-period">ALL · 48 MIN</strong></header>
               <div id="hzm-flow-plot" class="hzm-flow-plot" aria-live="polite"><p>Przebieg będzie dostępny po symulacji.</p></div>
-              <div class="hzm-flow-legend"><span><i class="cyan"></i> Przewaga gości</span><span><i class="purple"></i> Przewaga gospodarzy</span><strong id="hzm-flow-final-margin">—</strong></div>
+              <div class="hzm-flow-legend"><span><i class="cyan"></i> Przewaga gości (+)</span><span><i class="purple"></i> Przewaga gospodarzy (−)</span><span class="hzm-flow-dashed">Średnia (– –)</span><strong id="hzm-flow-final-margin">—</strong></div>
             </article>
             <article class="hzm-flow-card hzm-flow-quarter-panel">
               <header><h2>Szanse wygrania kwart <span title="Warunkowa rekonstrukcja, w tym możliwość remisu w kwarcie">ⓘ</span></h2></header>
@@ -936,15 +936,16 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <article class="hzm-flow-card hzm-flow-momentum">
               <header><h2>Clutch &amp; Momentum <span title="Dane warunkowe, bez modelu sekwencji akcji">ⓘ</span></h2></header>
               <div class="hzm-flow-kpi"><span>◎</span><div><small>Clutch edge · 42'–48'</small><strong id="hzm-flow-clutch">—</strong></div></div>
-              <div class="hzm-flow-kpi"><span>⌁</span><div><small>Run risk · 8–0</small><strong id="hzm-flow-runrisk">Brak play-by-play</strong></div></div>
-              <div class="hzm-flow-kpi"><span>⟳</span><div><small>Zmienność końcowej przewagi</small><strong id="hzm-flow-volatility">—</strong></div></div>
+              <div class="hzm-flow-kpi"><span>⌁</span><div><small>Run risk · ≥ 8 pkt bez odpowiedzi</small><strong id="hzm-flow-runrisk">—</strong></div></div>
+              <div class="hzm-flow-kpi"><span>⟳</span><div><small>Tempo swing · zmienność 6-min sum</small><strong id="hzm-flow-volatility">—</strong></div></div>
             </article>
           </div>
           <article class="hzm-flow-card hzm-flow-rotations">
-            <header><div><h2>Rotacje i matchup windows <span title="Wyłącznie faktyczna średnia liczba minut z historii ESPN, nie prawdopodobieństwo udziału w konkretnym momencie meczu">ⓘ</span></h2>
-              <p>Łączny średni czas gry z wcześniejszych występów ESPN — <b>bez przewidywania minut wejścia na parkiet</b></p></div>
-              <button id="hzm-flow-load-players" type="button">↻ Pobierz dane zawodników</button></header>
-            <div id="hzm-flow-roster" class="hzm-flow-roster"><p>Wybierz mecz i pobierz projekcje zawodników.</p></div>
+            <header><div><h2>Rotacje i matchup windows <span title="Heatmapa historycznych łącznych minut: jaki odsetek wcześniejszych występów osiągnął próg X minut. NIE jest to prawdopodobieństwo obecności w konkretnej minucie meczu.">ⓘ</span></h2>
+              <p>Historyczny czas gry ESPN · <b>nie prognoza wejść i wyjść</b></p></div>
+              <div class="hzm-flow-heat-legend"><span><i class="hzm-heat-hi"></i> ≥75%</span><span><i class="hzm-heat-med"></i> 50–74%</span><span><i class="hzm-heat-low"></i> 25–49%</span><span><i class="hzm-heat-off"></i> &lt;25%</span></div>
+              <button id="hzm-flow-load-players" type="button">↻ Odśwież skład</button></header>
+            <div id="hzm-flow-roster" class="hzm-flow-roster"><p>Wybierz mecz i pobierz zweryfikowaną historię ESPN.</p></div>
           </article>
           <div class="hzm-flow-lower">
             <article class="hzm-flow-card hzm-flow-duels">
@@ -952,12 +953,14 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
               <div id="hzm-flow-matchups" class="hzm-flow-matchups">—</div>
             </article>
             <article class="hzm-flow-card hzm-flow-runs">
-              <header><h2>Scoring Runs <span title="Model wynikowy nie posiada sekwencji posiadań ani rzutów">ⓘ</span></h2></header>
-              <p>Wykrywanie serii wymaga potwierdzonych danych play-by-play.</p>
-              <div class="hzm-flow-run-row"><span>6–0</span><div></div><strong>—</strong></div>
-              <div class="hzm-flow-run-row"><span>8–0</span><div></div><strong>—</strong></div>
-              <div class="hzm-flow-run-row"><span>10–0</span><div></div><strong>—</strong></div>
-              <small>Brak modelu sekwencji · wartości celowo niedostępne</small>
+              <header><h2>Scoring Runs <span title="Nieskalibrowany model neutralny: losowa kolejność zdobyczy 2 punktów, bez rzeczywistych danych play-by-play.">ⓘ</span></h2></header>
+              <p>Seria punktowa bez odpowiedzi · <b>warunkowy model neutralny</b></p>
+              <div id="hzm-flow-run-data" class="hzm-flow-run-data">
+                <div class="hzm-flow-run-row"><span>≥6</span><div></div><strong>—</strong></div>
+                <div class="hzm-flow-run-row"><span>≥8</span><div></div><strong>—</strong></div>
+                <div class="hzm-flow-run-row"><span>≥10</span><div></div><strong>—</strong></div>
+              </div>
+              <small id="hzm-flow-run-note">Bez wiarygodnej sekwencji rzutów i posiadań</small>
             </article>
           </div>
           <p id="hzm-flow-method" class="hzm-flow-method">Flow jest rekonstrukcją warunkową wyników końcowych, nie prognozą play-by-play, rotacji ani obietnicą wyniku.</p>
