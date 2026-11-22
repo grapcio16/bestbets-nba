@@ -220,8 +220,10 @@ def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"
         game, means, score_noise=(context["score_noise"]
                                  if model_id != "legacy_v72" else None))
     from simulation_flow import conditional_flow
+    from simulation_quarter_model import pregame_quarter_evidence
+    quarters = pregame_quarter_evidence(historical, game)
     flow = conditional_flow(away_scores, home_scores, game_id=game_id,
-                            model_id=model_id)
+                            model_id=model_id, quarter_evidence=quarters)
     return {
         "game_id": game_id, "model_id": model_id, "away": away, "home": home,
         "away_win_pct": summary["away_win_pct"],
