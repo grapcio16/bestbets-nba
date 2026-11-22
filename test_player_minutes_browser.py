@@ -40,6 +40,11 @@ def main():
             "minutes_sample": 5, "availability": "Out",
             "pts": None, "reb": None, "ast": None,
         }
+        active_home = {
+            "name": "Test Athlete C", "team": "BOS", "minutes": 28.0,
+            "minutes_sample": 5, "availability": "Unknown",
+            "pts": 16.0, "reb": 4.0, "ast": 3.0,
+        }
         payload = {
             "brand": "", "auth": {"role": "premium"},
             "home": {
@@ -53,7 +58,7 @@ def main():
                 "players": {
                     "date": day, "game_id": game_id,
                     "model_id": "research_context_v75",
-                    "home": "BOS", "players": [active, out],
+                    "home": "BOS", "players": [active, out, active_home],
                     "minute_roster": [
                         {"name": "Test Athlete A", "team": "NYK",
                          "position": "PG", "projection_index": 0},
@@ -64,6 +69,8 @@ def main():
                          "availability": "Out"},
                         {"name": "Reserve BOS", "team": "BOS",
                          "position": "PF", "projection_index": None},
+                        {"name": "Test Athlete C", "team": "BOS",
+                         "position": "PG", "projection_index": 2},
                     ],
                 },
                 "scenario": None, "minute_scenario": None,
@@ -82,7 +89,7 @@ def main():
         page.locator("#hzm-lab-tab-scenario").click()
         page.wait_for_function(
             "document.querySelector('#hzm-minute-player')?.disabled === false")
-        assert page.locator("#hzm-minute-player option").count() == 1
+        assert page.locator("#hzm-minute-player option").count() == 2
         assert "Test Athlete A" in page.locator("#hzm-minute-player").input_value() or (
             "Test Athlete A" in page.locator("#hzm-minute-player").inner_text()
         )
@@ -90,14 +97,30 @@ def main():
         page.locator("#hzm-minute-picker-trigger").click()
         menu = page.locator("#hzm-minute-picker-menu")
         assert menu.is_visible()
-        assert page.locator("#hzm-minute-menu-list .hzm-minute-option").count() == 4
-        assert page.locator(".hzm-minute-team-title").count() == 2
+        assert page.locator("#hzm-minute-menu-list .hzm-minute-option").count() == 5
+        assert page.locator(".hzm-minute-group-title").count() == 2
+        assert page.locator(".hzm-minute-team-title").count() == 4
+        assert page.locator(".hzm-minute-group-title").first.inner_text().startswith("DOSTĘPNI DO ANALIZY")
+        assert page.locator(".hzm-minute-group-title").last.inner_text().startswith("BEZ DOSTĘPNEJ ANALIZY")
+        # Across both teams: ALL projectable players before ANY OUT / missing
+        # player, even when an away-team reserve comes before a home starter
+        # in the verified ESPN roster feed.
+        rows = page.locator("#hzm-minute-menu-list .hzm-minute-option")
+        flags = rows.locator(".hzm-minute-option-flag").all_inner_texts()
+        assert flags[:2] == ["Analiza ✓", "Analiza ✓"], flags
+        assert all(flag != "Analiza ✓" for flag in flags[2:]), flags
+        assert rows.first.locator("strong").inner_text() == "Test Athlete A"
+        assert rows.nth(1).locator("strong").inner_text() == "Test Athlete C"
+        assert rows.last.locator("strong").inner_text() == "Test Athlete B"
         # Show both current roster-only athletes and OUT players honestly.
         assert "Reserve NYK" in menu.inner_text()
         assert "Reserve BOS" in menu.inner_text()
         assert "OUT" in menu.inner_text()
         page.locator('[data-hzm-minute-team="home"]').click()
-        assert page.locator("#hzm-minute-menu-list .hzm-minute-option").count() == 2
+        assert page.locator("#hzm-minute-menu-list .hzm-minute-option").count() == 3
+        home_rows = page.locator("#hzm-minute-menu-list .hzm-minute-option")
+        assert home_rows.first.locator("strong").inner_text() == "Test Athlete C"
+        assert home_rows.last.locator("strong").inner_text() == "Test Athlete B"
         page.locator('[data-hzm-minute-team="all"]').click()
         page.locator("#hzm-minute-search").fill("Reserve NYK")
         assert page.locator("#hzm-minute-menu-list .hzm-minute-option").count() == 1
