@@ -863,6 +863,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
           <section id="hzm-availability-panel" class="hzm-availability-panel" aria-label="Injury Watch — dowody i dostępność składu">
             <header class="hzm-availability-head">
               <strong>✚ Injury Watch · skład i kontuzje</strong>
+              <button type="button" id="hzm-availability-refresh" aria-label="Odśwież wpisy kontuzji ESPN dla wybranego meczu" title="Ponownie pobierz raport ESPN; maksymalnie raz na trzy minuty">↻ Odśwież ESPN</button>
               <span id="hzm-availability-freshness" class="hzm-availability-freshness">SPRAWDZANIE DANYCH</span>
             </header>
             <p id="hzm-availability-message" class="hzm-availability-message" role="status">Statusy ESPN będą pobierane dla obu drużyn bez względu na wybrany model.</p>
@@ -1887,6 +1888,16 @@ if(window.HoopzaroSimulations){
         type:"premium_sim_player_minutes",date:a.day,game_id:a.gameId,
         model_id:a.modelId,player_name:a.playerName,team:a.team,minute_delta:a.minuteDelta,
         id:String(Date.now())+"-minute-"+a.gameId+"-"+Math.random().toString(36).slice(2)
+      }});
+    },
+    refreshPlayers:function(day,id,modelId){
+      if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled||
+         !/^\d{4}-\d{2}-\d{2}$/.test(String(day||""))||
+         !/^\d{6,15}$/.test(String(id||""))||
+         !["legacy_v72","research_form_v74","research_context_v75"].includes(modelId))return;
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"premium_sim_players",date:day,game_id:id,model_id:modelId,refresh:true,
+        id:String(Date.now())+"-refresh-espn-"+id+"-"+Math.random().toString(36).slice(2)
       }});
     },
     loadPlayers:function(day,id,modelId){
