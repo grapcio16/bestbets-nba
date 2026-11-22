@@ -546,6 +546,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
           <select id="hzm-model-select" class="hzm-model-native" aria-hidden="true" tabindex="-1"><option value="research_context_v75">V7.5 · PEŁNY KONTEKST</option><option value="research_form_v74">V7.4 · FORMA + KONTEKST</option><option value="legacy_v72">V7.2 · PODSTAWOWY</option></select>
         </div>
       </div>
+      <div class="hzm-simulation-count" title="Model wykonuje 5 000 symulacji. Zmiana liczby losowań nie jest obecnie dostępna." aria-label="Liczba symulacji: 5 000, ustawienie stałe"><small>LICZBA SYMULACJI</small><strong>5 000</strong></div>
       <div class="hzm-day-control" role="group" aria-label="Wybierz dzień symulacji NBA">
         <button type="button" class="hzm-day-arrow" id="hzm-day-prev" data-hzm-shift="-1" aria-label="Poprzedni dzień">‹</button>
         <div class="hzm-day-main">
@@ -581,7 +582,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
         </section>
     <nav id="hzm-lab-nav" class="hzm-lab-nav" role="tablist" aria-label="Moduły Simulation Lab">
       <button type="button" id="hzm-lab-tab-results" role="tab" data-hzm-view="results" aria-controls="hzm-lab-main" aria-selected="true" class="selected"><span aria-hidden="true">▥</span> Wyniki i rozkłady</button>
-      <button type="button" id="hzm-lab-tab-players" role="tab" data-hzm-view="players" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">♙</span> Player Simulations</button>
+      <button type="button" id="hzm-lab-tab-players" role="tab" data-hzm-view="players" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">♙</span> Projekcje zawodników</button>
       <button type="button" id="hzm-lab-tab-scenario" role="tab" data-hzm-view="scenario" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">☷</span> Scenariusze</button>
       <button type="button" id="hzm-lab-tab-intelligence" role="tab" data-hzm-view="intelligence" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">✧</span> Analiza meczu</button>
       <button type="button" id="hzm-lab-tab-comparison" role="tab" data-hzm-view="comparison" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">⇄</span> Porównanie drużyn</button>
@@ -946,6 +947,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
           <li><span id="hzm-mini-finding-form">Dane o formie drużyn będą dostępne po wyborze meczu.</span></li>
           <li><span id="hzm-mini-finding-winner">Prawdopodobieństwa zwycięstwa po obliczeniu modelu.</span></li>
           <li><span id="hzm-mini-finding-context">Ograniczenia składu i danych zostaną podane w raporcie.</span></li>
+          <li><span id="hzm-mini-finding-tempo">Wnioski o tempie i odpoczynku pojawią się, gdy dostępne będą dane.</span></li>
         </ul>
       </article>
       <article class="hzm-ref-card" aria-label="Ostatnie wyniki testów modelu">
