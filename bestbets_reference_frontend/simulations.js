@@ -1502,6 +1502,12 @@ function render(home,premium){
   const game=data.games.find(item=>item.id===state.gameId);
   const sim=trustedResult(premium,game),players=trustedPlayers(premium,game);
   const ctx=sim?.model_context;
+  // The header shows the model's nominal 5,000-draw configuration until
+  // a genuine server result reports the exact count actually executed.
+  const actualRuns=Number(sim?.n_sims);
+  const count=$("hzm-simulation-count-value");
+  if(count)count.textContent=sim?.n_sims!=null&&Number.isInteger(actualRuns)&&
+    actualRuns>=100&&actualRuns<=100000?actualRuns.toLocaleString("pl-PL"):"5 000";
   $("hzm-evidence-form").textContent=ctx
     ?"Zweryfikowane mecze: "+ctx.away_sample+" / "+ctx.home_sample+
        (ctx.v75_factors?" · dom/wyjazd: "+ctx.v75_factors.away_venue_games+" / "+ctx.v75_factors.home_venue_games:"")
