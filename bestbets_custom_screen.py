@@ -509,6 +509,13 @@ def main() -> None:
         # A session-local counter lets the iframe discard an old search when
         # identity changes, without exposing the OIDC subject to JavaScript.
         st.session_state["bb10_identity_epoch"] = st.session_state.get("bb10_identity_epoch", 0) + 1
+    # Existing Streamlit sessions may retain the old player payload created
+    # before ESPN minute/injury evidence was added. Invalidate it exactly once
+    # so the Scenario Lab automatically requests the updated server schema.
+    if st.session_state.get("bb10_scenario_evidence_schema") != 2:
+        st.session_state.pop("bb10_premium_players", None)
+        st.session_state.pop("bb10_premium_minute_scenario", None)
+        st.session_state["bb10_scenario_evidence_schema"] = 2
     # CRITICAL: preload data BEFORE mounting the v1 iframe. Production
     # sometimes discards the initial setComponentValue/home_data message,
     # leaving the dashboard spinning indefinitely. The home snapshot is
