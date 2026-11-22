@@ -553,3 +553,50 @@
   #simulations-pane[data-hzm-view="flow"] .hzm-flow-rotations{min-height:0!important;max-height:none!important}
   #simulations-pane[data-hzm-view="flow"] .hzm-flow-legend{flex-wrap:wrap!important}
 }
+
+/* Conditional Q1–Q4 point forecasts ON the timeline SVG.
+   Keep the accepted fixed-height Premium desktop panel unchanged. */
+#simulations-pane[data-hzm-view="flow"] .hzm-flow-quarter-points rect{
+  fill:#101e40;fill-opacity:.94;stroke:#3b668c;stroke-width:.9;
+}
+#simulations-pane[data-hzm-view="flow"] .hzm-flow-quarter-points.selected rect{
+  stroke:#48d0ec;stroke-width:1.3;
+  filter:drop-shadow(0 0 3px #4c8cde82)
+}
+#simulations-pane[data-hzm-view="flow"] .hzm-flow-quarter-points:not(.selected){
+  opacity:.67
+}
+#simulations-pane[data-hzm-view="flow"] .hzm-flow-q-home{
+  fill:#e0a6ff;font-family:inherit;font-size:13px;font-weight:900;
+}
+#simulations-pane[data-hzm-view="flow"] .hzm-flow-q-away{
+  fill:#6eeeff;font-family:inherit;font-size:13px;font-weight:900;
+}
+#simulations-pane[data-hzm-view="flow"] .hzm-flow-plot svg .flow-quarter{
+  font-size:11px;fill:#d7ebff;font-weight:950
+}
+#simulations-pane[data-hzm-view="flow"] .hzm-flow-legend .purple{
+  background:#d374ff
+}
+#simulations-pane[data-hzm-view="flow"] .hzm-flow-legend .cyan{
+  background:#24f1f6
+}
+@media(max-width:767px){
+  #simulations-pane[data-hzm-view="flow"] .hzm-flow-legend{
+    flex-wrap:wrap!important;row-gap:4px!important;overflow:visible!important
+  }
+}
+
+/* Keep projected Q scores legible on iPhone: swipe the actual chart,
+   not the global page/sidebar. No vertical page-scroll locking. */
+@media(max-width:767px){
+  #simulations-pane[data-hzm-view="flow"] .hzm-flow-plot{
+    display:block!important;overflow-x:auto!important;overflow-y:hidden!important;
+    scrollbar-width:thin;-webkit-overflow-scrolling:touch;
+    overscroll-behavior-x:contain
+  }
+  #simulations-pane[data-hzm-view="flow"] .hzm-flow-plot svg{
+    min-width:660px!important;width:660px!important;max-width:none!important;
+    height:170px!important;max-height:170px!important
+  }
+}
