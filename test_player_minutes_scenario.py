@@ -1,4 +1,4 @@
-"""V7.5 player-minute sensitivity: all players/fixtures below are synthetic."""
+"""Player-minute sensitivity across Premium models: synthetic fixtures only."""
 from unittest.mock import patch
 
 import pandas as pd
@@ -15,6 +15,7 @@ def test_minute_sensitivity_permissions_and_data():
     player = {
         "name": "Test Athlete", "team": "NYK",
         "minutes": 30.0, "minutes_sample": 4,
+        "minutes_source": "ESPN · średnia historyczna ostatnich występów",
         "pts": 24.0, "reb": 6.0, "ast": 9.0,
         "availability": "Questionable",
     }
@@ -41,13 +42,17 @@ def test_minute_sensitivity_permissions_and_data():
           patch("bestbets_simulations_canvas._game_players", side_effect=fake_roster)):
         for delta in (-6, 6, 3.5, True, None, "3"):
             assert "error" in scenario(minute_delta=delta)
-        assert "error" in scenario(model_id="research_form_v74")
+        v74 = scenario(model_id="research_form_v74")
+        assert v74["model_id"] == "research_form_v74"
+        assert v74["scenario"]["pts"] == 28.0
+        assert "historyczna" in v74["minutes_source"]
         assert "error" in scenario(team="BOS")
         assert "error" in scenario(player_name="Someone Else")
-        assert calls == [(day, fixture["id"], "research_context_v75"),
+        assert calls == [(day, fixture["id"], "research_form_v74"),
+                         (day, fixture["id"], "research_context_v75"),
                          (day, fixture["id"], "research_context_v75")], calls
-        # Above two calls correspond only to team/player mismatch after
-        # fixture validation. All invalid deltas/model/team are rejected first.
+        # Invalid deltas are rejected early; V7.4 now correctly uses its own
+        # selected-model roster rather than silently switching to V7.5.
         calls.clear()
         result = scenario()
         assert result["baseline_minutes"] == 30.0
@@ -60,6 +65,7 @@ def test_minute_sensitivity_permissions_and_data():
         assert result["baseline"]["pra"] == 39
         assert result["minutes_sample"] == 4
         assert result["availability"] == "Questionable"
+        assert "historyczna" in result["minutes_source"]
         assert result["hypothetical"] is True
         assert "win_pct" not in result and "n_sims" not in result
         assert calls == [(day, fixture["id"], "research_context_v75")]
@@ -90,4 +96,4 @@ def test_minute_sensitivity_permissions_and_data():
 
 if __name__ == "__main__":
     test_minute_sensitivity_permissions_and_data()
-    print("V7.5 minute sensitivity: Premium, fixture, real samples, OUT and bounds OK")
+    print("Player minute sensitivity: all models, Premium, fixture, historical sample, OUT and bounds OK")
