@@ -419,3 +419,231 @@
     grid-template-columns:minmax(0,1fr) 118px!important;
   }
 }
+
+
+/* HOOPZARO Simulation Lab 2.0 — reference neon finish.
+   Scope ALL enhancements to Results only; never alter model inputs. */
+#simulations-pane[data-hzm-view="results"] .hzm-hero{
+  border-color:#5689cb!important;
+  box-shadow:inset 0 1px 0 rgba(213,249,255,.25),
+    0 0 21px rgba(12,225,247,.08),0 0 20px rgba(193,61,247,.13)!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-projected>strong{
+  text-shadow:0 0 13px rgba(194,106,255,.42),0 0 19px rgba(111,223,255,.18)!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-projected-splits span{
+  background:linear-gradient(125deg,rgba(0,148,192,.25),rgba(13,32,75,.9))!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.1),0 0 11px rgba(15,221,250,.21);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-projected-splits span+span{
+  background:linear-gradient(125deg,rgba(114,50,211,.35),rgba(22,23,77,.91))!important;
+  box-shadow:inset 0 1px rgba(255,255,255,.1),0 0 12px rgba(195,89,255,.23);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-card{
+  background:
+    radial-gradient(ellipse 60% 75% at 34% 60%,rgba(8,139,225,.13),transparent 85%),
+    radial-gradient(ellipse 45% 80% at 100% 95%,rgba(144,58,244,.15),transparent 84%),
+    linear-gradient(140deg,#091d38,#0a1733 64%,#131338)!important;
+  border-color:#20b8e6!important;
+  box-shadow:inset 0 1px rgba(172,237,255,.18),0 0 14px rgba(19,202,255,.17),
+    0 0 18px rgba(121,60,238,.12)!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-card h2{
+  color:#f6fbff;text-shadow:0 0 11px rgba(53,224,255,.18);
+}
+#simulations-pane[data-hzm-view="results"] #hzm-plot svg .hzm-peak-halo{
+  animation:hzm-neon-peak 3.2s ease-in-out infinite;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-plot svg .hzm-curve-line,
+#simulations-pane[data-hzm-view="results"] #hzm-plot svg .hzm-curve-glow{
+  vector-effect:non-scaling-stroke;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-tabs{
+  border-color:#5392cf;box-shadow:inset 0 0 9px rgba(54,162,243,.14);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-tabs button.active{
+  background:linear-gradient(115deg,#00dcee,#65f5fa)!important;
+  box-shadow:0 0 14px rgba(0,236,251,.43),inset 0 1px rgba(255,255,255,.24);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-probability-panel{
+  border-color:#6181d4!important;
+  background:
+    radial-gradient(ellipse at 97% 99%,rgba(161,64,240,.20),transparent 75%),
+    linear-gradient(145deg,#0d2850,#111639 80%)!important;
+  box-shadow:inset 0 1px rgba(183,226,255,.23),
+    0 0 13px rgba(89,91,223,.25),0 0 8px rgba(36,234,255,.09)!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-probability-panel>strong{
+  color:#f4f7ff!important;text-shadow:0 0 10px rgba(99,199,255,.23);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-row{
+  border-bottom-color:rgba(83,116,174,.29)!important;
+  background:linear-gradient(90deg,rgba(26,98,146,.12),rgba(67,48,134,.10));
+  border-radius:4px;padding:0 3px!important;
+  transition:background .17s ease,filter .17s ease;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-row:hover{
+  background:linear-gradient(90deg,rgba(9,197,219,.19),rgba(162,58,226,.18));
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-row.over>b{
+  color:#43ffe5!important;text-shadow:0 0 9px rgba(6,255,219,.38);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-row.under>b{
+  color:#f1a5ff!important;text-shadow:0 0 9px rgba(204,98,255,.43);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-direction{
+  text-shadow:0 0 8px currentColor;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div{
+  border-color:#4184b8;
+  background:linear-gradient(135deg,#082a45,#10203e 65%,#151a3d);
+  box-shadow:inset 0 1px rgba(179,220,255,.16),0 0 9px rgba(27,111,220,.11);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div:hover{
+  transform:translateY(-1px);border-color:#68d3f2;
+  box-shadow:inset 0 1px rgba(179,220,255,.2),0 0 14px rgba(20,218,247,.26);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div:first-child{
+  border-color:#b35af2;background:linear-gradient(115deg,#2d1647,#1b1b49 80%);
+  box-shadow:0 0 12px rgba(170,72,241,.22),inset 0 1px rgba(249,183,255,.16);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div:nth-child(2){
+  border-color:#12dced;background:linear-gradient(116deg,#063e56,#092c48 90%);
+  box-shadow:0 0 12px rgba(26,224,247,.17);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div:nth-child(3){
+  border-color:#4588e7;background:linear-gradient(110deg,#0a3157,#142143 90%);
+  box-shadow:0 0 12px rgba(51,129,244,.18);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div:nth-child(4){
+  border-color:#a755ea;background:linear-gradient(110deg,#211744,#1a1d47 90%);
+  box-shadow:0 0 12px rgba(148,74,232,.23);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div:first-child strong{
+  color:#f5a4ff;text-shadow:0 0 9px rgba(221,91,255,.4);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div:nth-child(2) strong{
+  color:#72ffff;text-shadow:0 0 9px rgba(21,229,243,.23);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div:nth-child(3) strong{color:#d5edff}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div:nth-child(4) strong{color:#dfb5ff}
+#simulations-pane[data-hzm-view="results"] .hzm-players-panel{
+  border-color:#9952e9!important;
+  background:
+    radial-gradient(ellipse 67% 85% at 97% 90%,rgba(141,42,221,.16),transparent 82%),
+    linear-gradient(137deg,#0b1c37,#111638 75%,#20143e)!important;
+  box-shadow:inset 0 1px rgba(241,194,255,.11),
+    0 0 17px rgba(133,58,226,.17)!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-player-row{
+  transition:background .16s ease,box-shadow .16s ease;
+  border-bottom:1px solid rgba(116,121,185,.32);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-player-row:hover{
+  background:linear-gradient(90deg,rgba(16,206,234,.15),rgba(153,71,226,.20))!important;
+  box-shadow:inset 3px 0 rgba(32,234,249,.65);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-player-initials{
+  background:linear-gradient(135deg,#093c66,#17264f 66%,#321d59);
+  border-color:#12e8fa;box-shadow:0 0 9px rgba(0,224,252,.25),inset 0 0 8px rgba(18,229,250,.15);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-roster-bar{
+  height:4px!important;background:#202c55;
+  box-shadow:inset 0 0 4px rgba(0,0,0,.3);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-roster-bar i{
+  background:linear-gradient(90deg,#0febf5 0%,#36b5ff 47%,#bd59fe 100%)!important;
+  box-shadow:0 0 7px rgba(65,208,255,.53),0 0 9px rgba(180,82,242,.29)!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-player-stats span:last-child{
+  color:#f0a4ff!important;text-shadow:0 0 8px rgba(190,83,245,.28);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-team-filters button[aria-pressed="true"]{
+  box-shadow:0 0 10px rgba(199,85,255,.42),inset 0 1px rgba(255,255,255,.16);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-expand{
+  border-color:#2bd6fa;background:linear-gradient(95deg,#064360,#13234b 56%,#261646);
+  box-shadow:0 0 12px rgba(20,194,250,.18),inset 0 1px rgba(173,236,255,.12);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard .hzm-ref-card{
+  border-color:#347bc5;
+  background:radial-gradient(ellipse at 4% 4%,rgba(14,173,223,.14),transparent 62%),
+    linear-gradient(127deg,#0b2444,#111733 72%,#17113d)!important;
+  box-shadow:inset 0 1px rgba(205,239,255,.16),0 0 14px rgba(36,151,255,.14);
+  transition:border-color .18s,box-shadow .18s;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard .hzm-ref-card:nth-child(2){
+  border-color:#9860ed;
+  background:radial-gradient(ellipse at 95% 5%,rgba(166,61,255,.19),transparent 77%),
+    linear-gradient(120deg,#0b2341,#18163f)!important;
+  box-shadow:inset 0 1px rgba(229,202,255,.15),0 0 14px rgba(161,65,238,.13);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard .hzm-ref-card:nth-child(3){
+  border-color:#795ee0;
+  background:radial-gradient(ellipse at 99% 20%,rgba(153,60,244,.15),transparent 66%),
+    linear-gradient(120deg,#092d49,#101d3c 74%,#1b153c)!important;
+  box-shadow:inset 0 1px rgba(213,206,255,.16),0 0 14px rgba(112,73,238,.17);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard .hzm-ref-card:hover{
+  border-color:#5ae9f5;box-shadow:inset 0 1px rgba(225,249,255,.24),
+    0 0 19px rgba(33,210,249,.20),0 0 17px rgba(142,66,242,.17);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ref-card h3>span{
+  text-shadow:0 0 10px rgba(26,240,255,.48);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-slider input[type="range"]{
+  box-shadow:0 0 9px rgba(27,224,255,.4)!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-slider output{
+  border-color:#358bb5;background:linear-gradient(130deg,#093f5c,#172449);
+  color:#eefcff;box-shadow:inset 0 1px rgba(175,230,255,.13);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-reasons li::before{
+  color:#a3ffcc;background:linear-gradient(140deg,#08644e,#105440);
+  box-shadow:0 0 10px rgba(24,252,149,.21);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-recent-kpis>div{
+  background:linear-gradient(134deg,#0b3b52,#0f2548);
+  border-color:#17adc8;box-shadow:inset 0 1px rgba(201,248,255,.12),0 0 10px rgba(23,189,236,.12);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-recent-kpis>div:nth-child(2){
+  border-color:#a255e4;
+  background:linear-gradient(126deg,#301a52,#1a2047);
+  box-shadow:inset 0 1px rgba(241,216,255,.1),0 0 9px rgba(171,66,236,.17);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-recent-kpis>div:nth-child(3){
+  border-color:#428de3;
+  background:linear-gradient(126deg,#103c63,#15264c);
+  box-shadow:inset 0 1px rgba(222,244,255,.1),0 0 9px rgba(41,131,235,.17);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-recent-kpis>div:first-child strong{
+  color:#44f2ff;text-shadow:0 0 9px rgba(30,221,245,.34);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-recent-kpis>div:nth-child(2) strong{
+  color:#efa1ff;text-shadow:0 0 9px rgba(202,108,252,.30);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-recent-kpis>div:nth-child(3) strong{
+  color:#bfe5ff;text-shadow:0 0 9px rgba(54,153,246,.26);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-action,
+#simulations-pane[data-hzm-view="results"] .hzm-mini-nav-row button{
+  transition:filter .16s ease,box-shadow .16s ease;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-action:hover:not(:disabled),
+#simulations-pane[data-hzm-view="results"] .hzm-mini-nav-row button:hover{
+  box-shadow:0 0 10px rgba(49,225,248,.24);
+}
+@keyframes hzm-neon-peak{
+  0%,100%{opacity:.36}50%{opacity:.72}
+}
+@media(prefers-reduced-motion:reduce){
+  #simulations-pane[data-hzm-view="results"] #hzm-plot svg .hzm-peak-halo{
+    animation:none!important;
+  }
+  #simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div,
+  #simulations-pane[data-hzm-view="results"] .hzm-player-row,
+  #simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard .hzm-ref-card{
+    transition:none!important;
+  }
+}
