@@ -65,7 +65,8 @@ function drawChart(data,period,away,home){
    const mid=x(6+i*12),leftEdge=mid-68;
    const explanation="Q"+(i+1)+": "+home+" gospodarze "+fmt(homePts)+" pkt, "+
      away+" goście "+fmt(awayPts)+" pkt. Szacunek warunkowy z 5 000 wyników końcowych, bez osobnego modelu kwart.";
-   return '<g class="hzm-flow-quarter-points" data-flow-quarter-points="'+(i+1)+
+   const picked=period==="all"||period===String(i+1)||(period==="clutch"&&i===3);
+   return '<g class="hzm-flow-quarter-points'+(picked?" selected":"")+'" data-flow-quarter-points="'+(i+1)+
      '" role="group" aria-label="'+esc(explanation)+'">'+
      '<title>'+esc(explanation)+'</title>'+
      '<rect x="'+leftEdge+'" y="21" width="136" height="39" rx="7"/>'+
