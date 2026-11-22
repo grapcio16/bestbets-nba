@@ -2101,7 +2101,7 @@ function showComparisonProfile(game,data,n){
        awayPolygon=$("hzm-compare-polygon-away"),
        homePolygon=$("hzm-compare-polygon-home");
  if(!svg||!empty||!awayPolygon||!homePolygon)return;
- svg.hidden=true;empty.hidden=false;
+ svg.setAttribute("hidden","");empty.hidden=false;
  awayPolygon.setAttribute("points","");
  homePolygon.setAttribute("points","");
  $("hzm-compare-legend-away").textContent=game?.away||"GOŚCIE";
@@ -2135,7 +2135,7 @@ function showComparisonProfile(game,data,n){
  }).join(" ");
  awayPolygon.setAttribute("points",points(away));
  homePolygon.setAttribute("points",points(home));
- svg.hidden=false;empty.hidden=true;
+ svg.removeAttribute("hidden");empty.hidden=true;
 }
 
 function showTeamComparison(game,sim,premium){
