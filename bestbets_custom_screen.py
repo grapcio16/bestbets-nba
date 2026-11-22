@@ -804,6 +804,33 @@ def main() -> None:
         except (ValueError, TypeError, OverflowError):
             return
         is_players = event["type"] == "premium_sim_players"
+        # Explicit manual refresh is limited to a real future fixture and
+        # throttled to once every 180 seconds per session. The ESPN source
+        # refresh is never triggered by an unauthenticated/free visitor.
+        if is_players and event.get("refresh") is True:
+            since = st.session_state.get("bb10_espn_refresh_at", 0.0)
+            now_refresh = time.monotonic()
+            if not since or now_refresh - float(since) >= 180:
+                from bestbets_simulations_canvas import (
+                    _day_for_simulations, _selected_injury_watch, _game_players)
+                selected = next((fixture for fixture in
+                    _day_for_simulations(day).get("games", [])
+                    if str(fixture.get("id")) == game_id), None)
+                start = pd.to_datetime((selected or {}).get("start"),
+                                       utc=True, errors="coerce")
+                if (selected and selected.get("state") == "scheduled"
+                        and pd.notna(start)
+                        and start > pd.Timestamp.now(tz="UTC")):
+                    st.session_state["bb10_espn_refresh_at"] = now_refresh
+                    try:
+                        from sources import injuries
+                        injuries(refresh=True)
+                    except Exception as exc:
+                        import logging
+                        logging.getLogger(__name__).warning(
+                            "ESPN manual refresh failed: %s", type(exc).__name__)
+                    _selected_injury_watch.clear(day, game_id)
+                    _game_players.clear(day, game_id, model_id)
         result = simulation_for_entitled_user(
             day, game_id, players=is_players, model_id=model_id)
         key = "bb10_premium_players" if is_players else "bb10_premium_game"
