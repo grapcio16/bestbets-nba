@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",chartLine:{match:null,away:null,home:null},intervalWidth:20,view:"results",resultTeam:"all",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",chartLine:{match:null,away:null,home:null},intervalWidth:20,view:"results",resultTeam:"all",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null,lastAuth:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -842,7 +842,23 @@ function showChart(sim,game,premium){
   const range=$("hzm-lab-range");
   if(range)range.textContent="Przedział 80%: —";
   const plot=$("hzm-plot");
-  if(!premium?.entitled){plot.innerHTML='<div class="hzm-no-chart"><strong>Rozkład punktów w Premium</strong><span>Wykres meczu i każdej drużyny zostanie odblokowany po aktywacji.</span></div>';return}
+  if(!premium?.entitled){
+    const auth=state.lastAuth||{};
+    const configured=auth.configured===true,role=String(auth.role||"guest");
+    const message=!configured?
+      "Na serwerze nie skonfigurowano logowania kont Premium. Administrator musi włączyć OIDC w Streamlit Cloud Secrets.":
+      role==="free"?
+      "Ta sesja ma rolę FREE. Zaloguj się na konto administratora lub sprawdź przypisanie uprawnień konta w konfiguracji serwera.":
+      "Nie jesteś zalogowany na konto z dostępem Premium. Administrator uzyskuje Premium bez abonamentu po uwierzytelnieniu.";
+    const action=configured&&role==="guest"?"Zaloguj się":
+      "Otwórz Ustawienia konta";
+    plot.innerHTML='<div class="hzm-no-chart hzm-locked-diagnostic" role="status">'+
+      '<strong>Symulacje wymagają uwierzytelnienia</strong>'+
+      '<span>'+esc(message)+'</span>'+
+      '<button id="hzm-sim-auth-action" type="button" class="hzm-sim-auth-action">'+
+      esc(action)+'</button></div>';
+    return;
+  }
   if(!game){plot.innerHTML='<div class="hzm-no-chart">Wybierz spotkanie NBA.</div>';return}
   if(!sim){plot.innerHTML='<div class="hzm-no-chart">Obliczanie symulacji wybranego meczu…</div>';return}
   if(sim.error){plot.innerHTML='<div class="hzm-no-chart">'+esc(sim.error)+'</div>';return}
@@ -1568,8 +1584,9 @@ function showModelBacktest(premium){
  if(typeof report.limitation==="string")note.textContent=report.limitation.slice(0,320)+
    " Bez kursów historycznych ROI pozostaje niedostępne.";
 }
-function render(home,premium){
+function render(home,premium,auth){
   state.lastHome=home;state.lastPremium=premium;
+  if(auth&&typeof auth==="object")state.lastAuth=auth;
   syncModelDropdown();
   syncLabView();
   // Streamlit may deliver its first payload after the user opens the tab.
@@ -1651,7 +1668,9 @@ function render(home,premium){
     ?'conic-gradient(#16e9f6 0 '+Math.min(100,Math.max(0,sim.away_win_pct))+'%,#b15cef '+Math.min(100,Math.max(0,sim.away_win_pct))+'% 100%)'
     :'conic-gradient(#193d5c 0 50%,#351a54 50% 100%)';
   $("hzm-simulation-message").textContent=!premium?.entitled
-    ?"Zweryfikowane Premium wymagane":!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":
+    ?(state.lastAuth?.configured===false?"Logowanie Premium nie jest skonfigurowane":
+      state.lastAuth?.role==="free"?"Konto FREE — sprawdź rolę w Ustawieniach":
+      "Zaloguj się, aby odblokować Premium"):!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":
       sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji · "+modelLabel());
   $("simulations-pane").classList.toggle("hzm-premium-locked",!premium?.entitled);
   if(state.view==="results"||premium?.entitled!==true)showResultsDashboard(game,sim,premium);
@@ -2064,6 +2083,13 @@ function init(api){
     // #hzm-chart-tabs has a dedicated handler; no full-page rerender on team switch.
     if(event.target.closest("#hzm-expand-players")){state.expanded=!state.expanded;render(state.lastHome,state.lastPremium);return}
     if(event.target.closest("#hzm-premium-link")){callbacks?.premium?.()}
+  });
+  $("hzm-plot").addEventListener("click",event=>{
+    if(!event.target.closest?.("#hzm-sim-auth-action"))return;
+    event.preventDefault();
+    if(state.lastAuth?.configured===true&&state.lastAuth?.role==="guest")
+      callbacks?.login?.();
+    else callbacks?.openAccount?.();
   });
   $("simulations-pane").addEventListener("keydown",event=>{
     if(event.key==="Escape" &&
