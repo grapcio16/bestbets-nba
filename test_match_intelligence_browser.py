@@ -5,6 +5,8 @@ from shutil import which
 from playwright.sync_api import sync_playwright
 
 PAGE = (Path(__file__).parent / "bestbets_reference_frontend" / "index.html").as_uri()
+OUT = Path("test-results/premium-match-intelligence")
+OUT.mkdir(parents=True, exist_ok=True)
 
 
 def main():
@@ -25,6 +27,12 @@ def main():
             "away_sample": 25, "home_sample": 24,
             "venue_samples": [10, 12], "rest_days": [2, 1],
             "score_sd_samples": [20, 18], "advanced_available": True,
+            "team_comparison": {
+                "away": {"n10": 10, "wins10": 6, "losses10": 4,
+                         "pts10": 113.4, "allowed10": 109.2},
+                "home": {"n10": 10, "wins10": 7, "losses10": 3,
+                         "pts10": 117.6, "allowed10": 108.5},
+            },
             "warnings": ["Wystarczająca próbka historyczna."],
             "v75_factors": {
                 "venue_away_pts": -1.0, "venue_home_pts": 1.5,
@@ -68,6 +76,24 @@ def main():
         page.locator("#hzm-model-option-research_context_v75").click()
         page.locator("#hzm-lab-tab-intelligence").click()
         assert page.locator("#hzm-intel-panel").is_visible()
+        assert page.locator("#hzm-intel-panel").get_attribute("class").find("premium-v2") != -1
+        assert page.locator("#hzm-intel-away-form").inner_text() == "6 W / 4 L"
+        assert page.locator("#hzm-intel-home-form").inner_text() == "7 W / 3 L"
+        assert page.locator("#hzm-intel-away-scored").inner_text() == "113,4"
+        assert page.locator("#hzm-intel-home-allowed").inner_text() == "108,5"
+        assert page.locator("#hzm-intel-factors-v75").is_visible()
+        assert page.locator("#hzm-intel-factors-info").is_hidden()
+        # Real browser-computed visual styles, not just CSS source assertions.
+        appearance = page.locator("#hzm-intel-panel").evaluate("""el => ({
+          radius: parseFloat(getComputedStyle(el).borderRadius),
+          background: getComputedStyle(el).backgroundImage,
+          columns: getComputedStyle(el.querySelector('.hzm-intel-evidence')).gridTemplateColumns,
+        })""")
+        assert appearance["radius"] >= 12, appearance
+        assert "gradient" in appearance["background"], appearance
+        assert len(appearance["columns"].split(" ")) >= 3, appearance
+        page.screenshot(path=str(OUT / "match-intelligence-v75-desktop.png"), full_page=True)
+
         assert page.locator("#hzm-detail-grid").is_hidden()
         assert page.locator("#hzm-scenario-panel").is_hidden()
         assert page.locator("#hzm-intel-completed").inner_text() == "130"
@@ -97,6 +123,11 @@ def main():
         assert page.locator("#hzm-intel-venue-away").inner_text() == "—"
         assert page.locator("#hzm-intel-total-home").inner_text() == "—"
         assert "V7.4" in page.locator("#hzm-intel-status").inner_text()
+        assert page.locator("#hzm-intel-factors-v75").is_hidden()
+        assert page.locator("#hzm-intel-factors-info").is_visible()
+        assert "nie" in page.locator("#hzm-intel-factors-info-copy").inner_text().lower() or "V7.4" in page.locator("#hzm-intel-factors-info-copy").inner_text()
+        page.screenshot(path=str(OUT / "match-intelligence-v74-desktop.png"), full_page=True)
+
 
         # No Premium -> never retain any model data in Match Intelligence.
         payload["auth"] = {"role": "free"}
@@ -109,6 +140,24 @@ def main():
         assert page.locator("#hzm-intel-source").inner_text() == "—"
         assert page.locator("#hzm-intel-total-home").inner_text() == "—"
         assert "Premium" in page.locator("#hzm-intel-status").inner_text()
+        # Restoring Premium with a fresh V7.5 snapshot must render all new
+        # summary data while narrow viewport stacks the KPI and team cards.
+        payload["auth"] = {"role": "premium"}
+        game["model_id"] = "research_context_v75"
+        game["model_context"] = ctx
+        payload["premium_simulation"]["entitled"] = True
+        payload["premium_simulation"]["game"] = game
+        push()
+        page.locator("#hzm-model-trigger").click()
+        page.locator("#hzm-model-option-research_context_v75").click()
+        page.set_viewport_size({"width": 390, "height": 844})
+        page.locator("#hzm-intel-panel").scroll_into_view_if_needed()
+        assert page.locator("#hzm-intel-team-identity").count() == 0  # class is on children
+        assert page.locator("#hzm-intel-premium-v2").count() == 0  # class, not an ID
+        assert page.locator("#hzm-intel-panel").is_visible()
+        assert page.locator("#hzm-intel-away-form").inner_text() == "6 W / 4 L"
+        assert page.locator("#hzm-intel-factors-v75").is_visible()
+        page.screenshot(path=str(OUT / "match-intelligence-v75-mobile.png"), full_page=True)
         assert not errors, errors
         browser.close()
         print("Match Intelligence: V7.5 factors, V7.4 isolation and Premium gate OK")
