@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from simulation_quarter_shadow import (
-    MODEL_IDS, build_quarter_forecasts, forecast_game_quarters,
+    MODEL_IDS, build_quarter_forecasts, complete_quarter_history, forecast_game_quarters,
     generate_quarter_draws, quarter_performance_metrics)
 from tracker_automation import run_quarter_cycle
 
@@ -124,6 +124,16 @@ class QuarterShadowTest(unittest.TestCase):
         self.assertTrue((metrics["n"] == 1).all())
         self.assertTrue((metrics["team_mae"] >= 0).all())
         self.assertTrue((metrics["brier_3way"] >= 0).all())
+
+
+    def test_settlement_never_grades_overtime_as_regulation_quarters(self):
+        overtime = self.past.iloc[0].copy()
+        overtime["game_id"] = "402912345"
+        overtime["home_score"] = int(overtime["home_score"]) + 11
+        rows = pd.concat([self.past, pd.DataFrame([overtime])], ignore_index=True)
+        eligible = complete_quarter_history(rows, GAME["start_utc"])
+        self.assertEqual(len(eligible), len(self.past))
+        self.assertNotIn("402912345", set(eligible["game_id"].astype(str)))
 
 
     def test_admin_report_compares_identical_finished_games(self):
