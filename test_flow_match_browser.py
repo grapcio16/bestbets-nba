@@ -118,7 +118,7 @@ def check(page):
     assert projected.count() == 4
     assert projected.first.locator(".hzm-flow-q-home").text_content() == "BOS 29,0 pkt"
     assert projected.first.locator(".hzm-flow-q-away").text_content() == "NYK 28,0 pkt"
-    assert "warunkowy" in (projected.first.get_attribute("aria-label") or "").lower()
+    assert "historyczne punkty kwartowe ESPN" in (projected.first.get_attribute("aria-label") or "").lower()
     if page.viewport_size["width"] <= 767:
         plot_sizes = page.locator("#hzm-flow-plot").evaluate(
             "el => ({scroll:el.scrollWidth, client:el.clientWidth, viewport:innerWidth})")
