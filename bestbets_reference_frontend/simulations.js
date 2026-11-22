@@ -1642,6 +1642,10 @@ function showScenario(game,sim,premium){
 
 /* The selected fixture roster is informational. Never turn a roster
    membership or an unverified OUT/DTD status into projected production. */
+function minuteNameKey(name){
+ return String(name||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"")
+   .toLowerCase().replace(/[^a-z0-9]/g,"");
+}
 function minuteCanProject(p,game){
  return !!p&&p.availability!=="Out"&&[game?.away,game?.home].includes(p.team)&&
   Number.isInteger(Number(p.minutes_sample))&&Number(p.minutes_sample)>=3&&
@@ -1657,12 +1661,12 @@ function minuteRosterRows(game,players){
  const seen=new Set();
  return catalog.filter(p=>p&&typeof p.name==="string"&&p.name.trim()&&
    [game?.away,game?.home].includes(p.team)).filter(p=>{
-     const key=p.team+"|"+p.name.toLocaleLowerCase("pl-PL").trim();
+     const key=p.team+"|"+minuteNameKey(p.name);
      if(seen.has(key))return false;seen.add(key);return true;
    }).map(p=>{
      const i=Number.isInteger(p.projection_index)&&p.projection_index>=0&&
        projections[p.projection_index]?.team===p.team &&
-       projections[p.projection_index]?.name===p.name
+       minuteNameKey(projections[p.projection_index]?.name)===minuteNameKey(p.name)
        ?p.projection_index:-1;
      const model=i>=0?projections[i]:null;
      const possible=minuteCanProject(model,game);
@@ -1679,10 +1683,11 @@ function renderMinutePicker(game,players,allowed){
  const rows=allowed?minuteRosterRows(game,players):[];
  const selected=players?.players?.[state.minuteIndex];
  const caption=$("hzm-minute-picker-value");
- if(caption)caption.textContent=state.minuteUnavailable
+ if(caption)caption.textContent=!allowed?"Wybierz przyszły mecz":
+   state.minuteUnavailable
   ?state.minuteUnavailable.name+" · "+state.minuteUnavailable.team
   :selected?.name?selected.name+" · "+selected.team:
-   !allowed?"Wybierz przyszły mecz":"Brak dostępnych zawodników";
+   "Brak dostępnych zawodników";
  trigger.disabled=!allowed||!rows.length;
  menu.hidden=trigger.disabled||!state.minuteMenuOpen;
  trigger.setAttribute("aria-expanded",String(!menu.hidden));
@@ -1731,6 +1736,7 @@ function renderMinutePicker(game,players,allowed){
 }
 function closeMinutePicker(focus=false){
  state.minuteMenuOpen=false;
+ $("hzm-minute-panel")?.classList.remove("menu-open");
  const menu=$("hzm-minute-picker-menu"),trigger=$("hzm-minute-picker-trigger");
  if(menu)menu.hidden=true;
  if(trigger)trigger.setAttribute("aria-expanded","false");
@@ -1752,6 +1758,8 @@ function showPlayerMinutes(game,players,premium){
  const validGame=game?.state==="scheduled"&&Date.parse(game?.start||"")>Date.now();
  const entitled=premium?.entitled===true;
  const allowed=entitled&&validGame;
+ if(!allowed){state.minuteMenuOpen=false;state.minuteUnavailable=null}
+ $("hzm-minute-panel")?.classList.toggle("menu-open",state.minuteMenuOpen);
  const list=allowed&&Array.isArray(players?.players)?players.players:[];
  const validMetric=p=>safeProjection(p?.pts)!==null&&safeProjection(p?.reb)!==null&&safeProjection(p?.ast)!==null;
  const eligible=list.map((p,i)=>({p,i})).filter(x=>minuteCanProject(x.p,game));
@@ -2487,7 +2495,8 @@ function init(api){
     const team=String(item.dataset.hzmMinuteTeamCode||"");
     if(![game?.away,game?.home].includes(team)||!name)return;
     const projected=Number.isInteger(i)&&i>=0&&
-      players.players?.[i]?.name===name&&players.players?.[i]?.team===team?
+      minuteNameKey(players.players?.[i]?.name)===minuteNameKey(name)&&
+      players.players?.[i]?.team===team?
       players.players[i]:null;
     if(minuteCanProject(projected,game)){
       state.minuteIndex=i;state.minuteUnavailable=null;
