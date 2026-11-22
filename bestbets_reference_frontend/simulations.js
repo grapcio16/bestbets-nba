@@ -353,6 +353,7 @@ function showChart(sim,game,premium){
   $("hzm-home-average").textContent=sim&&!sim.error?fmt(sim.home_points):"—";
   $("hzm-total-average").textContent=sim&&!sim.error?fmt(sim.total_points):"—";
   const code=state.chart==="match"?"MECZ":state.chart==="away"?game?.away:game?.home;
+  const heading=$("hzm-chart-heading");if(heading)heading.textContent=state.chart==="match"?"Rozkład punktów meczu":"Rozkład punktów "+(code||"drużyny");
   $("hzm-chart-context").textContent=(code||"NBA")+" · 5 000 symulacji · "+modelLabel();
   $("hzm-chart-source").textContent="Średnie wyłącznie z 5 000 symulacji; model eksperymentalny.";
   const range=$("hzm-lab-range");
