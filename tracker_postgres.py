@@ -86,6 +86,32 @@ CREATE TABLE IF NOT EXISTS bestbets_player_forecasts (
 CREATE INDEX IF NOT EXISTS bestbets_player_forecasts_start
  ON bestbets_player_forecasts(start_utc);
 """
+QUARTER_DDL = """
+CREATE TABLE IF NOT EXISTS bestbets_quarter_forecasts (
+ game_id TEXT NOT NULL,
+ model_id TEXT NOT NULL,
+ quarter SMALLINT NOT NULL CHECK (quarter BETWEEN 1 AND 4),
+ season TEXT NOT NULL,
+ forecast_time_utc TIMESTAMPTZ NOT NULL,
+ start_utc TIMESTAMPTZ NOT NULL,
+ away TEXT NOT NULL,
+ home TEXT NOT NULL,
+ away_points DOUBLE PRECISION NOT NULL,
+ home_points DOUBLE PRECISION NOT NULL,
+ away_win_pct DOUBLE PRECISION NOT NULL,
+ home_win_pct DOUBLE PRECISION NOT NULL,
+ tie_pct DOUBLE PRECISION NOT NULL,
+ away_sample INTEGER NOT NULL,
+ home_sample INTEGER NOT NULL,
+ source TEXT NOT NULL,
+ away_actual SMALLINT,
+ home_actual SMALLINT,
+ settled_at_utc TIMESTAMPTZ,
+ PRIMARY KEY (game_id,model_id,quarter)
+);
+CREATE INDEX IF NOT EXISTS bestbets_quarter_forecasts_start
+ ON bestbets_quarter_forecasts(season, start_utc);
+"""
 RUN_MONITOR_DDL = """
 CREATE TABLE IF NOT EXISTS bestbets_tracker_runs (
  run_id BIGSERIAL PRIMARY KEY,
@@ -114,7 +140,7 @@ def connect(url):
 
 
 def init_remote(conn):
-    for ddl in (POSTGRES_DDL, MODEL_DDL, PLAYER_DDL, RUN_MONITOR_DDL):
+    for ddl in (POSTGRES_DDL, MODEL_DDL, PLAYER_DDL, QUARTER_DDL, RUN_MONITOR_DDL):
         for statement in ddl.split(";"):
             if statement.strip():
                 conn.execute(statement)
@@ -448,3 +474,133 @@ def remote_tracker_status(url, season):
             },
         })
     return result
+
+
+def remote_store_quarters(url, season, forecasts, captured_at=None):
+    """Freeze only complete quartet predictions matching an archived parent."""
+    from math import isfinite
+    from simulation_quarter_shadow import MODEL_IDS
+
+    stamp = utc_timestamp(captured_at if captured_at is not None
+                          else datetime.now(timezone.utc))
+    groups = {}
+    for f in forecasts:
+        key = (str(f.get("game_id") or ""), str(f.get("base_model_id") or ""))
+        groups.setdefault(key, []).append(f)
+
+    saved = 0
+    with connect(url) as conn:
+        init_remote(conn)
+        valid_groups = set()
+        for (gid, parent_id), items in groups.items():
+            if (parent_id not in MODEL_IDS or len(items) != 4
+                    or {item.get("quarter") for item in items} != {1, 2, 3, 4}
+                    or not gid.isdecimal()):
+                continue
+            # The parent complete-game forecast must already be frozen.
+            parent = conn.execute("""
+                SELECT home_points,away_points,start_utc,home,away
+                FROM bestbets_forecasts_by_model
+                WHERE game_id=%s AND model_id=%s
+            """, (gid, parent_id)).fetchone()
+            if parent is None:
+                continue
+            try:
+                home_total = sum(float(item["home_points"]) for item in items)
+                away_total = sum(float(item["away_points"]) for item in items)
+                start = utc_timestamp(items[0]["start_utc"])
+                if (start <= stamp or start != utc_timestamp(parent[2])
+                        or any(item.get("model_id") != MODEL_IDS[parent_id]
+                               or str(item.get("home")) != str(parent[3])
+                               or str(item.get("away")) != str(parent[4])
+                               for item in items)
+                        or abs(home_total - float(parent[0])) > .15
+                        or abs(away_total - float(parent[1])) > .15):
+                    continue
+            except (KeyError, ValueError, TypeError, OverflowError):
+                continue
+            valid_groups.add((gid, parent_id))
+
+        for f in forecasts:
+            try:
+                gid = str(f["game_id"])
+                base_id = str(f["base_model_id"])
+                if (gid, base_id) not in valid_groups:
+                    continue
+                start = utc_timestamp(f["start_utc"])
+                q = int(f["quarter"])
+                home, away = float(f["home_points"]), float(f["away_points"])
+                hp, ap, tie = (float(f[key]) for key in
+                               ("home_win_pct", "away_win_pct", "tie_pct"))
+                n_h, n_a = int(f["home_sample"]), int(f["away_sample"])
+                if (not gid.isdecimal() or len(gid) > 20 or start <= stamp
+                        or f.get("model_id") != MODEL_IDS[base_id] or not 1 <= q <= 4
+                        or not all(isfinite(x) for x in (home, away, hp, ap, tie))
+                        or not 8 <= home <= 55 or not 8 <= away <= 55
+                        or min(hp, ap, tie) < 0 or max(hp, ap, tie) > 100
+                        or abs(hp + ap + tie - 100) > .15
+                        or min(n_h, n_a) < 6):
+                    continue
+                cur = conn.execute("""
+                    INSERT INTO bestbets_quarter_forecasts
+                    (game_id,model_id,quarter,season,forecast_time_utc,start_utc,
+                     away,home,away_points,home_points,away_win_pct,home_win_pct,
+                     tie_pct,away_sample,home_sample,source)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT (game_id,model_id,quarter) DO NOTHING
+                """, (gid,str(f["model_id"]),q,str(season),stamp.to_pydatetime(),
+                      start.to_pydatetime(),str(f["away"]),str(f["home"]),
+                      away,home,ap,hp,tie,n_a,n_h,str(f["source"])[:220]))
+                saved += cur.rowcount
+            except (ValueError, TypeError, KeyError, OverflowError):
+                continue
+        conn.commit()
+    return {"saved": saved, "duplicates_or_rejected": len(forecasts)-saved}
+
+
+def remote_settle_quarters(url, completed_games, settled_at=None):
+    """Grade only actual complete, non-overtime regulation line scores."""
+    from simulation_quarter_shadow import complete_quarter_history
+
+    stamp = utc_timestamp(settled_at if settled_at is not None
+                          else datetime.now(timezone.utc))
+    verified = complete_quarter_history(completed_games, stamp)
+    if verified.empty:
+        return 0
+    settled = 0
+    with connect(url) as conn:
+        init_remote(conn)
+        for game in verified.to_dict("records"):
+            gid = str(game.get("game_id") or "")
+            if not gid.isdecimal():
+                continue
+            for q in range(1, 5):
+                away = int(game[f"away_q{q}"])
+                home = int(game[f"home_q{q}"])
+                cur = conn.execute("""
+                    UPDATE bestbets_quarter_forecasts
+                    SET away_actual=%s,home_actual=%s,settled_at_utc=%s
+                    WHERE game_id=%s AND quarter=%s AND
+                    away_actual IS NULL AND home_actual IS NULL
+                    AND forecast_time_utc<start_utc AND start_utc<=%s
+                """, (away,home,stamp.to_pydatetime(),gid,q,stamp.to_pydatetime()))
+                settled += cur.rowcount
+        conn.commit()
+    return settled
+
+
+def remote_read_quarters(url, season=None):
+    from psycopg.rows import dict_row
+
+    with connect(url) as conn:
+        init_remote(conn)
+        with conn.cursor(row_factory=dict_row) as cur:
+            if season is not None:
+                cur.execute("""SELECT * FROM bestbets_quarter_forecasts
+                    WHERE season=%s ORDER BY start_utc DESC,quarter""",
+                    (str(season),))
+            else:
+                cur.execute("""SELECT * FROM bestbets_quarter_forecasts
+                    ORDER BY start_utc DESC,quarter""")
+            records = cur.fetchall()
+    return pd.DataFrame(records)

@@ -602,8 +602,8 @@ def main() -> None:
         if now - st.session_state.get("bb10_admin_report_at", 0.0) < 30:
             return
         try:
-            from tracker_storage import tracker_backend, read, read_players
-            from admin_model_performance import build_model_report
+            from tracker_storage import tracker_backend, read, read_players, read_quarters
+            from admin_model_performance import build_model_report, build_quarter_report
             from player_simulation_tracker import player_model_report
             backend = tracker_backend()
             if not backend["remote"]:
@@ -622,6 +622,14 @@ def main() -> None:
                     # the existing team-model report remains fully usable.
                     result["player_tracking"] = {
                         "models": [], "error": "Nie udało się odczytać archiwum zawodników."}
+                try:
+                    result["quarter_tracking"] = build_quarter_report(
+                        read_quarters(season=SEASON, config=backend))
+                except (ValueError, TypeError, KeyError, RuntimeError, OSError,
+                        ConnectionError, TimeoutError):
+                    result["quarter_tracking"] = {
+                        "models": [], "paired": [], "paired_games": 0,
+                        "error": "Nie udało się odczytać archiwum kwart."}
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning(

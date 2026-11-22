@@ -97,3 +97,28 @@ def tracker_status(season,config=None):
         raise RuntimeError("Monitoring trackera wymaga trwałego PostgreSQL")
     from tracker_postgres import remote_tracker_status
     return remote_tracker_status(cfg["url"],season)
+
+
+def save_quarters(forecasts, season, config=None):
+    """Quarter shadow predictions require durable append-only storage."""
+    cfg = config or tracker_backend()
+    if not cfg["remote"]:
+        raise RuntimeError("Archiwum prognoz kwart wymaga PostgreSQL")
+    from tracker_postgres import remote_store_quarters
+    return remote_store_quarters(cfg["url"], season, forecasts)
+
+
+def settle_quarters(completed, config=None):
+    cfg = config or tracker_backend()
+    if not cfg["remote"]:
+        raise RuntimeError("Rozliczanie kwart wymaga PostgreSQL")
+    from tracker_postgres import remote_settle_quarters
+    return remote_settle_quarters(cfg["url"], completed)
+
+
+def read_quarters(season=None, config=None):
+    cfg = config or tracker_backend()
+    if not cfg["remote"]:
+        raise RuntimeError("Raport kwart wymaga PostgreSQL")
+    from tracker_postgres import remote_read_quarters
+    return remote_read_quarters(cfg["url"], season)

@@ -1,0 +1,38 @@
+name: Quarter shadow model QA
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quarter-shadow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install research test dependencies
+        run: python -m pip install -q numpy pandas requests streamlit 'psycopg[binary]>=3.2,<4'
+      - name: Syntax of research model and tracker
+        run: python -m py_compile simulation_quarter_shadow.py tracker_automation.py tracker_postgres.py tracker_storage.py admin_model_performance.py bestbets_custom_screen.py
+      - name: Verify coupled Q1-Q4 predictions and tracker regressions
+        run: python -m unittest -v test_simulation_quarter_shadow.py test_simulation_quarter_model.py test_v78_tracker.py test_tracker_v720.py
+      - name: Admin report frontend syntax
+        run: node --check bestbets_reference_frontend/admin_model_performance.js
+      - name: Public Flow remains disabled
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          html = Path('bestbets_reference_frontend/index.html').read_text(encoding='utf-8')
+          js = Path('bestbets_reference_frontend/simulations.js').read_text(encoding='utf-8')
+          assert 'id="hzm-lab-tab-flow"' in html
+          assert 'aria-hidden="true" tabindex="-1" hidden disabled' in html
+          assert 'if(!researchTab||researchTab.hidden||researchTab.disabled)return;' in js
+          print("Flow is hidden in the public simulation UI.")
+          PY
