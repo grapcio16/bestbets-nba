@@ -446,13 +446,19 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
         historical, historical_logs, tipoff,
         (str(match["away"]), str(match["home"]))
     )
+    # Injury Watch remains useful even when individual player projections
+    # fail; only authenticated, selected-match ESPN data leave the server.
+    injury_watch = (_selected_injury_watch(day, game_id)
+                    if match.get("state") == "scheduled"
+                    else {"fresh": False, "rows": [], "reason": "Mecz zakończony."})
     if table is None or table.empty:
-        return {"players": [], "error": "ESPN nie dostarczył projekcji graczy dla tego spotkania."}
+        return {"players": [], "injury_watch": injury_watch,
+                "error": "ESPN nie dostarczył projekcji graczy dla tego spotkania."}
     required = {"Zawodnik", "Drużyna", "PTS", "REB", "AST"}
     if not required.issubset(table.columns):
-        return {"players": [], "error": "Źródło nie dostarczyło pełnych statystyk zawodników."}
+        return {"players": [], "injury_watch": injury_watch,
+                "error": "Źródło nie dostarczyło pełnych statystyk zawodników."}
     from core import norm_name
-    injury_watch = _selected_injury_watch(day, game_id) if match.get("state") == "scheduled" else {"fresh": False, "rows": []}
     injury_lookup = {(item["team"], norm_name(item["name"])): item["status"]
                      for item in injury_watch.get("rows", [])}
     players = []
