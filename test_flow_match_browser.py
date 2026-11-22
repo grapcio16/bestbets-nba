@@ -103,6 +103,15 @@ def check(page):
     assert page.locator("#hzm-hero-home-points").inner_text() == "114,5"
     assert page.locator("#hzm-flow-plot svg").count() == 1
     assert page.locator(".hzm-flow-quarter-row").count() == 4
+    projected = page.locator("#hzm-flow-plot svg [data-flow-quarter-points]")
+    assert projected.count() == 4
+    assert projected.first.locator(".hzm-flow-q-home").text_content() == "BOS 29,0 pkt"
+    assert projected.first.locator(".hzm-flow-q-away").text_content() == "NYK 28,0 pkt"
+    assert "warunkowy" in (projected.first.get_attribute("aria-label") or "").lower()
+    if page.viewport_size["width"] <= 767:
+        plot_sizes = page.locator("#hzm-flow-plot").evaluate(
+            "el => ({scroll:el.scrollWidth, client:el.clientWidth, viewport:innerWidth})")
+        assert plot_sizes["scroll"] > plot_sizes["client"], plot_sizes
     assert "32,0" in page.locator("#hzm-flow-roster").inner_text()
     assert "Synthetic Away" in page.locator("#hzm-flow-roster").inner_text()
     assert "52,3%" in page.locator("#hzm-flow-runrisk").inner_text()
@@ -116,6 +125,9 @@ def check(page):
 
     page.locator('[data-flow-quarter="3"]').click()
     assert page.locator("#hzm-flow-selected-period").inner_text().startswith("Q3")
+    assert page.locator("#hzm-flow-plot svg [data-flow-quarter-points].selected").count() == 1
+    assert page.locator("#hzm-flow-plot svg [data-flow-quarter-points].selected").get_attribute(
+        "data-flow-quarter-points") == "3"
     page.evaluate("""() => {
       window.__flowActions=[];
       window.addEventListener('message',e=>{
@@ -132,11 +144,14 @@ def check(page):
     page.wait_for_function("window.__flowActions.length===2")
     assert page.evaluate("window.__flowActions[1].type") == "premium_sim_flow_export"
 
+    scenario_flow = flow()
+    scenario_flow["quarters"][0]["home_mean"] = 33.5
+    scenario_flow["quarters"][0]["away_mean"] = 30.1
     data["premium_simulation"]["scenario"] = {
         "date": "2026-11-23", "game_id": "401999555",
         "model_id": "research_form_v74", "pace_pct": 0,
         "off_away_pct": 0, "off_home_pct": 0,
-        "scenario_flow": flow(),
+        "scenario_flow": scenario_flow,
         "scenario": {"away_points": 116.0, "home_points": 120.0,
                      "total_points": 236.0, "away_win_pct": 43.0,
                      "home_win_pct": 57.0},
@@ -147,6 +162,11 @@ def check(page):
     assert page.locator("#hzm-flow-scenario").is_enabled()
     page.locator("#hzm-flow-scenario").click()
     assert page.locator("#hzm-flow-scenario").get_attribute("aria-pressed") == "true"
+    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-home').text_content() == "BOS 33,5 pkt"
+    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-away').text_content() == "NYK 30,1 pkt"
+    page.locator("#hzm-flow-base").click()
+    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-home').text_content() == "BOS 29,0 pkt"
+    page.locator("#hzm-flow-scenario").click()
     page.locator("#hzm-flow-save").click()
     page.wait_for_function("window.__flowActions.length===3")
     assert page.evaluate("window.__flowActions[2].variant") == "scenario"

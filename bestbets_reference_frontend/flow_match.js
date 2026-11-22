@@ -45,7 +45,7 @@ function drawChart(data,period,away,home){
    data.sample_path.map(r=>({minute:Number(r.minute),diff:-Number(r.away_minus_home)})):avg;
  const maxAbs=Math.max(5,...series.map(p=>Math.abs(p.diff)),...avg.map(p=>Math.abs(p.diff)));
  const limit=Math.max(10,Math.ceil((maxAbs+2)/5)*5);
- const left=48,top=25,right=882,bottom=198,center=(top+bottom)/2;
+ const left=48,top=66,right=882,bottom=198,center=(top+bottom)/2;
  const x=m=>left+Number(m)/48*(right-left);
  const y=v=>center-Number(v)/limit*(bottom-top)/2;
  const line=pts=>pts.map((p,i)=>(i?"L ":"M ")+x(p.minute).toFixed(1)+" "+y(p.diff).toFixed(1)).join(" ");
@@ -59,6 +59,27 @@ function drawChart(data,period,away,home){
    (m%6===0?m:"")+'</text>').join("");
  const quarter=[0,1,2,3].map(i=>
    '<text class="flow-quarter" x="'+x(6+12*i)+'" y="14" text-anchor="middle">Q'+(i+1)+'</text>').join("");
+ // Conditional quarter point estimates from the exact same 5,000 final-score
+ // Monte Carlo draws. Not calibrated quarter forecasts or NBA play-by-play.
+ const quarterPoints=[0,1,2,3].map(i=>{
+   const q=Array.isArray(data.quarters)?data.quarters[i]:null;
+   const homePts=number(q?.home_mean),awayPts=number(q?.away_mean);
+   if(Number(q?.quarter)!==i+1||homePts===null||awayPts===null||
+      homePts<0||awayPts<0||homePts>100||awayPts>100)return "";
+   const mid=x(6+i*12),leftEdge=mid-68;
+   const picked=period==="all"||period===String(i+1)||(period==="clutch"&&i===3);
+   const note="Q"+(i+1)+": "+home+" gospodarze "+fmt(homePts)+" pkt, "+
+     away+" goście "+fmt(awayPts)+
+     " pkt. Szacunek warunkowy z 5 000 wyników końcowych, bez osobnego modelu kwart.";
+   return '<g class="hzm-flow-quarter-points'+(picked?" selected":"")+
+     '" data-flow-quarter-points="'+(i+1)+'" role="group" aria-label="'+esc(note)+'">'+
+     '<title>'+esc(note)+'</title>'+
+     '<rect x="'+leftEdge+'" y="21" width="136" height="39" rx="7"/>'+
+     '<text class="hzm-flow-q-home" x="'+mid+'" y="37" text-anchor="middle">'+
+     esc(home)+' '+fmt(homePts)+' pkt</text>'+
+     '<text class="hzm-flow-q-away" x="'+mid+'" y="53" text-anchor="middle">'+
+     esc(away)+' '+fmt(awayPts)+' pkt</text></g>';
+ }).join("");
  const dividers=[12,24,36,42].map(m=>
    '<line x1="'+x(m)+'" x2="'+x(m)+'" y1="'+top+'" y2="'+bottom+
    '" stroke="#7c90bc" stroke-width=".8" stroke-dasharray="4 5" stroke-opacity=".6"/>').join("");
@@ -69,7 +90,7 @@ function drawChart(data,period,away,home){
    '" fill="#c766ff" fill-opacity=".13" stroke="#db8aff" stroke-opacity=".45"/>':'';
  const zone='<rect x="'+x(42)+'" y="'+top+'" width="'+(x(48)-x(42))+
    '" height="'+(bottom-top)+'" fill="#a64dd7" fill-opacity=".09"/>'+
-   '<text x="'+x(45)+'" y="38" class="flow-clutch" text-anchor="middle">CLUTCH</text>';
+   '<text x="'+x(45)+'" y="79" class="flow-clutch" text-anchor="middle">CLUTCH</text>';
  const segments=[];
  for(let i=1;i<series.length;i++){
    const p=series[i-1],q=series[i];
@@ -100,7 +121,7 @@ function drawChart(data,period,away,home){
  return '<svg viewBox="0 0 910 234" role="img" aria-label="'+esc(description)+'">'+
    '<title>'+esc(description)+'</title>'+
    '<defs><filter id="hzm-flow-glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter></defs>'+
-   zone+shaded+fills.join("")+grid+dividers+quarter+marks+
+   zone+shaded+fills.join("")+grid+dividers+quarter+quarterPoints+marks+
    (hasSample?'<path class="flow-mean" d="'+line(avg)+'" fill="none" stroke="#a3c9df" stroke-opacity=".7" stroke-dasharray="5 5" stroke-width="1.5"/>':'')+
    '<g id="hzm-flow-strokes">'+strokes.join("")+'</g>'+
    '<use href="#hzm-flow-strokes" opacity=".45" filter="url(#hzm-flow-glow)"/>'+
