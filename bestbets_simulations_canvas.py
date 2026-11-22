@@ -94,9 +94,14 @@ def _day_for_simulations(day: str):
 
 @st.cache_data(ttl=600, max_entries=4, show_spinner=False)
 def _history_for_simulations(season: str):
-    """Parse the season scoreboards once for concurrent Premium selections."""
+    """Version 2: read season finals WITH verified ESPN regulation Q1–Q4 when available.
+
+    Explicit body change invalidates previously cached schedule-only DataFrames
+    after deploy. Missing quarterly evidence is a known unavailable state.
+    """
     from simulation_sources import historical_espn_results
-    return historical_espn_results(season)
+    history, warning = historical_espn_results(season)
+    return history, warning
 
 
 @st.cache_data(ttl=600, max_entries=90, show_spinner=False)
