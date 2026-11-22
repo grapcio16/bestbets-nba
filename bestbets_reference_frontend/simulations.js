@@ -530,6 +530,68 @@ function bindWindowInterval(){
  });
 }
 
+/* Simulation glossary uses the same viewport-level modal and blurred
+   backdrop as Centrum. No changes to distributions or Monte Carlo logic. */
+function bindDeviationInfo(){
+ const trigger=$("hzm-sd-info-trigger");
+ const backdrop=$("hzm-sd-info-backdrop");
+ const dialog=$("hzm-sd-info-dialog");
+ if(!trigger||!backdrop||!dialog)return;
+ let returnTo=null;
+ function closeDeviation(restore=true){
+   if(backdrop.hidden)return;
+   backdrop.hidden=true;
+   trigger.setAttribute("aria-expanded","false");
+   if(restore)(returnTo?.isConnected?returnTo:trigger).focus({preventScroll:true});
+ }
+ function openDeviation(){
+   const {game,sim}=selectedChartContext();
+   const paid=state.lastPremium?.entitled===true&&game&&sim&&!sim.error;
+   const dist=paid?sim.distributions?.[state.chart]:null;
+   const bins=chartBins(dist);
+   const mean=dist?.average==null?NaN:Number(dist.average);
+   const total=bins.reduce((sum,row)=>sum+row.p,0);
+   const variance=Number.isFinite(mean)&&total>0?
+     bins.reduce((sum,row)=>sum+Math.pow(row.x+2.5-mean,2)*row.p,0)/total:null;
+   const sd=variance!==null?Math.sqrt(variance):null;
+   const label=state.chart==="away"?game?.away:state.chart==="home"?game?.home:"MECZ";
+   $("hzm-sd-info-chart").textContent=label||"MECZ";
+   $("hzm-sd-info-mean").textContent=Number.isFinite(mean)&&sd!==null?fmt(mean)+" pkt":"—";
+   $("hzm-sd-info-deviation").textContent=sd!==null?"±"+fmt(sd)+" pkt":"—";
+   $("hzm-sd-info-interval").textContent=sd!==null?fmt(mean-sd)+"–"+fmt(mean+sd)+" pkt":"—";
+   returnTo=document.activeElement;
+   backdrop.hidden=false;
+   trigger.setAttribute("aria-expanded","true");
+   $("hzm-sd-info-close")?.focus({preventScroll:true});
+ }
+ trigger.addEventListener("click",event=>{
+   event.preventDefault();
+   event.stopPropagation();
+   if(backdrop.hidden)openDeviation();
+   else closeDeviation();
+ });
+ for(const id of ["hzm-sd-info-close","hzm-sd-info-ok"]){
+   $(id)?.addEventListener("click",()=>closeDeviation());
+ }
+ backdrop.addEventListener("click",event=>{
+   if(event.target===backdrop)closeDeviation();
+ });
+ document.addEventListener("keydown",event=>{
+   if(backdrop.hidden)return;
+   if(event.key==="Escape"){event.preventDefault();closeDeviation();return}
+   if(event.key!=="Tab")return;
+   const focusable=Array.from(dialog.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),[tabindex]:not([tabindex="-1"])'))
+     .filter(node=>!node.hidden);
+   if(!focusable.length){event.preventDefault();dialog.focus();return}
+   const first=focusable[0],last=focusable[focusable.length-1];
+   if(event.shiftKey&&(document.activeElement===first||!dialog.contains(document.activeElement))){
+     event.preventDefault();last.focus();
+   }else if(!event.shiftKey&&(document.activeElement===last||!dialog.contains(document.activeElement))){
+     event.preventDefault();first.focus();
+   }
+ });
+}
+
 function bindChartInteraction(){
  const plot=$("hzm-plot"),tabs=$("hzm-chart-tabs");
  let activePointer=null;
@@ -1616,6 +1678,7 @@ function init(api){
   callbacks=api;
   bindChartInteraction();
   bindWindowInterval();
+  bindDeviationInfo();
   // Keep the verified ESPN photo optional: network and CDN errors should
   // reveal the local initials fallback, not a broken-image icon.
   $("simulations-pane")?.addEventListener("error",event=>{
