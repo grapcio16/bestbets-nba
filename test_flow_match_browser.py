@@ -97,6 +97,9 @@ def check(page):
     page.locator("#hzm-lab-tab-flow").scroll_into_view_if_needed()
     page.locator("#hzm-lab-tab-flow").click()
     assert page.locator("#hzm-flow-panel").is_visible()
+    # The top hero must refresh on Flow, not exclusively Results.
+    assert page.locator("#hzm-hero-away-points").inner_text() == "112,0"
+    assert page.locator("#hzm-hero-home-points").inner_text() == "114,5"
     assert page.locator("#hzm-flow-plot svg").count() == 1
     assert page.locator(".hzm-flow-quarter-row").count() == 4
     assert "32,0" in page.locator("#hzm-flow-roster").inner_text()
@@ -167,6 +170,8 @@ def check(page):
         data)
     assert page.locator("#hzm-flow-save").is_disabled()
     assert page.locator("#hzm-flow-export").is_disabled()
+    assert page.locator("#hzm-hero-away-points").inner_text() == "—"
+    assert page.locator("#hzm-hero-home-points").inner_text() == "—"
     assert page.locator("#hzm-flow-pdf-link").count() == 0
     assert page.locator("#hzm-flow-plot svg").count() == 0
     assert "Premium" in page.locator("#hzm-flow-feedback").inner_text()
