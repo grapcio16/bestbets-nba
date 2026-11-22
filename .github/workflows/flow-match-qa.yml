@@ -28,6 +28,27 @@ jobs:
           node --check bestbets_reference_frontend/simulations.js
       - name: Verify ESPN regulation quarters, no lookahead, 5000-run score preservation and PDF
         run: python -m unittest -v test_simulation_quarter_model test_simulation_flow
+      - name: Diagnose real ESPN four-quarter coverage (non-blocking)
+        run: |
+          python - <<'PY'
+          from sources import http_json, ESPN_SCOREBOARD
+          from simulation_sources import parse_espn_quarter_linescores
+          try:
+              raw = http_json(ESPN_SCOREBOARD,
+                              params={"dates":"202611","limit":500}, timeout=9)
+              events = raw.get("events", [])
+              n_final = sum(bool((e.get("status") or {}).get("type", {}).get("completed"))
+                            for e in events)
+              quarters = parse_espn_quarter_linescores(raw)
+              print("ESPN current month events:", len(events))
+              print("Completed events:", n_final)
+              print("Verified 4-quarter regulation events:", len(quarters))
+              if n_final and not quarters:
+                  print("WARNING: ESPN response contains no Q1-Q4 line scores; "
+                        "production fails closed rather than divides score by four")
+          except Exception as exc:
+              print("ESPN live diagnostic unavailable:", type(exc).__name__, str(exc)[:180])
+          PY
       - name: Chromium Premium Flow smoke on desktop and mobile
         run: python test_flow_match_browser.py
       - name: Responsive visual reachability for seven Premium modules
