@@ -1430,3 +1430,140 @@
   }
   .hzm-sd-info-backdrop .bc-free-info-foot button{width:100%}
 }
+
+
+/* 2026-11-22 — Simulation Lab HERO neon arena atmosphere.
+   Visual-only, matching the approved cyan (away) / violet (home) mock.
+   No changes to results, model logic, widths, or hit targets. */
+#simulations-pane .hzm-hero{
+  isolation:isolate;
+  border-color:#7075d2!important;
+  background:
+    radial-gradient(ellipse 32% 105% at 3% 52%,rgba(0,242,244,.26),transparent 82%),
+    radial-gradient(ellipse 36% 120% at 95% 68%,rgba(183,56,246,.37),transparent 79%),
+    radial-gradient(ellipse 35% 70% at 52% -15%,rgba(103,67,239,.25),transparent 75%),
+    linear-gradient(110deg,#071b35 0%,#102049 33%,#17143a 61%,#20113d 100%)!important;
+  box-shadow:
+    inset 0 1px rgba(212,251,255,.31),
+    inset 0 -1px rgba(97,61,228,.21),
+    0 0 16px rgba(15,214,245,.17),
+    0 0 23px rgba(152,64,239,.21)!important;
+  transition:border-color .22s ease,box-shadow .22s ease;
+}
+#simulations-pane .hzm-hero::before{
+  content:"";position:absolute;z-index:3;
+  inset:0 0 auto 0!important;
+  left:0!important;right:0!important;top:0!important;bottom:auto!important;
+  width:100%!important;height:2px!important;
+  border:0!important;transform:none!important;pointer-events:none;
+  background:linear-gradient(90deg,
+    #11f4f4 0%,#52f7ff 14%,#1aadd4 34%,#6b4be0 57%,#e15fff 79%,#e76fff 100%)!important;
+  background-size:200% 100%!important;
+  box-shadow:0 0 8px rgba(38,232,252,.42),0 0 15px rgba(176,72,249,.32);
+  animation:hzm-hero-top-glint 7s ease-in-out infinite alternate;
+}
+#simulations-pane .hzm-hero::after{
+  content:"";position:absolute;z-index:0;inset:0;pointer-events:none;
+  background:
+    linear-gradient(116deg,transparent 8%,rgba(36,230,251,.08) 18%,transparent 30%),
+    linear-gradient(137deg,transparent 16%,rgba(19,143,255,.13) 35%,transparent 47%),
+    linear-gradient(44deg,transparent 52%,rgba(143,70,255,.12) 70%,transparent 79%),
+    linear-gradient(155deg,transparent 67%,rgba(228,80,255,.09) 84%,transparent 92%);
+  opacity:.85;
+  mix-blend-mode:screen;
+  animation:hzm-hero-beams 8s ease-in-out infinite alternate;
+}
+#simulations-pane .hzm-hero .hzm-match-identity,
+#simulations-pane .hzm-hero .hzm-projected,
+#simulations-pane .hzm-hero .hzm-win{
+  z-index:1;isolation:isolate;
+}
+#simulations-pane .hzm-hero .hzm-match-identity::before{
+  content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 23% 55% at 22% 54%,rgba(5,242,239,.23),transparent 95%),
+    radial-gradient(ellipse 27% 55% at 83% 51%,rgba(179,65,248,.26),transparent 98%),
+    repeating-conic-gradient(from -35deg at 52% 49%,
+      transparent 0deg 12deg,rgba(143,113,250,.028) 13deg 15deg,
+      transparent 16deg 33deg);
+}
+#simulations-pane .hzm-hero .hzm-projected{
+  background:linear-gradient(90deg,rgba(13,45,82,.10),rgba(91,62,163,.09),rgba(20,28,70,.11));
+  border-left-color:rgba(82,165,223,.38)!important;
+  border-right-color:rgba(167,100,235,.39)!important;
+}
+#simulations-pane .hzm-hero .hzm-projected>strong{
+  color:#fff;text-shadow:
+    0 0 12px rgba(191,117,255,.48),
+    0 0 22px rgba(61,182,255,.22),
+    0 2px 0 rgba(5,8,29,.38)!important;
+}
+#simulations-pane .hzm-hero .hzm-win{
+  background:
+    radial-gradient(ellipse 87% 100% at 80% 67%,rgba(183,71,248,.15),transparent 77%);
+}
+#simulations-pane .hzm-hero .hzm-hero-team .hzm-mark{
+  border-color:#2bf8fc!important;
+  box-shadow:
+    0 0 0 2px rgba(15,240,254,.13),
+    0 0 12px rgba(4,242,245,.55),
+    0 0 24px rgba(15,205,253,.24),
+    inset 0 0 12px rgba(25,186,251,.18)!important;
+  filter:drop-shadow(0 0 3px rgba(30,226,249,.28));
+}
+#simulations-pane .hzm-hero .hzm-hero-team.home .hzm-mark{
+  border-color:#cf79ff!important;
+  box-shadow:
+    0 0 0 2px rgba(188,70,251,.13),
+    0 0 12px rgba(207,88,255,.52),
+    0 0 24px rgba(178,62,255,.22),
+    inset 0 0 12px rgba(184,87,255,.19)!important;
+  filter:drop-shadow(0 0 3px rgba(187,87,255,.27));
+}
+#simulations-pane .hzm-hero .hzm-versus-divider{
+  color:#fbf0ff!important;
+  text-shadow:
+    0 0 8px rgba(245,179,255,.89),
+    0 0 19px rgba(142,64,250,.62),
+    0 0 30px rgba(93,160,255,.29)!important;
+}
+#simulations-pane .hzm-hero .hzm-donut{
+  box-shadow:
+    0 0 12px rgba(161,70,247,.27),
+    0 0 22px rgba(22,221,244,.12),
+    inset 0 0 13px rgba(15,21,48,.25)!important;
+}
+#simulations-pane .hzm-hero .hzm-prob-label:not(.violet) strong{
+  text-shadow:0 0 10px rgba(18,232,250,.29);
+}
+#simulations-pane .hzm-hero .hzm-prob-label.violet strong{
+  text-shadow:0 0 11px rgba(202,102,252,.37);
+}
+#simulations-pane .hzm-hero .hzm-eyebrow{
+  text-shadow:0 0 9px rgba(17,232,250,.26);
+}
+@keyframes hzm-hero-top-glint{
+  from{background-position:0% 50%;opacity:.87}
+  to{background-position:100% 50%;opacity:1}
+}
+@keyframes hzm-hero-beams{
+  from{opacity:.56}
+  to{opacity:.88}
+}
+@media(hover:hover){
+  #simulations-pane .hzm-hero:hover{
+    border-color:#8b8ce8!important;
+    box-shadow:
+      inset 0 1px rgba(220,250,255,.33),
+      inset 0 -1px rgba(132,87,238,.26),
+      0 0 20px rgba(27,221,249,.22),
+      0 0 29px rgba(164,78,248,.24)!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  #simulations-pane .hzm-hero,
+  #simulations-pane .hzm-hero::before,
+  #simulations-pane .hzm-hero::after{
+    animation:none!important;transition:none!important;
+  }
+}
