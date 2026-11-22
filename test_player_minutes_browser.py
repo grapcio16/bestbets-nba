@@ -44,6 +44,7 @@ def main():
             "brand": "", "auth": {"role": "premium"},
             "home": {
                 "calendar_today": day,
+                "calendar_requested_day": day,
                 "calendar_loaded_days": [day],
                 "calendar_games": [fixture],
             },
