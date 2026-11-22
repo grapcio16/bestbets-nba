@@ -171,6 +171,8 @@ def conditional_flow(away_scores, home_scores, *, game_id: str, model_id: str,
     quarters = []
     for q in range(4):
         m = np.sum(delta[:, q*2:q*2+2], axis=1)
+        away_qdraw = np.sum(away[:, q*2:q*2+2], axis=1)
+        home_qdraw = np.sum(home[:, q*2:q*2+2], axis=1)
         quarters.append({
             "quarter": q + 1,
             "away_outscores_pct": round(float(np.mean(m < 0))*100, 1)
@@ -178,11 +180,15 @@ def conditional_flow(away_scores, home_scores, *, game_id: str, model_id: str,
             "home_outscores_pct": round(float(np.mean(m > 0))*100, 1)
                                    if observed else None,
             "tie_pct": round(float(np.mean(m == 0))*100, 1) if observed else None,
-            "away_mean": round(float(np.mean(
-                np.sum(away[:, q*2:q*2+2], axis=1))), 2)
+            "away_mean": round(float(np.mean(away_qdraw)), 2) if observed else None,
+            "home_mean": round(float(np.mean(home_qdraw)), 2) if observed else None,
+            "away_p10": round(float(np.percentile(away_qdraw, 10)), 1)
                          if observed else None,
-            "home_mean": round(float(np.mean(
-                np.sum(home[:, q*2:q*2+2], axis=1))), 2)
+            "away_p90": round(float(np.percentile(away_qdraw, 90)), 1)
+                         if observed else None,
+            "home_p10": round(float(np.percentile(home_qdraw, 10)), 1)
+                         if observed else None,
+            "home_p90": round(float(np.percentile(home_qdraw, 90)), 1)
                          if observed else None,
         })
     # One demonstrative path selected deterministically from these same 5k
