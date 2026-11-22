@@ -1,4 +1,5 @@
 """Interactive Premium Flow meczu browser contract. NBA values are synthetic."""
+from math import isclose
 from pathlib import Path
 from shutil import which
 from playwright.sync_api import sync_playwright
@@ -107,7 +108,7 @@ def check(page):
     assert "52,3%" in page.locator("#hzm-flow-runrisk").inner_text()
     assert page.locator("#hzm-flow-run-data .hzm-flow-run-row").count() == 3
     assert page.locator("#hzm-flow-plot svg").get_attribute("aria-label").startswith(
-        "Przykładowy scenariusz")
+        "Przykładowy przebieg — 1 z 5 000")
     assert page.locator(".hzm-flow-history-grid .hzm-flow-player-row").count() == 2
     assert page.locator(".hzm-flow-heat-cell").count() == 32
     assert page.locator(".hzm-flow-matchups .hzm-flow-duel").count() == 3
@@ -181,6 +182,73 @@ def check(page):
     assert panel.is_visible()
 
 
+def check_timeline(page):
+    sample = flow()
+    # Input margins intentionally disagree at the final minute.
+    leads = [0, 5, -8, -3, 0, 0, 2, 4, 1, -3, 2, 5, 0, -2, -4, -6, -8]
+    for point, lead in zip(sample["sample_path"], leads):
+        point["away_minus_home"] = -lead
+    context = {"day": "test", "game": {"id": "a", "home": "ATL", "away": "DET"},
+               "premium": {"entitled": True}, "model": "base", "sim": {"flow": sample}}
+    svg = page.locator("#hzm-flow-plot svg")
+
+    def render():
+        assert page.evaluate("""ctx => {
+            const before = JSON.stringify(ctx);
+            window.HoopzaroFlow.render(ctx);
+            return JSON.stringify(ctx) === before;
+        }""", context)
+
+    render()
+    zero = float(
+        svg.locator("line").evaluate_all(
+            "ls => ls.find(l => l.nextElementSibling?.textContent === '0').getAttribute('y1')"))
+    paths = svg.locator("#hzm-flow-strokes path")
+    def segment(i):
+        path = paths.nth(i)
+        _, x1, y1, _, x2, y2 = path.get_attribute("d").split()
+        return tuple(map(float, (x1, y1, x2, y2))), path.get_attribute("stroke")
+
+    first, purple = segment(0)
+    up, up_color = segment(1)
+    down, cyan = segment(2)
+    assert first[1] == zero and first[3] < zero < down[3]
+    assert purple == up_color == "#D374FF" and cyan == "#24F1F6"
+    assert up[2:] == down[:2] and up[3] == zero
+    assert isclose(up[2], up[0] + (down[2]-up[0])*5/13, abs_tol=.1)
+    tied, neutral = segment(5)
+    assert tied[1] == tied[3] == zero and neutral == "#849AB1"
+    assert "DET +8 pkt" in svg.text_content()
+    mean_y = float(svg.locator(".flow-mean").get_attribute("d").split()[-1])
+    assert mean_y < zero
+    assert "ATL" in page.locator("#hzm-flow-final-margin").inner_text()
+    card = page.locator(".hzm-flow-timeline")
+    legend = card.locator(".hzm-flow-legend")
+    assert legend.evaluate("""el => [...el.children].every(child => {
+        const r = child.getBoundingClientRect(), c = el.closest('article, .hzm-flow-card').getBoundingClientRect();
+        return r.left >= c.left && r.right <= c.right && r.bottom <= c.bottom;
+    })""")
+    output = Path("test-results/hoopzaro-responsive")
+    output.mkdir(parents=True, exist_ok=True)
+    card.screenshot(path=output / f"simlab-flow-timeline-{page.viewport_size['width']}.png")
+
+    context["game"] = {"id": "b", "home": "HME", "away": "AWY"}
+    sample["sample_path"][-1]["away_minus_home"] = -5
+    render()
+    assert "HME +5 pkt" in svg.get_attribute("aria-label")
+    assert svg.locator("circle").get_attribute("fill") == "#D374FF"
+    context["model"] = "alternate"
+    sample.pop("sample_path")
+    sample["timeline"][-1]["margin_mean"] = -8
+    render()
+    assert "AWY +8 pkt" in svg.text_content() and svg.locator(".flow-mean").count() == 0
+    assert svg.locator("circle").get_attribute("fill") == "#24F1F6"
+    sample["timeline"][-1]["margin_mean"] = 0
+    render()
+    assert "REMIS" in svg.text_content()
+    assert float(svg.locator("circle").get_attribute("cy")) == zero
+
+
 def main():
     with sync_playwright() as p:
         exe = which("chromium") or which("google-chrome")
@@ -191,6 +259,7 @@ def main():
             page = browser.new_page(viewport={"width": w,"height":h})
             try:
                 check(page)
+                check_timeline(page)
             finally:
                 page.close()
         browser.close()
