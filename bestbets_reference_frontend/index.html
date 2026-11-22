@@ -1952,8 +1952,8 @@ if(window.HoopzaroSimulations){
     },
     saveFlow:function(day,id,modelId,variant){
       if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled||
-         !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(day||""))||
-         !/^\\d{1,30}$/.test(String(id||""))||
+         !/^\d{4}-\d{2}-\d{2}$/.test(String(day||""))||
+         !/^\d{1,30}$/.test(String(id||""))||
          !["legacy_v72","research_form_v74","research_context_v75"].includes(modelId)||
          !["base","scenario"].includes(variant))return;
       notify("streamlit:setComponentValue",{dataType:"json",value:{
@@ -1963,8 +1963,8 @@ if(window.HoopzaroSimulations){
     },
     exportFlow:function(day,id,modelId,variant){
       if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled||
-         !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(day||""))||
-         !/^\\d{1,30}$/.test(String(id||""))||
+         !/^\d{4}-\d{2}-\d{2}$/.test(String(day||""))||
+         !/^\d{1,30}$/.test(String(id||""))||
          !["legacy_v72","research_form_v74","research_context_v75"].includes(modelId)||
          !["base","scenario"].includes(variant))return;
       notify("streamlit:setComponentValue",{dataType:"json",value:{
