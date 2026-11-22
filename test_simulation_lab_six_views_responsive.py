@@ -1,4 +1,4 @@
-"""Static responsive smoke for all SIX Premium Simulation Lab views.
+"""Static responsive smoke for all SEVEN Premium Simulation Lab views.
 
 Only synthetic test data. No network NBA requests, no production login.
 Validate view routing, horizontal scroll access and vertical panel reachability
@@ -18,6 +18,7 @@ VIEWS = [
     ("players", "#hzv3", "#hzv3 .hzv3-summary"),
     ("scenario", "#hzm-scenario-panel", "#hzm-availability-panel"),
     ("intelligence", "#hzm-intel-panel", "#hzm-intel-caveat"),
+    ("flow", "#hzm-flow-panel", "#hzm-flow-method"),
     ("comparison", "#hzm-compare-panel", "#hzm-compare-disclaimer"),
     ("backtest", "#hzm-backtest-panel", "#hzm-backtest-caveat"),
 ]
@@ -177,7 +178,7 @@ def main():
             finally:
                 page.close()
         browser.close()
-    print("Simulation Lab: 6 tabs x 3 viewports navigable and vertically reachable")
+    print("Simulation Lab: 7 tabs x 3 viewports navigable and vertically reachable")
 
 
 if __name__ == "__main__":
