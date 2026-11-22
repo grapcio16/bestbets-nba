@@ -102,8 +102,8 @@
 #simulations-pane .hzm-flow-legend i{
   width:18px;height:3px;display:inline-block;border-radius:5px
 }
-#simulations-pane .hzm-flow-legend .cyan{background:#22e9f5}
-#simulations-pane .hzm-flow-legend .purple{background:#ca65f6}
+#simulations-pane .hzm-flow-legend .cyan{background:#24F1F6}
+#simulations-pane .hzm-flow-legend .purple{background:#D374FF}
 #simulations-pane .hzm-flow-legend strong{margin-left:auto;color:#e4b4ff;white-space:nowrap}
 #simulations-pane .hzm-flow-quarter-data{display:flex;flex-direction:column;gap:7px;margin-top:10px}
 #simulations-pane .hzm-flow-quarter-row{
@@ -296,8 +296,8 @@
   fill:#dba6ff;font-size:9px;font-weight:850;letter-spacing:.6px
 }
 #simulations-pane[data-hzm-view="flow"] .hzm-flow-legend{
-  gap:8px!important;margin:2px 0 0!important;flex-wrap:nowrap!important;
-  overflow:hidden!important;font-size:8px!important
+  gap:2px 8px!important;margin:2px 0 0!important;flex-wrap:wrap!important;
+  font-size:10px!important
 }
 #simulations-pane[data-hzm-view="flow"] .hzm-flow-legend span{white-space:nowrap}
 #simulations-pane[data-hzm-view="flow"] .hzm-flow-legend .hzm-flow-dashed{

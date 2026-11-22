@@ -27,18 +27,22 @@ function active(d){
    (cfg.mode==="scenario"&&scenario?d.premium.scenario.scenario_flow:d.sim.flow):null,
    effective:cfg.mode==="scenario"&&scenario?"scenario":"base",paid:!!paid};
 }
+function validSample(data){
+ return Array.isArray(data.sample_path)&&data.sample_path.length===17&&
+   data.sample_path.every(r=>number(r.minute)!==null&&number(r.away_minus_home)!==null);
+}
+const sampleLabel="Przykładowy przebieg — 1 z 5 000";
 function drawChart(data,period,away,home){
  const rows=data?.timeline;
  if(!Array.isArray(rows)||rows.length!==9||
     !rows.every(r=>[r.minute,r.margin_mean].every(v=>number(v)!==null)))
    return '<p>Brak pełnej trajektorii z 5 000 wyników.</p>';
- const hasSample=Array.isArray(data.sample_path)&&data.sample_path.length===17&&
-   data.sample_path.every(r=>number(r.minute)!==null&&number(r.away_minus_home)!==null);
+ const hasSample=validSample(data);
  // The mean is a conditional allocation, whereas the highlighted jagged
  // stroke is ONE deterministic individual draw, not a fake 5k mean.
- const avg=rows.map(r=>({minute:Number(r.minute),diff:-Number(r.margin_mean)}));
+ const avg=rows.map(r=>({minute:Number(r.minute),diff:Number(r.margin_mean)}));
  const series=hasSample?
-   data.sample_path.map(r=>({minute:Number(r.minute),diff:Number(r.away_minus_home)})):avg;
+   data.sample_path.map(r=>({minute:Number(r.minute),diff:-Number(r.away_minus_home)})):avg;
  const maxAbs=Math.max(5,...series.map(p=>Math.abs(p.diff)),...avg.map(p=>Math.abs(p.diff)));
  const limit=Math.max(10,Math.ceil((maxAbs+2)/5)*5);
  const left=48,top=25,right=882,bottom=198,center=(top+bottom)/2;
@@ -75,41 +79,35 @@ function drawChart(data,period,away,home){
      segments.push([p,a],[a,q]);
    }else segments.push([p,q]);
  }
- const strokes=segments.map(([p,q])=>{
-   const color=(p.diff+q.diff)/2>=0?"#24f1f6":"#d374ff";
-   return '<path d="M '+x(p.minute).toFixed(1)+' '+y(p.diff).toFixed(1)+
-     ' L '+x(q.minute).toFixed(1)+' '+y(q.diff).toFixed(1)+
-     '" fill="none" stroke="'+color+'" stroke-width="3.25" stroke-linecap="round"/>';
- }).join("");
+ const leadColor=diff=>diff>0?"#D374FF":diff<0?"#24F1F6":"#849AB1";
+ const leadLabel=diff=>diff===0?"REMIS":
+   (diff>0?home:away)+" +"+Math.abs(diff).toLocaleString("pl-PL",{maximumFractionDigits:2})+" pkt";
+ const strokes=[],fills=[];
+ for(const [p,q] of segments){
+   const color=leadColor((p.diff+q.diff)/2);
+   const path=line([p,q]);
+   strokes.push(`<path d="${path}" fill="none" stroke="${color}" stroke-width="3.25" stroke-linecap="round"/>`);
+   fills.push(`<path d="${path} L ${x(q.minute)} ${center} L ${x(p.minute)} ${center} Z" fill="${color}" opacity=".13"/>`);
+ }
  const end=series[series.length-1];
- const color=end.diff>=0?"#2df6fc":"#d479ff";
- const text=(end.diff>=0?"+":"")+fmt(end.diff);
- const centerName=end.diff>0?away:end.diff<0?home:"REMIS";
- const expected=avg[avg.length-1].diff;
- const finalLabel=(expected>0?away:expected<0?home:"REMIS")+" "+
-   signed(Math.abs(expected))+" pkt";
- const srclabel=hasSample?"Przykładowy scenariusz (1 z 5 000)":"Średnia warunkowa z 5 000";
- return '<svg viewBox="0 0 910 234" role="img" aria-label="'+
-   esc(srclabel+'. Wartości powyżej zera to przewaga '+away+
-   ', poniżej to przewaga '+home+
-   '. Średnia końcowa '+fmt(expected)+' pkt. Model warunkowy, nie NBA play-by-play.')+'">'+
-   '<defs><linearGradient id="hzm-flow-a" x1="0" y1="0" x2="0" y2="1">'+
-   '<stop stop-color="#14e9f3" stop-opacity=".35"/><stop offset="1" stop-color="#1169b7" stop-opacity=".03"/></linearGradient>'+
-   '<linearGradient id="hzm-flow-h" x1="0" y1="0" x2="0" y2="1">'+
-   '<stop stop-color="#602c8f" stop-opacity=".04"/><stop offset="1" stop-color="#b858f4" stop-opacity=".33"/></linearGradient>'+
-   '<filter id="hzm-flow-glow"><feGaussianBlur stdDeviation="3"/></filter></defs>'+
-   zone+shaded+grid+dividers+quarter+marks+
-   '<path d="'+line(series)+' L '+x(48)+' '+y(0)+' L '+x(0)+' '+y(0)+
-   ' Z" fill="url(#hzm-flow-a)" opacity=".7"/>'+
-   (hasSample?'<path d="'+line(avg)+'" fill="none" stroke="#a3c9df" stroke-opacity=".7" stroke-dasharray="5 5" stroke-width="1.5"/>':'')+
-   '<path d="'+line(series)+'" fill="none" stroke="#6ae3ff" stroke-opacity=".25" stroke-width="8" filter="url(#hzm-flow-glow)"/>'+
-   strokes+'<circle cx="'+x(end.minute)+'" cy="'+y(end.diff)+'" r="4.4" fill="'+color+'" stroke="#f7ebff" stroke-width="1.3"/>'+
-   '<rect x="'+Math.max(left+20,x(48)-63)+'" y="'+Math.max(top+5,y(end.diff)-23)+
-   '" width="54" height="19" rx="5" fill="#321a5b" stroke="'+color+'"/>'+
-   '<text x="'+Math.max(left+20,x(48)-63+27)+'" y="'+Math.max(top+5,y(end.diff)-23+13)+
-   '" text-anchor="middle" fill="#fff" font-size="11" font-weight="800">'+text+'</text>'+
-   '<text x="50" y="232" class="flow-axis">Minuta meczu</text>'+
-   '<title>'+esc(srclabel+' · '+centerName+' · średnio '+finalLabel)+'</title></svg>';
+ const color=leadColor(end.diff), finalLabel=leadLabel(end.diff);
+ const src=hasSample?sampleLabel:"Średnia modelu z 5 000";
+ const description=src+". Powyżej zera: gospodarze ("+home+
+   "), poniżej: goście ("+away+"), zero: remis. Koniec: "+finalLabel+
+   (hasSample?". Linia przerywana: średnia modelu.":"");
+ const labelX=x(end.minute)-5,labelY=Math.max(top+2,y(end.diff)-23);
+ const labelWidth=finalLabel.length*7.5+12;
+ return '<svg viewBox="0 0 910 234" role="img" aria-label="'+esc(description)+'">'+
+   '<title>'+esc(description)+'</title>'+
+   '<defs><filter id="hzm-flow-glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter></defs>'+
+   zone+shaded+fills.join("")+grid+dividers+quarter+marks+
+   (hasSample?'<path class="flow-mean" d="'+line(avg)+'" fill="none" stroke="#a3c9df" stroke-opacity=".7" stroke-dasharray="5 5" stroke-width="1.5"/>':'')+
+   '<g id="hzm-flow-strokes">'+strokes.join("")+'</g>'+
+   '<use href="#hzm-flow-strokes" opacity=".45" filter="url(#hzm-flow-glow)"/>'+
+   `<circle cx="${x(end.minute)}" cy="${y(end.diff)}" r="4.4" fill="${color}" stroke="#f7ebff" stroke-width="1.3"/>`+
+   `<rect x="${labelX-labelWidth}" y="${labelY}" width="${labelWidth}" height="19" rx="5" fill="#141b32" stroke="${color}"/>`+
+   `<text x="${labelX-labelWidth/2}" y="${labelY+13}" text-anchor="middle" fill="#fff" font-size="11" font-weight="800">${esc(finalLabel)}</text>`+
+   '<text x="50" y="232" class="flow-axis">Minuta meczu</text></svg>';
 }
 function render(d){
  cfg.last=d;
@@ -158,9 +156,9 @@ function render(d){
    feedback.append(" · ");feedback.appendChild(a);
  }
  $("hzm-flow-timeline-desc").textContent=ready?
-   (Array.isArray(data.sample_path)&&data.sample_path.length===17?
-     "Jeden przykładowy przebieg z 5 000 · linia przerywana = średnia modelu":
-     "Warunkowa średnia z 5 000 wyników · dodatnie = przewaga gości"):
+   (validSample(data)?
+     sampleLabel+" · linia przerywana = średnia modelu":
+     "Warunkowa średnia z 5 000 wyników · dodatnie = przewaga gospodarzy"):
    "Brak kompletnych danych symulacji dla wybranego meczu.";
  $("hzm-flow-plot").innerHTML=ready?
    drawChart(data,cfg.period,d.game.away,d.game.home):
