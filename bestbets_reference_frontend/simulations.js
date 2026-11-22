@@ -450,37 +450,48 @@ function selectedChartContext(){
  const game=gamesForDay(state.lastHome).games.find(item=>item.id===state.gameId);
  return {game,sim:trustedResult(state.lastPremium,game)};
 }
-function chooseChartPoint(index){
- const plot=$("hzm-plot"),svg=plot?.querySelector("svg.hzm-neon-curve");
+
+function chooseChartLine(value,source="drag"){
+ const newLine=validChartLine(value);
  const {game,sim}=selectedChartContext();
  const dist=sim?.distributions?.[state.chart],bins=chartBins(dist);
- if(!svg||!game||!sim||index<0||index>=bins.length)return;
- state.chartPoint[state.chart]=bins[index].x;
- updateChartMarker(svg,dist,bins,index);
+ if(newLine===null||!game||!sim||bins.length<3||state.lastPremium?.entitled!==true)return false;
+ state.chartLine[state.chart]=newLine;
+ const svg=$("hzm-plot")?.querySelector("svg.hzm-neon-curve");
+ if(svg)updateChartMarker(svg,dist,bins,newLine);
  showDistributionOverview(sim,game,state.lastPremium);
- const source=$("hzm-chart-source");
- if(source)source.textContent="Przeciągnij punkt lub użyj ← → · zakres: "+
-   bins[index].x+"–"+(bins[index].x+4)+" pkt · "+fmt(bins[index].p)+"% w przedziale";
+ const outOfScale=newLine<bins[0].x||newLine>bins[bins.length-1].x+5;
+ const sourceText=$("hzm-chart-source");
+ if(sourceText)sourceText.textContent="Linia "+fmt(newLine)+" pkt · "+
+   (outOfScale?"poza widoczną skalą · ":"")+
+   "O "+(chartOverUnderAt(dist,bins,newLine)?.approx?"≈":"")+
+   percent(chartOverUnderAt(dist,bins,newLine)?.over)+
+   " · U "+percent(chartOverUnderAt(dist,bins,newLine)?.under);
+ const input=$("hzm-ou-line");
+ if(input){
+   input.setAttribute("aria-invalid","false");
+   if(source!=="input"||document.activeElement!==input)input.value=fmt(newLine);
+ }
+ return true;
 }
-function chartIndexAtPointer(event,svg,bins){
+function chartLineAtPointer(event,svg,bins){
  const matrix=svg.getScreenCTM?.();
- if(!matrix||!bins.length)return -1;
+ if(!matrix||bins.length<3)return null;
  let x;
  try{
    if(typeof svg.createSVGPoint==="function"){
-     const point=svg.createSVGPoint();point.x=event.clientX;point.y=event.clientY;
-     x=point.matrixTransform(matrix.inverse()).x;
+     const p=svg.createSVGPoint();p.x=event.clientX;p.y=event.clientY;
+     x=p.matrixTransform(matrix.inverse()).x;
    }else{
      const rect=svg.getBoundingClientRect();
      x=(event.clientX-rect.left)/Math.max(1,rect.width)*456;
    }
- }catch(error){return -1}
- if(!Number.isFinite(x))return -1;
+ }catch(error){return null}
+ if(!Number.isFinite(x))return null;
  const xmin=bins[0].x,xmax=bins[bins.length-1].x+5;
- if(xmax<=xmin)return -1;
+ if(xmax<=xmin)return null;
  const score=xmin+(Math.max(43,Math.min(445,x))-43)/(445-43)*(xmax-xmin);
- return bins.reduce((best,row,i)=>Math.abs(row.x+2.5-score)<
-   Math.abs(bins[best].x+2.5-score)?i:best,0);
+ return Math.max(0.5,Math.min(499.5,Math.floor(score)+0.5));
 }
 function bindChartInteraction(){
  const plot=$("hzm-plot"),tabs=$("hzm-chart-tabs");
@@ -491,12 +502,12 @@ function bindChartInteraction(){
    const {sim}=selectedChartContext();
    const bins=chartBins(sim?.distributions?.[state.chart]);
    if(!svg||bins.length<3)return;
-   const index=chartIndexAtPointer(event,svg,bins);
-   if(index>=0)chooseChartPoint(index);
+   const line=chartLineAtPointer(event,svg,bins);
+   if(line!==null)chooseChartLine(line);
  };
  plot.addEventListener("pointerdown",event=>{
    if(!event.target.closest?.("svg.hzm-neon-curve")||
-      (event.button!==undefined&&event.button!==0))return;
+     (event.button!==undefined&&event.button!==0))return;
    activePointer=event.pointerId;
    try{plot.setPointerCapture(event.pointerId)}catch(error){}
    handlePointer(event);
@@ -518,18 +529,36 @@ function bindChartInteraction(){
  plot.addEventListener("lostpointercapture",()=>{activePointer=null});
  plot.addEventListener("keydown",event=>{
    if(!event.target.closest?.("svg.hzm-neon-curve"))return;
-   if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key))return;
+   if(!["ArrowLeft","ArrowRight","Home","End","PageUp","PageDown"].includes(event.key))return;
    const {sim}=selectedChartContext();
    const dist=sim?.distributions?.[state.chart],bins=chartBins(dist);
-   if(!bins.length)return;
-   const previous=chartBinIndex(bins,dist);
-   const next=event.key==="Home"?0:event.key==="End"?bins.length-1:
-     Math.max(0,Math.min(bins.length-1,previous+(event.key==="ArrowRight"?1:-1)));
+   if(bins.length<3)return;
+   const current=chartLineFor(dist,bins);
+   const min=Math.max(0.5,bins[0].x+0.5);
+   const max=Math.min(499.5,bins[bins.length-1].x+4.5);
+   const next=event.key==="Home"?min:event.key==="End"?max:
+     Math.max(min,Math.min(max,current+
+       (event.key==="ArrowRight"?1:event.key==="ArrowLeft"?-1:event.key==="PageUp"?5:-5)));
    event.preventDefault();
-   chooseChartPoint(next);
+   chooseChartLine(next);
  });
- // This control is intentionally direct: the old delegated click caused the
- // entire Simulation Lab to rebuild and could appear inert in the embedded UI.
+ // A manual line (e.g. sportsbook 229.5) need not coincide with a five-point
+ // histogram bin. Use the same exact simulation counts as dragging.
+ const input=$("hzm-ou-line");
+ const applyInput=final=>{
+   if(!input||input.disabled)return;
+   const parsed=validChartLine(input.value);
+   if(parsed!==null){chooseChartLine(parsed,"input");return}
+   if(!final)return; // allow intermediate typing
+   input.setAttribute("aria-invalid","true");
+   const hint=$("hzm-chart-source");
+   if(hint)hint.textContent="Podaj linię z końcówką ,5 (np. 229,5); dozwolony zakres: 0,5–499,5.";
+ };
+ input?.addEventListener("input",()=>applyInput(false));
+ input?.addEventListener("change",()=>applyInput(true));
+ input?.addEventListener("keydown",event=>{
+   if(event.key==="Enter"){event.preventDefault();applyInput(true);input.blur()}
+ });
  tabs.addEventListener("click",event=>{
    const tab=event.target.closest?.("[data-hzm-chart]");
    if(!tab||!["match","away","home"].includes(tab.dataset.hzmChart))return;
@@ -573,9 +602,11 @@ function showChart(sim,game,premium){
    range.textContent="Przedział 80%: "+fmt(dist.p10)+" – "+fmt(dist.p90)+" pkt";
   }
   if(chartBins(dist).length){
-    const bins=chartBins(dist),chosen=bins[chartBinIndex(bins,dist)];
-    $("hzm-chart-source").textContent="Przeciągnij punkt lub użyj ← → · zakres: "+
-      chosen.x+"–"+(chosen.x+4)+" pkt · "+fmt(chosen.p)+"% w przedziale";
+    const bins=chartBins(dist),line=chartLineFor(dist,bins);
+    const profile=chartOverUnderAt(dist,bins,line);
+    $("hzm-chart-source").textContent="Przesuń punkt lub wpisz linię OVER/UNDER · "+
+      fmt(line)+" pkt · O "+(profile?.approx?"≈":"")+percent(profile?.over)+
+      " / U "+(profile?.approx?"≈":"")+percent(profile?.under);
   }
 }
 function safeProjection(value){
