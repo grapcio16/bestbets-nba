@@ -131,10 +131,10 @@ def _v75_player_evidence(day: str, game_id: str):
     report, meta = pd.DataFrame(), {}
     if match.get("state") == "scheduled":
         try:
-            from sources import injuries
-            raw, source_meta = injuries()
-            report, report_meta = matchup_injuries(raw, game["home"], game["away"], source_meta)
-            meta = {**source_meta, "available": report_meta["available"]}
+            from sources import selected_espn_injuries
+            raw, source_meta = selected_espn_injuries(game["home"], game["away"])
+            report, _ = matchup_injuries(raw, game["home"], game["away"], source_meta)
+            meta = source_meta
         except (OSError, RuntimeError, ValueError, KeyError, TypeError):
             # Missing or broken feed must never be interpreted as 'healthy'.
             meta = {"available": False, "stale": True}
@@ -359,19 +359,21 @@ def _selected_injury_watch(day: str, game_id: str) -> dict:
         return {"fresh": False, "valid_until": None, "rows": [],
                 "reason": "Mecz nie jest już przed rozpoczęciem."}
     try:
-        from sources import injuries
-        raw, meta = injuries()
-        report, match_meta = matchup_injuries(
+        from sources import selected_espn_injuries
+        raw, meta = selected_espn_injuries(
+            str(fixture["home"]), str(fixture["away"]))
+        report, _ = matchup_injuries(
             raw, str(fixture["home"]), str(fixture["away"]), meta)
         fetched = pd.to_datetime((meta or {}).get("timestamp"),
                                  utc=True, errors="coerce")
         fresh = bool(pd.notna(fetched) and fetched <= now
                      and (now - fetched).total_seconds() <= 90 * 60
                      and not (meta or {}).get("stale")
-                     and match_meta.get("available"))
+                     and (meta or {}).get("available") is True)
         if not fresh:
             return {"fresh": False, "valid_until": None, "rows": [],
-                    "reason": "Brak aktualnego odczytu ESPN. Nie potwierdzono statusów."}
+                    "reason": ("Niepełny lub nieaktualny raport ESPN dla tych drużyn. "
+                               "Nie potwierdzono statusów.")}
         grouped = {}
         for row in report.to_dict("records"):
             code = str(row.get("Drużyna") or "")
