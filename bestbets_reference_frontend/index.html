@@ -586,7 +586,10 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       <button type="button" id="hzm-lab-tab-players" role="tab" data-hzm-view="players" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">♙</span> Projekcje zawodników</button>
       <button type="button" id="hzm-lab-tab-scenario" role="tab" data-hzm-view="scenario" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">☷</span> Scenariusze</button>
       <button type="button" id="hzm-lab-tab-intelligence" role="tab" data-hzm-view="intelligence" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">✧</span> Analiza meczu</button>
-      <button type="button" id="hzm-lab-tab-flow" role="tab" data-hzm-view="flow" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">⌁</span> Flow meczu</button>
+      <!-- Flow meczu is retired from the public Premium navigation while its
+           minute/quarter forecasts await independent walk-forward validation.
+           Keep the research DOM/engine for isolated QA; do not advertise it. -->
+      <button type="button" id="hzm-lab-tab-flow" role="tab" data-hzm-view="flow" aria-controls="hzm-lab-main" aria-selected="false" aria-hidden="true" tabindex="-1" hidden disabled><span aria-hidden="true">⌁</span> Flow meczu</button>
       <button type="button" id="hzm-lab-tab-comparison" role="tab" data-hzm-view="comparison" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">⇄</span> Porównanie drużyn</button>
       <button type="button" id="hzm-lab-tab-backtest" role="tab" data-hzm-view="backtest" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">▤</span> Model &amp; Backtest</button>
     </nav>
