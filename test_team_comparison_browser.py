@@ -165,6 +165,40 @@ def main():
         assert page.locator("#hzm-compare-profile-svg").is_hidden()
         assert not page.locator("#hzm-compare-polygon-away").get_attribute("points")
 
+        # Real native-width phone view must remain legible and scrollable.
+        payload["auth"] = {"role": "premium"}
+        model["model_context"]["team_comparison"]["away"] = away
+        model["model_context"]["team_comparison"]["advanced_available"] = True
+        payload["premium_simulation"] = {
+            "entitled": True, "game": model, "players": None,
+            "scenario": None, "minute_scenario": None,
+        }
+        show()
+        page.set_viewport_size({"width": 390, "height": 844})
+        assert page.locator("#hzm-compare-profile-svg").is_visible()
+        mobile = page.evaluate("""() => ({
+          native:document.querySelector('#app-shell').classList.contains('hz-mobile-intelligence'),
+          transform:getComputedStyle(document.querySelector('#stage')).transform,
+          stageWidth:document.querySelector('#stage').getBoundingClientRect().width,
+          panelWidth:document.querySelector('#hzm-compare-panel').getBoundingClientRect().width,
+          labelFont:parseFloat(getComputedStyle(document.querySelector('.hzm-compare-row>span')).fontSize),
+          bodyHeight:document.body.scrollHeight,windowHeight:window.innerHeight,
+          panelOverflow:document.querySelector('#hzm-compare-panel').scrollWidth -
+                        document.querySelector('#hzm-compare-panel').clientWidth
+        })""")
+        assert mobile["native"] and mobile["transform"] == "none", mobile
+        assert 350 <= mobile["stageWidth"] <= 400, mobile
+        assert mobile["panelWidth"] >= 340, mobile
+        assert mobile["labelFont"] >= 10, mobile
+        assert mobile["panelOverflow"] <= 2, mobile
+        assert mobile["bodyHeight"] > mobile["windowHeight"]+250, mobile
+        page.locator("#hzm-compare-disclaimer").scroll_into_view_if_needed()
+        assert page.locator("#hzm-compare-disclaimer").is_visible()
+        page.evaluate("window.scrollTo(0,0); document.body.scrollTop=0")
+        page.screenshot(path=str(OUT / "team-comparison-v2-mobile.png"), full_page=True)
+        page.locator("#hzm-lab-tab-results").click()
+        assert not page.locator("#app-shell").evaluate(
+            "el => el.classList.contains('hz-mobile-intelligence')")
         assert not errors, errors
         browser.close()
         print("Team Comparison: L5/L10, source gating, team identity and Premium OK")
