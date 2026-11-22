@@ -1,4 +1,4 @@
-"""Injury Watch: only fresh V7.5 evidence for one verified future game.
+"""Injury Watch: fresh ESPN reports independent of the selected model.
 All NBA players and injury numbers here are synthetic regression fixtures.
 """
 from pathlib import Path
@@ -43,6 +43,15 @@ def main():
             "home": "BOS",
             "injury_report_fresh": True,
             "injury_report_valid_until": "2026-11-21T13:00:00+00:00",
+            "injury_watch": {
+                "fresh": True, "checked_at": "2026-11-21T12:00:00+00:00",
+                "valid_until": "2026-11-21T13:00:00+00:00",
+                "rows": [
+                    {"name": "Synthetic Guard", "team": "NYK", "status": "Questionable"},
+                    {"name": "Synthetic Forward", "team": "BOS", "status": "Out"},
+                    {"name": "Synthetic Probable", "team": "BOS", "status": "Probable"},
+                ],
+            },
             "players": [
                 {"name": "Synthetic Guard", "team": "NYK",
                  "availability": "Questionable", "minutes": 28.0,
@@ -83,33 +92,46 @@ def main():
         page.locator("#hzm-model-option-research_context_v75").click()
         page.locator("#hzm-lab-tab-scenario").click()
         assert page.locator("#hzm-availability-panel").is_visible()
-        assert "RAPORT ESPN" in page.locator("#hzm-availability-freshness").inner_text()
+        assert "ESPN · POBRANO" in page.locator("#hzm-availability-freshness").inner_text()
         assert page.locator("#hzm-availability-away-code").inner_text() == "NYK"
         assert page.locator("#hzm-availability-home-code").inner_text() == "BOS"
-        assert page.locator("#hzm-availability-away-count").inner_text() == "OUT 0 · NIEPEWNI 1"
-        assert page.locator("#hzm-availability-home-count").inner_text() == "OUT 1 · NIEPEWNI 0"
+        assert page.locator("#hzm-availability-away-count").inner_text() == "OUT 0 · INNE 1"
+        assert page.locator("#hzm-availability-home-count").inner_text() == "OUT 1 · INNE 1"
         assert "Synthetic Guard" in page.locator("#hzm-availability-away-list").inner_text()
         assert "Synthetic Forward" in page.locator("#hzm-availability-home-list").inner_text()
         assert "Synthetic Probable" in page.locator("#hzm-availability-home-list").inner_text()
         assert "Synthetic Reserve" not in page.locator("#hzm-availability-away-list").inner_text()
         assert "-1,2 pkt" in page.locator("#hzm-availability-home-impact").inner_text()
-        assert "uwzględnione w modelu OUT: 1" in page.locator("#hzm-availability-home-impact").inner_text()
+        assert "OUT uwzględnione: 1" in page.locator("#hzm-availability-home-impact").inner_text()
 
         # Expired ESPN source data must not stay visible just because the
         # server response was cached and the fixture identity is unchanged.
-        players["injury_report_valid_until"] = "2026-11-21T11:59:00+00:00"
+        players["injury_watch"]["valid_until"] = "2026-11-21T11:59:00+00:00"
         render()
-        assert "NIEAKTUALNE" in page.locator("#hzm-availability-freshness").inner_text()
+        assert "BRAK ŚWIEŻEGO" in page.locator("#hzm-availability-freshness").inner_text()
         assert "Synthetic Forward" not in page.locator("#hzm-availability-home-list").inner_text()
         assert page.locator("#hzm-availability-home-count").inner_text() == "—"
         assert page.locator("#hzm-availability-home-impact").inner_text().endswith("—")
 
-        players["injury_report_valid_until"] = "2026-11-21T13:00:00+00:00"
+        # V7.5 factor validity and separately fetched ESPN report are distinct.
+        players["injury_watch"]["valid_until"] = "2026-11-21T13:00:00+00:00"
         game["model_context"]["v75_factors"]["injuries_espn_fresh"] = False
         render()
-        assert "Synthetic Forward" not in page.locator("#hzm-availability-home-list").inner_text()
+        assert "Synthetic Forward" in page.locator("#hzm-availability-home-list").inner_text()
+        assert "korekta OUT niedostępna" in page.locator("#hzm-availability-home-impact").inner_text()
 
+        # Switch to V7.4 and keep report informational only.
         game["model_context"]["v75_factors"]["injuries_espn_fresh"] = True
+        game["model_id"] = "research_form_v74"
+        players["model_id"] = "research_form_v74"
+        page.locator("#hzm-model-trigger").click()
+        page.locator("#hzm-model-option-research_form_v74").click()
+        render()
+        assert "Synthetic Forward" in page.locator("#hzm-availability-home-list").inner_text()
+        assert "brak korekty prognozy" in page.locator("#hzm-availability-home-impact").inner_text()
+        game["model_id"] = "research_context_v75"
+        players["model_id"] = "research_context_v75"
+
         payload["premium_simulation"] = {
             "entitled": False, "game": None,
             "players": None, "scenario": None, "minute_scenario": None,
@@ -122,7 +144,7 @@ def main():
         assert "—" in page.locator("#hzm-availability-home-impact").inner_text()
         assert not errors, errors
         browser.close()
-        print("Injury Watch: fresh report, V7.5 context, team identity and guest withholding OK")
+        print("Injury Watch: source freshness, cross-model display, V7.5 context, Premium access OK")
 
 
 if __name__ == "__main__":
