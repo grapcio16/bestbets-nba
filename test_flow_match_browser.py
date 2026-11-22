@@ -101,6 +101,13 @@ def check(page):
         data)
     page.wait_for_function(
         "document.querySelector('#hzm-day-title')?.textContent.includes('23')")
+    # The production Flow module is deliberately retired from visible
+    # Premium navigation. Explicitly unlock only in isolated browser QA to
+    # retain experimental engine regression coverage (no production auth).
+    assert page.locator("#hzm-lab-tab-flow").is_hidden()
+    assert page.locator("#hzm-lab-tab-flow").is_disabled()
+    page.locator("#hzm-lab-tab-flow").evaluate(
+        "el => {el.hidden=false; el.disabled=false; el.removeAttribute('aria-hidden');}")
     page.locator("#hzm-lab-tab-flow").scroll_into_view_if_needed()
     page.locator("#hzm-lab-tab-flow").click()
     assert page.locator("#hzm-flow-panel").is_visible()
