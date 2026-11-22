@@ -69,6 +69,74 @@ def _cached_centre_live() -> dict:
     return get_centre_live_data()
 
 
+@st.cache_data(ttl=600, max_entries=2, show_spinner=False)
+def _cached_admin_tracker_snapshot(season: str) -> dict:
+    """Small read-only summary of pregame forecasts already settled in Neon.
+
+    Unlike the expensive on-demand walk-forward report, this only scores
+    forecasts frozen BEFORE tipoff. It never recalculates NBA models or
+    serializes the underlying private tracker rows into the browser.
+    """
+    from tracker_storage import tracker_database_url
+    url = tracker_database_url()
+    if not url:
+        return {"status": "setup_required", "season": season, "models": {}}
+    try:
+        import pandas as pd
+        from psycopg.rows import dict_row
+        from tracker_postgres import connect
+        from admin_model_performance import build_model_report
+
+        with connect(url) as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute("SET TRANSACTION READ ONLY")
+                cur.execute("""
+                    SELECT game_id, model_id, season, forecast_time_utc,
+                           start_utc, away, home, away_points, home_points,
+                           away_win_pct, home_win_pct, total_points, source,
+                           warning, away_score, home_score, settled_at_utc
+                      FROM bestbets_forecasts_by_model
+                     WHERE season = %s
+                       AND home_score IS NOT NULL
+                       AND away_score IS NOT NULL
+                """, (season,))
+                rows = cur.fetchall()
+        if not rows:
+            return {"status": "no_results", "season": season, "models": {}}
+        report = build_model_report(pd.DataFrame.from_records(rows), season=season)
+        if report.get("error"):
+            return {"status": "invalid_archive", "season": season, "models": {}}
+        model_map = {
+            "auto_legacy_v72": "legacy_v72",
+            "auto_research_form_v74": "research_form_v74",
+            "auto_context_full_v75": "research_context_v75",
+        }
+        models = {}
+        for row in report.get("models", []):
+            key = model_map.get(row.get("id"))
+            metrics = row.get("metrics") or {}
+            count = metrics.get("games")
+            accuracy = metrics.get("winner_accuracy")
+            if (not key or not isinstance(count, int) or count <= 0
+                    or count > 1500 or not isinstance(accuracy, (int, float))
+                    or not 0 <= float(accuracy) <= 1):
+                continue
+            models[key] = {
+                "games": count,
+                "winner_accuracy_pct": round(float(accuracy) * 100, 2),
+                "total_mae": metrics.get("total_mae"),
+                "label": str(row.get("label", ""))[:80],
+            }
+        return {"status": "ready" if models else "no_results",
+                "season": season, "models": models,
+                "as_of_utc": report.get("as_of_utc")}
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning(
+            "Tracker snapshot unavailable: %s", type(exc).__name__)
+        return {"status": "connection_issue", "season": season, "models": {}}
+
+
 @st.cache_data(ttl=120, show_spinner=False)
 def _cached_free_details(leader: dict) -> dict:
     from bestbets_free_analyses import get_free_leader_boxscore
@@ -485,6 +553,10 @@ def main() -> None:
         # Never serialize premium model output into a guest's iframe.
         "premium_simulation": {
             "entitled": has_premium,
+            # Snapshot is available only to the verified admin account.
+            # No DATABASE_URL, raw forecasts or unpublished model inputs
+            # leave Streamlit. The snapshot is cached to avoid frequent reads.
+            "tracker_snapshot": _cached_admin_tracker_snapshot(SEASON) if is_admin else None,
             "game": st.session_state.get("bb10_premium_game") if has_premium else None,
             "players": st.session_state.get("bb10_premium_players") if has_premium else None,
             "scenario": st.session_state.get("bb10_premium_scenario") if has_premium else None,
