@@ -1,4 +1,4 @@
-"""Real-browser V7.5 Player Minutes what-if; fixture is synthetic test data."""
+"""Real-browser historical ESPN Player Minutes across models; synthetic fixtures."""
 from pathlib import Path
 from shutil import which
 from playwright.sync_api import sync_playwright
@@ -121,6 +121,22 @@ def main():
         assert page.locator("#hzm-minute-pts").inner_text() == "PTS: —"
         assert page.locator("#hzm-minute-pra").inner_text() == "PRA: —"
 
+        # Historical ESPN minutes are also usable with the selected V7.4
+        # baseline, without substituting V7.5 player projections.
+        game["model_id"] = "research_form_v74"
+        payload["premium_simulation"]["players"]["model_id"] = "research_form_v74"
+        page.locator("#hzm-model-trigger").click()
+        page.locator("#hzm-model-option-research_form_v74").click()
+        page.evaluate(
+            "data => window.postMessage({type:'streamlit:render',args:{payload:data}}, '*')",
+            payload,
+        )
+        assert page.locator("#hzm-minute-run").is_enabled()
+        assert page.locator("#hzm-minute-base-pts").inner_text() == "24,0"
+        page.locator("#hzm-minute-run").click()
+        page.wait_for_function("window.__minuteEvents.length === 2")
+        assert page.evaluate("window.__minuteEvents[1].model_id") == "research_form_v74"
+
         payload["auth"] = {"role": "free"}
         payload["premium_simulation"] = {
             "entitled": False, "game": None, "players": None,
@@ -136,7 +152,7 @@ def main():
         assert "Premium" in page.locator("#hzm-minute-status").inner_text()
         assert not errors, errors
         browser.close()
-        print("Player Minutes: V7.5, fixture/player identity, OUT and Premium gate OK")
+        print("Player Minutes: V7.5 and V7.4, fixture/player identity, OUT and Premium gate OK")
 
 
 if __name__ == "__main__":
