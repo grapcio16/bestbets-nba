@@ -859,3 +859,173 @@
 @media(prefers-reduced-motion:reduce){
   #simulations-pane .hzm-day-control .hzm-day-arrow{transition:none!important}
 }
+
+
+/* HOOPZARO original expanded calendar — custom month grid rather than
+   the operating system's unstyleable native date popup. */
+#simulations-pane .hzm-day-picker{
+  display:grid!important;place-items:center!important;
+  flex:0 0 25px!important;width:25px!important;min-width:25px!important;
+  height:27px!important;padding:0!important;
+  border:0!important;border-left:1px solid rgba(115,159,218,.27)!important;
+  border-radius:0!important;background:transparent!important;
+  box-shadow:none!important;color:#8beaff!important;cursor:pointer!important;
+}
+#simulations-pane .hzm-day-picker:hover{
+  color:#f3fdff!important;filter:drop-shadow(0 0 5px rgba(32,230,255,.65));
+}
+#simulations-pane #hzm-day-input[hidden]{display:none!important}
+#simulations-pane .hzm-day-control .hzm-calendar-popover[hidden]{display:none!important}
+#simulations-pane .hzm-day-control .hzm-calendar-popover{
+  box-sizing:border-box;position:absolute!important;z-index:110!important;
+  display:flex!important;flex-direction:column!important;gap:0!important;
+  top:calc(100% + 9px)!important;right:0!important;left:auto!important;
+  width:274px!important;max-width:calc(100vw - 18px)!important;
+  height:auto!important;min-height:0!important;
+  padding:10px 10px 9px!important;margin:0!important;
+  border:1px solid #6d7bc9!important;border-radius:14px!important;
+  background:
+    radial-gradient(ellipse at 97% 0%,rgba(161,66,238,.27),transparent 55%),
+    radial-gradient(ellipse at 8% 100%,rgba(15,192,238,.12),transparent 60%),
+    linear-gradient(145deg,#0b1d39 0%,#111c3b 60%,#21163f 100%)!important;
+  box-shadow:0 18px 38px rgba(0,4,23,.82),0 0 24px rgba(71,93,234,.26),
+    inset 0 1px 0 rgba(225,218,255,.18)!important;
+  color:#eaf4ff;text-align:left!important;
+  isolation:isolate;overflow:visible!important;
+}
+#simulations-pane .hzm-calendar-popover::before{
+  content:"";position:absolute;top:-5px;right:49px;
+  width:9px;height:9px;transform:rotate(45deg);
+  background:#181b3f;border-top:1px solid #6d7bc9;
+  border-left:1px solid #6d7bc9;
+}
+#simulations-pane .hzm-calendar-head{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:9px;margin-bottom:10px;min-height:33px;
+}
+#simulations-pane .hzm-calendar-head-label{
+  display:flex;flex-direction:column;gap:2px;min-width:0;
+}
+#simulations-pane .hzm-calendar-head-label small{
+  color:#35e4f4!important;font-size:8px!important;
+  line-height:11px;letter-spacing:1.15px;font-weight:900!important;
+}
+#simulations-pane .hzm-calendar-head-label strong{
+  font-size:15px;line-height:19px;font-weight:950;letter-spacing:-.3px;
+  color:#f3f8ff;text-transform:capitalize;
+  text-shadow:0 0 12px rgba(131,105,250,.29);
+}
+#simulations-pane .hzm-calendar-month-nav{
+  display:flex;align-items:center;gap:4px;flex-shrink:0;
+}
+#simulations-pane .hzm-day-control .hzm-calendar-month-nav button{
+  display:grid!important;place-items:center!important;
+  flex:0 0 24px!important;width:24px!important;min-width:24px!important;
+  height:24px!important;padding:0!important;margin:0!important;
+  background:#122b4c!important;border:1px solid #4569a6!important;
+  border-radius:7px!important;font:inherit;font-size:16px!important;
+  line-height:20px!important;color:#c0e9ff!important;cursor:pointer!important;
+}
+#simulations-pane .hzm-day-control .hzm-calendar-month-nav button:hover:not(:disabled){
+  background:#174973!important;border-color:#42eaff!important;
+  box-shadow:0 0 10px rgba(23,219,248,.26)!important;
+}
+#simulations-pane .hzm-day-control #hzm-calendar-close{
+  background:#271b48!important;border-color:#8150bf!important;
+  color:#e7b7fa!important;
+}
+#simulations-pane .hzm-day-control .hzm-calendar-month-nav button:disabled{
+  opacity:.34!important;cursor:not-allowed!important;
+}
+#simulations-pane .hzm-calendar-weekdays,
+#simulations-pane .hzm-calendar-grid{
+  display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;
+  gap:4px!important;width:100%!important;
+}
+#simulations-pane .hzm-calendar-weekdays{
+  margin:0 0 6px!important;padding:0 0 7px!important;
+  border-bottom:1px solid rgba(109,136,209,.3);
+}
+#simulations-pane .hzm-calendar-weekdays span{
+  text-align:center;font-size:9px;font-weight:850;color:#9fbde0;
+  letter-spacing:.2px;
+}
+#simulations-pane .hzm-calendar-weekdays span:nth-child(6),
+#simulations-pane .hzm-calendar-weekdays span:nth-child(7){
+  color:#bf99ef;
+}
+#simulations-pane .hzm-calendar-grid{
+  grid-auto-rows:30px!important;
+}
+#simulations-pane .hzm-day-control .hzm-calendar-grid .hzm-calendar-day{
+  position:relative!important;display:grid!important;place-items:center!important;
+  flex:unset!important;width:100%!important;min-width:0!important;
+  height:30px!important;min-height:30px!important;
+  padding:0!important;margin:0!important;
+  background:linear-gradient(135deg,rgba(16,43,76,.75),rgba(26,27,63,.7))!important;
+  color:#e5f2ff!important;border:1px solid transparent!important;
+  border-radius:8px!important;font-family:inherit;font-size:11px!important;
+  font-weight:850!important;line-height:18px!important;
+  cursor:pointer!important;
+  box-shadow:none!important;
+  transition:background .15s ease,border-color .15s ease,box-shadow .15s ease!important;
+}
+#simulations-pane .hzm-day-control .hzm-calendar-grid .hzm-calendar-day.is-outside{
+  color:#6e80a6!important;background:rgba(12,22,45,.45)!important;
+}
+#simulations-pane .hzm-day-control .hzm-calendar-grid .hzm-calendar-day:disabled{
+  opacity:.27!important;cursor:not-allowed!important;
+}
+#simulations-pane .hzm-day-control .hzm-calendar-grid .hzm-calendar-day:hover:not(:disabled){
+  background:linear-gradient(130deg,#134f77,#3b2b75)!important;
+  color:#fff!important;border-color:#48e5fb!important;
+  box-shadow:0 0 11px rgba(22,233,255,.24)!important;
+}
+#simulations-pane .hzm-day-control .hzm-calendar-grid .hzm-calendar-day.is-selected{
+  background:linear-gradient(128deg,#00bbdf,#18e7f6 59%,#76cfff)!important;
+  color:#061a2d!important;border-color:#83f9ff!important;
+  box-shadow:0 0 11px rgba(23,233,255,.37),inset 0 1px rgba(255,255,255,.28)!important;
+  font-weight:950!important;
+}
+#simulations-pane .hzm-calendar-grid .hzm-calendar-day.is-today:not(.is-selected){
+  border-color:#a65be3!important;color:#e7baff!important;
+  background:linear-gradient(135deg,#251b4e,#302058)!important;
+}
+#simulations-pane .hzm-calendar-day.is-today i{
+  position:absolute;bottom:2px;left:50%;transform:translateX(-50%);
+  width:3px;height:3px;background:#da9bff;border-radius:50%;
+  box-shadow:0 0 5px #cb67fc;
+}
+#simulations-pane .hzm-calendar-day.is-today.is-selected i{
+  background:#063c60;box-shadow:none;
+}
+#simulations-pane .hzm-calendar-foot{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:5px;min-height:31px;margin-top:9px;padding-top:8px;
+  border-top:1px solid rgba(111,135,205,.3);
+}
+#simulations-pane .hzm-day-control .hzm-calendar-foot .hzm-calendar-today{
+  display:inline-grid!important;place-items:center!important;
+  flex:0 0 auto!important;width:auto!important;height:24px!important;
+  padding:0 10px!important;margin:0!important;
+  border:1px solid #18b4d4!important;border-radius:7px!important;
+  background:linear-gradient(95deg,#064560,#123257)!important;
+  color:#80f4ff!important;font-size:10px!important;font-weight:900!important;
+  cursor:pointer!important;
+  box-shadow:inset 0 1px rgba(185,244,255,.12)!important;
+}
+#simulations-pane .hzm-day-control .hzm-calendar-foot .hzm-calendar-today:hover{
+  box-shadow:0 0 11px rgba(31,230,252,.29)!important;
+}
+#simulations-pane .hzm-calendar-foot #hzm-calendar-selected{
+  color:#bcc9e5;font-size:9px;font-weight:800;letter-spacing:.1px;
+  font-variant-numeric:tabular-nums;
+}
+#simulations-pane .hzm-calendar-popover button:focus-visible{
+  outline:2px solid #68f4ff!important;outline-offset:2px!important;
+}
+@media (prefers-reduced-motion:reduce){
+  #simulations-pane .hzm-day-control .hzm-calendar-grid .hzm-calendar-day{
+    transition:none!important;
+  }
+}
