@@ -1328,6 +1328,10 @@ function init(api){
       chooseView("scenario");
       $("hzm-scenario-run")?.click();return;
     }
+    if(event.target.closest("#hzm-mini-minutes")){
+      chooseView("scenario");
+      $("hzm-minute-player")?.focus();return;
+    }
     if(event.target.closest("#hzm-mini-backtest")){
       chooseView("backtest");
       if(state.lastPremium?.entitled)$("hzm-backtest-run")?.click();
