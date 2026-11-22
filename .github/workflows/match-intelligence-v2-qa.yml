@@ -1,0 +1,56 @@
+name: Hoopzaro Premium Match Intelligence V2 visual QA
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  intelligence-premium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install app and Chromium regression dependencies
+        run: |
+          python -m pip install -r requirements.txt 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - name: Verify scoped assets, no duplicate intelligence IDs, and source syntax
+        run: |
+          node --check bestbets_reference_frontend/simulations.js
+          python -m py_compile bestbets_simulations_canvas.py simulation_context_v2.py simulation_context_v75.py test_match_intelligence_browser.py
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          base=Path("bestbets_reference_frontend")
+          html=(base/"index.html").read_text(encoding="utf-8")
+          css=(base/"match_intelligence_premium.css").read_text(encoding="utf-8")
+          js=(base/"simulations.js").read_text(encoding="utf-8")
+          assert 'href="match_intelligence_premium.css"' in html
+          assert 'id="hzm-intel-factors-v75"' in html
+          assert 'id="hzm-intel-factors-info"' in html
+          assert 'id="hzm-intel-away-form"' in html and 'id="hzm-intel-home-form"' in html
+          assert 'hzm-intel-premium-v2' in css
+          assert '.hzm-intel-premium-v2' in html
+          assert 'factorBody.hidden=true' in js and 'factorBody.hidden=false' in js
+          assert 'factor.injuries_espn_fresh===true' in js
+          ids=re.findall(r'\bid="(hzm-intel-[a-z0-9-]+)"',html)
+          duplicates=sorted({ident for ident in ids if ids.count(ident)>1})
+          assert not duplicates, duplicates
+          assert 'id="hzm-lab-tab-flow"' in html and 'tabindex="-1" hidden disabled' in html
+          print("Scoped premium styles, one source per metric and research-only Flow verified.")
+          PY
+      - name: Chromium Premium Match Intelligence V7.5 / V7.4 / FREE and mobile
+        run: python test_match_intelligence_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hoopzaro-premium-match-intelligence-v2-desktop-mobile
+          path: test-results/premium-match-intelligence/*.png
+          if-no-files-found: warn
