@@ -354,9 +354,7 @@ function showDistributionOverview(sim,game,premium){
  const estimate=t=>count>0?100*bins.reduce((sum,row)=>
     sum+(Number(row.x)+2.5>=t?Number(row.p):0),0)/count:null;
  const probability=$("hzm-probability-rows");
- const context=$("hzm-prob-context"),explanation=$("hzm-prob-explanation");
- if(context)context.textContent=state.chart==="match"?"MECZ":state.chart==="away"?
-   (game?.away||"GOŚCIE"):(game?.home||"GOSP.");
+ const explanation=$("hzm-prob-explanation");
  if(probability){
    if(!paid||!Number.isFinite(average)||!bins.length){
      probability.textContent=paid?"Brak zweryfikowanego rozkładu punktów.":"Dostępne w Premium.";
