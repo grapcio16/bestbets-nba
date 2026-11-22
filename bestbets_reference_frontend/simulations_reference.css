@@ -1567,3 +1567,104 @@
     animation:none!important;transition:none!important;
   }
 }
+
+
+/* Approved ORIGINAL two-card projected score design — not the later
+   exaggerated glass/glow mock. Two stacked lines, cyan for away and
+   violet for home, no extra data or changes to simulations. */
+#simulations-pane .hzm-projected-splits.hzm-premium-averages{
+  display:flex!important;flex-direction:row!important;align-items:center!important;
+  justify-content:center!important;gap:9px!important;
+  width:min(100%,268px)!important;min-width:0!important;
+  margin:2px auto 0!important;padding:0!important;
+  position:relative;z-index:2;
+}
+#simulations-pane .hzm-premium-averages .hzm-average-card{
+  position:relative;isolation:isolate;display:flex!important;
+  flex:1 1 0!important;flex-direction:column!important;
+  justify-content:center!important;align-items:center!important;
+  gap:0!important;min-width:0!important;max-width:127px!important;
+  height:42px!important;min-height:42px!important;
+  margin:0!important;padding:3px 7px 4px!important;
+  border:1.5px solid #16eefe!important;border-radius:11px!important;
+  box-sizing:border-box!important;overflow:hidden!important;
+  background:linear-gradient(138deg,rgba(4,72,102,.92),rgba(9,37,72,.97) 61%,rgba(11,54,91,.92))!important;
+  box-shadow:
+    0 0 0 1px rgba(12,240,250,.22),
+    0 0 8px rgba(10,234,252,.58),
+    0 0 17px rgba(13,200,249,.23),
+    inset 0 1px rgba(176,255,255,.19),
+    inset 0 0 8px rgba(7,171,231,.15)!important;
+  transition:border-color .2s ease,box-shadow .2s ease;
+}
+#simulations-pane .hzm-premium-averages .hzm-average-card::before{
+  content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;
+  background:linear-gradient(135deg,rgba(139,253,255,.17),transparent 41%),
+    linear-gradient(180deg,rgba(255,255,255,.06),transparent 42%);
+}
+#simulations-pane .hzm-premium-averages .hzm-average-card::after{
+  content:"";position:absolute;pointer-events:none;
+  inset:0 13px auto 13px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(197,254,255,.46),transparent);
+}
+#simulations-pane .hzm-premium-averages .hzm-average-card.hzm-average-home{
+  border-color:#d76cff!important;
+  background:linear-gradient(136deg,rgba(58,22,91,.91),rgba(33,20,75,.98) 61%,rgba(77,21,111,.9))!important;
+  box-shadow:
+    0 0 0 1px rgba(216,98,255,.21),
+    0 0 9px rgba(210,67,255,.56),
+    0 0 18px rgba(178,60,250,.22),
+    inset 0 1px rgba(255,199,255,.19),
+    inset 0 0 8px rgba(171,61,234,.17)!important;
+}
+#simulations-pane .hzm-premium-averages .hzm-average-home::before{
+  background:linear-gradient(135deg,rgba(247,171,255,.15),transparent 45%),
+    linear-gradient(180deg,rgba(255,255,255,.06),transparent 42%);
+}
+#simulations-pane .hzm-premium-averages .hzm-average-home::after{
+  background:linear-gradient(90deg,transparent,rgba(250,198,255,.52),transparent);
+}
+#simulations-pane .hzm-premium-averages .hzm-average-label{
+  display:block!important;position:relative!important;
+  flex:0 0 auto!important;min-width:0!important;max-width:100%!important;
+  height:auto!important;min-height:0!important;
+  padding:0!important;margin:0 0 1px!important;
+  border:0!important;border-radius:0!important;
+  background:transparent!important;box-shadow:none!important;
+  text-align:center!important;white-space:nowrap!important;
+  font-size:8px!important;line-height:10px!important;
+  font-weight:850!important;letter-spacing:.05px!important;
+  color:#d5f9ff!important;
+}
+#simulations-pane .hzm-premium-averages .hzm-average-home .hzm-average-label{
+  color:#f2d4ff!important;
+}
+#simulations-pane .hzm-premium-averages .hzm-average-label b{
+  font-size:8px!important;line-height:10px!important;
+  font-weight:950!important;color:inherit!important;
+}
+#simulations-pane .hzm-premium-averages strong.hzm-average-number{
+  display:block!important;position:relative!important;
+  font-size:16px!important;line-height:19px!important;
+  font-weight:950!important;letter-spacing:-.45px!important;
+  color:#fff!important;white-space:nowrap!important;
+  font-variant-numeric:tabular-nums!important;
+  margin:0!important;padding:0!important;
+  text-align:center!important;
+  text-shadow:0 0 7px rgba(108,237,255,.23)!important;
+}
+#simulations-pane .hzm-premium-averages .hzm-average-home strong.hzm-average-number{
+  text-shadow:0 0 8px rgba(225,147,255,.27)!important;
+}
+@media(hover:hover){
+  #simulations-pane .hzm-premium-averages .hzm-average-card:hover{
+    box-shadow:0 0 0 1px rgba(12,240,250,.32),
+      0 0 12px rgba(10,234,252,.64),0 0 18px rgba(13,200,249,.29),
+      inset 0 1px rgba(176,255,255,.22)!important;
+  }
+  #simulations-pane .hzm-premium-averages .hzm-average-home:hover{
+    box-shadow:0 0 0 1px rgba(216,98,255,.31),
+      0 0 12px rgba(210,67,255,.63),0 0 19px rgba(178,60,250,.29),
+      inset 0 1px rgba(255,199,255,.23)!important;
+  }
+}
