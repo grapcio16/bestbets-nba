@@ -231,6 +231,34 @@ function chartOverUnderAt(dist,bins,line){
  if(over!==null)over=Math.max(0,Math.min(100,over));
  return {line:t,over,under:over===null?null:100-over,approx:!exact};
 }
+/* 20-point span around the selected OVER/UNDER market line.
+   For integer basketball scores, endpoints differ by 20; both are inclusive.
+   Uses the SAME 5000 original score draws as the side OVER/UNDER control. */
+function chartTwentyPointAt(dist,bins,line){
+ const t=validChartLine(line);
+ if(t===null||!bins.length)return null;
+ const centre=Math.floor(t)+1;
+ const from=centre-10,to=centre+10;
+ const counts=Array.isArray(dist?.score_counts)?dist.score_counts
+   .filter(item=>Array.isArray(item)&&item.length===2&&
+     Number.isInteger(Number(item[0]))&&Number.isInteger(Number(item[1]))&&
+     Number(item[1])>=0&&Number(item[1])<=5000)
+   .map(item=>[Number(item[0]),Number(item[1])]):[];
+ const total=counts.reduce((sum,item)=>sum+item[1],0);
+ const exact=total===5000;
+ const binsTotal=bins.reduce((sum,bin)=>sum+bin.p,0);
+ let pct=null;
+ if(exact){
+   pct=100*counts.reduce((sum,item)=>
+     sum+(item[0]>=from&&item[0]<=to?item[1]:0),0)/total;
+ }else if(binsTotal>0){
+   pct=100*bins.reduce((sum,bin)=>{
+     const low=Math.max(from,bin.x),high=Math.min(to,bin.x+4);
+     return sum+(high>=low?bin.p*(high-low+1)/5:0);
+   },0)/binsTotal;
+ }
+ return {from,to,pct:pct===null?null:Math.max(0,Math.min(100,pct)),approx:!exact};
+}
 function chartMarkerGeometry(bins,line){
  const x0=43,x1=445,y0=15,y1=147;
  const xmin=bins[0].x,xmax=bins[bins.length-1].x+5;
@@ -347,6 +375,8 @@ function updateChartMarker(svg,dist,bins,lineValue){
    explicitly approximate. No bookmaker ROI or hit rate is synthesized. */
 /* All percentages on Results are conditional on a SINGLE model run.
    OVER/UNDER percentages are complementary for the chosen half-point line. */
+/* One selected market line powers both distinct analytical readouts:
+   right-side Over/Under probabilities and 20-point concentration KPI below. */
 function showDistributionOverview(sim,game,premium){
  const paid=premium?.entitled===true&&sim&&!sim.error&&game;
  const set=(id,value)=>{const el=$(id);if(el)el.textContent=value};
@@ -356,38 +386,22 @@ function showDistributionOverview(sim,game,premium){
  const valid=!!paid&&bins.length>=3&&dist?.average!=null&&Number.isFinite(avg);
  const line=valid?chartLineFor(dist,bins):null;
  const profile=valid?chartOverUnderAt(dist,bins,line):null;
- const probability=$("hzm-probability-rows"),explanation=$("hzm-prob-explanation");
- const input=$("hzm-ou-line");
+ const concentration=valid?chartTwentyPointAt(dist,bins,line):null;
+ const explanation=$("hzm-prob-explanation"),input=$("hzm-ou-line");
  if(input){
    input.disabled=!valid;
-   input.title=valid?"Wpisz własną linię (np. 229,5), następnie Enter":"Wybierz mecz Premium";
+   input.title=valid?"Podaj linię np. 229,5 i zatwierdź Enter":"Wybierz mecz Premium";
    if(document.activeElement!==input)input.value=profile?fmt(profile.line):"";
  }
  set("hzm-ou-over",profile?.over!=null?(profile.approx?"≈":"")+percent(profile.over):"—");
  set("hzm-ou-under",profile?.under!=null?(profile.approx?"≈":"")+percent(profile.under):"—");
- if(probability){
-   if(!valid||!profile){
-     probability.textContent=paid?"Brak zweryfikowanego rozkładu punktów.":"Dostępne w Premium.";
-     if(explanation)explanation.textContent="Prognoza modelu · nie kurs bukmacherski";
-   }else{
-     const comparisonLine=profile.line<=494.5?profile.line+5:profile.line-5;
-     const compared=chartOverUnderAt(dist,bins,comparisonLine);
-     const thresholdRows=[profile,compared].filter(Boolean);
-     const label=t=>fmt(t);
-     probability.innerHTML=thresholdRows.map((pair,index)=>{
-       const prefix=index===0?'':'';
-       return [
-         {kind:"over",short:"Ponad "+label(pair.line),full:"Ponad "+label(pair.line)+" pkt",pct:pair.over},
-         {kind:"under",short:"Poniżej "+label(pair.line),full:"Poniżej "+label(pair.line)+" pkt",pct:pair.under}
-       ].map(row=>'<div class="hzm-prob-row '+row.kind+(index===0?' is-selected-line':'')+'">'+
-         '<span class="hzm-prob-direction" aria-hidden="true">'+(row.kind==="over"?"↑":"↓")+'</span>'+
-         '<span class="hzm-prob-threshold" title="'+esc(row.full)+'">'+esc(row.short)+'</span>'+
-         '<b>'+(row.pct==null?"—":(pair.approx?"≈":"")+percent(row.pct))+'</b></div>').join('');
-     }).join('');
-     if(explanation)explanation.textContent=profile.approx?
-       "≈ z histogramu; wybierz mecz z pełnymi danymi":"Pierwsze 2 wiersze: wybrana linia · 5 000 symulacji";
-   }
- }
+ if(explanation)explanation.textContent=!valid?
+   "Wybierz mecz Premium, aby sprawdzić linię":
+   profile?.approx?"≈ prognoza z histogramu · nie kurs":
+   "Z 5 000 symulacji · nie kurs bukmacherski";
+ set("hzm-result-range",concentration?concentration.from+"–"+concentration.to:"—");
+ set("hzm-result-range-pct",concentration?.pct!=null?
+   (concentration.approx?"≈":"")+percent(concentration.pct)+" szans":"—");
  set("hzm-result-favorite",paid?(sim.home_win_pct>=sim.away_win_pct?
    String(game.home)+" "+percent(sim.home_win_pct):String(game.away)+" "+percent(sim.away_win_pct)):"—");
  set("hzm-result-total",paid?fmt(sim.total_points):"—");
