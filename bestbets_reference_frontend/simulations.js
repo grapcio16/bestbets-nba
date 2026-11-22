@@ -232,25 +232,54 @@ function showDistributionOverview(sim,game,premium){
  const estimate=t=>count>0?100*bins.reduce((sum,row)=>
     sum+(Number(row.x)+2.5>=t?Number(row.p):0),0)/count:null;
  const probability=$("hzm-probability-rows");
+ const context=$("hzm-prob-context");
+ const explanation=$("hzm-prob-explanation");
+ if(context)context.textContent=state.chart==="match"?"MECZ":state.chart==="away"?
+   (game?.away||"GOŚCIE"):(game?.home||"GOSP.");
  if(probability){
    if(!paid||!Number.isFinite(average)||!bins.length){
-     probability.textContent=paid?"Brak pełnego rozkładu.":"Dane dostępne w Premium.";
+     probability.textContent=paid?"Brak zweryfikowanego rozkładu punktów.":"Dostępne w Premium.";
+     if(explanation)explanation.textContent="Prognoza z modelu · nie kurs bukmacherski";
    }else{
-     const base=Number(dist.threshold),exact=Number(dist.over_pct);
-     const validBase=dist.threshold!==null&&Number.isFinite(base);
-     const exactKnown=validBase&&dist.over_pct!==null&&dist.over_pct!==undefined&&
-       Number.isFinite(exact)&&exact>=0&&exact<=100;
-     const at=validBase?base:5*Math.round(average/5);
-     const options=[
-       {label:"Powyżej "+at+" pkt",p:exactKnown?exact:estimate(at),approx:!exactKnown},
-       {label:"Poniżej "+at+" pkt",p:exactKnown?100-exact:estimate(at)===null?null:100-estimate(at),approx:!exactKnown},
-       {label:"Powyżej "+(at+10)+" pkt",p:estimate(at+10),approx:true},
-       {label:"Poniżej "+(at-10)+" pkt",p:estimate(at-10)===null?null:100-estimate(at-10),approx:true}
-     ];
-     probability.innerHTML=options.map(item=>
-       '<div class="hzm-prob-row"><span>'+esc(item.label)+'</span><b>'+
-       (item.p===null?"—":(item.approx?"≈":"")+percent(Math.max(0,Math.min(100,item.p))))+
-       '</b></div>').join("");
+     const validPct=value=>value!==null&&value!==undefined&&value!==""&&
+       Number.isFinite(Number(value))&&Number(value)>=0&&Number(value)<=100;
+     // The new Premium payload carries exact counts from the SAME 5000
+     // team or combined score draws. Never derive those odds from ROI.
+     const exactLines=(Array.isArray(dist?.lines)?dist.lines:[])
+       .filter(row=>row&&Number.isFinite(Number(row.line))&&
+         Number(row.line)>0&&Number(row.line)<450&&
+         validPct(row.over_pct)&&validPct(row.under_pct)&&
+         Math.abs(Number(row.over_pct)+Number(row.under_pct)-100)<0.21)
+       .slice(0,2);
+     let lines=exactLines.map(row=>({
+       line:Number(row.line),over:Number(row.over_pct),under:Number(row.under_pct),approx:false
+     }));
+     // During an in-progress Streamlit redeploy, a cached forecast may
+     // still carry only the original one-threshold field. Maintain a
+     // clearly labeled approximation until refreshed by the server.
+     if(lines.length<2){
+       const t=dist?.threshold!==null&&dist?.threshold!==undefined&&Number.isFinite(Number(dist.threshold))
+         ?Number(dist.threshold):5*Math.round(average/5);
+       const estimate=threshold=>count>0?100*bins.reduce((sum,row)=>
+          sum+(Number(row.x)+2.5>threshold?Number(row.p):0),0)/count:null;
+       const first=validPct(dist?.over_pct)?Number(dist.over_pct):estimate(t-.5);
+       lines=[
+         {line:t-.5,over:first,under:first===null?null:100-first,approx:!validPct(dist?.over_pct)},
+         {line:t+4.5,over:estimate(t+4.5),under:estimate(t+4.5)===null?null:100-estimate(t+4.5),approx:true}
+       ];
+     }
+     const fmtLine=value=>Number(value).toFixed(1).replace(".",",");
+     const renderPair=(item)=>[
+       {kind:"over",label:"Ponad "+fmtLine(item.line)+" pkt",pct:item.over},
+       {kind:"under",label:"Poniżej "+fmtLine(item.line)+" pkt",pct:item.under}
+     ].map(row=>
+       '<div class="hzm-prob-row '+row.kind+'"><span class="hzm-prob-direction" aria-hidden="true">'+
+       (row.kind==="over"?"↑":"↓")+'</span><span class="hzm-prob-threshold">'+esc(row.label)+
+       '</span><b>'+(row.pct===null?"—":(item.approx?"≈":"")+percent(row.pct))+'</b></div>'
+     ).join("");
+     probability.innerHTML=lines.map(renderPair).join("");
+     if(explanation)explanation.textContent=lines.some(row=>row.approx)?
+       "≈ z histogramu 5 pkt · nie kursy":"Dokładne częstości z 5 000 symulacji · nie kursy";
    }
  }
  set("hzm-result-favorite",paid?(sim.home_win_pct>=sim.away_win_pct?
