@@ -1720,7 +1720,10 @@ function showPlayerMinutes(game,players,premium){
 }
 function showAvailability(game,players,sim,premium){
  const message=$("hzm-availability-message"),freshness=$("hzm-availability-freshness");
+ const refresh=$("hzm-availability-refresh");
  if(!message||!freshness)return;
+ if(refresh)refresh.disabled=premium?.entitled!==true||
+   game?.state!=="scheduled"||!(Date.parse(game?.start||"")>Date.now());
  for(const side of ["away","home"]){
    $("hzm-availability-"+side+"-code").textContent=game?.[side]||
      (side==="away"?"GOŚCIE":"GOSPODARZE");
@@ -2329,6 +2332,15 @@ function init(api){
     state.scenarioPending=key;
     callbacks?.loadScenario?.(state.day,game.id,state.model,state.scenarioPct,state.offAwayPct,state.offHomePct);
     showScenario(game,sim,state.lastPremium);
+  });
+  $("hzm-availability-refresh")?.addEventListener("click",event=>{
+    event.preventDefault();
+    const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+    if(!state.lastPremium?.entitled||!game||game.state!=="scheduled"||
+      !(Date.parse(game.start||"")>Date.now()))return;
+    const message=$("hzm-availability-message");
+    if(message)message.textContent="Sprawdzanie wpisów ESPN dla "+game.away+" i "+game.home+"…";
+    callbacks?.refreshPlayers?.(state.day,game.id,state.model);
   });
   $("hzm-minute-player")?.addEventListener("change",event=>{
     const next=Number(event.target.value);
