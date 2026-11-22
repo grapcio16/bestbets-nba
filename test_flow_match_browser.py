@@ -22,7 +22,8 @@ def flow():
         "quarters": [
             {"quarter": i+1, "away_outscores_pct": 48.0,
              "home_outscores_pct": 50.0, "tie_pct": 2.0,
-             "away_mean": 28.0, "home_mean": 29.0}
+             "away_mean": [28.0, 27.0, 31.0, 26.0][i],
+             "home_mean": [29.0, 31.0, 25.5, 29.0][i]}
             for i in range(4)
         ],
         "clutch": {"home_margin_mean": 1.3, "away_outscores_pct": 42.0,
@@ -31,6 +32,11 @@ def flow():
                        "final_spread_p90": 25.0,
                        "final_spread_sd": 17.5},
         "rotation_available": False, "scoring_runs_available": False,
+        "quarter_model": {
+            "available": True, "method": "espn_regulation_quarters_v1",
+            "away_sample": 12, "home_sample": 11,
+            "source": "ESPN test", "basis": "Historyczne Q1–Q4 ESPN"
+        },
         "sample_path": [
             {"minute": i*3, "away_minus_home": round(i*.3+(-1)**i*2, 2) if i else 0}
             for i in range(17)],
@@ -103,11 +109,16 @@ def check(page):
     assert page.locator("#hzm-hero-home-points").inner_text() == "114,5"
     assert page.locator("#hzm-flow-plot svg").count() == 1
     assert page.locator(".hzm-flow-quarter-row").count() == 4
+    assert "12" in page.locator("#hzm-flow-timeline-desc").inner_text()
+    assert page.locator("#hzm-flow-plot svg [data-flow-quarter-points]").count() == 4
+    assert page.locator('[data-flow-quarter-points="1"] .hzm-flow-q-home').text_content() == "BOS śr. 29,0 pkt"
+    assert page.locator('[data-flow-quarter-points="3"] .hzm-flow-q-home').text_content() == "BOS śr. 25,5 pkt"
+    assert page.locator('[data-flow-quarter-points="3"] .hzm-flow-q-away').text_content() == "NYK śr. 31,0 pkt"
     projected = page.locator("#hzm-flow-plot svg [data-flow-quarter-points]")
     assert projected.count() == 4
-    assert projected.first.locator(".hzm-flow-q-home").text_content() == "BOS 29,0 pkt"
-    assert projected.first.locator(".hzm-flow-q-away").text_content() == "NYK 28,0 pkt"
-    assert "warunkowy" in (projected.first.get_attribute("aria-label") or "").lower()
+    assert projected.first.locator(".hzm-flow-q-home").text_content() == "BOS śr. 29,0 pkt"
+    assert projected.first.locator(".hzm-flow-q-away").text_content() == "NYK śr. 28,0 pkt"
+    assert "historyczne punkty kwartowe espn" in (projected.first.get_attribute("aria-label") or "").lower()
     if page.viewport_size["width"] <= 767:
         plot_sizes = page.locator("#hzm-flow-plot").evaluate(
             "el => ({scroll:el.scrollWidth, client:el.clientWidth, viewport:innerWidth})")
@@ -117,7 +128,7 @@ def check(page):
     assert "52,3%" in page.locator("#hzm-flow-runrisk").inner_text()
     assert page.locator("#hzm-flow-run-data .hzm-flow-run-row").count() == 3
     assert page.locator("#hzm-flow-plot svg").get_attribute("aria-label").startswith(
-        "Przykładowy przebieg — 1 z 5 000")
+        "Średnia przewaga z 5 000 losowań")
     assert page.locator(".hzm-flow-history-grid .hzm-flow-player-row").count() == 2
     assert page.locator(".hzm-flow-heat-cell").count() == 32
     assert page.locator(".hzm-flow-matchups .hzm-flow-duel").count() == 3
@@ -162,10 +173,10 @@ def check(page):
     assert page.locator("#hzm-flow-scenario").is_enabled()
     page.locator("#hzm-flow-scenario").click()
     assert page.locator("#hzm-flow-scenario").get_attribute("aria-pressed") == "true"
-    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-home').text_content() == "BOS 33,5 pkt"
-    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-away').text_content() == "NYK 30,1 pkt"
+    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-home').text_content() == "BOS śr. 33,5 pkt"
+    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-away').text_content() == "NYK śr. 30,1 pkt"
     page.locator("#hzm-flow-base").click()
-    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-home').text_content() == "BOS 29,0 pkt"
+    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-home').text_content() == "BOS śr. 29,0 pkt"
     page.locator("#hzm-flow-scenario").click()
     page.locator("#hzm-flow-save").click()
     page.wait_for_function("window.__flowActions.length===3")
@@ -204,10 +215,12 @@ def check(page):
 
 def check_timeline(page):
     sample = flow()
-    # Input margins intentionally disagree at the final minute.
-    leads = [0, 5, -8, -3, 0, 0, 2, 4, 1, -3, 2, 5, 0, -2, -4, -6, -8]
-    for point, lead in zip(sample["sample_path"], leads):
-        point["away_minus_home"] = -lead
+    # The primary chart MUST trace the expectation from all 5,000 scores,
+    # not the unrelated illustrative draw, even if that sample is dramatic.
+    leads = [0, 5, -8, -3, 0, 0, 2, 4, -8]
+    for point, lead in zip(sample["timeline"], leads):
+        point["margin_mean"] = lead
+    sample["sample_path"][-1]["away_minus_home"] = -35
     context = {"day": "test", "game": {"id": "a", "home": "ATL", "away": "DET"},
                "premium": {"entitled": True}, "model": "base", "sim": {"flow": sample}}
     svg = page.locator("#hzm-flow-plot svg")
@@ -240,8 +253,8 @@ def check_timeline(page):
     assert tied[1] == tied[3] == zero and neutral == "#849AB1"
     assert "DET +8 pkt" in svg.text_content()
     mean_y = float(svg.locator(".flow-mean").get_attribute("d").split()[-1])
-    assert mean_y < zero
-    assert "ATL" in page.locator("#hzm-flow-final-margin").inner_text()
+    assert mean_y > zero
+    assert "DET" in page.locator("#hzm-flow-final-margin").inner_text()
     card = page.locator(".hzm-flow-timeline")
     legend = card.locator(".hzm-flow-legend")
     assert legend.evaluate("""el => [...el.children].every(child => {
@@ -253,20 +266,26 @@ def check_timeline(page):
     card.screenshot(path=output / f"simlab-flow-timeline-{page.viewport_size['width']}.png")
 
     context["game"] = {"id": "b", "home": "HME", "away": "AWY"}
-    sample["sample_path"][-1]["away_minus_home"] = -5
+    sample["timeline"][-1]["margin_mean"] = 5
     render()
     assert "HME +5 pkt" in svg.get_attribute("aria-label")
     assert svg.locator("circle").get_attribute("fill") == "#D374FF"
     context["model"] = "alternate"
-    sample.pop("sample_path")
     sample["timeline"][-1]["margin_mean"] = -8
     render()
-    assert "AWY +8 pkt" in svg.text_content() and svg.locator(".flow-mean").count() == 0
+    assert "AWY +8 pkt" in svg.text_content() and svg.locator(".flow-mean").count() == 1
     assert svg.locator("circle").get_attribute("fill") == "#24F1F6"
     sample["timeline"][-1]["margin_mean"] = 0
     render()
     assert "REMIS" in svg.text_content()
     assert float(svg.locator("circle").get_attribute("cy")) == zero
+    # No historical Q evidence => no made-up Q forecasts or simulated trace.
+    sample["quarter_model"] = {"available": False, "basis": "Brak ESPN Q1–Q4"}
+    render()
+    assert svg.count() == 0
+    assert page.locator("#hzm-flow-plot").inner_text().startswith("Brak potwierdzonego")
+    assert "Brak zweryfikowanej historii" in page.locator(
+        "#hzm-flow-quarter-data").inner_text()
 
 
 def main():

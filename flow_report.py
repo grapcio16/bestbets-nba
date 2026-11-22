@@ -75,13 +75,18 @@ def build_flow_pdf(*, day: str, game_id: str, model_id: str,
         c.line(x,graph_y,x,graph_y+graph_h)
         c.setFont("Helvetica", 8);c.setFillColor(muted)
         c.drawCentredString(x,graph_y-12,str(minute)+"m")
-    if len(rows)==9 and len(values)==9:
+    quarter_proof = isinstance(flow.get("quarter_model"), dict) and (
+        flow["quarter_model"].get("available") is True)
+    if quarter_proof and len(rows)==9 and len(values)==9:
         c.setStrokeColor(cyan);c.setLineWidth(2.5)
         def pt(i):
             return (x0+pw*i/8, graph_y+graph_h/2 + float(values[i])/(2*limit)*graph_h)
         for i in range(8):c.line(*pt(i),*pt(i+1))
     c.setFillColor(muted);c.setFont("Helvetica", 8)
-    c.drawString(x0, y0-29, "Neutralny podzial wyniku w czasie; nie dane zdarzen NBA.")
+    c.drawString(x0, y0-29, _label(
+        "Srednia przewaga 5000 wynikow i historyczne Q1-Q4 ESPN; bez PBP."
+        if quarter_proof else "Brak historycznych Q1-Q4 ESPN. Brak prognozy kwart."
+    ))
 
     # Four conditional quarter summaries: outscoring, not final-game win odds.
     qx=548
@@ -103,8 +108,10 @@ def build_flow_pdf(*, day: str, game_id: str, model_id: str,
     c.setFillColor(white);c.setFont("Helvetica", 9)
     descriptions = [
         "Rekonstrukcja warunkowa z tych samych 5000 koncowych losowan Monte Carlo.",
-        "Punkty alokowane neutralnie do osmiu odcinkow po 6 minut, bez danych o posiadaniach.",
-        "Prawdopodobienstwa przewagi w kwartach NIE sa skalibrowanymi prognozami kwart.",
+        ("Q1-Q4 bazuja na historycznych zdobytych i straconych punktach ESPN."
+         if quarter_proof else
+         "Brak danych ESPN Q1-Q4. Nie przedstawiamy sztucznych wynikow kwart."),
+        "Model kwart eksperymentalny, niekalibrowany. Odcinki 6-min sa ilustracyjne.",
         "Brak zweryfikowanych rotacji, scoring runs, historycznych kursow i przewidywania wyniku live.",
         "Ewentualna dogrywka z koncowego wyniku jest umownie rozlozona na 48 minut.",
     ]

@@ -23,11 +23,57 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Validate source syntax
         run: |
-          python -m py_compile simulation_flow.py flow_report.py bestbets_simulations_canvas.py bestbets_custom_screen.py test_simulation_flow.py test_flow_match_browser.py
+          python -m py_compile simulation_sources.py simulation_quarter_model.py simulation_flow.py flow_report.py bestbets_simulations_canvas.py bestbets_custom_screen.py test_simulation_quarter_model.py test_simulation_flow.py test_flow_match_browser.py
           node --check bestbets_reference_frontend/flow_match.js
           node --check bestbets_reference_frontend/simulations.js
-      - name: Verify conservative 5000-run flow and PDF
-        run: python -m unittest -v test_simulation_flow
+      - name: Verify ESPN regulation quarters, no lookahead, 5000-run score preservation and PDF
+        run: python -m unittest -v test_simulation_quarter_model test_simulation_flow
+      - name: Diagnose real ESPN four-quarter coverage (non-blocking)
+        run: |
+          python - <<'PY'
+          from sources import http_json, ESPN_SCOREBOARD
+          from simulation_sources import parse_espn_quarter_linescores
+          try:
+              raw = http_json(ESPN_SCOREBOARD,
+                              params={"dates":"202611","limit":500}, timeout=9)
+              events = raw.get("events", [])
+              n_final = sum(bool((e.get("status") or {}).get("type", {}).get("completed"))
+                            for e in events)
+              quarters = parse_espn_quarter_linescores(raw)
+              print("ESPN current month events:", len(events))
+              print("Completed events:", n_final)
+              print("Verified 4-quarter regulation events:", len(quarters))
+              if n_final and not quarters:
+                  print("WARNING: ESPN response contains no Q1-Q4 line scores; "
+                        "production fails closed rather than divides score by four")
+          except Exception as exc:
+              print("ESPN live diagnostic unavailable:", type(exc).__name__, str(exc)[:180])
+          PY
+      - name: Check real DET vs ATL pretipoff quarter samples (diagnostic only)
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          from simulation_sources import historical_espn_results
+          from simulation_quarter_model import pregame_quarter_evidence
+          try:
+              history, warning = historical_espn_results("2026-27")
+              print("ESPN finalized season games:", len(history))
+              print("Q1-Q4 columns:", [x for x in history.columns if x.endswith(tuple(f"_q{i}" for i in range(1, 5)))])
+              forecast = pregame_quarter_evidence(history, {
+                  "home": "ATL", "away": "DET",
+                  "start_utc": pd.Timestamp("2026-11-22T23:59:00Z")
+              })
+              print("DET-ATL quarter evidence available:", forecast.get("available"))
+              print("DET sample:", forecast.get("away_sample"),
+                    "ATL sample:", forecast.get("home_sample"))
+              if forecast.get("available"):
+                  print("DET historical conditional Q shares:", forecast.get("away"))
+                  print("ATL historical conditional Q shares:", forecast.get("home"))
+              else:
+                  print("Reason:", forecast.get("reason"))
+          except Exception as exc:
+              print("Live empirical probe unavailable:", type(exc).__name__, str(exc)[:200])
+          PY
       - name: Chromium Premium Flow smoke on desktop and mobile
         run: python test_flow_match_browser.py
       - name: Responsive visual reachability for seven Premium modules

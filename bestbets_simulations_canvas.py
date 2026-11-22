@@ -94,9 +94,14 @@ def _day_for_simulations(day: str):
 
 @st.cache_data(ttl=600, max_entries=4, show_spinner=False)
 def _history_for_simulations(season: str):
-    """Parse the season scoreboards once for concurrent Premium selections."""
+    """Version 2: read season finals WITH verified ESPN regulation Q1–Q4 when available.
+
+    Explicit body change invalidates previously cached schedule-only DataFrames
+    after deploy. Missing quarterly evidence is a known unavailable state.
+    """
     from simulation_sources import historical_espn_results
-    return historical_espn_results(season)
+    history, warning = historical_espn_results(season)
+    return history, warning
 
 
 @st.cache_data(ttl=600, max_entries=90, show_spinner=False)
@@ -220,8 +225,10 @@ def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"
         game, means, score_noise=(context["score_noise"]
                                  if model_id != "legacy_v72" else None))
     from simulation_flow import conditional_flow
+    from simulation_quarter_model import pregame_quarter_evidence
+    quarters = pregame_quarter_evidence(historical, game)
     flow = conditional_flow(away_scores, home_scores, game_id=game_id,
-                            model_id=model_id)
+                            model_id=model_id, quarter_evidence=quarters)
     return {
         "game_id": game_id, "model_id": model_id, "away": away, "home": home,
         "away_win_pct": summary["away_win_pct"],

@@ -515,12 +515,12 @@ def main() -> None:
     # Existing Streamlit sessions may retain old player payloads without the
     # selected-team minute roster. Invalidate once per data-contract revision
     # so Scenario Lab requests current, entitlement-checked roster data.
-    if st.session_state.get("bb10_scenario_evidence_schema") != 4:
+    if st.session_state.get("bb10_scenario_evidence_schema") != 5:
         st.session_state.pop("bb10_premium_game", None)
         st.session_state.pop("bb10_premium_scenario", None)
         st.session_state.pop("bb10_premium_players", None)
         st.session_state.pop("bb10_premium_minute_scenario", None)
-        st.session_state["bb10_scenario_evidence_schema"] = 4
+        st.session_state["bb10_scenario_evidence_schema"] = 5
     # CRITICAL: preload data BEFORE mounting the v1 iframe. Production
     # sometimes discards the initial setComponentValue/home_data message,
     # leaving the dashboard spinning indefinitely. The home snapshot is

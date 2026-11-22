@@ -10,17 +10,28 @@ class FlowTests(unittest.TestCase):
         rng = np.random.default_rng(74)
         return rng.integers(96, 129, 5000), rng.integers(99, 132, 5000)
 
+    def evidence(self):
+        # Synthetic quarter shapes used only for tests. Actual app input
+        # must pass the verified historical ESPN pre-tipoff evidence gate.
+        return {"available": True, "method": "espn_regulation_quarters_v1",
+                "away_sample": 12, "home_sample": 12,
+                "away": [.20, .27, .33, .20],
+                "home": [.32, .23, .18, .27],
+                "source": "ESPN test",
+                "description": "Eksperymentalne profile Q z ESPN (test)"}
+
     def test_same_5000_final_draws_without_fake_sequence_data(self):
         away, home = self.sample()
         before_a, before_h = away.copy(), home.copy()
         flow = conditional_flow(away, home, game_id="401999555",
-                                model_id="research_form_v74")
+                                model_id="research_form_v74",
+                                quarter_evidence=self.evidence())
         self.assertTrue(flow["available"])
         self.assertEqual(flow["n_sims"], 5000)
-        self.assertEqual(flow["method"], "conditional_neutral_6min_v1")
+        self.assertEqual(flow["method"], "conditional_espn_quarters_v1")
         self.assertFalse(flow["rotation_available"])
         self.assertFalse(flow["scoring_runs_available"])
-        self.assertIn("nie są to dane play-by-play", flow["source"])
+        self.assertIn("nie są to rzeczywiste NBA play-by-play", flow["source"])
         self.assertEqual(len(flow["sample_path"]), 17)
         self.assertEqual(flow["sample_path"][0], {"minute": 0, "away_minus_home": 0})
         self.assertEqual(flow["sample_path"][-1]["minute"], 48)
@@ -58,7 +69,8 @@ class FlowTests(unittest.TestCase):
         np.testing.assert_array_equal(before_a, away)
         np.testing.assert_array_equal(before_h, home)
         self.assertEqual(flow, conditional_flow(
-            away, home, game_id="401999555", model_id="research_form_v74"))
+            away, home, game_id="401999555", model_id="research_form_v74",
+            quarter_evidence=self.evidence()))
 
     def test_reconstructed_windows_exactly_conserve_each_score(self):
         rng = np.random.default_rng(5)
@@ -72,9 +84,12 @@ class FlowTests(unittest.TestCase):
         away = np.full(5000, 100)
         home = np.full(5000, 120)
         result = conditional_flow(away, home, game_id="401777001",
-                                  model_id="legacy_v72")
+                                  model_id="legacy_v72",
+                                  quarter_evidence=self.evidence())
         self.assertTrue(result["available"])
         self.assertEqual(len(result["quarters"]), 4)
+        self.assertNotAlmostEqual(result["quarters"][0]["away_mean"],
+                                  result["quarters"][2]["away_mean"], delta=2.0)
         self.assertAlmostEqual(sum(q["away_mean"] for q in result["quarters"]),
                                100, delta=.04)
         self.assertAlmostEqual(sum(q["home_mean"] for q in result["quarters"]),
@@ -82,7 +97,8 @@ class FlowTests(unittest.TestCase):
         self.assertAlmostEqual(result["timeline"][-1]["margin_mean"],
                                20, delta=.01)
         self.assertEqual(result, conditional_flow(away, home,
-            game_id="401777001", model_id="legacy_v72"))
+            game_id="401777001", model_id="legacy_v72",
+            quarter_evidence=self.evidence()))
 
     def test_incomplete_or_invalid_draws_fail_closed(self):
         a, h = self.sample()
@@ -94,7 +110,8 @@ class FlowTests(unittest.TestCase):
     def test_pdf_is_generated_from_server_flow_only(self):
         a, h = self.sample()
         flow = conditional_flow(a, h, game_id="401999555",
-                                model_id="research_form_v74")
+                                model_id="research_form_v74",
+                                quarter_evidence=self.evidence())
         from flow_report import build_flow_pdf
         pdf = build_flow_pdf(
             day="2026-11-23", game_id="401999555", model_id="research_form_v74",

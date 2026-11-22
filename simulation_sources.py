@@ -5,13 +5,98 @@ import pandas as pd
 from sources import ESPN_SCOREBOARD, memoized_json, parse_espn_schedule
 
 
+def _score_int(value):
+    """Strict observed quarter score; not any synthetic or missing display value."""
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not (numeric.is_integer() and 0 <= numeric <= 75):
+        return None
+    return int(numeric)
+
+
+def parse_espn_quarter_linescores(payload):
+    """Accept only COMPLETE, regulation, final, verified ESPN quarter scores.
+
+    Do not infer quarters from the final score. Do not merge overtime totals
+    into Q4. The scoreboard's team order is NOT the home/away order.
+    """
+    if not isinstance(payload, dict):
+        return []
+    result = []
+    for event in payload.get("events") or []:
+        if not isinstance(event, dict):
+            continue
+        competition = (event.get("competitions") or [None])[0]
+        if not isinstance(competition, dict):
+            continue
+        state = ((competition.get("status") or event.get("status")
+                  or {}).get("type") or {})
+        if not (state.get("completed") is True or state.get("state") == "post"):
+            continue
+        competitors = {
+            item.get("homeAway"): item
+            for item in competition.get("competitors") or []
+            if isinstance(item, dict)
+            and item.get("homeAway") in ("away", "home")
+        }
+        if set(competitors) != {"home", "away"}:
+            continue
+        line = {}
+        for side in ("home", "away"):
+            team = competitors[side]
+            items = team.get("linescores")
+            if not isinstance(items, list) or len(items) != 4:
+                break  # No full Q1–Q4 evidence, or an overtime game.
+            periods = {}
+            for n, item in enumerate(items, start=1):
+                if not isinstance(item, dict):
+                    break
+                period = item.get("period", n)
+                try:
+                    period = int(period)
+                except (ValueError, TypeError, OverflowError):
+                    break
+                if period not in (1, 2, 3, 4) or period in periods:
+                    break
+                val = _score_int(item.get("value", item.get("displayValue")))
+                if val is None:
+                    break
+                periods[period] = val
+            if len(periods) != 4:
+                break
+            try:
+                final = int(team.get("score"))
+            except (TypeError, ValueError, OverflowError):
+                break
+            if sum(periods.values()) != final or final < 55 or final > 200:
+                break
+            for q in range(1, 5):
+                line[f"{side}_q{q}"] = periods[q]
+        if len(line) != 8:
+            continue
+        eid = str(event.get("id") or competition.get("id") or "")
+        if not eid.isdigit():
+            continue
+        result.append({"game_id": eid, **line})
+    return result
+
+
 def _season_scoreboard_months(periods, refresh=False):
     """Fetch independent ESPN calendar months concurrently, preserving month order."""
     def one(period):
         key=period.strftime('%Y%m')
         raw,meta=memoized_json('sim-finished-scoreboard-'+key,ESPN_SCOREBOARD,
             params={'dates':key,'limit':500},ttl_seconds=45*60,refresh=refresh)
-        return parse_espn_schedule(raw),meta
+        # Extend the model's existing cached scoreboard response with real
+        # Q1–Q4; the public schedule parser remains unchanged.
+        games = parse_espn_schedule(raw)
+        quarters = parse_espn_quarter_linescores(raw)
+        if quarters and not games.empty:
+            games = games.merge(pd.DataFrame(quarters), how="left",
+                                on="game_id", validate="one_to_one")
+        return games,meta
 
     chunks=[];errors=[]
     if not periods:return chunks,errors

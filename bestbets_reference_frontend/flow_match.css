@@ -602,3 +602,27 @@
     height:170px!important;max-height:170px!important
   }
 }
+
+/* Never crop the legend or let it overlap the following heatmap. The chart
+   remains 181px; only the Timeline card can grow a few pixels as needed. */
+#simulations-pane[data-hzm-view="flow"] .hzm-flow-legend{
+  display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+  justify-content:flex-start!important;column-gap:10px!important;
+  row-gap:3px!important;overflow:visible!important;
+  min-height:14px!important;margin-top:5px!important;
+}
+#simulations-pane[data-hzm-view="flow"] .hzm-flow-legend>span{
+  font-size:8px!important;white-space:nowrap!important
+}
+#simulations-pane[data-hzm-view="flow"] .hzm-flow-legend>strong{
+  flex:0 0 auto;white-space:nowrap!important;font-size:8px!important;
+}
+#simulations-pane[data-hzm-view="flow"] .hzm-flow-timeline{
+  box-sizing:border-box!important;max-height:none!important;height:auto!important;
+  min-height:254px!important;
+}
+@media(max-width:767px){
+  #simulations-pane[data-hzm-view="flow"] .hzm-flow-legend{
+    gap:5px 8px!important
+  }
+}
