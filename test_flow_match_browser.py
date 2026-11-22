@@ -114,7 +114,7 @@ def check(page):
     assert badges.first.locator(".hzm-flow-q-away").text_content() == "NYK 28,0 pkt"
     assert "gospodarze" in (badges.first.get_attribute("aria-label") or "")
     # The agreed sign/color convention must hold for both sides of zero.
-    assert "Dodatnie wartości to przewaga gospodarzy BOS" in (
+    assert "Wartości dodatnie to przewaga gospodarzy BOS" in (
         page.locator("#hzm-flow-plot svg").get_attribute("aria-label") or "")
     assert page.locator('#hzm-flow-plot svg path[stroke="#d374ff"]').count() > 0
     assert page.locator('#hzm-flow-plot svg path[stroke="#24f1f6"]').count() > 0
