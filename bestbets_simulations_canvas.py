@@ -524,7 +524,8 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
             # A fresh OUT designation removes the player's projected minutes
             # and production; other players are NOT blindly credited with them.
             if pctx.get("status") == "Out":
-                player.update({"pts": None, "reb": None, "ast": None})
+                player.update({"minutes": 0.0, "pts": None,
+                               "reb": None, "ast": None})
         players.append(player)
     # OUT players have no projected production; keep them visible after
     # available scorers rather than treating missing values as zero points.
