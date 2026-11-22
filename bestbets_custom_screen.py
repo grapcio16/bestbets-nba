@@ -509,13 +509,13 @@ def main() -> None:
         # A session-local counter lets the iframe discard an old search when
         # identity changes, without exposing the OIDC subject to JavaScript.
         st.session_state["bb10_identity_epoch"] = st.session_state.get("bb10_identity_epoch", 0) + 1
-    # Existing Streamlit sessions may retain the old player payload created
-    # before ESPN minute/injury evidence was added. Invalidate it exactly once
-    # so the Scenario Lab automatically requests the updated server schema.
-    if st.session_state.get("bb10_scenario_evidence_schema") != 2:
+    # Existing Streamlit sessions may retain old player payloads without the
+    # selected-team minute roster. Invalidate once per data-contract revision
+    # so Scenario Lab requests current, entitlement-checked roster data.
+    if st.session_state.get("bb10_scenario_evidence_schema") != 3:
         st.session_state.pop("bb10_premium_players", None)
         st.session_state.pop("bb10_premium_minute_scenario", None)
-        st.session_state["bb10_scenario_evidence_schema"] = 2
+        st.session_state["bb10_scenario_evidence_schema"] = 3
     # CRITICAL: preload data BEFORE mounting the v1 iframe. Production
     # sometimes discards the initial setComponentValue/home_data message,
     # leaving the dashboard spinning indefinitely. The home snapshot is
@@ -838,6 +838,11 @@ def main() -> None:
                             "ESPN manual refresh failed: %s", type(exc).__name__)
                     _selected_injury_watch.clear(day, game_id)
                     _game_players.clear(day, game_id, model_id)
+                    # Team rosters may change during the season. Re-check the
+                    # cache after a verified manual ESPN refresh.
+                    from bestbets_simulations_canvas import _minute_roster_for_fixture
+                    _minute_roster_for_fixture.clear(
+                        str(selected["away"]), str(selected["home"]))
         result = simulation_for_entitled_user(
             day, game_id, players=is_players, model_id=model_id)
         key = "bb10_premium_players" if is_players else "bb10_premium_game"
