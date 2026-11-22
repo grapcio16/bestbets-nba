@@ -1029,3 +1029,81 @@
     transition:none!important;
   }
 }
+
+
+/* Replace generic 20-point window with interactive exact OVER / UNDER card.
+   Two percentages share one user-selected half-point market line. */
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis > .hzm-ou-kpi{
+  display:flex!important;flex-direction:column!important;
+  align-items:stretch!important;justify-content:center!important;
+  min-width:0;padding:2px 5px!important;gap:1px!important;
+  border:1px solid #4a8bdc!important;
+  background:linear-gradient(128deg,#0b3151,#14244b 55%,#28194e)!important;
+  box-shadow:inset 0 1px rgba(183,232,255,.2),
+    0 0 10px rgba(40,146,245,.23),0 0 9px rgba(162,68,232,.13)!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ou-head{
+  display:flex!important;align-items:center!important;justify-content:center;
+  gap:5px;min-width:0;min-height:17px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ou-head small{
+  color:#cbeaff!important;font-size:8px!important;font-weight:950!important;
+  letter-spacing:.1px;white-space:nowrap;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ou-head input{
+  position:relative!important;display:block!important;
+  width:43px!important;max-width:43px!important;min-width:35px!important;
+  height:17px!important;min-height:0!important;margin:0!important;
+  padding:1px 2px!important;flex:0 1 43px!important;
+  border:1px solid #468cbe!important;border-radius:5px!important;
+  background:#08253e!important;color:#f2fdff!important;
+  box-shadow:inset 0 1px rgba(177,239,255,.1)!important;
+  font:inherit;font-size:10px!important;line-height:14px!important;
+  font-weight:900!important;letter-spacing:-.1px!important;
+  font-variant-numeric:tabular-nums;
+  text-align:center!important;outline:0!important;
+  cursor:text;appearance:none!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ou-head input:focus{
+  border-color:#48f1ff!important;
+  box-shadow:0 0 9px rgba(0,233,252,.36)!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ou-head input[aria-invalid="true"]{
+  border-color:#fb8cb8!important;
+  box-shadow:0 0 9px rgba(255,90,149,.25)!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ou-head input:disabled{
+  opacity:.5;cursor:not-allowed;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ou-values{
+  display:flex!important;justify-content:space-between!important;
+  align-items:center!important;min-width:0;gap:5px;
+  padding:0 2px;line-height:14px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ou-values span{
+  display:inline-flex;gap:2px;align-items:baseline;
+  white-space:nowrap;font-size:9px;font-weight:900;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ou-values strong{
+  font-size:11.4px!important;line-height:15px!important;font-weight:950!important;
+  font-variant-numeric:tabular-nums;letter-spacing:-.3px!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ou-over{
+  color:#3efbe5!important;
+  text-shadow:0 0 8px rgba(32,235,209,.3);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ou-under{
+  color:#e6a0ff!important;
+  text-shadow:0 0 8px rgba(203,92,255,.3);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-row.is-selected-line{
+  background:linear-gradient(90deg,rgba(38,209,224,.19),rgba(137,75,219,.16))!important;
+}
+@media(max-width:767px){
+  #simulations-pane[data-hzm-view="results"] .hzm-ou-head input{
+    width:50px!important;max-width:50px!important;
+  }
+  #simulations-pane[data-hzm-view="results"] .hzm-ou-values strong{
+    font-size:12px!important;
+  }
+}
