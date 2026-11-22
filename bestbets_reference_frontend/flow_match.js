@@ -117,6 +117,7 @@ function render(d){
  const link=$("hzm-flow-pdf-link");
  if(link)link.remove();
  if(pdf?.date===d.day&&String(pdf?.game_id)===String(d?.game?.id)&&pdf?.model_id===d.model&&
+   pdf?.variant===context.effective&&
    /^[A-Za-z0-9+/=]{100,180000}$/.test(String(pdf.content_base64||""))){
    const a=document.createElement("a");a.id="hzm-flow-pdf-link";
    a.textContent="Pobierz gotowy raport PDF";a.download="Hoopzaro-Flow-"+d.day+".pdf";
@@ -125,13 +126,14 @@ function render(d){
    feedback.append(" · ");feedback.appendChild(a);
  }
  $("hzm-flow-timeline-desc").textContent=ready?
-   "Oczekiwana przewaga "+d.game.away+" – "+d.game.home+
-     " · syntetyczny podział wyniku na odcinki 6 minut":
+   "Różnica punktów "+d.game.home+" − "+d.game.away+" (dodatnia = gospodarze)"+
+     " · warunkowy podział wyniku na odcinki 6 minut":
    "Brak pełnych danych symulacji dla wybranego meczu.";
  $("hzm-flow-plot").innerHTML=ready?
    drawChart(data,cfg.period,d.game.away,d.game.home):'<p>Brak danych bazowych. Nie pokazujemy przykładowego przebiegu.</p>';
  $("hzm-flow-final-margin").textContent=ready?
-   "Śr. przewaga "+(number(data.timeline[8]?.margin_mean)>0?d.game.home:d.game.away)+
+   "Śr. przewaga "+(number(data.timeline[8]?.margin_mean)>0?d.game.home:
+     number(data.timeline[8]?.margin_mean)<0?d.game.away:"remis")+
    ": "+fmt(Math.abs(Number(data.timeline[8]?.margin_mean)))+" pkt":"—";
  $("hzm-flow-quarter-data").innerHTML=ready&&Array.isArray(data.quarters)?
    data.quarters.map(q=>{
