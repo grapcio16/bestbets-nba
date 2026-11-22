@@ -336,6 +336,71 @@ def _complete_player_team_coverage(historical, logs, tipoff, teams) -> set[str]:
     return verified
 
 
+@st.cache_data(ttl=180, max_entries=90, show_spinner=False)
+def _selected_injury_watch(day: str, game_id: str) -> dict:
+    """Read ESPN injury entries for the exact upcoming matchup, independent of
+    the selected MODEL. Purely informational: never adjusts V7.2/V7.4 points.
+
+    Cache freshness describes when ESPN was FETCHED, not when its medical
+    report was published. A missing entry is not proof that a player is fit.
+    """
+    from availability_context import matchup_injuries
+    from rotation_intelligence import status_class
+    from core import norm_name
+    event = _day_for_simulations(day)
+    fixture = next((g for g in event.get("games", [])
+                    if str(g.get("id")) == game_id), None)
+    if fixture is None or fixture.get("state") != "scheduled":
+        return {"fresh": False, "valid_until": None, "rows": [],
+                "reason": "Raport dotyczy wyłącznie przyszłych meczów."}
+    start = pd.to_datetime(fixture.get("start"), utc=True, errors="coerce")
+    now = pd.Timestamp.now(tz="UTC")
+    if pd.isna(start) or start <= now:
+        return {"fresh": False, "valid_until": None, "rows": [],
+                "reason": "Mecz nie jest już przed rozpoczęciem."}
+    try:
+        from sources import injuries
+        raw, meta = injuries()
+        report, match_meta = matchup_injuries(
+            raw, str(fixture["home"]), str(fixture["away"]), meta)
+        fetched = pd.to_datetime((meta or {}).get("timestamp"),
+                                 utc=True, errors="coerce")
+        fresh = bool(pd.notna(fetched) and fetched <= now
+                     and (now - fetched).total_seconds() <= 90 * 60
+                     and not (meta or {}).get("stale")
+                     and match_meta.get("available"))
+        if not fresh:
+            return {"fresh": False, "valid_until": None, "rows": [],
+                    "reason": "Brak aktualnego odczytu ESPN. Nie potwierdzono statusów."}
+        grouped = {}
+        for row in report.to_dict("records"):
+            code = str(row.get("Drużyna") or "")
+            name = str(row.get("Zawodnik") or "").strip()
+            key = (code, norm_name(name))
+            if code not in (str(fixture["away"]), str(fixture["home"])) or not name:
+                continue
+            item = grouped.setdefault(key, {"name": name[:70], "team": code,
+                                            "statuses": set()})
+            item["statuses"].add(status_class(row.get("Status ESPN")))
+        rows = []
+        for item in grouped.values():
+            statuses = item["statuses"]
+            status = next(iter(statuses)) if len(statuses) == 1 else "Sprzeczne"
+            rows.append({"name": item["name"], "team": item["team"],
+                         "status": status})
+        rows.sort(key=lambda x: (x["team"], x["name"]))
+        return {"fresh": True,
+                "checked_at": fetched.isoformat(),
+                "valid_until": (fetched + pd.Timedelta(minutes=90)).isoformat(),
+                "rows": rows[:80], "reason": ""}
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError) as exc:
+        import logging
+        logging.getLogger(__name__).warning(
+            "Selected ESPN injuries unavailable: %s", type(exc).__name__)
+        return {"fresh": False, "valid_until": None, "rows": [],
+                "reason": "Nie udało się odczytać ESPN. Brak potwierdzonych statusów."}
+
+
 @st.cache_data(ttl=600, max_entries=50, show_spinner=False)
 def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     """Lazily fetch only the selected matchup's two actual ESPN player histories."""
@@ -386,8 +451,11 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     required = {"Zawodnik", "Drużyna", "PTS", "REB", "AST"}
     if not required.issubset(table.columns):
         return {"players": [], "error": "Źródło nie dostarczyło pełnych statystyk zawodników."}
-    players = []
     from core import norm_name
+    injury_watch = _selected_injury_watch(day, game_id) if match.get("state") == "scheduled" else {"fresh": False, "rows": []}
+    injury_lookup = {(item["team"], norm_name(item["name"])): item["status"]
+                     for item in injury_watch.get("rows", [])}
+    players = []
     for row in table.to_dict("records"):
         name = str(row.get("Zawodnik") or "").strip()
         team = str(row.get("Drużyna") or "").upper().strip()
@@ -415,11 +483,36 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
                       observed.get("observed_games", 0)
                       if team in complete_teams else None
                   )}
+        # Verified, pre-tipoff ESPN MIN from the last <=7 actual appearances:
+        # observational baseline for what-if; NOT forecasted playing time.
+        appearances = [
+            _clean_float(game_row.get("min"))
+            for game_row in (observed.get("history") or [])[-7:]
+        ]
+        minutes_observed = [v for v in appearances if v is not None and 5 <= v <= 44]
+        if len(minutes_observed) >= 3:
+            player["minutes"] = round(sum(minutes_observed) / len(minutes_observed), 1)
+            player["minutes_sample"] = len(minutes_observed)
+            player["minutes_source"] = "ESPN · średnia historyczna ostatnich występów"
+        else:
+            player["minutes"] = None
+            player["minutes_sample"] = len(minutes_observed)
+            player["minutes_source"] = "Brak wystarczającej historii minut"
+        player["availability"] = (
+            injury_lookup.get((team, norm_name(name)), "Niezweryfikowany")
+            if injury_watch.get("fresh") else "Niezweryfikowany")
         if model_id == "research_context_v75":
             pctx = (availability.get("players") or {}).get((team, norm_name(name)), {})
-            player["minutes"] = pctx.get("minutes")
-            player["minutes_sample"] = pctx.get("sample", 0)
-            player["availability"] = pctx.get("status", "Niezweryfikowany")
+            # Preserve V7.5's own estimated minutes when verified; otherwise
+            # retain the independent historical ESPN baseline above.
+            verified_minutes = _clean_float(pctx.get("minutes"))
+            verified_sample = pctx.get("sample", 0)
+            if (type(verified_sample) is int and verified_sample >= 3
+                    and verified_minutes is not None and 5 <= verified_minutes <= 44):
+                player["minutes"] = verified_minutes
+                player["minutes_sample"] = verified_sample
+                player["minutes_source"] = "V7.5 · szacunek na podstawie historii ESPN"
+            player["availability"] = pctx.get("status", player["availability"])
             # A fresh OUT designation removes the player's projected minutes
             # and production; other players are NOT blindly credited with them.
             if pctx.get("status") == "Out":
@@ -438,7 +531,10 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
                 if model_id == "research_context_v75" else False,
             "injury_report_valid_until": (
                 availability.get("report_valid_until")
-                if model_id == "research_context_v75" else None)}
+                if model_id == "research_context_v75" else None),
+            # Informational ESPN injury entries, independently available to
+            # all three models. Status is NEVER applied to V7.2/V7.4 forecasts.
+            "injury_watch": injury_watch}
 
 
 def simulation_for_entitled_user(day: str, game_id: str, players: bool = False,
