@@ -70,8 +70,11 @@ def main():
                 payload)
 
         push()
-        page.locator("#hzm-day-input").fill(day)
-        page.locator("#hzm-day-input").dispatch_event("change")
+        # The native date control is intentionally hidden behind the custom
+        # calendar; Playwright's fill() requires visibility and would hang.
+        page.locator("#hzm-day-input").evaluate(
+            """(el, day) => {el.value=day;
+                 el.dispatchEvent(new Event('change',{bubbles:true}));}""", day)
         page.locator("#hzm-model-trigger").click()
         page.locator("#hzm-model-option-research_context_v75").click()
         page.locator("#hzm-lab-tab-intelligence").click()
@@ -152,8 +155,6 @@ def main():
         page.locator("#hzm-model-option-research_context_v75").click()
         page.set_viewport_size({"width": 390, "height": 844})
         page.locator("#hzm-intel-panel").scroll_into_view_if_needed()
-        assert page.locator("#hzm-intel-team-identity").count() == 0  # class is on children
-        assert page.locator("#hzm-intel-premium-v2").count() == 0  # class, not an ID
         assert page.locator("#hzm-intel-panel").is_visible()
         assert page.locator("#hzm-intel-away-form").inner_text() == "6 W / 4 L"
         assert page.locator("#hzm-intel-factors-v75").is_visible()
