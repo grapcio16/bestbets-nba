@@ -626,7 +626,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             </section>
             <section class="hzv3-analytics" aria-label="Wykresy historyczne wybranego zawodnika">
               <div class="hzv3-analytics-card hzv3-hist-card">
-                <h3 id="hzv3-hist-title">Rozkład punktów <span class="hzv3-help" title="Wygładzona częstość z rozegranych meczów ESPN, nie prawdopodobieństwo prognozy.">ⓘ</span></h3>
+                <h3 id="hzv3-hist-title">Rozkład punktów <button type="button" class="hzv3-help hzm-help-trigger" data-hzm-help="projection-history" aria-label="Wyjaśnij historyczny rozkład punktów" aria-haspopup="dialog" aria-controls="hzm-glossary-dialog" title="Jak czytać historyczny rozkład?">ⓘ</button></h3>
                 <div id="hzv3-hist" class="hzv3-plot"></div>
               </div>
               <div class="hzv3-analytics-card hzv3-rates-card">
@@ -635,7 +635,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
                 <div id="hzv3-rates" class="hzv3-rates"></div>
               </div>
               <div class="hzv3-analytics-card hzv3-trend-card">
-                <div class="hzv3-chart-top"><h3 id="hzv3-trend-title">Forma – punkty <span class="hzv3-help" title="Wyniki z wcześniejszych spotkań ESPN.">ⓘ</span></h3>
+                <div class="hzv3-chart-top"><h3 id="hzv3-trend-title">Forma – punkty <button type="button" class="hzv3-help hzm-help-trigger" data-hzm-help="projection-trend" aria-label="Wyjaśnij wykres formy zawodnika" aria-haspopup="dialog" aria-controls="hzm-glossary-dialog" title="Jak czytać wykres formy?">ⓘ</button></h3>
                   <div class="hzv3-windows" role="group" aria-label="Wybierz okres historii">
                     <button type="button" data-hzv3-window="5" aria-pressed="true">L5</button>
                     <button type="button" data-hzv3-window="10" aria-pressed="false">L10</button>
@@ -724,7 +724,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
               <section id="hzm-player-analytics" class="hzm-player-analytics" aria-label="Rzeczywista historia i projekcja wybranego zawodnika">
                 <div class="hzm-player-analytics-upper">
                   <div class="hzm-player-histogram-card">
-                    <h3>Rozkład historyczny — <span id="hzm-player-chart-name">wybrany zawodnik</span><span class="hzm-player-help" title="Rozkład rzeczywistych wyników historycznych, nie rozkład probabilistyczny modelu.">ⓘ</span></h3>
+                    <h3>Rozkład historyczny — <span id="hzm-player-chart-name">wybrany zawodnik</span><button type="button" class="hzm-player-help hzm-help-trigger" data-hzm-help="player-history" aria-label="Wyjaśnij rozkład historyczny zawodnika" aria-haspopup="dialog" aria-controls="hzm-glossary-dialog" title="Rozkład wyników historycznych">ⓘ</button></h3>
                     <div id="hzm-player-histogram" class="hzm-player-histogram" aria-live="polite"><p>Wybierz zawodnika, aby zobaczyć historię.</p></div>
                   </div>
                   <div class="hzm-player-rates-card">
@@ -735,7 +735,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
                 </div>
                 <div class="hzm-player-analytics-lower">
                   <div class="hzm-player-trend-card">
-                    <header><h3>Forma zawodnika <span id="hzm-player-trend-metric">PTS</span><span class="hzm-player-help" title="Rzeczywiste statystyki z zakończonych meczów ESPN przed wybranym spotkaniem.">ⓘ</span></h3>
+                    <header><h3>Forma zawodnika <span id="hzm-player-trend-metric">PTS</span><button type="button" class="hzm-player-help hzm-help-trigger" data-hzm-help="player-trend" aria-label="Wyjaśnij formę zawodnika" aria-haspopup="dialog" aria-controls="hzm-glossary-dialog" title="Jak interpretować formę zawodnika?">ⓘ</button></h3>
                       <div id="hzm-player-history-switch" class="hzm-player-history-switch" role="group" aria-label="Liczba historycznych meczów">
                         <button type="button" data-hzm-history-window="5" class="active" aria-pressed="true">L5</button>
                         <button type="button" data-hzm-history-window="10" aria-pressed="false">L10</button>
@@ -934,7 +934,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 
     <section id="hzm-reference-dashboard" class="hzm-reference-dashboard" aria-label="Skrót scenariuszy i wyników badań modelu">
       <article class="hzm-ref-card" aria-label="Scenariusz meczu">
-        <h3><span aria-hidden="true">☷</span> Scenariusz meczu <small title="Hipotetyczne zmiany — nie są oficjalnymi danymi NBA">ⓘ</small></h3>
+        <h3><span aria-hidden="true">☷</span> Scenariusz meczu <button type="button" class="hzm-help-trigger" data-hzm-help="scenario" aria-label="Wyjaśnij scenariusze meczu" aria-haspopup="dialog" aria-controls="hzm-glossary-dialog" title="Jak działają scenariusze meczu?">ⓘ</button></h3>
         <div class="hzm-mini-slider"><label for="hzm-mini-pace">Tempo gry</label><input type="range" id="hzm-mini-pace" min="-5" max="5" value="0" step="1" aria-label="Hipotetyczna zmiana tempa w procentach"><output id="hzm-mini-pace-output" for="hzm-mini-pace">0%</output></div>
         <div class="hzm-mini-slider"><label for="hzm-mini-off-away">Atak <span id="hzm-mini-away-code">gości</span></label><input type="range" id="hzm-mini-off-away" min="-5" max="5" value="0" step="1" aria-label="Hipotetyczna zmiana ofensywy gości"><output id="hzm-mini-off-away-output" for="hzm-mini-off-away">0%</output></div>
         <div class="hzm-mini-slider"><label for="hzm-mini-off-home">Atak <span id="hzm-mini-home-code">gospodarzy</span></label><input type="range" id="hzm-mini-off-home" min="-5" max="5" value="0" step="1" aria-label="Hipotetyczna zmiana ofensywy gospodarzy"><output id="hzm-mini-off-home-output" for="hzm-mini-off-home">0%</output></div>
@@ -942,7 +942,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
         <button id="hzm-mini-run" class="hzm-mini-action" type="button">Przelicz scenariusz w Premium ›</button>
       </article>
       <article class="hzm-ref-card" aria-label="Kluczowe wnioski modelu">
-        <h3><span aria-hidden="true">✧</span> Kluczowe wnioski modelu <small class="hzm-mini-insights-info" title="Automatyczne wyjaśnienia oparte na wybranym meczu, modelu i zweryfikowanej historii. Wnioski są opisowe, nie są gwarancją wyniku.">ⓘ</small></h3>
+        <h3><span aria-hidden="true">✧</span> Kluczowe wnioski modelu <button type="button" class="hzm-mini-insights-info hzm-help-trigger" data-hzm-help="findings" aria-label="Wyjaśnij kluczowe wnioski modelu" aria-haspopup="dialog" aria-controls="hzm-glossary-dialog" title="Jak powstają wnioski modelu?">ⓘ</button></h3>
         <ul class="hzm-mini-reasons hzm-analyst-insights" aria-live="polite" aria-label="Analiza prognozy wybranego spotkania">
           <li class="hzm-insight-winner"><span class="hzm-insight-copy"><b>Faworyt</b><span id="hzm-mini-finding-winner">Wybierz mecz, aby zobaczyć uzasadnienie zwycięzcy.</span></span></li>
           <li class="hzm-insight-points"><span class="hzm-insight-copy"><b>Suma punktów</b><span id="hzm-mini-finding-context">Prognoza punktów pojawi się po obliczeniu modelu.</span></span></li>
@@ -951,7 +951,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
         </ul>
       </article>
       <article class="hzm-ref-card" aria-label="Ostatnie wyniki testów modelu">
-        <h3><span aria-hidden="true">▥</span> Skuteczność modelu · Tracker <small title="Ocena prognoz zamrożonych przed rozpoczęciem meczów. To nie jest bieżąca prognoza ani gwarancja przyszłych wyników. ROI wymaga archiwalnych kursów.">ⓘ</small></h3>
+        <h3><span aria-hidden="true">▥</span> Skuteczność modelu · Tracker <button type="button" class="hzm-help-trigger" data-hzm-help="tracker" aria-label="Wyjaśnij metryki Trackera" aria-haspopup="dialog" aria-controls="hzm-glossary-dialog" title="Jak interpretować trafność, próbę i ROI?">ⓘ</button></h3>
         <div class="hzm-recent-kpis">
           <div title="Procent trafnie wskazanych zwycięzców w zakończonych spotkaniach z Trackera"><small>Trafność zwycięzcy</small><strong id="hzm-recent-accuracy">—</strong></div>
           <div><small>ROI</small><strong id="hzm-recent-roi">N/D</strong></div>
@@ -1081,6 +1081,21 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       </div>
     </div>
     <div class="bc-free-info-foot"><span>Analiza na podstawie rozkładu symulacji · prognozy są eksperymentalne.</span><button id="hzm-sd-info-ok" type="button">Rozumiem</button></div>
+  </section>
+</div>
+<!-- Shared explanation dialog for the remaining Simulation Lab information controls. -->
+<div id="hzm-glossary-backdrop" class="bc-free-info-backdrop hzm-sd-info-backdrop hzm-glossary-backdrop" hidden>
+  <section id="hzm-glossary-dialog" class="bc-free-info-popup hzm-sd-info-dialog hzm-glossary-dialog" role="dialog" aria-modal="true" aria-labelledby="hzm-glossary-title" aria-describedby="hzm-glossary-intro" tabindex="-1">
+    <div class="bc-free-info-heading">
+      <div><span class="bc-free-info-kicker" id="hzm-glossary-kicker">HOOPZARO · POMOC</span>
+        <strong id="hzm-glossary-title">Jak to działa?</strong>
+        <p id="hzm-glossary-intro">Wyjaśnienie wybranej funkcji.</p>
+      </div>
+      <button type="button" id="hzm-glossary-close" aria-label="Zamknij okno informacji">×</button>
+    </div>
+    <div id="hzm-glossary-content" class="hzm-glossary-content"></div>
+    <div class="bc-free-info-foot"><span>Wyjaśnienia dotyczą funkcji analitycznych, nie stanowią rekomendacji zakładu.</span>
+      <button type="button" id="hzm-glossary-ok">Rozumiem</button></div>
   </section>
 </div>
 <!-- Keep this modal outside the scaled dashboard: it fills the actual viewport. -->
