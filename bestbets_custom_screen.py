@@ -734,7 +734,7 @@ def main() -> None:
     if event.get("type") == "premium_sim_player_minutes":
         # This is a player-level sensitivity only, not a team Monte Carlo.
         # Client inputs are NEVER trusted without repeating Premium and
-        # verified future-game / V7.5 checks on the server.
+        # verified future-game / per-model ESPN-history checks on the server.
         if not premium_entitled():
             return
         import re
@@ -746,7 +746,7 @@ def main() -> None:
         delta = event.get("minute_delta")
         if (not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day)
                 or not re.fullmatch(r"\d{1,30}", game_id)
-                or model_id != "research_context_v75"
+                or model_id not in ("legacy_v72", "research_form_v74", "research_context_v75")
                 or not name or len(name) > 70
                 or not re.fullmatch(r"[A-Z]{3}", team)
                 or type(delta) is not int or not -5 <= delta <= 5):
