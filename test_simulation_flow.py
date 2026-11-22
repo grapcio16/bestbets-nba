@@ -20,7 +20,7 @@ class FlowTests(unittest.TestCase):
         self.assertEqual(flow["method"], "conditional_neutral_6min_v1")
         self.assertFalse(flow["rotation_available"])
         self.assertFalse(flow["scoring_runs_available"])
-        self.assertIn("nie sa to dane play-by-play", flow["source"])
+        self.assertIn("nie są to dane play-by-play", flow["source"])
         self.assertEqual([r["minute"] for r in flow["timeline"]],
                          list(range(0, 49, 6)))
         self.assertEqual(flow["timeline"][0]["margin_mean"], 0.0)
