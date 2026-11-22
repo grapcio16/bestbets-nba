@@ -819,7 +819,8 @@ def main() -> None:
             now_refresh = time.monotonic()
             if not since or now_refresh - float(since) >= 180:
                 from bestbets_simulations_canvas import (
-                    _day_for_simulations, _selected_injury_watch, _game_players)
+                    _day_for_simulations, _selected_injury_watch,
+                    _game_players, _v75_player_evidence)
                 selected = next((fixture for fixture in
                     _day_for_simulations(day).get("games", [])
                     if str(fixture.get("id")) == game_id), None)
@@ -830,13 +831,16 @@ def main() -> None:
                         and start > pd.Timestamp.now(tz="UTC")):
                     st.session_state["bb10_espn_refresh_at"] = now_refresh
                     try:
-                        from sources import injuries
-                        injuries(refresh=True)
+                        from sources import selected_espn_injuries
+                        selected_espn_injuries(
+                            str(selected["home"]), str(selected["away"]),
+                            refresh=True)
                     except Exception as exc:
                         import logging
                         logging.getLogger(__name__).warning(
                             "ESPN manual refresh failed: %s", type(exc).__name__)
                     _selected_injury_watch.clear(day, game_id)
+                    _v75_player_evidence.clear(day, game_id)
                     _game_players.clear(day, game_id, model_id)
         result = simulation_for_entitled_user(
             day, game_id, players=is_players, model_id=model_id)
