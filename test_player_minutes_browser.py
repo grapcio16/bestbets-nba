@@ -212,7 +212,8 @@ def main():
         assert page.locator("#hzm-minute-run").is_enabled()
         assert page.locator("#hzm-minute-base-pts").inner_text() == "24,0"
         assert page.locator("#hzm-minute-base-min").inner_text() == "30,0"
-        assert page.locator("#hzm-minute-new-min").inner_text() == "28,0"
+        # Changing the model deliberately resets the user's delta to zero.
+        assert page.locator("#hzm-minute-new-min").inner_text() == "30,0"
         page.locator("#hzm-minute-run").click()
         page.wait_for_function("window.__minuteEvents.length === 2")
         assert page.evaluate("window.__minuteEvents[1].model_id") == "research_form_v74"
