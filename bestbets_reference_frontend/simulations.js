@@ -769,6 +769,151 @@ function bindDeviationInfo(){
  });
 }
 
+/* Unified interactive explanations for every information symbol in the
+   Simulation Lab and its player views. The older STD-dev detail modal stays
+   available and uses the same centered, blurred presentation. */
+const LAB_HELP_CONTENT=Object.freeze({
+ scenario:{
+  kicker:"SCENARIUSZE · ANALIZA WRAŻLIWOŚCI",
+  title:"Jak działają scenariusze meczu?",
+  lead:"Suwaki pozwalają sprawdzić, jak hipotetyczna zmiana parametrów wpłynęłaby na przewidywany wynik. Nie są to nowe, potwierdzone informacje o drużynach.",
+  points:[
+   ["Tempo gry","Zmiana tempa o kilka procent to założenie analityczne. Więcej posiadań może podnieść przewidywaną sumę punktów obu drużyn."],
+   ["Atak DET / ATL","Suwaki ataku gości i gospodarzy modyfikują założenia ofensywne. Wskazania procentowe pokazują zmianę względem modelowego punktu wyjścia, a nie potwierdzoną formę NBA."],
+   ["Minuty kluczowych graczy","Sekcja Player Minutes umożliwia analizę wrażliwości na przyjęte minuty zawodnika, gdy model i dostęp do danych na to pozwalają."],
+   ["Przelicz scenariusz","Zmiana suwaka sama nie przelicza prognozy. Dopiero kliknięcie przycisku uruchamia nowy scenariusz dla dostępnego przyszłego meczu Premium."]
+  ],
+  note:"Wynik scenariusza jest warunkowy: pokazuje «co by było, gdyby», a nie oficjalną prognozę obsady, urazów czy tempa."
+ },
+ findings:{
+  kicker:"ANALIZA · WYJAŚNIENIA PROGNOZY",
+  title:"Skąd biorą się kluczowe wnioski?",
+  lead:"Cztery opisy dotyczą aktualnie wybranego meczu i modelu. Łączą wartości prognozy z dostępną, zweryfikowaną historią obu zespołów.",
+  points:[
+   ["Faworyt","Pokazuje drużynę, która wygrała większy odsetek symulacji, jej średnią punktową i porównanie z rywalem. To prognoza, nie pewny zwycięzca."],
+   ["Suma punktów","Wyjaśnia, ile punktów model przypisuje każdemu zespołowi oraz z jakich kategorii danych tworzy projekcję, np. zdobywanych i traconych punktów lub NBA Advanced, gdy są dostępne."],
+   ["Atak kontra obrona","Porównuje średnią punktów zdobytych przez faworyta z punktami traconymi przez rywala w zweryfikowanych wcześniejszych meczach, najczęściej L5."],
+   ["Ryzyko prognozy","Wskazuje szerokość rozkładu wyników, przedział 80% oraz brakujące dane, np. niepotwierdzony raport kontuzji czy małą próbę."]
+  ],
+  note:"Są to interpretacje statystyk i założeń modelu, a nie udowodniony wpływ pojedynczego czynnika na zwycięstwo. Prawdopodobieństwa modelu nie są jeszcze skalibrowane."
+ },
+ tracker:{
+  kicker:"TRACKER · ROZLICZONE PROGNOZY",
+  title:"Co pokazuje skuteczność modelu?",
+  lead:"Ten panel mierzy wyniki wcześniej zapisanych prognoz, rozliczonych dopiero po zakończeniu rzeczywistych meczów NBA.",
+  points:[
+   ["Trafność zwycięzcy","Odsetek spotkań, w których model wskazał faktycznego zwycięzcę. Liczymy tylko prognozy zapisane przed rozpoczęciem meczu, z potwierdzonym wynikiem końcowym."],
+   ["Próba meczów","Liczba zakończonych i kwalifikujących się do rozliczenia spotkań dla wybranego wariantu. Większa próba poprawia ocenę stabilności wyników, ale nie gwarantuje trafności."],
+   ["ROI — N/D","Zwrot z inwestycji wymaga historycznych kursów, stawek i zdefiniowanego sposobu zawierania zakładów. Bez tych danych nie da się uczciwie obliczyć ROI."],
+   ["Porównywanie modeli","Warianty mogą mieć różną liczbę ocenionych spotkań. Rzetelne bezpośrednie porównanie wymaga tych samych meczów i zasad oceny."]
+  ],
+  note:"To historyczna skuteczność wskazań zwycięzcy, nie skuteczność OVER/UNDER ani gwarantowany wynik w przyszłości. Dane pochodzą z archiwum Trackera."
+ },
+ "player-history":{
+  kicker:"ZAWODNICY · RZECZYWISTA HISTORIA",
+  title:"Co przedstawia rozkład historyczny?",
+  lead:"Histogram pokazuje, jak często zawodnik uzyskiwał określoną liczbę punktów, zbiórek, asyst lub innych statystyk we wcześniejszych, zakończonych meczach.",
+  points:[
+   ["Oś pozioma","Wartość wybranego rynku, np. punkty zdobyte w meczu."],
+   ["Wysokość słupka","Częstość, z jaką dany wynik lub zakres pojawiał się w dostępnej historii."],
+   ["Historia a prognoza","Historyczna częstość nie jest prawdopodobieństwem przyszłego występu. Rozkład symulacji modelu jest osobną analizą."],
+   ["Ograniczenia próby","Wyniki zależą od liczby dostępnych spotkań; zmiany minut, składu i rywala mogą istotnie zmienić przyszły rezultat."]
+  ],
+  note:"Na wykresie historycznym używane są jedynie dostępne potwierdzone mecze z danych źródłowych."
+ },
+ "player-trend":{
+  kicker:"ZAWODNICY · OSTATNIE WYSTĘPY",
+  title:"Jak czytać wykres formy zawodnika?",
+  lead:"Linia lub słupki przedstawiają rzeczywiste statystyki zawodnika w kolejnych zakończonych spotkaniach sprzed wybranego meczu.",
+  points:[
+   ["L5 / L10 / L15","Ostatnie 5, 10 lub 15 dostępnych spotkań, gdy historia zawiera wystarczającą liczbę wyników."],
+   ["Sezon","Przekrój występów dostępnych w źródle. Nie musi oznaczać kompletnego sezonu."],
+   ["Trend wzrostowy","Oznacza lepsze ostatnie rezultaty w wybranej statystyce, ale sam trend nie dowodzi, że wzrosła przyszła szansa na OVER."],
+   ["Co jeszcze sprawdzić?","Minuty zawodnika, przeciwnika, rolę w drużynie, absencje i liczbę meczów wykorzystanych w próbie."]
+  ],
+  note:"To historia ESPN, a nie wynik symulacji przyszłego meczu."
+ },
+ "projection-history":{
+  kicker:"PROJEKCJE ZAWODNIKÓW · HISTORIA",
+  title:"Rozkład punktów — jak go interpretować?",
+  lead:"Wykres obrazuje rozrzut punktów zdobytych przez zawodnika w przeszłych spotkaniach, dostępnych dla wybranego zakresu historii.",
+  points:[
+   ["Wierzchołki rozkładu","Najczęściej występujące wyniki lub ich grupy w badanej próbie."],
+   ["Szeroki rozkład","Wyniki historyczne znacznie się różnią; mała próbka może dodatkowo wzmocnić ten efekt."],
+   ["Wygładzenie","Wygładzona linia jest wizualizacją częstości historycznej, nie dokładnym prawdopodobieństwem prognozowanej liczby punktów."]
+  ],
+  note:"Danych z wcześniejszych meczów nie należy utożsamiać z 5 000 symulacji przyszłego spotkania."
+ },
+ "projection-trend":{
+  kicker:"PROJEKCJE ZAWODNIKÓW · FORMA",
+  title:"Co oznacza forma w ostatnich meczach?",
+  lead:"Wykres przedstawia kolejne zakończone występy zawodnika oraz wybraną metrykę, aby łatwiej zauważyć zmiany produkcji punktowej.",
+  points:[
+   ["L5 / L10 / L15","Ustalają liczbę ostatnich występów użytych do prezentacji trendu."],
+   ["Linia trendu","Wzrost lub spadek to opis historii, a nie potwierdzona zmiana przyszłych możliwości zawodnika."],
+   ["Przydatny kontekst","Porównaj wynik z minutami, rolą gracza, absencjami drużyny i rywalem. Liczba dostępnych meczów ma znaczenie."]
+  ],
+  note:"Statystyki pochodzą z zakończonych meczów; nie są symulacjami modelu."
+ }
+});
+function bindLabGlossary(){
+ const overlay=$("hzm-glossary-backdrop"),dialog=$("hzm-glossary-dialog");
+ if(!overlay||!dialog)return;
+ let owner=null;
+ function close(){
+   if(overlay.hidden)return;
+   overlay.hidden=true;
+   if(owner){owner.setAttribute("aria-expanded","false");owner.focus({preventScroll:true})}
+   owner=null;
+ }
+ function open(button){
+   const topic=LAB_HELP_CONTENT[button?.dataset?.hzmHelp];
+   if(!topic)return;
+   owner=button;
+   $("hzm-glossary-kicker").textContent=topic.kicker;
+   $("hzm-glossary-title").textContent=topic.title;
+   $("hzm-glossary-intro").textContent=topic.lead;
+   const content=$("hzm-glossary-content");
+   content.replaceChildren();
+   for(const [heading,body] of topic.points){
+     const card=document.createElement("div");card.className="hzm-glossary-item";
+     const h=document.createElement("strong");h.textContent=heading;
+     const paragraph=document.createElement("p");paragraph.textContent=body;
+     card.append(h,paragraph);content.appendChild(card);
+   }
+   const note=document.createElement("p");note.className="hzm-glossary-note";
+   note.textContent=topic.note;content.appendChild(note);
+   overlay.hidden=false;
+   button.setAttribute("aria-expanded","true");
+   $("hzm-glossary-close")?.focus({preventScroll:true});
+ }
+ // Event delegation also covers any info icons reinserted by page render.
+ document.addEventListener("click",event=>{
+   const btn=event.target.closest?.("[data-hzm-help]");
+   if(!btn||!LAB_HELP_CONTENT[btn.dataset.hzmHelp])return;
+   event.preventDefault();event.stopPropagation();
+   if(!overlay.hidden)close();
+   open(btn);
+ });
+ for(const id of ["hzm-glossary-close","hzm-glossary-ok"])
+   $(id)?.addEventListener("click",close);
+ overlay.addEventListener("click",event=>{if(event.target===overlay)close()});
+ document.addEventListener("keydown",event=>{
+   if(overlay.hidden)return;
+   if(event.key==="Escape"){event.preventDefault();close();return}
+   if(event.key!=="Tab")return;
+   const items=Array.from(dialog.querySelectorAll("button:not([disabled]),a[href],[tabindex]:not([tabindex='-1'])"))
+     .filter(node=>!node.hidden);
+   if(!items.length){event.preventDefault();dialog.focus();return}
+   const first=items[0],last=items[items.length-1];
+   if(event.shiftKey&&(document.activeElement===first||!dialog.contains(document.activeElement))){
+     event.preventDefault();last.focus();
+   }else if(!event.shiftKey&&(document.activeElement===last||!dialog.contains(document.activeElement))){
+     event.preventDefault();first.focus();
+   }
+ });
+}
+
 function bindChartInteraction(){
  const plot=$("hzm-plot"),tabs=$("hzm-chart-tabs");
  let activePointer=null;
@@ -1884,6 +2029,7 @@ function init(api){
   bindChartInteraction();
   bindWindowInterval();
   bindDeviationInfo();
+  bindLabGlossary();
   // Keep the verified ESPN photo optional: network and CDN errors should
   // reveal the local initials fallback, not a broken-image icon.
   $("simulations-pane")?.addEventListener("error",event=>{
