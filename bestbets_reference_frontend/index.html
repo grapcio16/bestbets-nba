@@ -238,6 +238,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="teams.css">
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="match_intelligence_premium.css">
+<link rel="stylesheet" href="team_comparison_premium.css">
 </head>
 <body>
 <!-- Original, reusable HOOPZARO icons: one visual language on desktop and mobile. -->
@@ -1098,6 +1099,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
               <span id="hzm-compare-home-record" class="hzm-compare-team-record">— W / — L</span>
             </div>
           </div>
+          <div class="hzm-compare-v2-grid">
           <section class="hzm-compare-table" aria-label="Ofensywa defensywa forma i tempo">
             <div class="hzm-compare-table-head"><span id="hzm-compare-table-away">GOŚCIE</span><span>STATYSTYKA</span><span id="hzm-compare-table-home">GOSPODARZE</span></div>
             <div class="hzm-compare-row"><strong id="hzm-compare-away-pts">—</strong><span>Śr. punkty zdobyte <small id="hzm-compare-pts-window">L10</small></span><strong id="hzm-compare-home-pts">—</strong></div>
@@ -1110,6 +1112,46 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <div class="hzm-compare-row"><strong id="hzm-compare-away-off-rating">—</strong><span>OFFRTG · na 100 posiadań</span><strong id="hzm-compare-home-off-rating">—</strong></div>
             <div class="hzm-compare-row"><strong id="hzm-compare-away-def-rating">—</strong><span>DEFRTG · na 100 posiadań (niższe = lepiej)</span><strong id="hzm-compare-home-def-rating">—</strong></div>
           </section>
+          <aside class="hzm-compare-v2-profile" aria-label="Historyczny profil obu drużyn">
+            <header class="hzm-compare-v2-profile-title">
+              <div><small>HOOPZARO · ESPN PREGAME</small><h3>Profil drużyn <span id="hzm-compare-profile-window">L10</span></h3></div>
+              <span class="hzm-compare-v2-profile-symbol" aria-hidden="true">⌘</span>
+            </header>
+            <div class="hzm-compare-v2-profile-legend">
+              <span><i class="hzm-compare-legend-away" aria-hidden="true"></i><b id="hzm-compare-legend-away">GOŚCIE</b></span>
+              <span><i class="hzm-compare-legend-home" aria-hidden="true"></i><b id="hzm-compare-legend-home">GOSPODARZE</b></span>
+            </div>
+            <div class="hzm-compare-v2-chart">
+              <svg id="hzm-compare-profile-svg" viewBox="0 0 340 304" role="img" aria-label="Porównanie rzeczywistych danych historycznych na pięciu osiowo znormalizowanych skalach" hidden>
+                <g class="hzm-compare-radar-rings" fill="none">
+                  <polygon points="170,124 192.83,140.58 184.11,167.42 155.89,167.42 147.17,140.58"/>
+                  <polygon points="170,84 230.87,128.22 207.62,199.78 132.38,199.78 109.13,128.22"/>
+                  <polygon points="170,44 268.91,115.85 231.13,232.15 108.87,232.15 71.09,115.85"/>
+                </g>
+                <g class="hzm-compare-radar-axes" fill="none">
+                  <line x1="170" y1="156" x2="170" y2="44"/>
+                  <line x1="170" y1="156" x2="268.91" y2="115.85"/>
+                  <line x1="170" y1="156" x2="231.13" y2="232.15"/>
+                  <line x1="170" y1="156" x2="108.87" y2="232.15"/>
+                  <line x1="170" y1="156" x2="71.09" y2="115.85"/>
+                </g>
+                <polygon id="hzm-compare-polygon-away" class="hzm-compare-radar-area away" points="" />
+                <polygon id="hzm-compare-polygon-home" class="hzm-compare-radar-area home" points="" />
+                <text x="170" y="25" text-anchor="middle">Atak</text>
+                <text x="308" y="111" text-anchor="middle">Forma W/L</text>
+                <text x="260" y="258" text-anchor="middle">Różnica</text>
+                <text x="80" y="258" text-anchor="middle">Obrona</text>
+                <text x="30" y="111" text-anchor="middle">Dom / wyjazd</text>
+              </svg>
+              <div id="hzm-compare-profile-empty" class="hzm-compare-profile-empty">
+                <span aria-hidden="true">▥</span>
+                <p>Wybierz mecz z kompletnymi historycznymi danymi obu drużyn.</p>
+              </div>
+            </div>
+            <p class="hzm-compare-profile-method">Profil poglądowy na pięciu osiach ze stałymi skalami. Atak i dom/wyjazd: 85–145 pkt; obrona: 145–85 pkt straconych; forma: 0–100%; różnica: −30 do +30 pkt. <b>To nie są prognozy ani modelowane prawdopodobieństwa.</b></p>
+            <div class="hzm-compare-v2-trust"><span aria-hidden="true">✓</span> Wyłącznie zakończone mecze sprzed tip-off · ESPN</div>
+          </aside>
+          </div><!-- /hzm-compare-v2-grid -->
           <footer id="hzm-compare-disclaimer" class="hzm-compare-disclaimer">Statystyki historyczne, nie przewidywany wynik. Tempo i ratingi tylko przy kompletnych danych NBA Advanced dla obu drużyn. Brak danych oznaczamy kreską.</footer>
         </section>
         <section id="hzm-backtest-panel" class="hzm-backtest-panel" aria-label="Model & Backtest — historia błędów prognoz" hidden>
