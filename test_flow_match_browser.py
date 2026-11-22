@@ -109,8 +109,9 @@ def check(page):
     assert projected.first.locator(".hzm-flow-q-away").text_content() == "NYK 28,0 pkt"
     assert "warunkowy" in (projected.first.get_attribute("aria-label") or "").lower()
     if page.viewport_size["width"] <= 767:
-        assert page.locator("#hzm-flow-plot").evaluate(
-            "el => el.scrollWidth > el.clientWidth")
+        plot_sizes = page.locator("#hzm-flow-plot").evaluate(
+            "el => ({scroll:el.scrollWidth, client:el.clientWidth, viewport:innerWidth})")
+        assert plot_sizes["scroll"] > plot_sizes["client"], plot_sizes
     assert "32,0" in page.locator("#hzm-flow-roster").inner_text()
     assert "Synthetic Away" in page.locator("#hzm-flow-roster").inner_text()
     assert "52,3%" in page.locator("#hzm-flow-runrisk").inner_text()
