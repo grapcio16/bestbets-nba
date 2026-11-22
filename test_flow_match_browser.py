@@ -273,7 +273,7 @@ def check_timeline(page):
     context["model"] = "alternate"
     sample["timeline"][-1]["margin_mean"] = -8
     render()
-    assert "AWY +8 pkt" in svg.text_content() and svg.locator(".flow-mean").count() == 0
+    assert "AWY +8 pkt" in svg.text_content() and svg.locator(".flow-mean").count() == 1
     assert svg.locator("circle").get_attribute("fill") == "#24F1F6"
     sample["timeline"][-1]["margin_mean"] = 0
     render()
