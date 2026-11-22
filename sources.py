@@ -294,53 +294,149 @@ def scoreboard(refresh=False):
     return memoized_json('nba-scoreboard-today',NBA_CDN_SCOREBOARD,ttl_seconds=5*60,refresh=refresh)
 
 
-def injury_rows(payload):
-    """Normalize public ESPN team-based injury feed, preserving ambiguous statuses."""
-    out=[];seen=set()
-    def traverse(node,team=''):
-        if isinstance(node,list):
-            for item in node:traverse(item,team)
+def injury_rows(payload, default_team=''):
+    """Normalize ESPN league/team injury responses without guessing a roster.
+
+    ESPN often identifies the team by a numeric ESPN ID (rather than an NBA
+    abbreviation). A team-endpoint fallback is allowed only when the caller
+    has already selected that particular team.
+    """
+    from teams import TEAM_MAP
+    from roster_data import ESPN_TEAM_IDS
+
+    ids = {str(v): k for k, v in ESPN_TEAM_IDS.items()}
+    aliases = {'GS':'GSW','NY':'NYK','SA':'SAS','NO':'NOP',
+               'PHO':'PHX','WSH':'WAS','BRK':'BKN','UT':'UTA','WS':'WAS'}
+    valid = set(ESPN_TEAM_IDS)
+    def code(value):
+        if isinstance(value, dict):
+            for key in ('abbreviation', 'displayName', 'shortDisplayName',
+                        'name', 'id'):
+                resolved = code(value.get(key))
+                if resolved:
+                    return resolved
+            return ''
+        raw = str(value or '').strip()
+        if not raw:
+            return ''
+        return (ids.get(raw) or TEAM_MAP.get(raw)
+                or aliases.get(raw.upper()) or (raw.upper() if raw.upper() in valid else ''))
+
+    out, seen = [], set()
+    def traverse(node, team=''):
+        if isinstance(node, list):
+            for item in node:
+                traverse(item, team)
             return
-        if not isinstance(node,dict):return
-        team_obj=node.get('team')
-        if isinstance(team_obj,dict):
-            team=team_obj.get('abbreviation') or team_obj.get('displayName') or team
-        elif isinstance(node.get('teamAbbreviation'),str):
-            team=node['teamAbbreviation']
-        athlete=node.get('athlete') or node.get('player') or {}
-        if isinstance(athlete,dict) and isinstance(athlete.get('team'),dict):
-            team=athlete['team'].get('abbreviation') or team
-        if isinstance(athlete,dict):
-            player=athlete.get('displayName') or athlete.get('fullName') or athlete.get('name')
-        else:player=str(athlete) if athlete else None
-        status=node.get('status') or node.get('injuryStatus')
-        if isinstance(status,dict):status=status.get('displayName') or status.get('name')
-        if player and status:
-            from teams import TEAM_MAP
-            raw_team=str(team or '').strip()
-            if raw_team in TEAM_MAP:raw_team=TEAM_MAP[raw_team]
-            aliases={'GS':'GSW','NY':'NYK','SA':'SAS','NO':'NOP',
-                     'PHO':'PHX','WSH':'WAS','BRK':'BKN','UT':'UTA','WS':'WAS'}
-            team=aliases.get(raw_team.upper(),raw_team.upper())
-            if team not in set(TEAM_MAP.values()):team='—'
-            details=node.get('details') or {}
-            note=details.get('detail','') if isinstance(details,dict) else str(details)
-            player_id=athlete.get('id') if isinstance(athlete,dict) else None
-            player_id=str(player_id) if player_id is not None else ''
-            if not player_id.isdigit() or len(player_id)>20:player_id=''
-            k=(str(player),str(team),str(status))
-            if k not in seen:
-                out.append({'player':player,'team':team,'status':str(status),'note':note,
-                            'athlete_id':player_id});seen.add(k)
-        for key in ('injuries','items','teams','groups','athletes'):
-            if key in node:traverse(node[key],team)
-    traverse(payload)
-    return pd.DataFrame(out,columns=['player','team','status','note','athlete_id'])
+        if not isinstance(node, dict):
+            return
+        resolved = (code(node.get('team')) or code(node.get('teamAbbreviation'))
+                    or code(node.get('teamId')) or code(node.get('team_id')))
+        team = resolved or team
+        athlete = node.get('athlete') or node.get('player') or {}
+        if isinstance(athlete, dict):
+            team = code(athlete.get('team')) or team
+            player = athlete.get('displayName') or athlete.get('fullName') or athlete.get('name')
+        else:
+            player = str(athlete) if athlete else None
+        status = node.get('status') or node.get('injuryStatus')
+        if isinstance(status, dict):
+            status = status.get('displayName') or status.get('name')
+        if player and status and team in valid:
+            details = node.get('details') or {}
+            note = (details.get('detail') or details.get('shortComment') or ''
+                    if isinstance(details, dict) else str(details))
+            note = note or node.get('shortComment') or node.get('longComment') or ''
+            player_id = athlete.get('id') if isinstance(athlete, dict) else None
+            player_id = str(player_id) if player_id is not None else ''
+            if not player_id.isdigit() or len(player_id) > 20:
+                player_id = ''
+            key = (str(player), team, str(status))
+            if key not in seen:
+                out.append({'player': str(player), 'team': team,
+                            'status': str(status), 'note': str(note)[:240],
+                            'athlete_id': player_id})
+                seen.add(key)
+        for key in ('injuries', 'items', 'teams', 'groups', 'athletes'):
+            if key in node:
+                traverse(node[key], team)
+
+    traverse(payload, code(default_team))
+    return pd.DataFrame(out, columns=['player', 'team', 'status', 'note', 'athlete_id'])
+
 
 
 def injuries(refresh=False):
     raw,meta=memoized_json('espn-injuries',ESPN_INJURIES,ttl_seconds=45*60,refresh=refresh)
     return injury_rows(raw),meta
+
+def selected_espn_injuries(home, away, refresh=False):
+    """Verified ESPN statuses for just two selected teams.
+
+    The league feed may omit team identity or contain zero entries for a team.
+    In that case read the two *documented* team endpoints, at most once each.
+    A valid empty team feed means zero *reported* entries, not a healthy roster.
+    Partial or outdated coverage cannot influence the V7.5 availability model.
+    """
+    from roster_data import ESPN_TEAM_IDS
+
+    cols = ['player', 'team', 'status', 'note', 'athlete_id']
+    teams = {str(home).upper().strip(), str(away).upper().strip()}
+    if len(teams) != 2 or not teams.issubset(ESPN_TEAM_IDS):
+        return pd.DataFrame(columns=cols), {
+            'available': False, 'stale': True, 'timestamp': None,
+            'warning': 'Nieznane drużyny ESPN.'}
+    checked, frames, timestamps, failures = set(), [], [], []
+    stale = False
+    try:
+        league_rows, league_meta = injuries(refresh=refresh)
+        if isinstance(league_rows, pd.DataFrame) and not league_rows.empty:
+            selected = league_rows.loc[league_rows['team'].isin(teams)]
+            if not selected.empty:
+                frames.append(selected)
+                checked.update(selected['team'].unique())
+                timestamps.append((league_meta or {}).get('timestamp'))
+                stale = bool((league_meta or {}).get('stale'))
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError) as exc:
+        failures.append('Liga ESPN: ' + type(exc).__name__)
+
+    for team in sorted(teams - checked):
+        team_id = ESPN_TEAM_IDS[team]
+        url = (f'https://site.api.espn.com/apis/site/v2/sports/basketball/'
+               f'nba/teams/{team_id}/injuries')
+        try:
+            payload, meta = memoized_json(
+                'espn-team-injuries-' + team, url, ttl_seconds=15 * 60,
+                request_timeout=6, refresh=refresh)
+            if not isinstance(payload, dict) or not isinstance(payload.get('injuries'), list):
+                raise ValueError('Nieznany format raportu ESPN')
+            rows = injury_rows(payload, default_team=team)
+            # A nonempty but unparseable response is not a verified empty list.
+            if payload['injuries'] and rows.empty:
+                raise ValueError('Brak rozpoznanych statusów ESPN')
+            if not rows.empty:
+                frames.append(rows.loc[rows['team'] == team])
+            checked.add(team)
+            timestamps.append((meta or {}).get('timestamp'))
+            stale = stale or bool((meta or {}).get('stale'))
+        except (OSError, RuntimeError, ValueError, KeyError, TypeError) as exc:
+            failures.append(team + ': ' + type(exc).__name__)
+
+    result = (pd.concat(frames, ignore_index=True).drop_duplicates(
+        subset=['player', 'team', 'status']) if frames
+        else pd.DataFrame(columns=cols))
+    valid_times = pd.to_datetime(timestamps, utc=True, errors='coerce')
+    valid_times = valid_times[~pd.isna(valid_times)]
+    oldest = min(valid_times).isoformat() if len(valid_times) else None
+    available = checked == teams and bool(oldest) and not stale
+    return result, {
+        'source': 'ESPN · raport ligowy / raporty drużyn',
+        'available': available, 'stale': stale or checked != teams,
+        'timestamp': oldest,
+        'warning': '; '.join(failures)[:160],
+        'checked_teams': sorted(checked),
+    }
+
 
 
 def current_odds(api_key,regions='eu',refresh=False,markets='h2h,totals'):
