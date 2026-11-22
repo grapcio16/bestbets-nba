@@ -755,8 +755,8 @@ def main() -> None:
         game_id = _plain(event.get("game_id"))
         model_id = _plain(event.get("model_id"))
         variant = _plain(event.get("variant"))
-        if (not re.fullmatch(r"\\d{4}-\\d{2}-\\d{2}", day)
-                or not re.fullmatch(r"\\d{1,30}", game_id)
+        if (not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day)
+                or not re.fullmatch(r"\d{1,30}", game_id)
                 or model_id not in ("legacy_v72", "research_form_v74", "research_context_v75")
                 or variant not in ("base", "scenario")):
             return
