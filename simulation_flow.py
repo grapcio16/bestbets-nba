@@ -37,6 +37,58 @@ def _allocate(scores: np.ndarray, weights: np.ndarray, rng) -> np.ndarray:
     return out
 
 
+def _neutral_run_proxy(away_points: np.ndarray, home_points: np.ndarray, rng) -> dict:
+    """Toy neutral order of two-point scoring events, conditional on final scores.
+
+    1 leftover point is allowed for odd totals. This is NOT possession,
+    play-by-play, bookmaker probability or a calibrated basketball run model.
+    Fast vectorized 5k x up to 176 events, never touches final results.
+    """
+    a = np.asarray(away_points, dtype=np.int32)
+    h = np.asarray(home_points, dtype=np.int32)
+    n_a = (a + 1) // 2
+    n_h = (h + 1) // 2
+    max_events = int(max(n_a.max(), n_h.max()))
+    indices = np.arange(max_events)[None, :]
+    valid_a, valid_h = indices < n_a[:, None], indices < n_h[:, None]
+    a_value = np.where(valid_a, 2, 0)
+    h_value = np.where(valid_h, 2, 0)
+    a_value = np.where((indices == n_a[:, None]-1) & ((a % 2)[:, None] == 1),
+                       1, a_value)
+    h_value = np.where((indices == n_h[:, None]-1) & ((h % 2)[:, None] == 1),
+                       1, h_value)
+    vals = np.concatenate((a_value, h_value), axis=1)
+    n = len(a)
+    teams = np.broadcast_to(np.r_[np.zeros(max_events, dtype=np.int8),
+                                  np.ones(max_events, dtype=np.int8)], (n, 2*max_events))
+    keys = rng.random((n, 2*max_events))
+    keys[vals == 0] = 2.0
+    order = np.argsort(keys, axis=1)
+    points = np.take_along_axis(vals, order, axis=1)
+    owners = np.take_along_axis(teams, order, axis=1)
+    current = np.zeros(n, dtype=np.int16)
+    previous = np.full(n, -1, dtype=np.int8)
+    longest = np.zeros(n, dtype=np.int16)
+    for step in range(points.shape[1]):
+        point, owner = points[:, step], owners[:, step]
+        active = point > 0
+        current = np.where(active & (owner == previous), current + point,
+                           np.where(active, point, current))
+        previous = np.where(active, owner, previous)
+        longest = np.maximum(longest, current)
+    return {
+        "method": "neutral_order_two_point_events_v1",
+        "basis": "Wariant ilustracyjny: losowa kolejność zdobyczy 2 pkt "
+                 "(z końcową 1 pkt dla nieparzystych sum). Nie jest to "
+                 "play-by-play, rzeczywista seria NBA ani skalibrowana szansa.",
+        "n_sims": int(n),
+        "at_least_6_pct": round(100*float(np.mean(longest >= 6)), 1),
+        "at_least_8_pct": round(100*float(np.mean(longest >= 8)), 1),
+        "at_least_10_pct": round(100*float(np.mean(longest >= 10)), 1),
+        "average_max_unanswered": round(float(np.mean(longest)), 1),
+    }
+
+
 def conditional_flow(away_scores, home_scores, *, game_id: str, model_id: str):
     """Derive compact, evidence-limited flow data from final score draws only."""
     a = np.asarray(away_scores)
@@ -80,12 +132,38 @@ def conditional_flow(away_scores, home_scores, *, game_id: str, model_id: str):
             "away_mean": round(float(np.mean(away[:, q*2:q*2+2])), 2) * 2,
             "home_mean": round(float(np.mean(home[:, q*2:q*2+2])), 2) * 2,
         })
+    # One demonstrative path selected deterministically from these same 5k
+    # final results, closest to the mean final spread. NEVER call it the mean.
+    # _allocate currently has eight windows; split each of those into 3-min
+    # portions without changing their summed quarter/6-min allocations.
+    fractions = rng.beta(9.0, 9.0, size=(5000, 8))
+    part_a = rng.binomial(away, fractions)
+    part_h = rng.binomial(home, fractions)
+    three_a = np.stack((part_a, away-part_a), axis=2).reshape(5000, 16)
+    three_h = np.stack((part_h, home-part_h), axis=2).reshape(5000, 16)
+    path_index = int(np.argmin(np.abs((h-a) - np.mean(h-a))))
+    path_margin = np.r_[0, np.cumsum(three_a[path_index]-three_h[path_index])]
+    sample_path = [
+        {"minute": i*3, "away_minus_home": int(v)}
+        for i, v in enumerate(path_margin)
+    ]
+    run_proxy = _neutral_run_proxy(a.astype(np.int32), h.astype(np.int32), rng)
+    # Neutral scoring volatility is based on real allocated model draws;
+    # it cannot be equated with verified NBA pace/possessions.
+    six_min_totals = away + home
+    scoring_window_sd = float(np.mean(np.std(six_min_totals, axis=1)))
     clutch = delta[:, 7]
     spread = h - a
     return {
         "available": True, "method": "conditional_neutral_6min_v1",
         "n_sims": 5000, "source": METHOD,
         "timeline": timeline, "quarters": quarters,
+        "sample_path": sample_path,
+        "sample_path_source": "Pojedynczy przykładowy przebieg losowy z tej samej "
+                              "próby 5 000 wyników. Nie jest średnią prognozą "
+                              "ani rzeczywistą chronologią punktów.",
+        "run_proxy": run_proxy,
+        "neutral_scoring_window_sd": round(scoring_window_sd, 1),
         "clutch": {
             "away_outscores_pct": round(float(np.mean(clutch < 0))*100, 1),
             "home_outscores_pct": round(float(np.mean(clutch > 0))*100, 1),
