@@ -111,13 +111,13 @@ def check(page):
     assert page.locator(".hzm-flow-quarter-row").count() == 4
     assert "12" in page.locator("#hzm-flow-timeline-desc").inner_text()
     assert page.locator("#hzm-flow-plot svg [data-flow-quarter-points]").count() == 4
-    assert page.locator('[data-flow-quarter-points="1"] .hzm-flow-q-home').text_content() == "BOS 29,0 pkt"
-    assert page.locator('[data-flow-quarter-points="3"] .hzm-flow-q-home').text_content() == "BOS 25,5 pkt"
-    assert page.locator('[data-flow-quarter-points="3"] .hzm-flow-q-away').text_content() == "NYK 31,0 pkt"
+    assert page.locator('[data-flow-quarter-points="1"] .hzm-flow-q-home').text_content() == "BOS śr. 29,0 pkt"
+    assert page.locator('[data-flow-quarter-points="3"] .hzm-flow-q-home').text_content() == "BOS śr. 25,5 pkt"
+    assert page.locator('[data-flow-quarter-points="3"] .hzm-flow-q-away').text_content() == "NYK śr. 31,0 pkt"
     projected = page.locator("#hzm-flow-plot svg [data-flow-quarter-points]")
     assert projected.count() == 4
-    assert projected.first.locator(".hzm-flow-q-home").text_content() == "BOS 29,0 pkt"
-    assert projected.first.locator(".hzm-flow-q-away").text_content() == "NYK 28,0 pkt"
+    assert projected.first.locator(".hzm-flow-q-home").text_content() == "BOS śr. 29,0 pkt"
+    assert projected.first.locator(".hzm-flow-q-away").text_content() == "NYK śr. 28,0 pkt"
     assert "historyczne punkty kwartowe espn" in (projected.first.get_attribute("aria-label") or "").lower()
     if page.viewport_size["width"] <= 767:
         plot_sizes = page.locator("#hzm-flow-plot").evaluate(
@@ -173,10 +173,10 @@ def check(page):
     assert page.locator("#hzm-flow-scenario").is_enabled()
     page.locator("#hzm-flow-scenario").click()
     assert page.locator("#hzm-flow-scenario").get_attribute("aria-pressed") == "true"
-    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-home').text_content() == "BOS 33,5 pkt"
-    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-away').text_content() == "NYK 30,1 pkt"
+    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-home').text_content() == "BOS śr. 33,5 pkt"
+    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-away').text_content() == "NYK śr. 30,1 pkt"
     page.locator("#hzm-flow-base").click()
-    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-home').text_content() == "BOS 29,0 pkt"
+    assert page.locator('#hzm-flow-plot svg [data-flow-quarter-points="1"] .hzm-flow-q-home').text_content() == "BOS śr. 29,0 pkt"
     page.locator("#hzm-flow-scenario").click()
     page.locator("#hzm-flow-save").click()
     page.wait_for_function("window.__flowActions.length===3")
