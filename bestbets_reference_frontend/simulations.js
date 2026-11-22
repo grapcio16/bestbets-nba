@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",chartLine:{match:null,away:null,home:null},intervalWidth:20,view:"results",resultTeam:"all",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null,lastAuth:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",chartLine:{match:null,away:null,home:null},intervalWidth:20,view:"results",resultTeam:"all",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",scenarioOuLine:null,scenarioOuContext:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null,lastAuth:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -1362,6 +1362,214 @@ function maybeLoadPaid(game,premium,sim,players){
     callbacks?.loadPlayers?.(state.day,game.id,state.model);
   }
 }
+/* Approved Premium Scenario Lab: one verified comparison pipeline for
+   counters, OVER/UNDER, two Monte Carlo curves and explanatory insights.
+   No data is invented while a what-if job is pending. */
+function scenarioResultContext(game,sim,premium){
+ const eligible=premium?.entitled===true&&game?.state==="scheduled"&&
+   Date.parse(game?.start||"")>Date.now()&&sim&&!sim.error;
+ const r=eligible?premium?.scenario:null;
+ const matched=!!r&&r.date===state.day&&String(r.game_id)===String(game.id)&&
+   r.model_id===state.model&&r.pace_pct===state.scenarioPct&&
+   Number(r.off_away_pct??0)===state.offAwayPct&&
+   Number(r.off_home_pct??0)===state.offHomePct&&!r.error;
+ const valid=(n)=>n!==null&&n!==undefined&&n!==""&&Number.isFinite(Number(n));
+ return {eligible:!!eligible,record:matched?r:null,
+   ready:matched&&valid(r?.scenario?.total_points)&&valid(r?.baseline?.total_points)};
+}
+function scenarioCurveMarkup(baseDistribution,newDistribution){
+ const binsBase=chartBins(baseDistribution),binsNew=chartBins(newDistribution);
+ if(binsBase.length<3)return '<text x="250" y="78" font-size="12" text-anchor="middle" fill="#a5c8e5">Wykres będzie dostępny po symulacji modelu</text>';
+ const all=binsBase.concat(binsNew),left=45,right=484,top=22,bottom=128;
+ const xmin=Math.min(...all.map(b=>b.x)),xmax=Math.max(...all.map(b=>b.x))+5;
+ const pmax=Math.max(10,...all.map(b=>b.p))*1.18;
+ const xx=x=>left+(x-xmin)/(xmax-xmin)*(right-left);
+ const yy=p=>bottom-p/pmax*(bottom-top);
+ function curve(bins){
+   const pts=bins.map(b=>({x:xx(b.x+2.5),y:yy(b.p)}));
+   if(!pts.length)return "";
+   let d='M '+pts[0].x.toFixed(2)+' '+pts[0].y.toFixed(2);
+   for(let i=0;i<pts.length-1;i++){
+     const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+     const c1x=p1.x+(p2.x-p0.x)/6,c1y=p1.y+(p2.y-p0.y)/6;
+     const c2x=p2.x-(p3.x-p1.x)/6,c2y=p2.y-(p3.y-p1.y)/6;
+     d+=' C '+[c1x,c1y,c2x,c2y,p2.x,p2.y].map(n=>n.toFixed(2)).join(' ');
+   }
+   return d;
+ }
+ const b=curve(binsBase),n=binsNew.length>=3?curve(binsNew):"";
+ const area=(path,arr)=>path+' L '+xx(arr[arr.length-1].x+2.5).toFixed(2)+' '+bottom+
+   ' L '+xx(arr[0].x+2.5).toFixed(2)+' '+bottom+' Z';
+ const grid=Array.from({length:5},(_,i)=>{
+   const p=Math.round(pmax*i/4),y=yy(p).toFixed(2);
+   return '<line x1="'+left+'" x2="'+right+'" y1="'+y+'" y2="'+y+'" class="hzm-scenario-gridline"/>'+
+     '<text x="37" y="'+(Number(y)+3)+'" text-anchor="end" class="hzm-scenario-axis">'+p+'%</text>';
+ }).join('');
+ const ticks=Array.from({length:5},(_,i)=>{
+   const val=Math.round((xmin+(xmax-xmin)*i/4)/5)*5;
+   return '<text x="'+xx(val).toFixed(2)+'" y="151" text-anchor="middle" class="hzm-scenario-axis">'+val+'</text>';
+ }).join('');
+ function avgMarker(dist,key,style){
+   const mean=Number(dist?.average);
+   if(!Number.isFinite(mean)||mean<xmin||mean>xmax)return "";
+   const x=xx(mean),px=Math.max(left,Math.min(right-48,x-24));
+   return '<line x1="'+x.toFixed(2)+'" x2="'+x.toFixed(2)+'" y1="26" y2="'+bottom+
+     '" class="hzm-scenario-avg-guide '+style+'"/>'+
+     '<rect x="'+px.toFixed(2)+'" y="'+(style==="whatif"?"3":"3")+'" width="48" height="18" rx="5" class="hzm-scenario-avg-bg '+style+'"/>'+
+     '<text x="'+(px+24).toFixed(2)+'" y="16" text-anchor="middle" class="hzm-scenario-avg-label">'+fmt(mean)+'</text>';
+ }
+ return '<defs>'+
+   '<linearGradient id="hzm-scenario-fill-base" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#17e6f4" stop-opacity=".38"/><stop offset="1" stop-color="#08b7e4" stop-opacity=".02"/></linearGradient>'+
+   '<linearGradient id="hzm-scenario-fill-new" x1="0" x2="0" y1="0" y2="1"><stop stop-color="#dc65f7" stop-opacity=".34"/><stop offset="1" stop-color="#8a37ec" stop-opacity=".01"/></linearGradient>'+
+   '<filter id="hzm-scenario-glow"><feGaussianBlur stdDeviation="2.4"/></filter>'+
+   '</defs>'+
+   grid+ticks+'<path d="'+area(b,binsBase)+'" fill="url(#hzm-scenario-fill-base)"/>'+
+   '<path class="hzm-scenario-line base glow" d="'+b+'" filter="url(#hzm-scenario-glow)"/>'+
+   '<path class="hzm-scenario-line base" d="'+b+'"/>'+
+   (n?'<path d="'+area(n,binsNew)+'" fill="url(#hzm-scenario-fill-new)"/>'+
+      '<path class="hzm-scenario-line whatif glow" d="'+n+'" filter="url(#hzm-scenario-glow)"/>'+
+      '<path class="hzm-scenario-line whatif" d="'+n+'"/>':"")+
+   avgMarker(baseDistribution,"base","base")+
+   (n?avgMarker(newDistribution,"whatif","whatif"):"");
+}
+function updateScenarioPremiumDetails(game,sim,premium){
+ const {eligible,record,ready}=scenarioResultContext(game,sim,premium);
+ const set=(id,value)=>{const el=$(id);if(el)el.textContent=value};
+ const n=v=>v!==null&&v!==undefined&&v!==""&&Number.isFinite(Number(v))?Number(v):null;
+ const pct=v=>n(v)!==null&&n(v)>=0&&n(v)<=100?percent(v):"—";
+ const get=side=>game?.[side]|| (side==="away"?"GOŚCIE":"GOSPODARZE");
+ const contextKey=state.day+"|"+String(game?.id||"")+"|"+state.model;
+ if(state.scenarioOuContext!==contextKey){
+   state.scenarioOuContext=contextKey;
+   state.scenarioOuLine=n(sim?.total_points)!==null?Math.floor(Number(sim.total_points))+0.5:229.5;
+ }
+ for(const [id,team] of [["hzm-scenario-row-away",get("away")],["hzm-scenario-row-home",get("home")]])
+   set(id,team+" — punkty");
+ $("hzm-scenario-panel")?.querySelectorAll("[data-hzm-away-name]").forEach(el=>el.textContent=get("away"));
+ $("hzm-scenario-panel")?.querySelectorAll("[data-hzm-home-name]").forEach(el=>el.textContent=get("home"));
+ const presets={fast:[5,0,0],slow:[-5,0,0],away:[0,5,0],home:[0,0,5]};
+ $("hzm-scenario-panel")?.querySelectorAll("[data-hzm-scenario-preset]").forEach(button=>{
+   const v=presets[button.dataset.hzmScenarioPreset];
+   const selected=v&&v[0]===state.scenarioPct&&v[1]===state.offAwayPct&&v[2]===state.offHomePct;
+   button.classList.toggle("is-active",!!selected);button.setAttribute("aria-pressed",String(!!selected));
+ });
+ const base=eligible?sim:null,result=ready?record.scenario:null,baseline=ready?record.baseline:sim;
+ for(const side of ["away","home"]){
+   const from=n(baseline?.[side+"_points"]),to=n(result?.[side+"_points"]);
+   const el=$( "hzm-scenario-table-"+side+"-delta");
+   set("hzm-scenario-table-"+side+"-base",from===null?"—":fmt(from));
+   set("hzm-scenario-table-"+side+"-new",to===null?"—":fmt(to));
+   if(el){
+     el.textContent=from!==null&&to!==null?(to-from>0?"+":"")+fmt(to-from):"—";
+     el.classList.toggle("is-negative",from!==null&&to!==null&&to<from);
+   }
+ }
+ const baseTotal=n(baseline?.total_points),newTotal=n(result?.total_points),change=baseTotal!==null&&newTotal!==null?newTotal-baseTotal:null;
+ set("hzm-scenario-table-total-base",eligible&&baseTotal!==null?fmt(baseTotal):"—");
+ set("hzm-scenario-table-total-new",newTotal!==null?fmt(newTotal):"—");
+ set("hzm-scenario-table-total-delta",change===null?"—":(change>0?"+":"")+fmt(change));
+ set("hzm-scenario-delta-badge",change===null?"—":(change>0?"+":"")+fmt(change)+" pkt");
+ const lineInput=$("hzm-scenario-ou-line");
+ let line=validChartLine(state.scenarioOuLine);
+ if(line===null)line=229.5;
+ if(lineInput&&document.activeElement!==lineInput)lineInput.value=fmt(line);
+ const baselineDist=eligible?(record?.baseline_distribution||sim?.distributions?.match):null;
+ const scenarioDist=ready?record?.scenario_distribution:null;
+ const baseBins=chartBins(baselineDist),newBins=chartBins(scenarioDist);
+ const overBase=eligible?chartOverUnderAt(baselineDist,baseBins,line):null;
+ const overNew=ready?chartOverUnderAt(scenarioDist,newBins,line):null;
+ const overDelta=overBase?.over!=null&&overNew?.over!=null?overNew.over-overBase.over:null;
+ set("hzm-scenario-table-over-base",overBase?.over==null?"—":(overBase.approx?"≈":"")+percent(overBase.over));
+ set("hzm-scenario-table-over-new",overNew?.over==null?"—":(overNew.approx?"≈":"")+percent(overNew.over));
+ set("hzm-scenario-table-over-delta",overDelta===null?"—":(overDelta>0?"+":"")+fmt(overDelta)+" pp");
+ const chart=$("hzm-scenario-curve");
+ if(chart)chart.innerHTML=scenarioCurveMarkup(baselineDist,scenarioDist);
+ set("hzm-scenario-curve-caption",ready&&newBins.length>=3?
+   "Rozkłady z 5 000 symulacji":"Bazowy rozkład · nowy po przeliczeniu");
+ const help=ready?"":eligible?"Przelicz scenariusz, aby otrzymać uzasadnienie.":"Dostępne po wybraniu przyszłego meczu Premium.";
+ if(!ready){
+   set("hzm-scenario-insight-winner-title","Faworyt meczu");
+   set("hzm-scenario-insight-winner",help);
+   set("hzm-scenario-insight-total-title","Suma punktów");
+   set("hzm-scenario-insight-total",help);
+   set("hzm-scenario-insight-offense",help);
+   set("hzm-scenario-insight-risk",help);
+   return;
+ }
+ const away=n(result.away_win_pct),home=n(result.home_win_pct),
+   favSide=away!==null&&home!==null&&away>home?"away":"home";
+ const fav=get(favSide),favP=favSide==="away"?away:home;
+ const favBaseline=n(record?.baseline?.[favSide+"_win_pct"]);
+ set("hzm-scenario-insight-winner-title","Faworyt meczu: "+fav);
+ set("hzm-scenario-insight-winner",
+   "Po przeliczeniu "+fav+" wygrywa "+pct(favP)+" symulacji"+
+   (favBaseline!==null?" (w bazie "+pct(favBaseline)+")":"")+
+   ". To wynik zmienionych założeń, nie gwarancja.");
+ set("hzm-scenario-insight-total-title","Suma punktów: "+fmt(newTotal)+" pkt");
+ const signed=change===null?"—":(change>0?"+":"")+fmt(change);
+ set("hzm-scenario-insight-total",
+   "Różnica względem bazowego "+fmt(baseTotal)+" pkt: "+signed+
+   " pkt. Dotyczy wyłącznie uruchomionego wariantu what-if.");
+ const changes=[];
+ if(state.scenarioPct)changes.push("tempo "+(state.scenarioPct>0?"+":"")+state.scenarioPct+"%");
+ if(state.offAwayPct)changes.push("atak "+get("away")+" "+(state.offAwayPct>0?"+":"")+state.offAwayPct+"%");
+ if(state.offHomePct)changes.push("atak "+get("home")+" "+(state.offHomePct>0?"+":"")+state.offHomePct+"%");
+ set("hzm-scenario-insight-offense",
+   (changes.length?"Zmieniono: "+changes.join(", ")+". ":"Ustawienia bazowe, bez zmian. ")+
+   get("away")+" "+fmt(baseline?.away_points)+"→"+fmt(result.away_points)+
+   " pkt; "+get("home")+" "+fmt(baseline?.home_points)+"→"+fmt(result.home_points)+" pkt.");
+ const oldLow=n(baselineDist?.p10),oldHigh=n(baselineDist?.p90),
+   newLow=n(scenarioDist?.p10),newHigh=n(scenarioDist?.p90);
+ let risk=newLow!==null&&newHigh!==null&&newLow<=newHigh?
+   "Przedział 80%: "+Math.round(newLow)+"–"+Math.round(newHigh)+
+   " pkt"+(oldLow!==null&&oldHigh!==null?" (baza "+Math.round(oldLow)+"–"+Math.round(oldHigh)+")":"")+". ":
+   "Przedział 80% niedostępny. ";
+ risk+=overDelta!==null?"OVER "+fmt(line)+": "+pct(overBase.over)+" → "+pct(overNew.over)+
+   " ("+(overDelta>0?"+":"")+fmt(overDelta)+" pp). ":
+   "Brak dokładnych danych do porównania OVER. ";
+ risk+="Wynik hipotetyczny; nie uwzględnia przeliczenia zmian składu.";
+ set("hzm-scenario-insight-risk",risk);
+}
+function bindScenarioPremiumExtras(){
+ const panel=$("hzm-scenario-panel");
+ if(!panel)return;
+ const presets={fast:[5,0,0],slow:[-5,0,0],away:[0,5,0],home:[0,0,5]};
+ panel.addEventListener("click",event=>{
+   const button=event.target.closest?.("[data-hzm-scenario-preset]");
+   if(!button)return;
+   const pair=presets[button.dataset.hzmScenarioPreset];if(!pair)return;
+   event.preventDefault();
+   [state.scenarioPct,state.offAwayPct,state.offHomePct]=pair;
+   state.scenarioPending="";
+   const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+   showScenario(game,trustedResult(state.lastPremium,game),state.lastPremium);
+ });
+ $("hzm-scenario-minute-link")?.addEventListener("click",event=>{
+   event.preventDefault();
+   $("hzm-minute-panel")?.scrollIntoView({behavior:"smooth",block:"center"});
+   $("hzm-minute-player")?.focus({preventScroll:true});
+ });
+ const input=$("hzm-scenario-ou-line");
+ const update=finish=>{
+   if(!input)return;
+   const line=validChartLine(input.value);
+   if(line===null){
+     input.setAttribute("aria-invalid","true");
+     if(finish)input.title="Podaj linię z końcówką ,5 (np. 229,5).";
+     return;
+   }
+   input.setAttribute("aria-invalid","false");
+   state.scenarioOuLine=line;
+   const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+   updateScenarioPremiumDetails(game,trustedResult(state.lastPremium,game),state.lastPremium);
+ };
+ input?.addEventListener("input",()=>update(false));
+ input?.addEventListener("change",()=>update(true));
+ input?.addEventListener("keydown",event=>{
+   if(event.key==="Enter"){event.preventDefault();update(true);input.blur()}
+ });
+}
+
 function showScenario(game,sim,premium){
  const panel=$("hzm-scenario-panel");
  if(!panel)return;
@@ -2030,6 +2238,7 @@ function init(api){
   bindWindowInterval();
   bindDeviationInfo();
   bindLabGlossary();
+  bindScenarioPremiumExtras();
   // Keep the verified ESPN photo optional: network and CDN errors should
   // reveal the local initials fallback, not a broken-image icon.
   $("simulations-pane")?.addEventListener("error",event=>{
