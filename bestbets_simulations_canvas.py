@@ -33,13 +33,24 @@ def _distribution(values):
     values = np.asarray(values, dtype=float)
     if values.size == 0:
         return {"bins": [], "p10": None, "p90": None, "average": None,
-                "threshold": None, "over_pct": None}
+                "threshold": None, "over_pct": None, "lines": []}
     lo = int(np.floor(float(values.min()) / 5) * 5)
     hi = int(np.ceil(float(values.max()) / 5) * 5) + 5
     edges = np.arange(lo, hi + 1, 5)
     counts, _ = np.histogram(values, bins=edges)
     average = float(values.mean())
     threshold = int(round(average / 5) * 5)
+    # Display only: exact OVER/UNDER percentages from the same 5,000
+    # simulated final scores. Half-point thresholds cannot push on the
+    # integer NBA scoreboard. No additional simulations or model changes.
+    lines = []
+    for line in (threshold - 0.5, threshold + 4.5):
+        over = int(np.count_nonzero(values > line))
+        lines.append({
+            "line": line,
+            "over_pct": round(100 * over / values.size, 1),
+            "under_pct": round(100 * (values.size - over) / values.size, 1),
+        })
     return {
         "bins": [{"x": int(edges[i]), "p": round(100 * int(count) / values.size, 3)}
                  for i, count in enumerate(counts)],
@@ -48,6 +59,7 @@ def _distribution(values):
         "average": round(average, 1),
         "threshold": threshold,
         "over_pct": round(100 * float(np.count_nonzero(values >= threshold)) / values.size, 1),
+        "lines": lines,
     }
 
 
