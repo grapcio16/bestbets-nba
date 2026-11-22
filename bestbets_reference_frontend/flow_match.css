@@ -56,6 +56,13 @@
   font-size:9px;line-height:1.45;color:#accce3;padding:0 3px;
   min-height:12px;overflow-wrap:anywhere
 }
+#simulations-pane .hzm-flow-feedback .hzm-flow-pdf-link{
+  display:inline-block;color:#73f4ff;font-size:9px;font-weight:900;
+  border-bottom:1px solid #53e6f1;cursor:pointer;text-decoration:none
+}
+#simulations-pane .hzm-flow-feedback .hzm-flow-pdf-link:hover{
+  color:#edb2ff;border-color:#edb2ff
+}
 #simulations-pane .hzm-flow-card{
   min-width:0;border:1px solid #2479b6;border-radius:11px;
   background:radial-gradient(ellipse at 100% 0%,#7536ab26,transparent 65%),#0b1a38;
