@@ -15,7 +15,8 @@ from hashlib import sha256
 import numpy as np
 import pandas as pd
 
-from simulation_quarter_model import pregame_quarter_evidence
+from simulation_quarter_model import QCOLS, pregame_quarter_evidence
+from simulation_data_audit import verified_history
 
 MODEL_IDS = {
     "auto_legacy_v72": "auto_q_v72_shadow_v1",
@@ -24,6 +25,25 @@ MODEL_IDS = {
     "auto_shadow_home_v76": "auto_q_v76_shadow_v1",
 }
 N_DRAWS = 5000
+
+
+
+def complete_quarter_history(history, cutoff):
+    """Verified four-quarter regulation finals only, with no future leakage."""
+    rows = verified_history(history, cutoff)
+    if rows.empty or not set(QCOLS).issubset(rows.columns):
+        return rows.iloc[:0].copy()
+    rows = rows.copy()
+    for col in QCOLS:
+        rows[col] = pd.to_numeric(rows[col], errors="coerce")
+    valid = rows[list(QCOLS)].notna().all(axis=1)
+    for side in ("home", "away"):
+        cols = [f"{side}_q{i}" for i in range(1, 5)]
+        points = rows[cols]
+        valid &= points.ge(0).all(axis=1) & points.le(75).all(axis=1)
+        valid &= (points % 1).eq(0).all(axis=1)
+        valid &= points.sum(axis=1).eq(rows[f"{side}_score"])
+    return rows.loc[valid].sort_values("start_utc").copy()
 
 
 def _allocate_total(scores, weights, rng):
