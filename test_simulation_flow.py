@@ -21,6 +21,21 @@ class FlowTests(unittest.TestCase):
         self.assertFalse(flow["rotation_available"])
         self.assertFalse(flow["scoring_runs_available"])
         self.assertIn("nie są to dane play-by-play", flow["source"])
+        self.assertEqual(len(flow["sample_path"]), 17)
+        self.assertEqual(flow["sample_path"][0], {"minute": 0, "away_minus_home": 0})
+        self.assertEqual(flow["sample_path"][-1]["minute"], 48)
+        self.assertIn(flow["sample_path"][-1]["away_minus_home"],
+                      set((away-home).tolist()))
+        self.assertIn("Pojedynczy przykładowy", flow["sample_path_source"])
+        self.assertEqual(flow["run_proxy"]["method"], "neutral_order_two_point_events_v1")
+        self.assertEqual(flow["run_proxy"]["n_sims"], 5000)
+        self.assertGreaterEqual(flow["run_proxy"]["at_least_6_pct"],
+                                flow["run_proxy"]["at_least_8_pct"])
+        self.assertGreaterEqual(flow["run_proxy"]["at_least_8_pct"],
+                                flow["run_proxy"]["at_least_10_pct"])
+        self.assertLessEqual(flow["run_proxy"]["at_least_6_pct"], 100)
+        self.assertGreaterEqual(flow["run_proxy"]["at_least_10_pct"], 0)
+        self.assertIn("Nie jest to", flow["run_proxy"]["basis"])
         self.assertEqual([r["minute"] for r in flow["timeline"]],
                          list(range(0, 49, 6)))
         self.assertEqual(flow["timeline"][0]["margin_mean"], 0.0)

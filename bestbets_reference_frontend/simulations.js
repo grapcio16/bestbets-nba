@@ -2211,6 +2211,16 @@ function render(home,premium,auth){
     '<span class="hzm-versus-divider">VS</span>'+
     matchupTeamHTML(homeCode,game?.home_logo,"home",ctx);
   $("hzm-away-code").textContent=away;$("hzm-home-code").textContent=homeCode;
+  // Shared hero lives above all seven tabs. Always refresh model averages,
+  // not just when Results dashboard is shown. No guest or stale values.
+  const validMean=v=>v!==null&&v!==undefined&&Number.isFinite(Number(v));
+  const useMeans=premium?.entitled===true&&sim&&!sim.error&&
+    validMean(sim.away_points)&&validMean(sim.home_points);
+  for(const [id,value] of [
+    ["hzm-hero-away-label",away],["hzm-hero-home-label",homeCode],
+    ["hzm-hero-away-points",useMeans?fmt(sim.away_points):"—"],
+    ["hzm-hero-home-points",useMeans?fmt(sim.home_points):"—"]
+  ]){const el=$(id);if(el)el.textContent=value;}
   const isValid=sim&&!sim.error;
   $("hzm-score").textContent=isValid?Math.round(sim.away_points)+' : '+Math.round(sim.home_points):"— : —";
   $("hzm-away-win").textContent=isValid?percent(sim.away_win_pct):"—";

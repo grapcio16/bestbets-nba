@@ -1,4 +1,4 @@
-"""Static responsive smoke for all SIX Premium Simulation Lab views.
+"""Static responsive smoke for all SEVEN Premium Simulation Lab views.
 
 Only synthetic test data. No network NBA requests, no production login.
 Validate view routing, horizontal scroll access and vertical panel reachability
@@ -18,6 +18,7 @@ VIEWS = [
     ("players", "#hzv3", "#hzv3 .hzv3-summary"),
     ("scenario", "#hzm-scenario-panel", "#hzm-availability-panel"),
     ("intelligence", "#hzm-intel-panel", "#hzm-intel-caveat"),
+    ("flow", "#hzm-flow-panel", "#hzm-flow-method"),
     ("comparison", "#hzm-compare-panel", "#hzm-compare-disclaimer"),
     ("backtest", "#hzm-backtest-panel", "#hzm-backtest-caveat"),
 ]
@@ -132,8 +133,12 @@ def check(page, width, height):
     page.evaluate(
         "d => window.postMessage({type:'streamlit:render',args:{payload:d}}, '*')",
         data)
-    page.locator("#hzm-day-input").fill("2026-11-23")
-    page.locator("#hzm-day-input").dispatch_event("change")
+    # The approved custom calendar uses a deliberately hidden native input.
+    # Set its value and dispatch a change in the test harness rather than
+    # trying to perform a visible user interaction on a hidden DOM element.
+    page.locator("#hzm-day-input").evaluate(
+        """el => {el.value='2026-11-23';
+                   el.dispatchEvent(new Event('change',{bubbles:true}));}""")
     page.locator("#hzm-model-trigger").click()
     page.locator("#hzm-model-option-research_context_v75").click()
     assert page.locator("#hzm-lab-nav button:disabled").count() == 0
@@ -177,7 +182,7 @@ def main():
             finally:
                 page.close()
         browser.close()
-    print("Simulation Lab: 6 tabs x 3 viewports navigable and vertically reachable")
+    print("Simulation Lab: 7 tabs x 3 viewports navigable and vertically reachable")
 
 
 if __name__ == "__main__":
