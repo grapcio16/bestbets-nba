@@ -740,3 +740,122 @@
   text-shadow:0 0 9px rgba(17,245,206,.33);
   font-variant-numeric:tabular-nums;white-space:nowrap;
 }
+
+
+/* Date navigation v3 — one date label, symmetric arrows, native calendar.
+   The real date input is still interactive via the visible calendar icon. */
+#simulations-pane .hzm-day-control{
+  position:relative!important;z-index:25!important;
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  box-sizing:border-box!important;
+  flex:0 0 229px!important;width:229px!important;max-width:229px!important;
+  height:37px!important;min-height:37px!important;
+  gap:3px!important;margin-top:1px!important;padding:3px!important;
+  border:1px solid #597bb8!important;border-radius:11px!important;
+  background:radial-gradient(ellipse at 100% 18%,rgba(150,77,231,.23),transparent 67%),
+    linear-gradient(115deg,#0b2548,#152040 55%,#1f183f)!important;
+  box-shadow:inset 0 1px rgba(194,226,255,.18),
+    0 0 14px rgba(55,140,237,.14),0 0 11px rgba(134,62,208,.12)!important;
+}
+#simulations-pane .hzm-day-control .hzm-day-arrow{
+  display:grid!important;place-items:center!important;
+  flex:0 0 27px!important;width:27px!important;min-width:27px!important;
+  height:29px!important;padding:0!important;margin:0!important;
+  border-radius:7px!important;border:1px solid #436e9e!important;
+  background:linear-gradient(135deg,#0d365b,#18244a)!important;
+  color:#89efff!important;font-size:22px!important;line-height:1!important;
+  font-weight:600;cursor:pointer;
+  box-shadow:inset 0 1px rgba(158,223,255,.14);
+  transition:border-color .16s ease,background .16s ease,box-shadow .16s ease;
+}
+#simulations-pane .hzm-day-control .hzm-day-arrow:hover{
+  background:linear-gradient(125deg,#0b5273,#252458)!important;
+  border-color:#39e8ff!important;
+  box-shadow:0 0 11px rgba(22,220,251,.3)!important;
+}
+#simulations-pane .hzm-day-main{
+  position:relative;display:flex;align-items:center;
+  flex:1 1 auto;min-width:0;height:29px;
+  padding:0 2px 0 7px;gap:0;
+  border:1px solid rgba(107,127,192,.2);
+  border-radius:7px;
+  background:linear-gradient(120deg,rgba(17,42,79,.76),rgba(27,26,70,.77));
+}
+#simulations-pane .hzm-day-main #hzm-day-title{
+  display:block!important;position:relative!important;flex:1 1 auto!important;
+  min-width:0!important;width:auto!important;height:27px!important;
+  margin:0!important;padding:0 2px 0 0!important;
+  border:0!important;border-radius:0!important;
+  background:transparent!important;box-shadow:none!important;
+  font-family:inherit;font-weight:850!important;font-size:9.3px!important;
+  line-height:27px!important;letter-spacing:.08px!important;
+  text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  color:#f3f7ff!important;cursor:pointer;
+}
+#simulations-pane .hzm-day-main #hzm-day-title:hover{
+  color:#8df4ff!important;text-shadow:0 0 8px rgba(21,232,251,.35);
+}
+#simulations-pane .hzm-day-picker{
+  position:relative;display:grid;place-items:center;
+  flex:0 0 25px;width:25px;height:27px;
+  border-left:1px solid rgba(115,159,218,.27);
+  color:#8beaff;cursor:pointer;
+}
+#simulations-pane .hzm-day-picker svg{
+  width:16px;height:16px;pointer-events:none;filter:drop-shadow(0 0 4px rgba(42,206,246,.25));
+}
+#simulations-pane .hzm-day-picker:focus-within,
+#simulations-pane .hzm-day-main:focus-within{
+  outline:1px solid #45eaff;outline-offset:0;
+}
+#simulations-pane .hzm-day-picker #hzm-day-input{
+  position:absolute!important;inset:0!important;z-index:3!important;
+  display:block!important;pointer-events:auto!important;
+  opacity:0!important;width:100%!important;max-width:none!important;
+  min-width:0!important;height:100%!important;min-height:0!important;
+  margin:0!important;padding:0!important;border:0!important;
+  border-radius:0!important;background:transparent!important;color:transparent!important;
+  cursor:pointer!important;font-size:0!important;box-shadow:none!important;
+}
+#simulations-pane .hzm-day-picker #hzm-day-input::-webkit-calendar-picker-indicator{
+  position:absolute!important;inset:0!important;width:100%!important;
+  height:100%!important;margin:0!important;padding:0!important;opacity:0!important;
+  cursor:pointer!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-day-control{
+  height:37px!important;min-height:37px!important;margin-top:1px!important;
+}
+/* Remove redundant chart type badge (MECZ/DET/ATL already selected above).
+   Preserve concise full labels and accurate figures in narrow probabilities. */
+#simulations-pane[data-hzm-view="results"] .hzm-probability-panel>strong{
+  display:block!important;width:100%;min-width:0;
+  overflow:hidden;text-overflow:clip;
+  padding:0 0 5px 1px!important;font-size:9.1px!important;
+  line-height:14px!important;letter-spacing:-.18px!important;white-space:nowrap;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-probability-panel .hzm-prob-row{
+  grid-template-columns:8px minmax(0,1fr) 37px!important;
+  gap:2px!important;padding:0 2px!important;min-width:0;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-threshold{
+  font-size:7.7px!important;letter-spacing:-.18px!important;
+  white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-row>b{
+  font-size:10.3px!important;white-space:nowrap;text-align:right;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-direction{
+  font-size:11px!important;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-prob-explanation{
+  font-size:7px!important;line-height:1.15!important;
+  overflow-wrap:anywhere;
+}
+@media(max-width:767px){
+  #simulations-pane .hzm-day-control{
+    flex:0 1 229px!important;max-width:100%!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  #simulations-pane .hzm-day-control .hzm-day-arrow{transition:none!important}
+}
