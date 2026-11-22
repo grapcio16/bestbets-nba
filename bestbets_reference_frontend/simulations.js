@@ -452,6 +452,124 @@ function showDistributionOverview(sim,game,premium){
  set("hzm-result-sd",paid&&variance!==null?"±"+fmt(Math.sqrt(variance)):"—");
 }
 
+
+/* Results: explain the exact selected game's forecast using existing,
+   entitlement-checked simulation results and pre-tipoff ESPN evidence.
+   Descriptive form is never presented as an isolated causal coefficient. */
+function buildSimulationFindings(game,sim,ctx,paid,modelId){
+ const unavailable={
+   winner:paid?"Trwa obliczanie szans zwycięstwa.":"Dostępne po aktywacji Premium.",
+   context:paid?"Czekam na prognozę sumy punktów.":"Dostępne po aktywacji Premium.",
+   form:paid?"Weryfikuję historię ataku i obrony obu drużyn.":"Dostępne po aktywacji Premium.",
+   tempo:paid?"Przedział niepewności pojawi się po obliczeniu modelu.":"Dostępne po aktywacji Premium."
+ };
+ if(!paid||!game||!sim||sim.error)return sim?.error&&paid?
+   Object.fromEntries(Object.keys(unavailable).map(key=>[key,"Brak wiarygodnej prognozy: "+String(sim.error).slice(0,95)])):unavailable;
+ const number=value=>value!==null&&value!==undefined&&value!==""&&
+   Number.isFinite(Number(value))?Number(value):null;
+ const chanceAway=number(sim.away_win_pct),chanceHome=number(sim.home_win_pct);
+ const ptsAway=number(sim.away_points),ptsHome=number(sim.home_points);
+ const total=number(sim.total_points);
+ const validChances=chanceAway!==null&&chanceHome!==null&&
+   chanceAway>=0&&chanceAway<=100&&chanceHome>=0&&chanceHome<=100;
+ const validPoints=ptsAway!==null&&ptsHome!==null&&ptsAway>0&&ptsHome>0;
+ const away=String(game.away||"GOŚCIE").toUpperCase();
+ const home=String(game.home||"GOSPODARZE").toUpperCase();
+ const favoriteSide=validChances&&chanceAway>chanceHome?"away":"home";
+ const favourite=favoriteSide==="home"?home:away;
+ const opponent=favoriteSide==="home"?away:home;
+ const favouritePct=favoriteSide==="home"?chanceHome:chanceAway;
+ const favouritePts=favoriteSide==="home"?ptsHome:ptsAway;
+ const opponentPts=favoriteSide==="home"?ptsAway:ptsHome;
+ const edge=validChances?Math.abs(chanceHome-chanceAway):null;
+ const expectedEdge=validPoints?favouritePts-opponentPts:null;
+ const results={...unavailable};
+ if(validChances&&validPoints){
+   const narrow=edge<8;
+   results.winner=(narrow?"Wyrównany mecz: ":"Model częściej wskazuje ")+
+     favourite+" ("+percent(favouritePct)+
+     " symulacji). Śr. "+fmt(favouritePts)+" vs "+fmt(opponentPts)+
+     " pkt ("+(expectedEdge>=0?"+":"")+fmt(expectedEdge)+
+     " na korzyść "+favourite+").";
+ }else if(validChances){
+   results.winner=favourite+" uzyskuje "+percent(favouritePct)+
+     " wygranych symulacji; brak kompletnych danych o średnich punktach.";
+ }
+ if(validPoints&&total!==null){
+   let method="";
+   if(modelId==="legacy_v72"){
+     method=ctx?.advanced_available===true?"PACE i ratingi ataku/obrony NBA Advanced":
+       "ostatnie wyniki ataku i obrony ESPN (do 12 meczów)";
+   }else{
+     method=ctx?.advanced_available===true?
+       "PACE i ratingi NBA Advanced, wspierane ważoną formą ESPN":
+       "ważona forma ataku i obrony ESPN, siła rywali i regresja do średniej";
+   }
+   results.context=fmt(total)+" pkt = "+away+" "+fmt(ptsAway)+" + "+
+     home+" "+fmt(ptsHome)+". Podstawa modelu: "+method+".";
+ }else if(total!==null)results.context="Średnia suma to "+fmt(total)+" pkt. Brak pełnego rozbicia na drużyny.";
+ const t=ctx?.team_comparison;
+ const favouriteRow=t?.[favoriteSide];
+ const otherSide=favoriteSide==="away"?"home":"away";
+ const otherRow=t?.[otherSide];
+ const validRow=(row,code)=>row&&String(row.team||"").toUpperCase()===code&&
+   Number.isInteger(row.n5)&&row.n5>=3&&row.n5<=5;
+ const fValid=validRow(favouriteRow,favourite);
+ const oValid=validRow(otherRow,opponent);
+ const scored=fValid?number(favouriteRow.pts5):null;
+ const allowed=oValid?number(otherRow.allowed5):null;
+ const wins=fValid?number(favouriteRow.wins5):null;
+ const losses=fValid?number(favouriteRow.losses5):null;
+ const oppWins=oValid?number(otherRow.wins5):null;
+ const oppLosses=oValid?number(otherRow.losses5):null;
+ const recordValid=(w,l,n)=>Number.isInteger(w)&&Number.isInteger(l)&&
+   w>=0&&l>=0&&w+l===n;
+ if(scored!==null&&allowed!==null){
+   results.form="L5: "+favourite+" zdobywało "+fmt(scored)+
+     " pkt/mecz; obrona "+opponent+" traciła "+fmt(allowed)+
+     ". To historyczne tło projekcji, nie gwarancja.";
+ }else if(recordValid(wins,losses,favouriteRow?.n5)&&
+          recordValid(oppWins,oppLosses,otherRow?.n5)){
+   results.form="Bilans L5: "+favourite+" "+wins+"–"+losses+
+     ", "+opponent+" "+oppWins+"–"+oppLosses+
+     ". Za mało kompletnych średnich ataku i obrony do porównania.";
+ }else{
+   results.form="Brak wystarczającej, zweryfikowanej historii L5 obu drużyn; "+
+     "nie wyciągamy wniosków z niepełnej próby.";
+ }
+ const d=sim.distributions?.match;
+ const low=number(d?.p10),high=number(d?.p90);
+ const bounds=low!==null&&high!==null&&low<=high?
+   "80% symulowanych sum: "+Math.round(low)+"–"+Math.round(high)+" pkt. ":"";
+ let conditions="";
+ if(modelId==="research_context_v75"&&ctx?.v75_factors){
+   const factors=ctx.v75_factors,adjustments=[];
+   for(const side of ["away","home"]){
+     const team=side==="away"?away:home;
+     for(const [kind,label] of [["venue","dom/wyjazd"],["rest","odpoczynek"],["injury","ESPN OUT"]]){
+       const effect=number(factors[kind+"_"+side+"_pts"]);
+       if(effect!==null&&Math.abs(effect)>=0.15)
+         adjustments.push({team,label,effect});
+     }
+   }
+   adjustments.sort((a,b)=>Math.abs(b.effect)-Math.abs(a.effect));
+   if(adjustments.length){
+     const strongest=adjustments[0];
+     conditions="V7.5: korekta "+strongest.label+" dla "+strongest.team+" "+
+       (strongest.effect>0?"+":"")+fmt(strongest.effect)+
+       " pkt; wpływ eksperymentalny.";
+   }else conditions="V7.5: brak istotnych korekt dom/wyjazd, odpoczynku lub absencji.";
+   if(factors.injuries_espn_fresh!==true)
+     conditions+=" Brak świeżego raportu kontuzji ESPN.";
+ }else if(modelId==="research_form_v74"){
+   conditions="V7.4 bez indywidualnych korekt absencji i odpoczynku; szanse niekalibrowane.";
+ }else{
+   conditions="V7.2 to model bazowy bez zweryfikowanej korekty absencji; szanse niekalibrowane.";
+ }
+ results.tempo=bounds+conditions;
+ return results;
+}
+
 function showResultsDashboard(game,sim,premium){
  const paid=premium?.entitled===true;
  const ctx=paid&&sim&&!sim.error?sim.model_context:null;
@@ -471,27 +589,12 @@ function showResultsDashboard(game,sim,premium){
  });
  const eligible=paid&&game?.state==="scheduled"&&Date.parse(game?.start||"")>Date.now()&&sim&&!sim.error;
  const run=$("hzm-mini-run");if(run)run.disabled=!eligible;
- set("hzm-mini-finding-form",ctx?
-   "Zweryfikowane mecze obu drużyn: "+String(ctx.away_sample??"—")+" / "+String(ctx.home_sample??"—")+
-   ". Próbki mogą być ograniczone.":"Forma: brak wystarczających danych w bieżącym widoku.");
- set("hzm-mini-finding-winner",paid&&sim&&!sim.error&&game?
-   "Model wskazuje "+String(sim.home_win_pct>=sim.away_win_pct?game.home:game.away)+
-   " ("+percent(Math.max(Number(sim.home_win_pct),Number(sim.away_win_pct)))+") — szansa niekalibrowana.":
-   "Wybierz mecz Premium, aby poznać prognozę zwycięzcy.");
- set("hzm-mini-finding-context",ctx?
-   (ctx.advanced_available?"NBA Advanced i historia ESPN w danych modelu. ":
-    "Brak pełnego NBA Advanced; model opiera się na historii meczów. ")+
-    (ctx.v75_factors?.injuries_espn_fresh?
-     "Statusy ESPN wymagają potwierdzenia.":"Kontuzje/składy mogą być niepotwierdzone."):
-   "Informacje o kontuzjach i składach mogą być niepełne.");
- const rest=Array.isArray(ctx?.rest_days)&&ctx.rest_days.length===2&&
-    ctx.rest_days.every(n=>Number.isInteger(n)&&n>=0&&n<=14);
- set("hzm-mini-finding-tempo",ctx?
-   (ctx.advanced_available?"Tempo: dostępny kontekst NBA Advanced. ":
-     "Tempo: oszacowane z historii meczów. ")+
-   (rest?"Odpoczynek goście/dom: "+ctx.rest_days.join(" / ")+" dni.":
-     "Dni odpoczynku: brak pełnego potwierdzenia."):
-   "Tempo i odpoczynek: dane nie zostały jeszcze pobrane.");
+ const findings=buildSimulationFindings(game,sim,ctx,paid,state.model);
+ for(const [key,id] of [["winner","hzm-mini-finding-winner"],["context","hzm-mini-finding-context"],
+   ["form","hzm-mini-finding-form"],["tempo","hzm-mini-finding-tempo"]]){
+   const element=$(id);
+   if(element){element.textContent=findings[key];element.title=findings[key];}
+ }
  const report=paid?premium?.backtest:null;
  const key=state.model==="legacy_v72"?"old":state.model==="research_form_v74"?"enriched":"v75";
  const model=report&&!report.error&&Array.isArray(report.models)?
