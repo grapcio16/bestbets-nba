@@ -105,6 +105,11 @@ def check(page):
     # Points for BOTH teams are displayed ON the timeline for Q1–Q4.
     badges = page.locator("#hzm-flow-plot svg [data-flow-quarter-points]")
     assert badges.count() == 4
+    if page.viewport_size["width"] <= 767:
+        # Four real SVG point-pairs remain readable and horizontally
+        # scrollable on iPhone without locking the page's vertical scroll.
+        assert page.locator("#hzm-flow-plot").evaluate(
+            "el => el.scrollWidth > el.clientWidth")
     assert badges.first.locator(".hzm-flow-q-home").text_content() == "BOS 29,0 pkt"
     assert badges.first.locator(".hzm-flow-q-away").text_content() == "NYK 28,0 pkt"
     assert "gospodarze" in (badges.first.get_attribute("aria-label") or "")
