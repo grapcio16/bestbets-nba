@@ -592,6 +592,8 @@
 @media(max-width:767px){
   #simulations-pane[data-hzm-view="flow"] .hzm-flow-plot{
     display:block!important;overflow-x:auto!important;overflow-y:hidden!important;
+    box-sizing:border-box!important;min-width:0!important;width:100%!important;
+    max-width:calc(100vw - 48px)!important;
     scrollbar-width:thin;-webkit-overflow-scrolling:touch;
     overscroll-behavior-x:contain
   }
