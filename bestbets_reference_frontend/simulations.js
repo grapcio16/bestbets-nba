@@ -85,6 +85,9 @@ function chooseView(view){
  state.view=view;
  state.expanded=view==="players";
  render(state.lastHome,state.lastPremium);
+ // The native-width Match Intelligence phone layout must be enabled when
+ // entering the tab and relinquished immediately when leaving it.
+ window.dispatchEvent(new Event("resize"));
 }
 function openFromProps(ctx,home){
  const name=String(ctx?.name||"").trim(),team=String(ctx?.team||"").trim().toUpperCase();
