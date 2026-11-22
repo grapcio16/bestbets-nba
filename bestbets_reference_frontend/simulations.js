@@ -159,6 +159,41 @@ function gamesForDay(home){
   });
   return {known:found.known,games:[...unique.values()].sort((a,b)=>String(a.start||"").localeCompare(String(b.start||"")))};
 }
+
+/* Official team names are factual text, not third-party team artworks.
+   Pre-game L10 records are displayed ONLY when the existing verified
+   server context reports games already played before this matchup. */
+const TEAM_LONG_NAMES=Object.freeze({
+ ATL:"Atlanta Hawks",BOS:"Boston Celtics",BKN:"Brooklyn Nets",CHA:"Charlotte Hornets",
+ CHI:"Chicago Bulls",CLE:"Cleveland Cavaliers",DAL:"Dallas Mavericks",DEN:"Denver Nuggets",
+ DET:"Detroit Pistons",GSW:"Golden State Warriors",HOU:"Houston Rockets",IND:"Indiana Pacers",
+ LAC:"LA Clippers",LAL:"Los Angeles Lakers",MEM:"Memphis Grizzlies",MIA:"Miami Heat",
+ MIL:"Milwaukee Bucks",MIN:"Minnesota Timberwolves",NOP:"New Orleans Pelicans",
+ NYK:"New York Knicks",OKC:"Oklahoma City Thunder",ORL:"Orlando Magic",
+ PHI:"Philadelphia 76ers",PHX:"Phoenix Suns",POR:"Portland Trail Blazers",
+ SAC:"Sacramento Kings",SAS:"San Antonio Spurs",TOR:"Toronto Raptors",
+ UTA:"Utah Jazz",WAS:"Washington Wizards"
+});
+function verifiedTeamRecord(ctx,side,code){
+ const row=ctx?.team_comparison?.[side];
+ if(!row||String(row.team||"").toUpperCase()!==code)return "";
+ const sample=Number(row.n10),wins=Number(row.wins10),losses=Number(row.losses10);
+ if(!Number.isInteger(sample)||sample<1||sample>10||
+   !Number.isInteger(wins)||!Number.isInteger(losses)||wins<0||losses<0||
+   wins+losses>sample)return "";
+ return "L10: "+wins+" W – "+losses+" L";
+}
+function matchupTeamHTML(code,url,side,ctx){
+ const team=String(code||"NBA").toUpperCase();
+ const name=TEAM_LONG_NAMES[team]||team,record=verifiedTeamRecord(ctx,side,team);
+ return '<span class="hzm-hero-team '+side+'">'+teamLogo(team,url)+
+   '<span class="hzm-team-copy"><strong>'+esc(team)+'</strong>'+
+   '<small class="hzm-team-long-name" title="'+esc(name)+'">'+esc(name)+'</small>'+
+   (record?'<small class="hzm-team-record" title="Weryfikacja: 10 ostatnich meczów przed wybranym spotkaniem">'+
+     esc(record)+'</small>':'')+
+   '</span></span>';
+}
+
 function teamLogo(code,url){
   url=window.hzResolveTeamLogo?.(url)||"";
   const safe=typeof url==="string"&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(url);
@@ -449,6 +484,14 @@ function showResultsDashboard(game,sim,premium){
     (ctx.v75_factors?.injuries_espn_fresh?
      "Statusy ESPN wymagają potwierdzenia.":"Kontuzje/składy mogą być niepotwierdzone."):
    "Informacje o kontuzjach i składach mogą być niepełne.");
+ const rest=Array.isArray(ctx?.rest_days)&&ctx.rest_days.length===2&&
+    ctx.rest_days.every(n=>Number.isInteger(n)&&n>=0&&n<=14);
+ set("hzm-mini-finding-tempo",ctx?
+   (ctx.advanced_available?"Tempo: dostępny kontekst NBA Advanced. ":
+     "Tempo: oszacowane z historii meczów. ")+
+   (rest?"Odpoczynek goście/dom: "+ctx.rest_days.join(" / ")+" dni.":
+     "Dni odpoczynku: brak pełnego potwierdzenia."):
+   "Tempo i odpoczynek: dane nie zostały jeszcze pobrane.");
  const report=paid?premium?.backtest:null;
  const key=state.model==="legacy_v72"?"old":state.model==="research_form_v74"?"enriched":"v75";
  const model=report&&!report.error&&Array.isArray(report.models)?
@@ -987,9 +1030,12 @@ function showPlayers(premium,players,game){
    const pts=safeProjection(item.pts);
    const meter=pts===null?0:Math.max(0,Math.min(100,Math.round(pts/40*100)));
    const pra=playerMetric(item,"PRA");
+   const position=String(item.position||"").trim().toUpperCase();
+   const positionLabel=/^(PG|SG|SF|PF|C|G|F|G-F|F-G|F-C|C-F)$/.test(position)?
+     '<span class="hzm-position-tag" title="Potwierdzona pozycja: '+esc(position)+'">'+esc(position)+'</span>':"";
    return '<button type="button" class="hzm-player-row" data-hzm-player-index="'+index+
       '" aria-pressed="false" aria-label="'+esc('Szczegóły prognozy '+item.name+', '+item.team)+'">'+
-     avatar+'<span class="hzm-player-info"><strong>'+esc(item.name)+'</strong>'+statusHtml+
+     avatar+'<span class="hzm-player-info"><span class="hzm-player-name-line"><strong title="'+esc(item.name)+'">'+esc(item.name)+'</strong>'+positionLabel+'</span>'+statusHtml+
      '<span class="hzm-result-roster-bar" aria-hidden="true" title="Względna projekcja PTS, nie prawdopodobieństwo trafienia"><i style="width:'+meter+'%"></i></span></span>'+
      '<span class="hzm-player-stats"><span>'+fmt(item.pts)+'</span><span>'+fmt(item.reb)+
      '</span><span>'+fmt(item.ast)+'</span><span>'+fmt(pra)+'</span></span></button>';
@@ -1478,9 +1524,9 @@ function render(home,premium){
   const away=game?.away||"NBA",homeCode=game?.home||"NBA";
   const pickerLabel=$("hzm-match-picker-label");
   if(pickerLabel)pickerLabel.textContent=game?away+" – "+homeCode:"Wybierz mecz";
-  $("hzm-match-label").innerHTML='<span class="hzm-hero-team away">'+teamLogo(away,game?.away_logo)+'<strong>'+esc(away)+'</strong></span>'+
+  $("hzm-match-label").innerHTML=matchupTeamHTML(away,game?.away_logo,"away",ctx)+
     '<span class="hzm-versus-divider">VS</span>'+
-    '<span class="hzm-hero-team home">'+teamLogo(homeCode,game?.home_logo)+'<strong>'+esc(homeCode)+'</strong></span>';
+    matchupTeamHTML(homeCode,game?.home_logo,"home",ctx);
   $("hzm-away-code").textContent=away;$("hzm-home-code").textContent=homeCode;
   const isValid=sim&&!sim.error;
   $("hzm-score").textContent=isValid?Math.round(sim.away_points)+' : '+Math.round(sim.home_points):"— : —";
