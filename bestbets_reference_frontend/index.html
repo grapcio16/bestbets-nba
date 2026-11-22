@@ -230,6 +230,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="simulations.css">
 <link rel="stylesheet" href="simulations_lab.css">
 <link rel="stylesheet" href="simulations_reference.css">
+<link rel="stylesheet" href="flow_match.css">
 <link rel="stylesheet" href="player_simulations_v3.css">
 <link rel="stylesheet" href="premium_modal.css">
 <link rel="stylesheet" href="admin_model_performance.css">
@@ -585,6 +586,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       <button type="button" id="hzm-lab-tab-players" role="tab" data-hzm-view="players" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">♙</span> Projekcje zawodników</button>
       <button type="button" id="hzm-lab-tab-scenario" role="tab" data-hzm-view="scenario" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">☷</span> Scenariusze</button>
       <button type="button" id="hzm-lab-tab-intelligence" role="tab" data-hzm-view="intelligence" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">✧</span> Analiza meczu</button>
+      <button type="button" id="hzm-lab-tab-flow" role="tab" data-hzm-view="flow" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">⌁</span> Flow meczu</button>
       <button type="button" id="hzm-lab-tab-comparison" role="tab" data-hzm-view="comparison" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">⇄</span> Porównanie drużyn</button>
       <button type="button" id="hzm-lab-tab-backtest" role="tab" data-hzm-view="backtest" aria-controls="hzm-lab-main" aria-selected="false"><span aria-hidden="true">▤</span> Model &amp; Backtest</button>
     </nav>
@@ -897,6 +899,70 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <p class="hzm-availability-warning">Wpisy ESPN są nieoficjalne i mogą się zmieniać. Brak wpisu nie potwierdza dostępności zawodnika. V7.2 i V7.4 nie zmieniają prognozy na podstawie tych statusów; ewentualna ograniczona korekta OUT dotyczy tylko V7.5 i wyłącznie świeżego raportu.</p>
           </section>
         </section>
+        <!-- Flow meczu: conditional snapshots from the SAME 5,000 final
+             Monte Carlo scores. No official play-by-play / quarter forecasts. -->
+        <section id="hzm-flow-panel" class="hzm-flow-panel" aria-label="Flow meczu — warunkowa rekonstrukcja przebiegu meczu" hidden>
+          <div class="hzm-flow-controls">
+            <div class="hzm-flow-toggle" role="group" aria-label="Wariant wyniku">
+              <button type="button" id="hzm-flow-base" data-flow-mode="base" aria-pressed="true" class="on">● Bazowy</button>
+              <button type="button" id="hzm-flow-scenario" data-flow-mode="scenario" aria-pressed="false">◯ Scenariusz</button>
+            </div>
+            <div class="hzm-flow-quarter-wrap"><span>Kwarta:</span><div id="hzm-flow-quarters" class="hzm-flow-filters" role="group" aria-label="Odcinek meczu">
+              <button type="button" data-flow-quarter="all" class="on" aria-pressed="true">ALL</button>
+              <button type="button" data-flow-quarter="1" aria-pressed="false">Q1</button>
+              <button type="button" data-flow-quarter="2" aria-pressed="false">Q2</button>
+              <button type="button" data-flow-quarter="3" aria-pressed="false">Q3</button>
+              <button type="button" data-flow-quarter="4" aria-pressed="false">Q4</button>
+              <button type="button" data-flow-quarter="clutch" aria-pressed="false">CLUTCH</button>
+            </div></div>
+            <div class="hzm-flow-actions">
+              <button id="hzm-flow-save" type="button">▣ Zapisz scenariusz</button>
+              <button id="hzm-flow-export" type="button">⇩ Eksport PDF</button>
+            </div>
+          </div>
+          <div id="hzm-flow-feedback" class="hzm-flow-feedback" role="status">Wybierz mecz, aby wyświetlić przebieg modelu.</div>
+          <div class="hzm-flow-upper">
+            <article class="hzm-flow-card hzm-flow-timeline">
+              <header><div><h2>Przebieg meczu · Timeline przewagi <span title="Warunkowa rekonstrukcja 5000 wyników końcowych, a nie rzeczywiste play-by-play">ⓘ</span></h2>
+              <p id="hzm-flow-timeline-desc">Średnia przewaga punktowa w czasie gry · warunkowa rekonstrukcja</p></div><strong id="hzm-flow-selected-period">ALL · 48 MIN</strong></header>
+              <div id="hzm-flow-plot" class="hzm-flow-plot" aria-live="polite"><p>Przebieg będzie dostępny po symulacji.</p></div>
+              <div class="hzm-flow-legend"><span><i class="cyan"></i> Przewaga gości</span><span><i class="purple"></i> Przewaga gospodarzy</span><strong id="hzm-flow-final-margin">—</strong></div>
+            </article>
+            <article class="hzm-flow-card hzm-flow-quarter-panel">
+              <header><h2>Szanse wygrania kwart <span title="Warunkowa rekonstrukcja, w tym możliwość remisu w kwarcie">ⓘ</span></h2></header>
+              <p class="hzm-flow-subtitle">Kto zdobędzie więcej punktów w kwarcie?</p>
+              <div id="hzm-flow-quarter-data" class="hzm-flow-quarter-data">—</div>
+            </article>
+            <article class="hzm-flow-card hzm-flow-momentum">
+              <header><h2>Clutch &amp; Momentum <span title="Dane warunkowe, bez modelu sekwencji akcji">ⓘ</span></h2></header>
+              <div class="hzm-flow-kpi"><span>◎</span><div><small>Clutch edge · 42'–48'</small><strong id="hzm-flow-clutch">—</strong></div></div>
+              <div class="hzm-flow-kpi"><span>⌁</span><div><small>Run risk · 8–0</small><strong id="hzm-flow-runrisk">Brak play-by-play</strong></div></div>
+              <div class="hzm-flow-kpi"><span>⟳</span><div><small>Zmienność końcowej przewagi</small><strong id="hzm-flow-volatility">—</strong></div></div>
+            </article>
+          </div>
+          <article class="hzm-flow-card hzm-flow-rotations">
+            <header><div><h2>Rotacje i matchup windows <span title="Wyłącznie faktyczna średnia liczba minut z historii ESPN, nie prawdopodobieństwo udziału w konkretnym momencie meczu">ⓘ</span></h2>
+              <p>Łączny średni czas gry z wcześniejszych występów ESPN — <b>bez przewidywania minut wejścia na parkiet</b></p></div>
+              <button id="hzm-flow-load-players" type="button">↻ Pobierz dane zawodników</button></header>
+            <div id="hzm-flow-roster" class="hzm-flow-roster"><p>Wybierz mecz i pobierz projekcje zawodników.</p></div>
+          </article>
+          <div class="hzm-flow-lower">
+            <article class="hzm-flow-card hzm-flow-duels">
+              <header><h2>Kluczowe pojedynki <span title="Tylko statystyki potwierdzone obecnym modelem; nie zakłada potwierdzonych pojedynków 1 na 1">ⓘ</span></h2></header>
+              <div id="hzm-flow-matchups" class="hzm-flow-matchups">—</div>
+            </article>
+            <article class="hzm-flow-card hzm-flow-runs">
+              <header><h2>Scoring Runs <span title="Model wynikowy nie posiada sekwencji posiadań ani rzutów">ⓘ</span></h2></header>
+              <p>Wykrywanie serii wymaga potwierdzonych danych play-by-play.</p>
+              <div class="hzm-flow-run-row"><span>6–0</span><div></div><strong>—</strong></div>
+              <div class="hzm-flow-run-row"><span>8–0</span><div></div><strong>—</strong></div>
+              <div class="hzm-flow-run-row"><span>10–0</span><div></div><strong>—</strong></div>
+              <small>Brak modelu sekwencji · wartości celowo niedostępne</small>
+            </article>
+          </div>
+          <p id="hzm-flow-method" class="hzm-flow-method">Flow jest rekonstrukcją warunkową wyników końcowych, nie prognozą play-by-play, rotacji ani obietnicą wyniku.</p>
+        </section>
+
         <section id="hzm-intel-panel" class="hzm-intel-panel" aria-label="Match Intelligence — czynniki modelu" hidden>
           <header class="hzm-intel-head">
             <div><small>HOOPZARO · MODEL EXPLAINABILITY</small><h2>Match Intelligence</h2><p>Co naprawdę wpływa na prognozę meczu?</p></div>
@@ -1198,6 +1264,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <script src="player_picker.js"></script>
 <script src="schedule.js"></script>
 <script src="player_simulations_v3.js"></script>
+<script src="flow_match.js"></script>
 <script src="simulations.js"></script>
 <script src="admin_model_performance.js"></script>
 <script src="players.js"></script>
