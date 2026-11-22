@@ -29,55 +29,87 @@ function active(d){
 }
 function drawChart(data,period,away,home){
  const rows=data?.timeline;
- if(!Array.isArray(rows)||rows.length!==9)return '<p>Brak pełnej trajektorii 5 000 wyników.</p>';
- const numeric=rows.every(r=>[r.minute,r.margin_mean,r.margin_p10,r.margin_p90].every(v=>number(v)!==null));
- if(!numeric)return '<p>Niewystarczające dane do wykresu czasu.</p>';
- const axis=[...rows.map(x=>Number(x.margin_p10)),...rows.map(x=>Number(x.margin_p90)),0];
- let limit=Math.max(8,Math.ceil(Math.max(...axis.map(Math.abs))/5)*5);
- limit=Math.min(limit,120);
- const left=46,top=23,right=682,bottom=205,mid=(top+bottom)/2;
- const x=m=>left+(Number(m)/48)*(right-left), y=v=>mid-Number(v)/limit*(bottom-top)/2;
- const grid=Array.from({length:5},(_,i)=>{
-   const val=limit-i*limit/2,yy=y(val);
-   return '<line x1="'+left+'" y1="'+yy+'" x2="'+right+'" y2="'+yy+'" stroke="#49719d" stroke-opacity=".35"/>'+
-     '<text x="38" y="'+(yy+4)+'" text-anchor="end" class="flow-axis">'+(val>0?"+":"")+val.toFixed(0)+'</text>';
+ if(!Array.isArray(rows)||rows.length!==9||
+    !rows.every(r=>[r.minute,r.margin_mean].every(v=>number(v)!==null)))
+   return '<p>Brak pełnej trajektorii z 5 000 wyników.</p>';
+ const hasSample=Array.isArray(data.sample_path)&&data.sample_path.length===17&&
+   data.sample_path.every(r=>number(r.minute)!==null&&number(r.away_minus_home)!==null);
+ // The mean is a conditional allocation, whereas the highlighted jagged
+ // stroke is ONE deterministic individual draw, not a fake 5k mean.
+ const avg=rows.map(r=>({minute:Number(r.minute),diff:-Number(r.margin_mean)}));
+ const series=hasSample?
+   data.sample_path.map(r=>({minute:Number(r.minute),diff:Number(r.away_minus_home)})):avg;
+ const maxAbs=Math.max(5,...series.map(p=>Math.abs(p.diff)),...avg.map(p=>Math.abs(p.diff)));
+ const limit=Math.max(10,Math.ceil((maxAbs+2)/5)*5);
+ const left=48,top=25,right=882,bottom=198,center=(top+bottom)/2;
+ const x=m=>left+Number(m)/48*(right-left);
+ const y=v=>center-Number(v)/limit*(bottom-top)/2;
+ const line=pts=>pts.map((p,i)=>(i?"L ":"M ")+x(p.minute).toFixed(1)+" "+y(p.diff).toFixed(1)).join(" ");
+ const grid=[-limit,-limit/2,0,limit/2,limit].map(v=>
+   '<line x1="'+left+'" x2="'+right+'" y1="'+y(v)+'" y2="'+y(v)+
+   '" stroke="#3c6387" stroke-opacity="'+(v===0?".7":".32")+'"/>'+
+   '<text class="flow-axis" x="39" y="'+(y(v)+4)+'" text-anchor="end">'+
+   (v>0?"+":"")+fmt(v).replace(",0","")+'</text>').join("");
+ const marks=[0,3,6,9,12,15,18,21,24,27,30,33,36,39,42,45,48].map(m=>
+   '<text class="flow-axis" x="'+x(m)+'" y="217" text-anchor="middle">'+
+   (m%6===0?m:"")+'</text>').join("");
+ const quarter=[0,1,2,3].map(i=>
+   '<text class="flow-quarter" x="'+x(6+12*i)+'" y="14" text-anchor="middle">Q'+(i+1)+'</text>').join("");
+ const dividers=[12,24,36,42].map(m=>
+   '<line x1="'+x(m)+'" x2="'+x(m)+'" y1="'+top+'" y2="'+bottom+
+   '" stroke="#7c90bc" stroke-width=".8" stroke-dasharray="4 5" stroke-opacity=".6"/>').join("");
+ const select=period==="all"?null:period==="clutch"?[42,48]:
+   [(Number(period)-1)*12,Number(period)*12];
+ const shaded=select?'<rect x="'+x(select[0])+'" y="'+top+'" width="'+
+   (x(select[1])-x(select[0]))+'" height="'+(bottom-top)+
+   '" fill="#c766ff" fill-opacity=".13" stroke="#db8aff" stroke-opacity=".45"/>':'';
+ const zone='<rect x="'+x(42)+'" y="'+top+'" width="'+(x(48)-x(42))+
+   '" height="'+(bottom-top)+'" fill="#a64dd7" fill-opacity=".09"/>'+
+   '<text x="'+x(45)+'" y="38" class="flow-clutch" text-anchor="middle">CLUTCH</text>';
+ const segments=[];
+ for(let i=1;i<series.length;i++){
+   const p=series[i-1],q=series[i];
+   if(p.diff*q.diff<0){
+     const crossing=p.minute+(q.minute-p.minute)*Math.abs(p.diff)/(Math.abs(p.diff)+Math.abs(q.diff));
+     const a={minute:crossing,diff:0};
+     segments.push([p,a],[a,q]);
+   }else segments.push([p,q]);
+ }
+ const strokes=segments.map(([p,q])=>{
+   const color=(p.diff+q.diff)/2>=0?"#24f1f6":"#d374ff";
+   return '<path d="M '+x(p.minute).toFixed(1)+' '+y(p.diff).toFixed(1)+
+     ' L '+x(q.minute).toFixed(1)+' '+y(q.diff).toFixed(1)+
+     '" fill="none" stroke="'+color+'" stroke-width="3.25" stroke-linecap="round"/>';
  }).join("");
- const quarterLabels=Array.from({length:4},(_,i)=>
-   '<text class="flow-quarter" x="'+x(6+i*12)+'" y="15" text-anchor="middle">Q'+(i+1)+'</text>'
- ).join("");
- const ticks=Array.from({length:9},(_,i)=>
-   '<text class="flow-axis" x="'+x(i*6)+'" y="224" text-anchor="middle">'+i*6+'</text>').join("");
- const guides=[12,24,36,42].map(m=>
-   '<line x1="'+x(m)+'" x2="'+x(m)+'" y1="'+top+'" y2="'+bottom+'" stroke="#9fbada" stroke-dasharray="4 4" stroke-opacity=".42"/>').join("");
- const selected=period==="all"?null:period==="clutch"?[42,48]:[
-   (Number(period)-1)*12,Number(period)*12];
- const band=selected?
-   '<rect x="'+x(selected[0])+'" y="'+top+'" width="'+(x(selected[1])-x(selected[0]))+
-   '" height="'+(bottom-top)+'" fill="#8d45d4" fill-opacity=".16" stroke="#ae8cff" stroke-opacity=".45"/>':'';
- const clutch='<rect x="'+x(42)+'" y="'+top+'" width="'+(x(48)-x(42))+
-   '" height="'+(bottom-top)+'" fill="#b44adb" fill-opacity=".08"/>';
- const area=rows.map(r=>x(r.minute).toFixed(1)+","+y(r.margin_mean).toFixed(1));
- const line=area.join(" ");
- const path='M '+x(0)+' '+y(0)+' L '+line.replaceAll(" ", " L ").replaceAll(","," ")+' L '+x(48)+' '+y(0)+' Z';
- const segments=rows.slice(1).map((r,i)=>{
-   const prev=rows[i],colour=(Number(r.margin_mean)+Number(prev.margin_mean))/2>=0?"#c65cef":"#2de8f5";
-   return '<line x1="'+x(prev.minute)+'" y1="'+y(prev.margin_mean)+'" x2="'+x(r.minute)+
-     '" y2="'+y(r.margin_mean)+'" stroke="'+colour+'" stroke-width="3.3" stroke-linecap="round"/>';
- }).join("");
- const final=rows[8],label=(Number(final.margin_mean)>0?home:Number(final.margin_mean)<0?away:"REMIS")+
-   " "+signed(Math.abs(Number(final.margin_mean)))+" pkt";
- return '<svg viewBox="0 0 714 238" preserveAspectRatio="xMidYMid meet" role="img" aria-label="'+
-   esc('Warunkowa średnia przewaga po 6 minutach: '+away+' kontra '+home+
-     '. Ostateczna przewaga modelu '+fmt(final.margin_mean)+' dla gospodarzy. Nie jest to play-by-play.')+'">'+
-   '<defs><linearGradient id="flowArea" x1="0" y1="0" x2="0" y2="1">'+
-   '<stop stop-color="#2be6f1" stop-opacity=".26"/><stop offset="1" stop-color="#8a46d5" stop-opacity=".12"/></linearGradient></defs>'+
-   clutch+band+grid+guides+quarterLabels+ticks+
-   '<line x1="'+left+'" x2="'+right+'" y1="'+mid+'" y2="'+mid+'" stroke="#b6cee5" stroke-opacity=".65"/>'+
-   '<path d="'+path+'" fill="url(#flowArea)" opacity=".68"/>'+
-   '<polyline points="'+line+'" fill="none" stroke="#15edff" stroke-width="7" opacity=".11"/>'+
-   segments+'<circle cx="'+x(48)+'" cy="'+y(final.margin_mean)+'" r="4.2" fill="#eac5ff" stroke="#a954ed"/>'+
-   '<text class="flow-axis" x="'+(left+6)+'" y="237">Minuta meczu</text>'+
-   '<title>'+esc(label)+'</title></svg>';
+ const end=series[series.length-1];
+ const color=end.diff>=0?"#2df6fc":"#d479ff";
+ const text=(end.diff>=0?"+":"")+fmt(end.diff);
+ const centerName=end.diff>0?away:end.diff<0?home:"REMIS";
+ const expected=avg[avg.length-1].diff;
+ const finalLabel=(expected>0?away:expected<0?home:"REMIS")+" "+
+   signed(Math.abs(expected))+" pkt";
+ const srclabel=hasSample?"Przykładowy scenariusz (1 z 5 000)":"Średnia warunkowa z 5 000";
+ return '<svg viewBox="0 0 910 234" role="img" aria-label="'+
+   esc(srclabel+'. Wartości powyżej zera to przewaga '+away+
+   ', poniżej to przewaga '+home+
+   '. Średnia końcowa '+fmt(expected)+' pkt. Model warunkowy, nie NBA play-by-play.')+'">'+
+   '<defs><linearGradient id="hzm-flow-a" x1="0" y1="0" x2="0" y2="1">'+
+   '<stop stop-color="#14e9f3" stop-opacity=".35"/><stop offset="1" stop-color="#1169b7" stop-opacity=".03"/></linearGradient>'+
+   '<linearGradient id="hzm-flow-h" x1="0" y1="0" x2="0" y2="1">'+
+   '<stop stop-color="#602c8f" stop-opacity=".04"/><stop offset="1" stop-color="#b858f4" stop-opacity=".33"/></linearGradient>'+
+   '<filter id="hzm-flow-glow"><feGaussianBlur stdDeviation="3"/></filter></defs>'+
+   zone+shaded+grid+dividers+quarter+marks+
+   '<path d="'+line(series)+' L '+x(48)+' '+y(0)+' L '+x(0)+' '+y(0)+
+   ' Z" fill="url(#hzm-flow-a)" opacity=".7"/>'+
+   (hasSample?'<path d="'+line(avg)+'" fill="none" stroke="#a3c9df" stroke-opacity=".7" stroke-dasharray="5 5" stroke-width="1.5"/>':'')+
+   '<path d="'+line(series)+'" fill="none" stroke="#6ae3ff" stroke-opacity=".25" stroke-width="8" filter="url(#hzm-flow-glow)"/>'+
+   strokes+'<circle cx="'+x(end.minute)+'" cy="'+y(end.diff)+'" r="4.4" fill="'+color+'" stroke="#f7ebff" stroke-width="1.3"/>'+
+   '<rect x="'+Math.max(left+20,x(48)-63)+'" y="'+Math.max(top+5,y(end.diff)-23)+
+   '" width="54" height="19" rx="5" fill="#321a5b" stroke="'+color+'"/>'+
+   '<text x="'+Math.max(left+20,x(48)-63+27)+'" y="'+Math.max(top+5,y(end.diff)-23+13)+
+   '" text-anchor="middle" fill="#fff" font-size="11" font-weight="800">'+text+'</text>'+
+   '<text x="50" y="232" class="flow-axis">Minuta meczu</text>'+
+   '<title>'+esc(srclabel+' · '+centerName+' · średnio '+finalLabel)+'</title></svg>';
 }
 function render(d){
  cfg.last=d;
