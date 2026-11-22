@@ -546,7 +546,17 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
           <select id="hzm-model-select" class="hzm-model-native" aria-hidden="true" tabindex="-1"><option value="research_context_v75">V7.5 · PEŁNY KONTEKST</option><option value="research_form_v74">V7.4 · FORMA + KONTEKST</option><option value="legacy_v72">V7.2 · PODSTAWOWY</option></select>
         </div>
       </div>
-      <div class="hzm-day-control"><button type="button" id="hzm-day-prev" data-hzm-shift="-1" aria-label="Poprzedni dzień">‹</button><label><span id="hzm-day-title" title="Otwórz kalendarz">Dzisiaj</span><input id="hzm-day-input" type="date" aria-label="Wybierz datę spotkań NBA"></label><button type="button" id="hzm-day-next" data-hzm-shift="1" aria-label="Następny dzień">›</button></div>
+      <div class="hzm-day-control" role="group" aria-label="Wybierz dzień symulacji NBA">
+        <button type="button" class="hzm-day-arrow" id="hzm-day-prev" data-hzm-shift="-1" aria-label="Poprzedni dzień">‹</button>
+        <div class="hzm-day-main">
+          <button type="button" id="hzm-day-title" title="Kliknij, aby wybrać datę" aria-label="Otwórz kalendarz: wybrany dzień">Dzisiaj</button>
+          <span class="hzm-day-picker" title="Otwórz kalendarz">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/></svg>
+            <input id="hzm-day-input" type="date" aria-label="Wybierz datę spotkań NBA">
+          </span>
+        </div>
+        <button type="button" class="hzm-day-arrow" id="hzm-day-next" data-hzm-shift="1" aria-label="Następny dzień">›</button>
+      </div>
     </header>
         <section class="hzm-hero" aria-label="Wynik symulacji">
           <div class="hzm-match-identity"><span class="hzm-eyebrow">NBA · SIMULATION LAB</span><div id="hzm-match-label" class="hzm-versus">NBA <span>VS</span> NBA</div><small>Symulacja Monte Carlo · prognoza, nie wynik na żywo</small></div>
@@ -642,7 +652,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
         <div id="hzm-detail-grid" class="hzm-detail-grid">
           <section class="hzm-chart-card" aria-label="Rozkład punktów i prawdopodobieństwa progów punktowych">
             <header><div><h2 id="hzm-chart-heading">Rozkład punktów meczu</h2><span id="hzm-chart-context">5000 symulacji · model punktowy</span></div><div id="hzm-chart-tabs" class="hzm-chart-tabs" role="group" aria-label="Wybierz rozkład punktów"><button type="button" data-hzm-chart="match" class="active">MECZ</button><button type="button" data-hzm-chart="away">GOŚCIE</button><button type="button" data-hzm-chart="home">GOSPODARZE</button></div></header>
-            <div class="hzm-chart-visual"><div id="hzm-plot" class="hzm-plot" aria-live="polite"><div class="hzm-no-chart">Wybierz spotkanie, aby zobaczyć rozkład punktów.</div></div><div class="hzm-probability-panel" role="complementary" aria-label="Prawdopodobieństwa punktowe z rozkładu symulacji"><strong>Prawdopodobieństwa <span id="hzm-prob-context">MECZ</span></strong><div id="hzm-probability-rows" aria-live="polite"><span>Wybierz spotkanie.</span></div><small id="hzm-prob-explanation">Z 5 000 symulacji · nie kurs bukmacherski</small></div></div>
+            <div class="hzm-chart-visual"><div id="hzm-plot" class="hzm-plot" aria-live="polite"><div class="hzm-no-chart">Wybierz spotkanie, aby zobaczyć rozkład punktów.</div></div><div class="hzm-probability-panel" role="complementary" aria-label="Prawdopodobieństwa punktowe z rozkładu symulacji"><strong>Prawdopodobieństwa</strong><div id="hzm-probability-rows" aria-live="polite"><span>Wybierz spotkanie.</span></div><small id="hzm-prob-explanation">Z 5 000 symulacji · nie kurs bukmacherski</small></div></div>
             <div class="hzm-averages"><div class="hzm-avg cyan"><span id="hzm-away-average-label">Śr. goście</span><strong id="hzm-away-average">—</strong></div><div class="hzm-avg purple"><span id="hzm-home-average-label">Śr. gospodarze</span><strong id="hzm-home-average">—</strong></div><div class="hzm-avg gold"><span>Suma meczu</span><strong id="hzm-total-average">—</strong></div></div>
             <div class="hzm-result-kpis" aria-label="Podsumowanie rozkładu punktowego"><div><small>Zwycięzca (proj.)</small><strong id="hzm-result-favorite">—</strong></div><div><small>Suma punktów</small><strong id="hzm-result-total">—</strong></div><div class="hzm-window-kpi" title="Zakres o szerokości 20 punktów, wybrany na wykresie"><small>Szansa na wybrany przedział</small><strong id="hzm-result-range">—</strong><span id="hzm-result-range-pct" aria-live="polite">—</span></div><div><small>Odchylenie ≈</small><strong id="hzm-result-sd">—</strong></div></div>
             <div class="hzm-chart-source"><span id="hzm-chart-source">Średnie wyłącznie z wykonanych symulacji.</span><strong id="hzm-lab-range">Przedział 80%: —</strong></div>
