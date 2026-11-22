@@ -2110,8 +2110,10 @@ function showComparisonProfile(game,data,n){
  if(!game||!data||data.away?.team!==game.away||data.home?.team!==game.home)return;
  const clip=v=>Math.min(1,Math.max(0,v));
  const numbers=t=>{
-   const vals=[t["pts"+n],t["win_pct"+n],t["margin"+n],
-               t["allowed"+n],t.venue_scored].map(Number);
+   const raw=[t["pts"+n],t["win_pct"+n],t["margin"+n],
+              t["allowed"+n],t.venue_scored];
+   if(raw.some(v=>v===null||v===undefined||v===""))return null;
+   const vals=raw.map(Number);
    if(!Number.isInteger(t["n"+n])||t["n"+n]<Math.min(n,5)||
       !Number.isInteger(t.venue_sample)||t.venue_sample<4||
       !vals.every(Number.isFinite)||
