@@ -1923,3 +1923,38 @@
     overflow:visible!important;max-height:none!important;
   }
 }
+
+
+/* Explain server-auth gate instead of leaving users looking at empty
+   forecasts. No premium metrics are sent to an unauthenticated iframe. */
+#simulations-pane .hzm-locked-diagnostic{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  flex-direction:column!important;gap:8px!important;
+  height:100%!important;min-height:125px!important;
+  padding:9px 14px!important;text-align:center!important;
+}
+#simulations-pane .hzm-locked-diagnostic>strong{
+  font-size:13px!important;line-height:17px!important;color:#e7f6ff!important;
+}
+#simulations-pane .hzm-locked-diagnostic>span{
+  display:block!important;max-width:370px!important;
+  font-size:9px!important;line-height:1.45!important;
+  color:#aecbe5!important;overflow-wrap:break-word!important;
+}
+#simulations-pane .hzm-locked-diagnostic .hzm-sim-auth-action{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  flex:0 0 auto!important;min-height:26px!important;height:26px!important;
+  padding:5px 14px!important;margin:3px 0 0!important;
+  border-radius:8px!important;border:1px solid #4ef5fc!important;
+  background:linear-gradient(115deg,#07627a,#104066 65%,#38206f)!important;
+  color:#efffff!important;font-size:10px!important;font-weight:900!important;
+  line-height:14px!important;cursor:pointer!important;
+  box-shadow:0 0 12px rgba(17,223,245,.3),inset 0 1px rgba(214,255,255,.21)!important;
+}
+#simulations-pane .hzm-locked-diagnostic .hzm-sim-auth-action:hover{
+  border-color:#dfb7ff!important;
+  box-shadow:0 0 12px rgba(19,227,249,.48),0 0 13px rgba(168,84,244,.23)!important;
+}
+#simulations-pane .hzm-locked-diagnostic .hzm-sim-auth-action:focus-visible{
+  outline:2px solid #ddbdff!important;outline-offset:2px!important;
+}
