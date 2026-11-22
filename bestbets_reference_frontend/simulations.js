@@ -1600,6 +1600,7 @@ function showScenario(game,sim,premium){
    if(pt)pt.textContent=eligible?points(sim[side+"_points"])+" → —":"—";
    if(win)win.textContent=eligible?wins(sim[side+"_win_pct"])+" → —":"—";
  }
+ updateScenarioPremiumDetails(game,sim,premium);
  if(!paid){status.textContent="Wymagane aktywne Premium. Scenariusz nie ujawnia danych modelu.";return}
  if(!game){status.textContent="Wybierz mecz.";return}
  if(game.state!=="scheduled"||!(Date.parse(game.start||"")>Date.now())){
@@ -1630,6 +1631,7 @@ function showScenario(game,sim,premium){
      status.textContent="5 000 symulacji · tempo: "+(state.scenarioPct>0?"+":"")+state.scenarioPct+
        "% · ofensywa "+esc(game.away)+": "+(state.offAwayPct>0?"+":"")+state.offAwayPct+
        "% / "+esc(game.home)+": "+(state.offHomePct>0?"+":"")+state.offHomePct+"%.";
+     updateScenarioPremiumDetails(game,sim,premium);
      return;
    }
  }
@@ -1642,7 +1644,12 @@ function showPlayerMinutes(game,players,premium){
  const status=$("hzm-minute-status"),display=$("hzm-minute-delta-output");
  if(!select||!slider||!run||!status||!display)return;
  const ids=["minutes","pts","reb","ast","pra"];
- const clear=()=>{for(const id of ids){const el=$("hzm-minute-"+id);if(el)el.textContent=(id==="minutes"?"Minuty":id.toUpperCase())+": —";}};
+ const clear=()=>{
+   for(const id of ids){const el=$("hzm-minute-"+id);if(el)el.textContent=(id==="minutes"?"Minuty":id.toUpperCase())+": —";}
+   for(const variant of ["base","new"])
+     for(const metric of ["pts","reb","ast","pra"]){const el=$("hzm-minute-"+variant+"-"+metric);if(el)el.textContent="—"}
+   const delta=$("hzm-minute-pra-delta");if(delta)delta.textContent="—";
+ };
  clear();
  const validGame=game?.state==="scheduled"&&Date.parse(game?.start||"")>Date.now();
  const entitled=premium?.entitled===true;
@@ -1668,6 +1675,12 @@ function showPlayerMinutes(game,players,premium){
  slider.value=String(state.minuteDelta);
  display.textContent=(state.minuteDelta>0?"+":"")+state.minuteDelta+" min";
  const item=list[state.minuteIndex];
+ if(item&&validMetric(item)){
+   const values={pts:safeProjection(item.pts),reb:safeProjection(item.reb),ast:safeProjection(item.ast)};
+   values.pra=Object.values(values).every(v=>v!==null)?values.pts+values.reb+values.ast:null;
+   for(const metric of ["pts","reb","ast","pra"])
+     if(values[metric]!==null)$("hzm-minute-base-"+metric).textContent=fmt(values[metric]);
+ }
  const newMinutes=item?Number(item.minutes)+state.minuteDelta:null;
  run.disabled=!item||newMinutes<5||newMinutes>44;
  if(!entitled){status.textContent="Dostępne tylko w Premium.";return}
@@ -1686,8 +1699,15 @@ function showPlayerMinutes(game,players,premium){
    if(["pts","reb","ast","pra"].every(k=>safeProjection(base[k])!==null&&safeProjection(hyp[k])!==null)&&
       safeProjection(record.baseline_minutes)!==null&&safeProjection(record.scenario_minutes)!==null){
      $("hzm-minute-minutes").textContent="MIN: "+fmt(record.baseline_minutes)+" → "+fmt(record.scenario_minutes);
-     for(const k of ["pts","reb","ast","pra"])
+     for(const k of ["pts","reb","ast","pra"]){
        $("hzm-minute-"+k).textContent=k.toUpperCase()+": "+fmt(base[k])+" → "+fmt(hyp[k]);
+       $("hzm-minute-base-"+k).textContent=fmt(base[k]);
+       $("hzm-minute-new-"+k).textContent=fmt(hyp[k]);
+     }
+     const change=Number(hyp.pra)-Number(base.pra);
+     const changePct=Number(base.pra)>0?100*change/Number(base.pra):null;
+     $("hzm-minute-pra-delta").textContent=(change>0?"+":"")+fmt(change)+
+       (changePct!==null?" ("+(changePct>0?"+":"")+fmt(changePct)+"%)":"");
      status.textContent="Szacunek liniowy: stała produkcja na minutę; "+record.minutes_sample+
         " występów. ESPN: "+String(record.availability||"niezweryfikowany")+
         ". Bez korekty wyniku drużyny, rotacji i wpływu kontuzji.";
