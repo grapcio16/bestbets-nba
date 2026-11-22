@@ -37,7 +37,7 @@ jobs:
           assert 'id="hzm-intel-factors-info"' in html
           assert 'id="hzm-intel-away-form"' in html and 'id="hzm-intel-home-form"' in html
           assert 'hzm-intel-premium-v2' in css
-          assert '.hzm-intel-premium-v2' in html
+          assert 'class="hzm-intel-panel hzm-intel-premium-v2"' in html
           assert 'factorBody.hidden=true' in js and 'factorBody.hidden=false' in js
           assert 'factor.injuries_espn_fresh===true' in js
           ids=re.findall(r'\bid="(hzm-intel-[a-z0-9-]+)"',html)
