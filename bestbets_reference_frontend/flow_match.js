@@ -103,7 +103,7 @@ function drawChart(data,period,away,home){
  }).join("");
  const end=series[series.length-1];
  const color=end.diff>=0?"#d479ff":"#2df6fc";
- const text=(end.diff>=0?"+":"")+fmt(end.diff);
+ const text=(end.diff>0?"+":"")+fmt(end.diff);
  const centerName=end.diff>0?home:end.diff<0?away:"REMIS";
  const expected=avg[avg.length-1].diff;
  const finalLabel=(expected>0?home:expected<0?away:"REMIS")+" "+
