@@ -1546,7 +1546,7 @@ function render(){
     // The existing watchdog retries after 6.5s if the host never responds.
   }
   if(schedule && window.HoopzaroSchedule)window.HoopzaroSchedule.render(state.payload.home||null,state.payload.schedule_game_details||null);
-  if(simulations && window.HoopzaroSimulations)window.HoopzaroSimulations.render(state.payload.home||null,state.payload.premium_simulation||null);
+  if(simulations && window.HoopzaroSimulations)window.HoopzaroSimulations.render(state.payload.home||null,state.payload.premium_simulation||null,state.payload.auth||null);
   if(players&&window.HoopzaroPlayers)window.HoopzaroPlayers.render(state.payload.player_catalog||null,state.payload.premium_player_averages||null,role);
   if(teams&&window.HoopzaroTeams)window.HoopzaroTeams.render(state.payload.home||null,state.payload.premium_team_analytics||null,role);
   if(admin&&window.HoopzaroAdmin)window.HoopzaroAdmin.render(state.payload.admin_report||null,state.adminLoading);
@@ -1833,6 +1833,12 @@ if(window.HoopzaroSimulations){
       }});
     },
     premium:function(){state.page="settings";render()},
+    openAccount:function(){state.page="settings";render()},
+    login:function(){
+      if(state.payload.auth?.configured===true && state.payload.auth?.role==="guest")
+        sendAuth("auth_login");
+      else {state.page="settings";render();}
+    },
     openProps:openHistoryForSimulatedPlayer,
     backToProps:returnFromSimulations
   });
