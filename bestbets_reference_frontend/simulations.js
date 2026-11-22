@@ -73,7 +73,7 @@ function toggleMatchPicker(open){
  trigger.setAttribute("aria-expanded",String(visible));
 }
 function chooseView(view){
- if(!["results","players","scenario","intelligence","comparison","backtest"].includes(view)||view===state.view)return;
+ if(!["results","players","scenario","intelligence","flow","comparison","backtest"].includes(view)||view===state.view)return;
  state.view=view;
  state.expanded=view==="players";
  render(state.lastHome,state.lastPremium);
@@ -126,10 +126,11 @@ function bridgeToHistory(market){
 function syncLabView(){
  const pane=$("simulations-pane");
  if(pane)pane.dataset.hzmView=state.view;
- if($("hzm-detail-grid"))$("hzm-detail-grid").hidden=["players","scenario","intelligence","comparison","backtest"].includes(state.view);
+ if($("hzm-detail-grid"))$("hzm-detail-grid").hidden=["players","scenario","intelligence","flow","comparison","backtest"].includes(state.view);
  if($("hzv3"))$("hzv3").hidden=state.view!=="players";
  if($("hzm-scenario-panel"))$("hzm-scenario-panel").hidden=state.view!=="scenario";
  if($("hzm-intel-panel"))$("hzm-intel-panel").hidden=state.view!=="intelligence";
+ if($("hzm-flow-panel"))$("hzm-flow-panel").hidden=state.view!=="flow";
  if($("hzm-compare-panel"))$("hzm-compare-panel").hidden=state.view!=="comparison";
  if($("hzm-backtest-panel"))$("hzm-backtest-panel").hidden=state.view!=="backtest";
  const nav=$("hzm-lab-nav");
@@ -2251,6 +2252,11 @@ function render(home,premium,auth){
     showScenario(game,sim,premium);showPlayerMinutes(game,players,premium);
     showAvailability(game,players,sim,premium);
   }
+  if(revoking||state.view==="flow")window.HoopzaroFlow?.render({
+    game,sim,players,premium,day:state.day,model:state.model,
+    selection:{pacePct:state.scenarioPct,offAwayPct:state.offAwayPct,
+               offHomePct:state.offHomePct}
+  });
   if(revoking||state.view==="intelligence")showMatchIntelligence(game,sim,premium);
   if(revoking||state.view==="comparison")showTeamComparison(game,sim,premium);
   if(revoking||state.view==="backtest")showModelBacktest(premium);
@@ -2411,6 +2417,16 @@ function init(api){
   bindDeviationInfo();
   bindLabGlossary();
   bindScenarioPremiumExtras();
+  window.HoopzaroFlow?.init({
+    onSave:(day,id,model,variant)=>callbacks?.saveFlow?.(day,id,model,variant),
+    onExport:(day,id,model,variant)=>callbacks?.exportFlow?.(day,id,model,variant),
+    onPlayers:(day,id,model)=>{
+      if(state.playersPending===day+"|"+id+"|"+model)return;
+      state.playersPending=day+"|"+id+"|"+model;
+      callbacks?.loadPlayers?.(day,id,model);
+    },
+    onScenario:()=>chooseView("scenario")
+  });
   // Keep the verified ESPN photo optional: network and CDN errors should
   // reveal the local initials fallback, not a broken-image icon.
   $("simulations-pane")?.addEventListener("error",event=>{
