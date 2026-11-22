@@ -841,9 +841,24 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <div class="hzm-minute-head"><strong>◷ Player Minutes · What-if</strong><span>ESPN · MINUTY HISTORYCZNE / V7.5</span></div>
             <p class="hzm-minute-note">Oddzielny test wpływu minut na PTS / REB / AST / PRA. Stała produkcja na minutę; <strong>nie zmienia wyniku meczu</strong> i nie potwierdza dostępności zawodnika.</p>
             <div class="hzm-minute-controls">
-              <label class="hzm-minute-picker">Zawodnik
-                <select id="hzm-minute-player" aria-label="Wybierz zawodnika ze zweryfikowanymi historycznymi minutami" disabled><option value="">Pobieranie historii minut ESPN…</option></select>
-              </label>
+              <div class="hzm-minute-picker">
+                <span class="hzm-minute-picker-label">Zawodnik</span>
+                <select id="hzm-minute-player" aria-label="Wybierz zawodnika ze zweryfikowanymi historycznymi minutami" tabindex="-1" aria-hidden="true" disabled><option value="">Pobieranie historii minut ESPN…</option></select>
+                <button type="button" id="hzm-minute-picker-trigger" class="hzm-minute-picker-trigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="hzm-minute-picker-menu" disabled>
+                  <span id="hzm-minute-picker-value">Pobieranie składów…</span><span class="hzm-minute-picker-chevron" aria-hidden="true">⌄</span>
+                </button>
+                <div id="hzm-minute-picker-menu" class="hzm-minute-picker-menu" role="dialog" aria-label="Składy drużyn — wybór zawodnika" hidden>
+                  <div class="hzm-minute-menu-top"><strong>Składy meczu</strong><span id="hzm-minute-menu-count">—</span></div>
+                  <div class="hzm-minute-menu-filters" role="group" aria-label="Filtr drużyn">
+                    <button type="button" data-hzm-minute-team="all" class="selected" aria-pressed="true">Wszyscy</button>
+                    <button type="button" data-hzm-minute-team="away" aria-pressed="false">Goście</button>
+                    <button type="button" data-hzm-minute-team="home" aria-pressed="false">Gospodarze</button>
+                  </div>
+                  <input type="search" id="hzm-minute-search" placeholder="Szukaj zawodnika…" autocomplete="off" aria-label="Szukaj zawodnika w składach obu drużyn">
+                  <div id="hzm-minute-menu-list" class="hzm-minute-menu-list" role="listbox" aria-label="Zawodnicy obu drużyn"></div>
+                  <p id="hzm-minute-menu-footnote" class="hzm-minute-menu-footnote">Dane ESPN. Brak projekcji nie oznacza nieobecności.</p>
+                </div>
+              </div>
               <label class="hzm-minute-adjust">Korekta minut
                 <span class="hzm-minute-slider-line"><input id="hzm-minute-delta" type="range" min="-5" max="5" step="1" value="0" disabled aria-label="Hipotetyczna zmiana minut zawodnika"><output id="hzm-minute-delta-output" for="hzm-minute-delta">0 min</output></span>
               </label>

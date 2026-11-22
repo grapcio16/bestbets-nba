@@ -44,6 +44,7 @@ def main():
             "brand": "", "auth": {"role": "premium"},
             "home": {
                 "calendar_today": day,
+                "calendar_requested_day": day,
                 "calendar_loaded_days": [day],
                 "calendar_games": [fixture],
             },
@@ -53,6 +54,17 @@ def main():
                     "date": day, "game_id": game_id,
                     "model_id": "research_context_v75",
                     "home": "BOS", "players": [active, out],
+                    "minute_roster": [
+                        {"name": "Test Athlete A", "team": "NYK",
+                         "position": "PG", "projection_index": 0},
+                        {"name": "Reserve NYK", "team": "NYK",
+                         "position": "C", "projection_index": None},
+                        {"name": "Test Athlete B", "team": "BOS",
+                         "position": "SG", "projection_index": 1,
+                         "availability": "Out"},
+                        {"name": "Reserve BOS", "team": "BOS",
+                         "position": "PF", "projection_index": None},
+                    ],
                 },
                 "scenario": None, "minute_scenario": None,
             },
@@ -61,8 +73,10 @@ def main():
             "data => window.postMessage({type:'streamlit:render',args:{payload:data}}, '*')",
             payload,
         )
-        page.locator("#hzm-day-input").fill(day)
-        page.locator("#hzm-day-input").dispatch_event("change")
+        # The current calendar keeps its native date input hidden; the
+        # selected fixture/day comes from the verified server home snapshot.
+        page.wait_for_function(
+            "document.querySelector('#hzm-day-title')?.textContent.includes('23')")
         page.locator("#hzm-model-trigger").click()
         page.locator("#hzm-model-option-research_context_v75").click()
         page.locator("#hzm-lab-tab-scenario").click()
@@ -72,6 +86,30 @@ def main():
         assert "Test Athlete A" in page.locator("#hzm-minute-player").input_value() or (
             "Test Athlete A" in page.locator("#hzm-minute-player").inner_text()
         )
+        assert page.locator("#hzm-minute-run").is_enabled()
+        page.locator("#hzm-minute-picker-trigger").click()
+        menu = page.locator("#hzm-minute-picker-menu")
+        assert menu.is_visible()
+        assert page.locator("#hzm-minute-menu-list .hzm-minute-option").count() == 4
+        assert page.locator(".hzm-minute-team-title").count() == 2
+        # Show both current roster-only athletes and OUT players honestly.
+        assert "Reserve NYK" in menu.inner_text()
+        assert "Reserve BOS" in menu.inner_text()
+        assert "OUT" in menu.inner_text()
+        page.locator('[data-hzm-minute-team="home"]').click()
+        assert page.locator("#hzm-minute-menu-list .hzm-minute-option").count() == 2
+        page.locator('[data-hzm-minute-team="all"]').click()
+        page.locator("#hzm-minute-search").fill("Reserve NYK")
+        assert page.locator("#hzm-minute-menu-list .hzm-minute-option").count() == 1
+        page.locator("#hzm-minute-menu-list .hzm-minute-option").click()
+        assert not menu.is_visible()
+        assert page.locator("#hzm-minute-run").is_disabled()
+        assert "Bez wystarczających danych" in page.locator("#hzm-minute-status").inner_text()
+        # Reopening and choosing a verified athlete restores calculations.
+        page.locator("#hzm-minute-picker-trigger").click()
+        page.locator("#hzm-minute-search").fill("")
+        page.locator("#hzm-minute-menu-list .hzm-minute-option").filter(
+            has_text="Test Athlete A").click()
         assert page.locator("#hzm-minute-run").is_enabled()
         assert page.locator("#hzm-minute-pts").inner_text() == "PTS: —"
         page.evaluate("""() => {
@@ -147,6 +185,8 @@ def main():
             payload,
         )
         assert page.locator("#hzm-minute-player").is_disabled()
+        assert page.locator("#hzm-minute-picker-trigger").is_disabled()
+        assert page.locator("#hzm-minute-picker-menu").is_hidden()
         assert page.locator("#hzm-minute-run").is_disabled()
         assert page.locator("#hzm-minute-pts").inner_text() == "PTS: —"
         assert "Premium" in page.locator("#hzm-minute-status").inner_text()

@@ -1,0 +1,31 @@
+name: HOOPZARO Player Minutes full-roster QA
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  minute-roster:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install existing application and browser dependencies
+        run: |
+          python -m pip install -r requirements.txt 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - name: Python + JavaScript syntax
+        run: |
+          python -m py_compile bestbets_simulations_canvas.py bestbets_custom_screen.py test_full_minute_roster.py
+          node --check bestbets_reference_frontend/simulations.js
+      - name: Full selected rosters, historical minute guard, Premium isolation
+        run: python -m unittest -v test_full_minute_roster test_player_minutes_scenario test_simulation_model_choice
+      - name: Complete roster picker in a real Chromium browser
+        run: python test_player_minutes_browser.py

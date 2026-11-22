@@ -336,6 +336,47 @@ def _complete_player_team_coverage(historical, logs, tipoff, teams) -> set[str]:
     return verified
 
 
+@st.cache_data(ttl=900, max_entries=90, show_spinner=False)
+def _minute_roster_for_fixture(away: str, home: str):
+    """Read both ESPN team roster catalogs only for a selected Premium fixture.
+
+    A current roster entry is NOT a player projection or injury clearance.
+    Missing/stale provider responses are labeled incomplete, not filled with
+    historical players attributed to an unverified current roster.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    from roster_data import team_roster, ESPN_TEAM_IDS
+
+    teams = (str(away).upper(), str(home).upper())
+    if teams[0] == teams[1] or any(t not in ESPN_TEAM_IDS for t in teams):
+        return [], [], "Nieznane drużyny meczu."
+    output, verified = [], []
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        jobs = {team: pool.submit(team_roster, team) for team in teams}
+        for team in teams:
+            try:
+                roster, metadata = jobs[team].result()
+                if roster.empty or bool((metadata or {}).get("stale")):
+                    continue
+                verified.append(team)
+                for row in roster.to_dict("records"):
+                    name = str(row.get("PLAYER_NAME") or "").strip()
+                    if not name:
+                        continue
+                    pos = str(row.get("POSITION") or "").strip().upper()
+                    output.append({
+                        "name": name[:70], "team": team,
+                        "position": pos if pos in {"PG", "SG", "SF", "PF", "C", "G", "F"} else "",
+                        "roster_status": str(row.get("ROSTER_STATUS") or "")[:35],
+                    })
+            except (OSError, RuntimeError, ValueError, TypeError, KeyError):
+                continue
+    warning = ("" if set(verified) == set(teams) else
+               "ESPN nie udostępnił aktualnego pełnego składu obu drużyn. "
+               "Widoczne pozycje są niepełne; brak zawodnika nie oznacza jego nieobecności.")
+    return output, verified, warning
+
+
 @st.cache_data(ttl=180, max_entries=90, show_spinner=False)
 def _selected_injury_watch(day: str, game_id: str) -> dict:
     """Read ESPN injury entries for the exact upcoming matchup, independent of
@@ -451,12 +492,18 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     injury_watch = (_selected_injury_watch(day, game_id)
                     if match.get("state") == "scheduled"
                     else {"fresh": False, "rows": [], "reason": "Mecz zakończony."})
+    roster, verified_roster_teams, roster_warning = _minute_roster_for_fixture(
+        str(match["away"]), str(match["home"]))
     if table is None or table.empty:
-        return {"players": [], "injury_watch": injury_watch,
+        return {"players": [], "minute_roster": roster,
+                "minute_roster_warning": roster_warning,
+                "injury_watch": injury_watch,
                 "error": "ESPN nie dostarczył projekcji graczy dla tego spotkania."}
     required = {"Zawodnik", "Drużyna", "PTS", "REB", "AST"}
     if not required.issubset(table.columns):
-        return {"players": [], "injury_watch": injury_watch,
+        return {"players": [], "minute_roster": roster,
+                "minute_roster_warning": roster_warning,
+                "injury_watch": injury_watch,
                 "error": "Źródło nie dostarczyło pełnych statystyk zawodników."}
     from core import norm_name
     injury_lookup = {(item["team"], norm_name(item["name"])): item["status"]
@@ -522,12 +569,49 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
             # A fresh OUT designation removes the player's projected minutes
             # and production; other players are NOT blindly credited with them.
             if pctx.get("status") == "Out":
-                player.update({"pts": None, "reb": None, "ast": None})
+                player.update({"minutes": 0.0, "pts": None, "reb": None, "ast": None})
         players.append(player)
     # OUT players have no projected production; keep them visible after
     # available scorers rather than treating missing values as zero points.
     players.sort(key=lambda item: (-(item["pts"] or 0), item["name"]))
-    return {"players": players[:40], "home": str(match["home"]),
+    players = players[:40]
+    # Link team-roster identities to existing, independently verified player
+    # projections. A roster-only player has NO calculated minute sensitivity.
+    by_key = {(p["team"], norm_name(p["name"])): idx
+              for idx, p in enumerate(players)}
+    minute_roster = []
+    seen = set()
+    for item in roster:
+        key = (item["team"], norm_name(item["name"]))
+        if key in seen:
+            continue
+        seen.add(key)
+        idx = by_key.get(key)
+        p = players[idx] if idx is not None else None
+        minute_roster.append({
+            **item, "projection_index": idx,
+            "availability": (p.get("availability") if p else
+                injury_lookup.get(key, "Niezweryfikowany")
+                if injury_watch.get("fresh") else "Niezweryfikowany"),
+        })
+    # A failed ESPN team-roster endpoint must not silently hide the actual
+    # historical projections already available for that team.
+    for idx, p in enumerate(players):
+        key = (p["team"], norm_name(p["name"]))
+        if key not in seen and p["team"] not in verified_roster_teams:
+            minute_roster.append({
+                "name": p["name"], "team": p["team"],
+                "position": p.get("position", ""), "roster_status": "",
+                "projection_index": idx, "availability": p["availability"],
+                "historical_only": True,
+            })
+            seen.add(key)
+    minute_roster.sort(key=lambda item: (
+        0 if item["team"] == str(match["away"]) else 1,
+        str(item["name"]).casefold()))
+    return {"players": players, "minute_roster": minute_roster,
+            "minute_roster_warning": roster_warning,
+            "home": str(match["home"]),
             "model_id": model_id, "error": "",
             "minutes_warning": (availability.get("warning", "")
                                 if model_id == "research_context_v75" else ""),
