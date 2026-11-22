@@ -36,12 +36,12 @@ function drawChart(data,period,away,home){
    data.sample_path.every(r=>number(r.minute)!==null&&number(r.away_minus_home)!==null);
  // The mean is a conditional allocation, whereas the highlighted jagged
  // stroke is ONE deterministic individual draw, not a fake 5k mean.
- const avg=rows.map(r=>({minute:Number(r.minute),diff:-Number(r.margin_mean)}));
+ const avg=rows.map(r=>({minute:Number(r.minute),diff:Number(r.margin_mean)}));
  const series=hasSample?
-   data.sample_path.map(r=>({minute:Number(r.minute),diff:Number(r.away_minus_home)})):avg;
+   data.sample_path.map(r=>({minute:Number(r.minute),diff:-Number(r.away_minus_home)})):avg;
  const maxAbs=Math.max(5,...series.map(p=>Math.abs(p.diff)),...avg.map(p=>Math.abs(p.diff)));
  const limit=Math.max(10,Math.ceil((maxAbs+2)/5)*5);
- const left=48,top=25,right=882,bottom=198,center=(top+bottom)/2;
+ const left=48,top=66,right=882,bottom=198,center=(top+bottom)/2;
  const x=m=>left+Number(m)/48*(right-left);
  const y=v=>center-Number(v)/limit*(bottom-top)/2;
  const line=pts=>pts.map((p,i)=>(i?"L ":"M ")+x(p.minute).toFixed(1)+" "+y(p.diff).toFixed(1)).join(" ");
@@ -55,6 +55,25 @@ function drawChart(data,period,away,home){
    (m%6===0?m:"")+'</text>').join("");
  const quarter=[0,1,2,3].map(i=>
    '<text class="flow-quarter" x="'+x(6+12*i)+'" y="14" text-anchor="middle">Q'+(i+1)+'</text>').join("");
+ // The quarter badges are conditional mean points calculated from the same
+ // 5,000 end-score draws. They are NOT live scores or calibrated quarter picks.
+ const quarterPoints=[0,1,2,3].map(i=>{
+   const q=Array.isArray(data.quarters)?data.quarters[i]:null;
+   const homePts=number(q?.home_mean),awayPts=number(q?.away_mean);
+   if(Number(q?.quarter)!==i+1||homePts===null||awayPts===null||
+      homePts<0||awayPts<0||homePts>100||awayPts>100)return "";
+   const mid=x(6+i*12),leftEdge=mid-68;
+   const explanation="Q"+(i+1)+": "+home+" gospodarze "+fmt(homePts)+" pkt, "+
+     away+" goście "+fmt(awayPts)+" pkt. Szacunek warunkowy z 5 000 wyników końcowych, bez osobnego modelu kwart.";
+   return '<g class="hzm-flow-quarter-points" data-flow-quarter-points="'+(i+1)+
+     '" role="group" aria-label="'+esc(explanation)+'">'+
+     '<title>'+esc(explanation)+'</title>'+
+     '<rect x="'+leftEdge+'" y="21" width="136" height="39" rx="7"/>'+
+     '<text class="hzm-flow-q-home" x="'+mid+'" y="37" text-anchor="middle">'+
+     esc(home)+' '+fmt(homePts)+' pkt</text>'+
+     '<text class="hzm-flow-q-away" x="'+mid+'" y="53" text-anchor="middle">'+
+     esc(away)+' '+fmt(awayPts)+' pkt</text></g>';
+ }).join("");
  const dividers=[12,24,36,42].map(m=>
    '<line x1="'+x(m)+'" x2="'+x(m)+'" y1="'+top+'" y2="'+bottom+
    '" stroke="#7c90bc" stroke-width=".8" stroke-dasharray="4 5" stroke-opacity=".6"/>').join("");
@@ -65,7 +84,7 @@ function drawChart(data,period,away,home){
    '" fill="#c766ff" fill-opacity=".13" stroke="#db8aff" stroke-opacity=".45"/>':'';
  const zone='<rect x="'+x(42)+'" y="'+top+'" width="'+(x(48)-x(42))+
    '" height="'+(bottom-top)+'" fill="#a64dd7" fill-opacity=".09"/>'+
-   '<text x="'+x(45)+'" y="38" class="flow-clutch" text-anchor="middle">CLUTCH</text>';
+   '<text x="'+x(45)+'" y="79" class="flow-clutch" text-anchor="middle">CLUTCH</text>';
  const segments=[];
  for(let i=1;i<series.length;i++){
    const p=series[i-1],q=series[i];
@@ -76,33 +95,40 @@ function drawChart(data,period,away,home){
    }else segments.push([p,q]);
  }
  const strokes=segments.map(([p,q])=>{
-   const color=(p.diff+q.diff)/2>=0?"#24f1f6":"#d374ff";
+   const color=(p.diff+q.diff)/2>=0?"#d374ff":"#24f1f6";
    return '<path d="M '+x(p.minute).toFixed(1)+' '+y(p.diff).toFixed(1)+
      ' L '+x(q.minute).toFixed(1)+' '+y(q.diff).toFixed(1)+
      '" fill="none" stroke="'+color+'" stroke-width="3.25" stroke-linecap="round"/>';
  }).join("");
  const end=series[series.length-1];
- const color=end.diff>=0?"#2df6fc":"#d479ff";
+ const color=end.diff>=0?"#d479ff":"#2df6fc";
  const text=(end.diff>=0?"+":"")+fmt(end.diff);
- const centerName=end.diff>0?away:end.diff<0?home:"REMIS";
+ const centerName=end.diff>0?home:end.diff<0?away:"REMIS";
  const expected=avg[avg.length-1].diff;
- const finalLabel=(expected>0?away:expected<0?home:"REMIS")+" "+
+ const finalLabel=(expected>0?home:expected<0?away:"REMIS")+" "+
    signed(Math.abs(expected))+" pkt";
  const srclabel=hasSample?"Przykładowy scenariusz (1 z 5 000)":"Średnia warunkowa z 5 000";
  return '<svg viewBox="0 0 910 234" role="img" aria-label="'+
-   esc(srclabel+'. Wartości powyżej zera to przewaga '+away+
-   ', poniżej to przewaga '+home+
-   '. Średnia końcowa '+fmt(expected)+' pkt. Model warunkowy, nie NBA play-by-play.')+'">'+
+   esc(srclabel+'. Wartości dodatnie to przewaga gospodarzy '+home+
+   ', ujemne to przewaga gości '+away+
+   '. Q1–Q4 pokazują warunkowo szacowane punkty obu drużyn na kwarty z 5 000 wyników końcowych.'+
+   ' Średnia końcowa '+fmt(expected)+' pkt. To nie NBA play-by-play.')+'">'+
    '<defs><linearGradient id="hzm-flow-a" x1="0" y1="0" x2="0" y2="1">'+
    '<stop stop-color="#14e9f3" stop-opacity=".35"/><stop offset="1" stop-color="#1169b7" stop-opacity=".03"/></linearGradient>'+
    '<linearGradient id="hzm-flow-h" x1="0" y1="0" x2="0" y2="1">'+
    '<stop stop-color="#602c8f" stop-opacity=".04"/><stop offset="1" stop-color="#b858f4" stop-opacity=".33"/></linearGradient>'+
    '<filter id="hzm-flow-glow"><feGaussianBlur stdDeviation="3"/></filter></defs>'+
-   zone+shaded+grid+dividers+quarter+marks+
+   zone+shaded+grid+dividers+quarter+quarterPoints+marks+
+   '<defs><clipPath id="hzm-flow-positive-half"><rect x="'+left+'" y="'+top+'" width="'+
+   (right-left)+'" height="'+(y(0)-top)+'"/></clipPath>'+
+   '<clipPath id="hzm-flow-negative-half"><rect x="'+left+'" y="'+y(0)+'" width="'+
+   (right-left)+'" height="'+(bottom-y(0))+'"/></clipPath></defs>'+
    '<path d="'+line(series)+' L '+x(48)+' '+y(0)+' L '+x(0)+' '+y(0)+
-   ' Z" fill="url(#hzm-flow-a)" opacity=".7"/>'+
-   (hasSample?'<path d="'+line(avg)+'" fill="none" stroke="#a3c9df" stroke-opacity=".7" stroke-dasharray="5 5" stroke-width="1.5"/>':'')+
-   '<path d="'+line(series)+'" fill="none" stroke="#6ae3ff" stroke-opacity=".25" stroke-width="8" filter="url(#hzm-flow-glow)"/>'+
+   ' Z" fill="url(#hzm-flow-h)" opacity=".65" clip-path="url(#hzm-flow-positive-half)"/>'+
+   '<path d="'+line(series)+' L '+x(48)+' '+y(0)+' L '+x(0)+' '+y(0)+
+   ' Z" fill="url(#hzm-flow-a)" opacity=".65" clip-path="url(#hzm-flow-negative-half)"/>'+
+   (hasSample?'<path d="'+line(avg)+'" fill="none" stroke="#b6cde5" stroke-opacity=".78" stroke-dasharray="5 5" stroke-width="1.5"/>':'')+
+   '<path d="'+line(series)+'" fill="none" stroke="#bbacfa" stroke-opacity=".18" stroke-width="7" filter="url(#hzm-flow-glow)"/>'+
    strokes+'<circle cx="'+x(end.minute)+'" cy="'+y(end.diff)+'" r="4.4" fill="'+color+'" stroke="#f7ebff" stroke-width="1.3"/>'+
    '<rect x="'+Math.max(left+20,x(48)-63)+'" y="'+Math.max(top+5,y(end.diff)-23)+
    '" width="54" height="19" rx="5" fill="#321a5b" stroke="'+color+'"/>'+
@@ -159,8 +185,8 @@ function render(d){
  }
  $("hzm-flow-timeline-desc").textContent=ready?
    (Array.isArray(data.sample_path)&&data.sample_path.length===17?
-     "Jeden przykładowy przebieg z 5 000 · linia przerywana = średnia modelu":
-     "Warunkowa średnia z 5 000 wyników · dodatnie = przewaga gości"):
+     "Przebieg 1 z 5 000 · przerywana = średnia · Q1–Q4: szacowane pkt":
+     "Warunkowa średnia z 5 000 wyników · dodatnie = przewaga gospodarzy"):
    "Brak kompletnych danych symulacji dla wybranego meczu.";
  $("hzm-flow-plot").innerHTML=ready?
    drawChart(data,cfg.period,d.game.away,d.game.home):
