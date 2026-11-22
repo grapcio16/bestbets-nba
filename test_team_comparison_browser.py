@@ -5,6 +5,8 @@ from shutil import which
 from playwright.sync_api import sync_playwright
 
 PAGE = (Path(__file__).parent / "bestbets_reference_frontend" / "index.html").as_uri()
+OUT = Path("test-results/hoopzaro-team-compare")
+OUT.mkdir(parents=True, exist_ok=True)
 
 
 def main():
@@ -78,8 +80,9 @@ def main():
                 payload)
 
         show()
-        page.locator("#hzm-day-input").fill(day)
-        page.locator("#hzm-day-input").dispatch_event("change")
+        page.locator("#hzm-day-input").evaluate(
+            """(el, day) => {el.value=day;
+                el.dispatchEvent(new Event('change',{bubbles:true}));}""", day)
         page.locator("#hzm-lab-tab-comparison").click()
         assert page.locator("#hzm-compare-panel").is_visible()
         assert page.locator("#hzm-detail-grid").is_hidden()
@@ -95,6 +98,27 @@ def main():
         assert page.locator("#hzm-compare-home-off-rating").inner_text() == "116,0"
         assert page.locator("#hzm-compare-home-def-rating").inner_text() == "111,2"
         assert page.locator("#hzm-compare-away-venue-scored").inner_text() == "113,4"
+        # Chart is computed from real ESPN history and valid venue samples.
+        assert page.locator("#hzm-compare-profile-svg").is_visible()
+        assert page.locator("#hzm-compare-profile-empty").is_hidden()
+        away_shape = page.locator("#hzm-compare-polygon-away").get_attribute("points")
+        home_shape = page.locator("#hzm-compare-polygon-home").get_attribute("points")
+        assert len(away_shape.split(" ")) == 5
+        assert len(home_shape.split(" ")) == 5
+        assert away_shape != home_shape
+        assert "L10" in page.locator("#hzm-compare-profile-window").inner_text()
+        panel_geom = page.locator("#hzm-compare-panel").evaluate("""el => {
+          const table=el.querySelector('.hzm-compare-table').getBoundingClientRect();
+          const chart=el.querySelector('.hzm-compare-v2-profile').getBoundingClientRect();
+          return {left:table.left, right:chart.left, gap:chart.left-table.right,
+                  topDelta:Math.abs(table.top-chart.top),
+                  gradient:getComputedStyle(el).backgroundImage};
+        }""")
+        assert panel_geom["gap"] >= 7, panel_geom
+        assert panel_geom["topDelta"] < 4, panel_geom
+        assert "gradient" in panel_geom["gradient"], panel_geom
+        page.locator("#hzm-compare-panel").screenshot(path=str(OUT / "team-comparison-v2-l10.png"))
+
 
         page.locator("#hzm-compare-l5").click()
         assert page.locator("#hzm-compare-away-pts").inner_text() == "115,4"
@@ -103,6 +127,10 @@ def main():
         assert page.locator("#hzm-compare-away-win-pct").inner_text() == "80,0%"
         assert page.locator("#hzm-compare-pts-window").inner_text() == "L5"
         assert page.locator("#hzm-compare-l5").get_attribute("aria-pressed") == "true"
+        assert page.locator("#hzm-compare-profile-window").inner_text() == "L5"
+        assert page.locator("#hzm-compare-polygon-away").get_attribute("points") != away_shape
+        page.locator("#hzm-compare-panel").screenshot(path=str(OUT / "team-comparison-v2-l5.png"))
+
 
         # One missing Advanced team: never invent comparable pace/rating.
         model["model_context"]["team_comparison"]["advanced_available"] = False
@@ -110,12 +138,18 @@ def main():
         assert page.locator("#hzm-compare-away-pace").inner_text() == "—"
         assert page.locator("#hzm-compare-home-def-rating").inner_text() == "—"
         assert page.locator("#hzm-compare-home-pts").inner_text() == "112,8"
+        assert page.locator("#hzm-compare-profile-svg").is_visible(), (
+            "Missing NBA Advanced must not remove factual ESPN profile")
+
 
         # A swapped team in a cached model context must be rejected entirely.
         model["model_context"]["team_comparison"]["away"] = {**away, "team": "MIA"}
         show()
         assert "Brak kompletnych danych" in page.locator("#hzm-compare-status").inner_text()
         assert page.locator("#hzm-compare-away-pts").inner_text() == "—"
+        assert page.locator("#hzm-compare-profile-svg").is_hidden()
+        assert page.locator("#hzm-compare-profile-empty").is_visible()
+
 
         # Downgrade must hide ALL Premium comparison data.
         payload["premium_simulation"] = {
@@ -128,6 +162,9 @@ def main():
         assert page.locator("#hzm-compare-away-record").inner_text() == "— W / — L"
         assert page.locator("#hzm-compare-home-def-rating").inner_text() == "—"
         assert "Premium" in page.locator("#hzm-compare-status").inner_text()
+        assert page.locator("#hzm-compare-profile-svg").is_hidden()
+        assert not page.locator("#hzm-compare-polygon-away").get_attribute("points")
+
         assert not errors, errors
         browser.close()
         print("Team Comparison: L5/L10, source gating, team identity and Premium OK")
