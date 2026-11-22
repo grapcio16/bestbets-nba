@@ -1978,7 +1978,8 @@ function showMatchIntelligence(game,sim,premium){
  if(panel)panel.dataset.hzmIntelModel=state.model||"";
  if(factorBody)factorBody.hidden=true;
  if(factorInfo)factorInfo.hidden=false;
- model.textContent=modelLabel();
+ model.textContent=state.model==="legacy_v72"?"V7.2":state.model==="research_form_v74"?"V7.4":"V7.5";
+ model.title=modelLabel();
  const isV75=state.model==="research_context_v75";
  set("factor-title",isV75?"Rozbicie korekt średniej liczby punktów":
      "Co uwzględnia wybrany model?");
