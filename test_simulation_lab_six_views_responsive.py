@@ -1,4 +1,4 @@
-"""Static responsive smoke for all SEVEN Premium Simulation Lab views.
+"""Static responsive smoke for SIX public Premium Simulation Lab views.
 
 Only synthetic test data. No network NBA requests, no production login.
 Validate view routing, horizontal scroll access and vertical panel reachability
@@ -18,7 +18,6 @@ VIEWS = [
     ("players", "#hzv3", "#hzv3 .hzv3-summary"),
     ("scenario", "#hzm-scenario-panel", "#hzm-availability-panel"),
     ("intelligence", "#hzm-intel-panel", "#hzm-intel-caveat"),
-    ("flow", "#hzm-flow-panel", "#hzm-flow-method"),
     ("comparison", "#hzm-compare-panel", "#hzm-compare-disclaimer"),
     ("backtest", "#hzm-backtest-panel", "#hzm-backtest-caveat"),
 ]
@@ -141,7 +140,15 @@ def check(page, width, height):
                    el.dispatchEvent(new Event('change',{bubbles:true}));}""")
     page.locator("#hzm-model-trigger").click()
     page.locator("#hzm-model-option-research_context_v75").click()
-    assert page.locator("#hzm-lab-nav button:disabled").count() == 0
+    # Research-only Flow remains in source for model QA, not public Premium.
+    assert page.locator("#hzm-lab-tab-flow").is_hidden()
+    assert page.locator("#hzm-lab-tab-flow").is_disabled()
+    assert page.locator("#hzm-lab-nav button:visible").count() == 6
+    assert page.locator("#hzm-lab-nav button:disabled:visible").count() == 0
+    page.evaluate("""() => document.getElementById('hzm-lab-tab-flow')
+      .dispatchEvent(new MouseEvent('click',{bubbles:true}))""")
+    assert page.locator("#hzm-flow-panel").is_hidden()
+    assert page.locator("#hzm-detail-grid").is_visible()
 
     for view, panel, bottom in VIEWS:
         tab = page.locator("#hzm-lab-tab-"+view)
@@ -182,7 +189,7 @@ def main():
             finally:
                 page.close()
         browser.close()
-    print("Simulation Lab: 7 tabs x 3 viewports navigable and vertically reachable")
+    print("Simulation Lab: 6 public tabs x 3 viewports; Flow research hidden and guarded")
 
 
 if __name__ == "__main__":
