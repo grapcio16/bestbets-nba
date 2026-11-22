@@ -265,10 +265,10 @@ function chartSvg(dist,code){
  const line=coords.map(([x,y],i)=>(i?'L':'M')+x.toFixed(2)+' '+y.toFixed(2)).join(' ');
  const area=line+' L '+coords[coords.length-1][0].toFixed(2)+' '+y1+
    ' L '+coords[0][0].toFixed(2)+' '+y1+' Z';
- const selectedIndex=chartBinIndex(bins,dist),selection=chartProbabilityProfile(dist,bins,selectedIndex);
- const selected=bins[selectedIndex],mx=px(selected.x+2.5),my=py(selected.p);
- const pillX=Math.max(x0,Math.min(mx-67,x1-134));
- const label=selected.x+'–'+(selected.x+4)+' · '+fmt(selection.binPct)+'%';
+ const selectedLine=chartLineFor(dist,bins),selection=chartOverUnderAt(dist,bins,selectedLine);
+ const geom=chartMarkerGeometry(bins,selectedLine);
+ const mx=geom.x,my=geom.y,pillX=geom.pillX;
+ const label="Linia "+fmt(selectedLine)+" · O "+(selection?.over==null?"—":percent(selection.over));
  const grids=Array.from({length:5},(_,i)=>{
    const y=y1-i*(y1-y0)/4;
    return '<line x1="'+x0+'" y1="'+y+'" x2="'+x1+'" y2="'+y+
@@ -282,9 +282,9 @@ function chartSvg(dist,code){
  }).join("");
  return '<svg class="hzm-neon-curve" viewBox="0 0 '+w+' '+h+
    '" role="slider" tabindex="0" aria-label="Przesuń punkt, aby zbadać prawdopodobieństwo punktów: '+esc(code)+
-   '" aria-valuemin="'+bins[0].x+'" aria-valuemax="'+bins[bins.length-1].x+
-   '" aria-valuenow="'+selected.x+'" aria-valuetext="'+esc(selected.x+' do '+(selected.x+4)+
-   ' punktów; '+fmt(selection.binPct)+'% symulacji')+'">'+
+   '" aria-valuemin="0.5" aria-valuemax="499.5"'+
+   ' aria-valuenow="'+selectedLine+'" aria-valuetext="'+esc("Linia "+fmt(selectedLine)+
+   " punktów; OVER "+percent(selection?.over)+"; UNDER "+percent(selection?.under))+'">'+
    '<defs>'+
      '<linearGradient id="hzm-curve-fill" x1="0%" y1="0%" x2="100%" y2="0%">'+
        '<stop offset="0%" stop-color="#06e9f1" stop-opacity=".32"/>'+
@@ -316,20 +316,15 @@ function chartSvg(dist,code){
      '<circle class="hzm-peak-halo hzm-marker-halo" cx="'+mx+'" cy="'+my+'" r="10" fill="#57deff" opacity=".55" filter="url(#hzm-peak-glow)"/>'+
      '<circle class="hzm-marker-ring" cx="'+mx+'" cy="'+my+'" r="6" fill="#0b2745" stroke="#69eaff" stroke-width="1.7"/>'+
      '<circle class="hzm-marker-centre" cx="'+mx+'" cy="'+my+'" r="3.5" fill="#f7ffff"/>'+
-     '<rect class="hzm-marker-pill" x="'+pillX+'" y="1" width="134" height="23" rx="9" fill="#1a1c4a" stroke="#cb79ff" stroke-width="1.15"/>'+
-     '<text class="hzm-marker-pill-text" x="'+(pillX+67)+'" y="17" fill="#fff" font-weight="900" font-size="11" text-anchor="middle">'+esc(label)+'</text>'+
+     '<rect class="hzm-marker-pill" x="'+pillX+'" y="1" width="116" height="23" rx="9" fill="#1a1c4a" stroke="#cb79ff" stroke-width="1.15"/>'+
+     '<text class="hzm-marker-pill-text" x="'+(pillX+58)+'" y="17" fill="#fff" font-weight="900" font-size="10" text-anchor="middle">'+esc(label)+'</text>'+
    '</g>'+
    xticks+'<text x="'+w/2+'" y="183" text-anchor="middle" fill="#c5dbef" font-size="10">Punkty – '+esc(code)+'</text></svg>';
 }
-function updateChartMarker(svg,dist,bins,index){
- const profile=chartProbabilityProfile(dist,bins,index);
- if(!svg||!profile)return;
- const row=bins[index],x0=43,x1=445,y0=15,y1=147;
- const xmin=bins[0].x,xmax=bins[bins.length-1].x+5;
- const maxp=Math.max(1,...bins.map(b=>b.p))*1.22;
- const mx=x0+(row.x+2.5-xmin)/(xmax-xmin)*(x1-x0);
- const my=y1-row.p/maxp*(y1-y0);
- const pillX=Math.max(x0,Math.min(mx-67,x1-134));
+function updateChartMarker(svg,dist,bins,lineValue){
+ const probability=chartOverUnderAt(dist,bins,lineValue);
+ if(!svg||!probability)return;
+ const geom=chartMarkerGeometry(bins,lineValue),mx=geom.x,my=geom.y;
  const line=svg.querySelector(".hzm-marker-guide");
  if(line){line.setAttribute("x1",String(mx));line.setAttribute("x2",String(mx))}
  for(const cls of [".hzm-marker-halo",".hzm-marker-ring",".hzm-marker-centre"]){
@@ -337,14 +332,14 @@ function updateChartMarker(svg,dist,bins,index){
    if(node){node.setAttribute("cx",String(mx));node.setAttribute("cy",String(my))}
  }
  const pill=svg.querySelector(".hzm-marker-pill"),text=svg.querySelector(".hzm-marker-pill-text");
- if(pill)pill.setAttribute("x",String(pillX));
+ if(pill)pill.setAttribute("x",String(geom.pillX));
  if(text){
-   text.setAttribute("x",String(pillX+67));
-   text.textContent=row.x+"–"+(row.x+4)+" · "+fmt(profile.binPct)+"%";
+   text.setAttribute("x",String(geom.pillX+58));
+   text.textContent="Linia "+fmt(lineValue)+" · O "+percent(probability.over);
  }
- svg.setAttribute("aria-valuenow",String(row.x));
- svg.setAttribute("aria-valuetext",row.x+" do "+(row.x+4)+
-   " punktów; "+fmt(profile.binPct)+"% symulacji");
+ svg.setAttribute("aria-valuenow",String(lineValue));
+ svg.setAttribute("aria-valuetext","Linia "+fmt(lineValue)+" punktów; OVER "+
+   percent(probability.over)+"; UNDER "+percent(probability.under));
 }
 
 /* Results screenshot: derive every metric from the entitled game simulation.
