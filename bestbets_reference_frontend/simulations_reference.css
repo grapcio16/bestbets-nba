@@ -2639,8 +2639,8 @@
 #simulations-pane[data-hzm-view="scenario"] .hzm-minute-table-head,
 #simulations-pane[data-hzm-view="scenario"] .hzm-minute-table-row{
   grid-column:1;display:grid;
-  grid-template-columns:minmax(0,1.3fr) repeat(4,minmax(0,.68fr));
-  column-gap:4px;min-height:19px;
+  grid-template-columns:minmax(72px,1.35fr) repeat(5,minmax(0,.66fr));
+  column-gap:3px;min-height:19px;
   align-items:center;padding:2px 6px;
 }
 #simulations-pane[data-hzm-view="scenario"] .hzm-minute-table-head{
@@ -2664,6 +2664,19 @@
 }
 #simulations-pane[data-hzm-view="scenario"] .hzm-minute-table-row.changed>b{
   color:#eeadff;
+}
+/* MIN is the selected model's evidence-based baseline vs the user's
+   hypothetical minutes. Numeric rows update immediately; other stats await
+   the server's completed sensitivity calculation. */
+#simulations-pane[data-hzm-view="scenario"] #hzm-minute-source-header{
+  color:#5df5ff;font-weight:950
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-minute-table-row>b:nth-child(2){
+  color:#63f3ff;background:#047a9040;border-radius:4px;
+  padding:2px 3px;white-space:nowrap
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-minute-table-row.changed>b:nth-child(2){
+  color:#eab5ff;background:#8a3ccd42
 }
 #simulations-pane[data-hzm-view="scenario"] .hzm-minute-pra-change{
   grid-column:2;grid-row:1/4;
@@ -2727,6 +2740,21 @@
   }
 }
 @media(max-width:480px){
+  #simulations-pane[data-hzm-view="scenario"] .hzm-minute-compare{
+    grid-template-columns:minmax(0,1fr)!important;row-gap:6px
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-minute-pra-change{
+    grid-column:1!important;grid-row:auto!important;
+    min-height:34px!important;flex-direction:row!important;gap:8px!important
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-minute-table-head,
+  #simulations-pane[data-hzm-view="scenario"] .hzm-minute-table-row{
+    grid-template-columns:minmax(69px,1.25fr) repeat(5,minmax(0,.67fr))!important;
+    column-gap:2px!important;padding:3px 4px!important
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-minute-table-row>b{
+    font-size:9px!important
+  }
   #simulations-pane[data-hzm-view="scenario"] .hzm-minute-controls{
     grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
   }

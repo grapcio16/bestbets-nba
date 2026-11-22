@@ -94,6 +94,9 @@ def main():
             "Test Athlete A" in page.locator("#hzm-minute-player").inner_text()
         )
         assert page.locator("#hzm-minute-run").is_enabled()
+        assert page.locator("#hzm-minute-base-min").inner_text() == "30,0"
+        assert page.locator("#hzm-minute-new-min").inner_text() == "30,0"
+        assert "Minuty bazowe" in (page.locator("#hzm-minute-base-min").get_attribute("title") or "")
         page.locator("#hzm-minute-picker-trigger").click()
         menu = page.locator("#hzm-minute-picker-menu")
         assert menu.is_visible()
@@ -127,6 +130,8 @@ def main():
         page.locator("#hzm-minute-menu-list .hzm-minute-option").click()
         assert not menu.is_visible()
         assert page.locator("#hzm-minute-run").is_disabled()
+        assert page.locator("#hzm-minute-base-min").inner_text() == "—"
+        assert page.locator("#hzm-minute-new-min").inner_text() == "—"
         assert "Bez wystarczających danych" in page.locator("#hzm-minute-status").inner_text()
         # Reopening and choosing a verified athlete restores calculations.
         page.locator("#hzm-minute-picker-trigger").click()
@@ -134,6 +139,8 @@ def main():
         page.locator("#hzm-minute-menu-list .hzm-minute-option").filter(
             has_text="Test Athlete A").click()
         assert page.locator("#hzm-minute-run").is_enabled()
+        assert page.locator("#hzm-minute-base-min").inner_text() == "30,0"
+        assert page.locator("#hzm-minute-new-min").inner_text() == "30,0"
         assert page.locator("#hzm-minute-pts").inner_text() == "PTS: —"
         page.evaluate("""() => {
           window.__minuteEvents = [];
@@ -147,6 +154,11 @@ def main():
             """el => {el.value='5';el.dispatchEvent(new Event('input',{bubbles:true}))}"""
         )
         assert page.locator("#hzm-minute-delta-output").inner_text() == "+5 min"
+        # Minutes preview uses the selected model's baseline immediately,
+        # while PTS/REB/AST/PRA remain uncalculated until the server responds.
+        assert page.locator("#hzm-minute-base-min").inner_text() == "30,0"
+        assert page.locator("#hzm-minute-new-min").inner_text() == "35,0"
+        assert page.locator("#hzm-minute-new-pts").inner_text() == "—"
         page.locator("#hzm-minute-run").click()
         page.wait_for_function("window.__minuteEvents.length === 1")
         event = page.evaluate("window.__minuteEvents[0]")
@@ -171,6 +183,8 @@ def main():
             payload,
         )
         assert "30,0 → 35,0" in page.locator("#hzm-minute-minutes").inner_text()
+        assert page.locator("#hzm-minute-base-min").inner_text() == "30,0"
+        assert page.locator("#hzm-minute-new-min").inner_text() == "35,0"
         assert "24,0 → 28,0" in page.locator("#hzm-minute-pts").inner_text()
         assert "39,0 → 45,5" in page.locator("#hzm-minute-pra").inner_text()
         assert "Bez korekty wyniku drużyny" in page.locator("#hzm-minute-status").inner_text()
@@ -181,6 +195,9 @@ def main():
         )
         assert page.locator("#hzm-minute-pts").inner_text() == "PTS: —"
         assert page.locator("#hzm-minute-pra").inner_text() == "PRA: —"
+        assert page.locator("#hzm-minute-base-min").inner_text() == "30,0"
+        assert page.locator("#hzm-minute-new-min").inner_text() == "28,0"
+        assert page.locator("#hzm-minute-new-pts").inner_text() == "—"
 
         # Historical ESPN minutes are also usable with the selected V7.4
         # baseline, without substituting V7.5 player projections.
@@ -194,6 +211,9 @@ def main():
         )
         assert page.locator("#hzm-minute-run").is_enabled()
         assert page.locator("#hzm-minute-base-pts").inner_text() == "24,0"
+        assert page.locator("#hzm-minute-base-min").inner_text() == "30,0"
+        # Changing the model deliberately resets the user's delta to zero.
+        assert page.locator("#hzm-minute-new-min").inner_text() == "30,0"
         page.locator("#hzm-minute-run").click()
         page.wait_for_function("window.__minuteEvents.length === 2")
         assert page.evaluate("window.__minuteEvents[1].model_id") == "research_form_v74"
@@ -211,6 +231,8 @@ def main():
         assert page.locator("#hzm-minute-picker-trigger").is_disabled()
         assert page.locator("#hzm-minute-picker-menu").is_hidden()
         assert page.locator("#hzm-minute-run").is_disabled()
+        assert page.locator("#hzm-minute-base-min").inner_text() == "—"
+        assert page.locator("#hzm-minute-new-min").inner_text() == "—"
         assert page.locator("#hzm-minute-pts").inner_text() == "PTS: —"
         assert "Premium" in page.locator("#hzm-minute-status").inner_text()
         assert not errors, errors

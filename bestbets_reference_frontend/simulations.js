@@ -1768,7 +1768,12 @@ function showPlayerMinutes(game,players,premium){
  const clear=()=>{
    for(const id of ids){const el=$("hzm-minute-"+id);if(el)el.textContent=(id==="minutes"?"Minuty":id.toUpperCase())+": —";}
    for(const variant of ["base","new"])
-     for(const metric of ["pts","reb","ast","pra"]){const el=$("hzm-minute-"+variant+"-"+metric);if(el)el.textContent="—"}
+     for(const metric of ["min","pts","reb","ast","pra"]){
+       const el=$("hzm-minute-"+variant+"-"+metric);
+       if(el){el.textContent="—";if(metric==="min")el.removeAttribute("title")}
+     }
+   const title=$("hzm-minute-source-header");
+   if(title)title.title="Minuty bazowe nie są potwierdzonym czasem gry.";
    const delta=$("hzm-minute-pra-delta");if(delta)delta.textContent="—";
  };
  clear();
@@ -1800,8 +1805,24 @@ function showPlayerMinutes(game,players,premium){
    for(const metric of ["pts","reb","ast","pra"])
      if(values[metric]!==null)$("hzm-minute-base-"+metric).textContent=fmt(values[metric]);
  }
- const newMinutes=item?Number(item.minutes)+state.minuteDelta:null;
- run.disabled=!minuteCanProject(item,game)||!!state.minuteUnavailable||newMinutes<5||newMinutes>44;
+ // Selected-model baseline: historical ESPN minutes in V7.2/V7.4,
+ // evidence-based estimate in V7.5. Never claim a confirmed lineup.
+ const baseMinutes=!state.minuteUnavailable&&minuteCanProject(item,game)
+   ?safeProjection(item.minutes):null;
+ const newMinutes=baseMinutes===null?null:baseMinutes+state.minuteDelta;
+ const validNewMinutes=newMinutes!==null&&newMinutes>=5&&newMinutes<=44;
+ if(baseMinutes!==null){
+   const source=String(item.minutes_source||"ESPN · średnia z ostatnich występów");
+   $("hzm-minute-base-min").textContent=fmt(baseMinutes);
+   $("hzm-minute-base-min").title="Minuty bazowe: "+source+". Nie jest to potwierdzony czas gry.";
+   const heading=$("hzm-minute-source-header");
+   if(heading)heading.title="Minuty bazowe: "+source+". Po zmianie to hipotetyczne minuty ustawione suwakiem.";
+ }
+ if(validNewMinutes){
+   $("hzm-minute-new-min").textContent=fmt(newMinutes);
+   $("hzm-minute-new-min").title="Minuty po Twojej korekcie. Projekcje PTS/REB/AST/PRA wymagają przeliczenia.";
+ }
+ run.disabled=!validNewMinutes;
  if(!entitled){status.textContent="Dostępne tylko w Premium.";return}
  if(!validGame){status.textContent="Analiza minut dostępna wyłącznie przed potwierdzonym meczem.";return}
  if(!players){status.textContent="Pobieranie historii minut i składów ESPN…";return}
@@ -1822,6 +1843,8 @@ function showPlayerMinutes(game,players,premium){
    if(["pts","reb","ast","pra"].every(k=>safeProjection(base[k])!==null&&safeProjection(hyp[k])!==null)&&
       safeProjection(record.baseline_minutes)!==null&&safeProjection(record.scenario_minutes)!==null){
      $("hzm-minute-minutes").textContent="MIN: "+fmt(record.baseline_minutes)+" → "+fmt(record.scenario_minutes);
+     $("hzm-minute-base-min").textContent=fmt(record.baseline_minutes);
+     $("hzm-minute-new-min").textContent=fmt(record.scenario_minutes);
      for(const k of ["pts","reb","ast","pra"]){
        $("hzm-minute-"+k).textContent=k.toUpperCase()+": "+fmt(base[k])+" → "+fmt(hyp[k]);
        $("hzm-minute-base-"+k).textContent=fmt(base[k]);

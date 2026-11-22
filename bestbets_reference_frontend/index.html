@@ -838,7 +838,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
           </div>
 
           <section id="hzm-minute-panel" class="hzm-minute-panel" aria-label="Player Minutes What-if — wariant zawodnika">
-            <div class="hzm-minute-head"><strong>◷ Player Minutes · What-if</strong><span>ESPN · MINUTY HISTORYCZNE / V7.5</span></div>
+            <div class="hzm-minute-head"><strong>◷ Player Minutes · What-if</strong><span>ESPN · BAZA MINUT / WYBRANY MODEL</span></div>
             <p class="hzm-minute-note">Oddzielny test wpływu minut na PTS / REB / AST / PRA. Stała produkcja na minutę; <strong>nie zmienia wyniku meczu</strong> i nie potwierdza dostępności zawodnika.</p>
             <div class="hzm-minute-controls">
               <div class="hzm-minute-picker">
@@ -864,10 +864,10 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
               </label>
               <button id="hzm-minute-run" type="button" disabled>Oblicz projekcję</button>
             </div>
-            <div class="hzm-minute-compare" aria-label="Porównanie projekcji zawodnika">
-              <div class="hzm-minute-table-head"><span></span><span>PTS</span><span>REB</span><span>AST</span><span>PRA</span></div>
-              <div class="hzm-minute-table-row"><span>Model bazowy</span><b id="hzm-minute-base-pts">—</b><b id="hzm-minute-base-reb">—</b><b id="hzm-minute-base-ast">—</b><b id="hzm-minute-base-pra">—</b></div>
-              <div class="hzm-minute-table-row changed"><span>Nowy wariant</span><b id="hzm-minute-new-pts">—</b><b id="hzm-minute-new-reb">—</b><b id="hzm-minute-new-ast">—</b><b id="hzm-minute-new-pra">—</b></div>
+            <div class="hzm-minute-compare" aria-label="Minuty bazowe i po korekcie oraz porównanie projekcji zawodnika">
+              <div class="hzm-minute-table-head"><span></span><span id="hzm-minute-source-header" title="Minuty bazowe: źródło zależy od wybranego modelu">MIN</span><span>PTS</span><span>REB</span><span>AST</span><span>PRA</span></div>
+              <div class="hzm-minute-table-row"><span>Model bazowy</span><b id="hzm-minute-base-min">—</b><b id="hzm-minute-base-pts">—</b><b id="hzm-minute-base-reb">—</b><b id="hzm-minute-base-ast">—</b><b id="hzm-minute-base-pra">—</b></div>
+              <div class="hzm-minute-table-row changed"><span>Nowy wariant</span><b id="hzm-minute-new-min">—</b><b id="hzm-minute-new-pts">—</b><b id="hzm-minute-new-reb">—</b><b id="hzm-minute-new-ast">—</b><b id="hzm-minute-new-pra">—</b></div>
               <div class="hzm-minute-pra-change">Zmiana PRA<strong id="hzm-minute-pra-delta">—</strong></div>
             </div>
             <div id="hzm-minute-result" class="hzm-minute-result" aria-live="polite" hidden>
