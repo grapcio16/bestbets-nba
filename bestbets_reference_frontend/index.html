@@ -229,6 +229,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="schedule_v4.css">
 <link rel="stylesheet" href="simulations.css">
 <link rel="stylesheet" href="simulations_lab.css">
+<link rel="stylesheet" href="simulations_reference.css">
 <link rel="stylesheet" href="player_simulations_v3.css">
 <link rel="stylesheet" href="premium_modal.css">
 <link rel="stylesheet" href="admin_model_performance.css">
@@ -549,7 +550,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     </header>
         <section class="hzm-hero" aria-label="Wynik symulacji">
           <div class="hzm-match-identity"><span class="hzm-eyebrow">NBA · SIMULATION LAB</span><div id="hzm-match-label" class="hzm-versus">NBA <span>VS</span> NBA</div><small>Symulacja Monte Carlo · prognoza, nie wynik na żywo</small></div>
-          <div class="hzm-projected"><small>PROJEKTOWANY WYNIK</small><strong id="hzm-score">— : —</strong><span id="hzm-simulation-message">Dane dostępne w Premium</span></div>
+          <div class="hzm-projected"><small>PROJEKTOWANY WYNIK</small><strong id="hzm-score">— : —</strong><span id="hzm-simulation-message">Dane dostępne w Premium</span><div class="hzm-projected-splits" aria-label="Średnia punktów z symulacji"><span>Śr. <b id="hzm-hero-away-label">goście</b> <b id="hzm-hero-away-points">—</b></span><span>Śr. <b id="hzm-hero-home-label">gospodarze</b> <b id="hzm-hero-home-points">—</b></span></div></div>
           <div class="hzm-win"><div class="hzm-prob-label"><strong id="hzm-away-win">—</strong><span id="hzm-away-code">NBA</span></div><div id="hzm-donut" class="hzm-donut"><span>Szanse<br>wygranej</span></div><div class="hzm-prob-label violet"><strong id="hzm-home-win">—</strong><span id="hzm-home-code">NBA</span></div></div>
         </section>
     <nav id="hzm-lab-nav" class="hzm-lab-nav" role="tablist" aria-label="Moduły Simulation Lab">
@@ -641,13 +642,14 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
         <div id="hzm-detail-grid" class="hzm-detail-grid">
           <section class="hzm-chart-card" aria-label="Rozkład punktów">
             <header><div><h2>Rozkład punktów</h2><span id="hzm-chart-context">5000 symulacji · model punktowy</span></div><div id="hzm-chart-tabs" class="hzm-chart-tabs" role="group" aria-label="Wybierz rozkład punktów"><button type="button" data-hzm-chart="match" class="active">MECZ</button><button type="button" data-hzm-chart="away">GOŚCIE</button><button type="button" data-hzm-chart="home">GOSPODARZE</button></div></header>
-            <div id="hzm-plot" class="hzm-plot" aria-live="polite"><div class="hzm-no-chart">Wybierz spotkanie, aby zobaczyć rozkład punktów.</div></div>
+            <div class="hzm-chart-visual"><div id="hzm-plot" class="hzm-plot" aria-live="polite"><div class="hzm-no-chart">Wybierz spotkanie, aby zobaczyć rozkład punktów.</div></div><aside class="hzm-probability-panel" aria-label="Prawdopodobieństwa punktowe z rozkładu symulacji"><strong>Prawdopodobieństwa</strong><div id="hzm-probability-rows" aria-live="polite"><span>Wybierz spotkanie.</span></div><small>≈ wartości z histogramu 5 pkt; nie kursy</small></aside></div>
             <div class="hzm-averages"><div class="hzm-avg cyan"><span id="hzm-away-average-label">Śr. goście</span><strong id="hzm-away-average">—</strong></div><div class="hzm-avg purple"><span id="hzm-home-average-label">Śr. gospodarze</span><strong id="hzm-home-average">—</strong></div><div class="hzm-avg gold"><span>Suma meczu</span><strong id="hzm-total-average">—</strong></div></div>
+            <div class="hzm-result-kpis" aria-label="Podsumowanie rozkładu punktowego"><div><small>Zwycięzca (proj.)</small><strong id="hzm-result-favorite">—</strong></div><div><small>Suma punktów</small><strong id="hzm-result-total">—</strong></div><div><small>Przedział 80%</small><strong id="hzm-result-range">—</strong></div><div><small>Odchylenie ≈</small><strong id="hzm-result-sd">—</strong></div></div>
             <div class="hzm-chart-source"><span id="hzm-chart-source">Średnie wyłącznie z wykonanych symulacji.</span><strong id="hzm-lab-range">Przedział 80%: —</strong></div>
           </section>
           <section id="hzm-players-panel" class="hzm-players-panel" aria-label="Player Simulations — projekcje modelu">
             <header>
-              <h2>Player Simulations <span class="hzm-player-version" id="hzm-player-version">V7.4</span></h2>
+              <h2>Projekcje zawodników <span class="hzm-player-version" id="hzm-player-version">V7.4</span></h2><div class="hzm-result-team-filters" role="group" aria-label="Filtr drużyny na ekranie wyników"><button type="button" data-hzm-result-team="all" aria-pressed="true">ALL</button><button type="button" id="hzm-result-team-away" data-hzm-result-team="away" aria-pressed="false">GOŚCIE</button><button type="button" id="hzm-result-team-home" data-hzm-result-team="home" aria-pressed="false">GOSP.</button></div>
               <div id="hzm-player-headings" class="hzm-player-headings"><span>PTS</span><span>REB</span><span>AST</span></div>
               <div class="hzm-player-focus-controls">
                 <div class="hzm-player-market-switch" role="group" aria-label="Wybierz statystykę projekcji zawodników">
@@ -887,6 +889,34 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
         </section>
       </div>
     </div>
+
+    <section id="hzm-reference-dashboard" class="hzm-reference-dashboard" aria-label="Skrót scenariuszy i wyników badań modelu">
+      <article class="hzm-ref-card" aria-label="Scenariusz meczu">
+        <h3><span aria-hidden="true">☷</span> Scenariusz meczu <small title="Hipotetyczne zmiany — nie są oficjalnymi danymi NBA">ⓘ</small></h3>
+        <div class="hzm-mini-slider"><label for="hzm-mini-pace">Tempo gry</label><input type="range" id="hzm-mini-pace" min="-5" max="5" value="0" step="1" aria-label="Hipotetyczna zmiana tempa w procentach"><output id="hzm-mini-pace-output" for="hzm-mini-pace">0%</output></div>
+        <div class="hzm-mini-slider"><label for="hzm-mini-off-away">Atak <span id="hzm-mini-away-code">gości</span></label><input type="range" id="hzm-mini-off-away" min="-5" max="5" value="0" step="1" aria-label="Hipotetyczna zmiana ofensywy gości"><output id="hzm-mini-off-away-output" for="hzm-mini-off-away">0%</output></div>
+        <div class="hzm-mini-slider"><label for="hzm-mini-off-home">Atak <span id="hzm-mini-home-code">gospodarzy</span></label><input type="range" id="hzm-mini-off-home" min="-5" max="5" value="0" step="1" aria-label="Hipotetyczna zmiana ofensywy gospodarzy"><output id="hzm-mini-off-home-output" for="hzm-mini-off-home">0%</output></div>
+        <button id="hzm-mini-run" class="hzm-mini-action" type="button">Przelicz scenariusz w Premium ›</button>
+      </article>
+      <article class="hzm-ref-card" aria-label="Kluczowe wnioski modelu">
+        <h3><span aria-hidden="true">✧</span> Kluczowe wnioski modelu</h3>
+        <ul class="hzm-mini-reasons">
+          <li><span id="hzm-mini-finding-form">Dane o formie drużyn będą dostępne po wyborze meczu.</span></li>
+          <li><span id="hzm-mini-finding-winner">Prawdopodobieństwa zwycięstwa po obliczeniu modelu.</span></li>
+          <li><span id="hzm-mini-finding-context">Ograniczenia składu i danych zostaną podane w raporcie.</span></li>
+        </ul>
+      </article>
+      <article class="hzm-ref-card" aria-label="Ostatnie wyniki testów modelu">
+        <h3><span aria-hidden="true">▥</span> Ostatnie symulacje modelu <small title="Ocena na zakończonych meczach; ROI wymaga historycznych kursów">ⓘ</small></h3>
+        <div class="hzm-recent-kpis">
+          <div><small>Skuteczność</small><strong id="hzm-recent-accuracy">—</strong></div>
+          <div><small>ROI</small><strong id="hzm-recent-roi">N/D</strong></div>
+          <div><small>Próba meczów</small><strong id="hzm-recent-sample">—</strong></div>
+        </div>
+        <p class="hzm-recent-note" id="hzm-recent-note">Uruchom Model &amp; Backtest, aby zobaczyć zweryfikowaną próbę.</p>
+        <button type="button" id="hzm-mini-backtest" class="hzm-mini-action">Przejdź do Model &amp; Backtest ›</button>
+      </article>
+    </section>
     <div id="hzm-insights" class="hzm-insights"><div class="hzm-insight-title">DANE MODELU <span>I OGRANICZENIA</span></div><div><span class="hzm-insight-icon">↗</span><strong>Forma drużyn</strong><small id="hzm-evidence-form">Ostatnie potwierdzone mecze</small></div><div><span class="hzm-insight-icon">◷</span><strong>Tempo i zmienność</strong><small id="hzm-evidence-pace">Heurystyczna zmienność punktów</small></div><div><span class="hzm-insight-icon">▣</span><strong>Odpoczynek i składy</strong><small id="hzm-evidence-rest">Kontuzje wymagają potwierdzenia</small></div></div>
     <div id="hzm-footer" class="hzm-footer"><span>Źródło: NBA / ESPN · model eksperymentalny, nieskalibrowane prawdopodobieństwa</span><button type="button" id="hzm-premium-link">Sprawdź Premium ›</button></div>
   </section>
