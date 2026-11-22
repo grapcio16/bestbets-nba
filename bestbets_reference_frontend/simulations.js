@@ -1958,66 +1958,134 @@ function showAvailability(game,players,sim,premium){
 }
 
 function showMatchIntelligence(game,sim,premium){
- const ids=["completed","source","advanced",
-   "away-sample","away-venue-sample","away-rest","away-sd-sample",
-   "home-sample","home-venue-sample","home-rest","home-sd-sample",
-   "venue-away","venue-home","rest-away","rest-home",
-   "injury-away","injury-home","total-away","total-home"];
- for(const id of ids){const el=$("hzm-intel-"+id);if(el)el.textContent="—";}
- const status=$("hzm-intel-status"),caveat=$("hzm-intel-caveat"),model=$("hzm-intel-model");
+ // All statistics come from the selected model's verified, pre-tipoff
+ // context. No synthetic confidence scores or invented attribution.
+ const set=(id,value)=>{
+   const el=$("hzm-intel-"+id);
+   if(el)el.textContent=value;
+ };
+ const ids=["completed","source","advanced","away-sample","away-venue-sample",
+   "away-rest","away-sd-sample","away-form","away-scored","away-allowed",
+   "home-sample","home-venue-sample","home-rest","home-sd-sample","home-form",
+   "home-scored","home-allowed","venue-away","venue-home","rest-away",
+   "rest-home","injury-away","injury-home","total-away","total-home"];
+ ids.forEach(id=>set(id,"—"));
+ const panel=$("hzm-intel-panel"),status=$("hzm-intel-status"),
+   caveat=$("hzm-intel-caveat"),model=$("hzm-intel-model");
+ const factorBody=$("hzm-intel-factors-v75"),
+   factorInfo=$("hzm-intel-factors-info");
  if(!status||!caveat||!model)return;
+ if(panel)panel.dataset.hzmIntelModel=state.model||"";
+ if(factorBody)factorBody.hidden=true;
+ if(factorInfo)factorInfo.hidden=false;
  model.textContent=modelLabel();
+ const isV75=state.model==="research_context_v75";
+ set("factor-title",isV75?"Rozbicie korekt średniej liczby punktów":
+     "Co uwzględnia wybrany model?");
+ set("factor-description",isV75?
+     "Wpływ udokumentowanych czynników na średnią V7.4, w punktach.":
+     "Zamiast nieistniejących korekt pokazujemy dane historyczne.");
+ set("factor-label",isV75?"V7.5 · TRYB BADAWCZY":"ZWERYFIKOWANE DANE");
+ set("factors-info-title","Bez fikcyjnych korekt");
+ set("factors-info-copy","Nie przedstawiamy rozbicia punktowego, którego wybrany model nie oblicza.");
+ set("advanced-note","Bez zastępowania braków danymi szacowanymi");
  for(const side of ["away","home"]){
    const code=game?.[side]||(side==="away"?"GOŚCIE":"GOSPODARZE");
-   $("hzm-intel-"+side+"-name").textContent=code;
-   $("hzm-intel-factor-"+side).textContent=code;
+   set(side+"-name",code);
+   set("factor-"+side,code);
  }
- caveat.textContent="Nieskalibrowany model eksperymentalny. Korekty nie stanowią prognozy dostępności składu, gwarancji zwycięstwa ani linii bukmachera.";
+ caveat.textContent="Eksperymentalne prognozy modelowe, bez potwierdzonej kalibracji. "+
+   "Zestawienie historycznych danych nie gwarantuje zwycięstwa ani wyniku zakładu.";
  if(premium?.entitled!==true){
-   status.textContent="Dane modelu dostępne tylko w Premium.";return;
+   status.textContent="Szczegóły czynników modelu są dostępne w Premium.";
+   set("factors-info-copy","Zaloguj się na uprawnione konto Premium, aby zobaczyć dane wybranego meczu.");
+   return;
  }
- if(!game){status.textContent="Wybierz mecz NBA.";return;}
- if(!sim){status.textContent="Pobieranie modelu i jego udokumentowanych czynników…";return;}
+ if(!game){status.textContent="Wybierz potwierdzone spotkanie NBA.";return;}
+ if(!sim){status.textContent="Pobieranie zweryfikowanych danych modelu…";return;}
  if(sim.error){status.textContent=String(sim.error).slice(0,180);return;}
  const ctx=sim.model_context;
  if(!ctx||typeof ctx!=="object"){
-   status.textContent="Wybrany model nie dostarczył danych do wyjaśnienia prognozy.";return;
+   status.textContent="Wybrany model nie udostępnił udokumentowanych czynników.";
+   return;
  }
+ const asNumber=n=>n!==null&&n!==undefined&&n!==""&&Number.isFinite(Number(n))?Number(n):null;
  const count=n=>Number.isInteger(n)&&n>=0?String(n):"—";
- const value=n=>n!==null&&n!==undefined&&Number.isFinite(Number(n))?Number(n):null;
- const rest=n=>value(n)!==null&&Number(n)>=0?fmt(n)+" dni":"Brak danych";
- const corrected=n=>value(n)===null?"—":(Number(n)>0?"+":"")+fmt(n)+" pkt";
- $("hzm-intel-completed").textContent=count(ctx.completed_games);
- $("hzm-intel-source").textContent=typeof ctx.source==="string"?ctx.source.slice(0,50):"—";
- $("hzm-intel-advanced").textContent=ctx.advanced_available===true?"Dostępne":ctx.advanced_available===false?"Brak danych":"—";
+ const asRest=n=>asNumber(n)!==null&&Number(n)>=0?fmt(n)+" dni":"Brak danych";
+ const asPoints=n=>asNumber(n)===null?"—":fmt(n);
+ const signed=n=>asNumber(n)===null?"—":(Number(n)>0?"+":"")+fmt(n)+" pkt";
+ const record=stats=>{
+   const wins=asNumber(stats?.wins10),losses=asNumber(stats?.losses10);
+   return wins!==null&&losses!==null&&stats?.n10>0?
+     count(wins)+" W / "+count(losses)+" L":"Brak danych";
+ };
+ set("completed",count(ctx.completed_games));
+ set("source",typeof ctx.source==="string"?ctx.source.slice(0,50):"Brak danych");
+ set("advanced",ctx.advanced_available===true?"Dostępne":
+     ctx.advanced_available===false?"Brak danych":"Niepotwierdzone");
+ set("advanced-note",ctx.advanced_available===true?
+     "Dane NBA Advanced obu drużyn uwzględnione w kontekście":
+     "Nie przypisujemy nieznanych statystyk NBA Advanced");
  for(const [side,i] of [["away",0],["home",1]]){
-   $("hzm-intel-"+side+"-sample").textContent=count(ctx[side+"_sample"]);
-   $("hzm-intel-"+side+"-venue-sample").textContent=count(ctx.venue_samples?.[i]);
-   $("hzm-intel-"+side+"-rest").textContent=rest(ctx.rest_days?.[i]);
-   $("hzm-intel-"+side+"-sd-sample").textContent=count(ctx.score_sd_samples?.[i]);
+   const stats=ctx.team_comparison?.[side];
+   set(side+"-sample",count(ctx[side+"_sample"]));
+   set(side+"-venue-sample",count(ctx.venue_samples?.[i]));
+   set(side+"-rest",asRest(ctx.rest_days?.[i]));
+   set(side+"-sd-sample",count(ctx.score_sd_samples?.[i]));
+   set(side+"-form",record(stats));
+   set(side+"-scored",asPoints(stats?.pts10));
+   set(side+"-allowed",asPoints(stats?.allowed10));
  }
  const factor=ctx.v75_factors;
- if(state.model==="research_context_v75"&&factor&&typeof factor==="object"){
+ if(isV75&&factor&&typeof factor==="object"){
+   if(factorBody)factorBody.hidden=false;
+   if(factorInfo)factorInfo.hidden=true;
    for(const side of ["away","home"]){
-     const venue=value(factor["venue_"+side+"_pts"]);
-     const restPts=value(factor["rest_"+side+"_pts"]);
-     const injury=value(factor["injury_"+side+"_pts"]);
-     $("hzm-intel-venue-"+side).textContent=corrected(venue);
-     $("hzm-intel-rest-"+side).textContent=corrected(restPts);
-     $("hzm-intel-injury-"+side).textContent=corrected(injury);
-     if([venue,restPts,injury].every(v=>v!==null))
-       $("hzm-intel-total-"+side).textContent=corrected(venue+restPts+injury);
+     const venue=asNumber(factor["venue_"+side+"_pts"]);
+     const restPts=asNumber(factor["rest_"+side+"_pts"]);
+     const injury=asNumber(factor["injury_"+side+"_pts"]);
+     set("venue-"+side,signed(venue));
+     set("rest-"+side,signed(restPts));
+     // No confirmed ESPN report => never present an assumed zero as
+     // evidence of a healthy or injury-free roster.
+     set("injury-"+side,factor.injuries_espn_fresh===true?
+       signed(injury):"Brak raportu");
+     if([venue,restPts,injury].every(x=>x!==null)){
+       set("total-"+side,signed(venue+restPts+injury));
+     }
+     for(const kind of ["venue","rest","injury","total"]){
+       const el=$("hzm-intel-"+kind+"-"+side);
+       if(!el)continue;
+       const v=kind==="total"&&[venue,restPts,injury].every(x=>x!==null)?
+         venue+restPts+injury:kind==="venue"?venue:kind==="rest"?restPts:injury;
+       el.dataset.impact=asNumber(v)===null?"missing":v>0?"positive":v<0?"negative":"neutral";
+       if(kind==="injury"&&factor.injuries_espn_fresh!==true)
+         el.dataset.impact="missing";
+     }
    }
-   const report=factor.injuries_espn_fresh===true?
-     "W modelu uwzględniono raport ESPN oceniony jako świeży w chwili obliczenia.":"Brak świeżego raportu ESPN w chwili obliczenia.";
-   const warnings=Array.isArray(ctx.warnings)?ctx.warnings.filter(x=>typeof x==="string").slice(0,2):[];
-   status.textContent="V7.5: rozbicie dodatków do średniej V7.4 · "+report;
-   caveat.textContent="Korekty V7.5 są eksperymentalne, niekalibrowane; "+report+
-      " Status raportu może później wygasnąć. "+warnings.join(" · ").slice(0,200);
+   const fresh=factor.injuries_espn_fresh===true;
+   status.textContent="V7.5 · Korekty wyliczone względem modelu V7.4. "+
+     (fresh?"Użyto świeżego raportu ESPN w chwili symulacji.":
+       "Nie było zweryfikowanego świeżego raportu ESPN; nie zakładamy dostępności zawodników.");
+   const warnings=Array.isArray(ctx.warnings)?
+     ctx.warnings.filter(x=>typeof x==="string").slice(0,2):[];
+   caveat.textContent="Korekty V7.5 są badawcze i nieskalibrowane. "+
+     "Łączny wpływ obejmuje zastosowaną w modelu zmianę OUT równą 0 pkt, "+
+     "jeśli nie pobrano raportu (to nie oznacza braku kontuzji). "+
+     warnings.join(" · ").slice(0,170);
  }else{
    status.textContent=state.model==="legacy_v72"?
-     "V7.2: bazowa metoda punktowa. Kontekst historyczny jest informacyjny; brak rozbicia korekt V7.5.":
-     "V7.4: historyczna forma i kontekst. Korekty dom/wyjazd, odpoczynku i ESPN OUT są liczone dopiero w V7.5.";
+     "V7.2 · Zweryfikowana historia punktów przed meczem. "+
+     "Model nie raportuje osobnych korekt dom/wyjazd, B2B ani ESPN OUT.":
+     "V7.4 · Model formy punktowej z kontekstem historycznym. "+
+     "Oddzielne korekty dom/wyjazd, B2B i OUT są dostępne dopiero w V7.5.";
+   set("factors-info-title",state.model==="legacy_v72"?
+     "Model bazowy V7.2":"Model formy V7.4");
+   set("factors-info-copy",state.model==="legacy_v72"?
+     "V7.2 oblicza prognozę punktów na podstawie zweryfikowanych zakończonych meczów. "+
+     "Nie udajemy rozkładu korekt, których ten model nie wyznacza.":
+     "V7.4 uwzględnia rzeczywistą historyczną formę i rozkład punktów. "+
+     "Zestawienie korekt w punktach należałoby do modelu V7.5, nie do V7.4.");
  }
 }
 
