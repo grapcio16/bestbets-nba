@@ -251,3 +251,171 @@
 @media(max-width:767px){
  #simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard{height:auto}
 }
+
+
+/* Reference-match correction v2: the probability card is a GRID CELL,
+   never the app's global absolute-positioned <aside> sidebar. */
+#simulations-pane[data-hzm-view="results"] .hzm-chart-visual{
+  position:relative;display:grid!important;
+  grid-template-columns:minmax(0,1fr) 132px!important;
+  align-items:stretch;column-gap:6px!important;height:152px!important;
+  width:100%;overflow:hidden;isolation:isolate;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-plot{
+  grid-column:1;grid-row:1;position:relative!important;
+  left:auto!important;top:auto!important;width:100%!important;
+  height:150px!important;min-width:0;overflow:visible;z-index:0;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-probability-panel{
+  grid-column:2;grid-row:1;position:relative!important;
+  left:auto!important;top:auto!important;right:auto!important;bottom:auto!important;
+  width:100%!important;min-width:0;height:calc(100% - 4px)!important;max-height:none!important;
+  z-index:1;display:flex!important;flex-direction:column!important;
+  margin:2px 0!important;padding:6px 6px 5px!important;
+  background:linear-gradient(150deg,#0b2445,#151a3b 78%)!important;
+  border:1px solid #48699d!important;border-radius:8px!important;
+  box-shadow:inset 0 1px #78bbfa24,0 0 10px #8239e51e!important;
+  overflow:hidden!important;transform:none!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-probability-panel::before,
+#simulations-pane[data-hzm-view="results"] .hzm-probability-panel::after{
+  content:none!important;display:none!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-probability-panel>strong{
+  display:flex;justify-content:space-between;align-items:center;
+  gap:4px;padding-bottom:4px;border-bottom:1px solid #406388;
+  font-size:9.1px!important;white-space:nowrap;letter-spacing:-.15px;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-prob-context{
+  display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid #6f4aaf;border-radius:4px;
+  background:#291a4f;color:#d9aff8;font-size:7px;
+  padding:2px 3px;letter-spacing:0;min-width:25px;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-probability-rows{
+  display:flex!important;flex-direction:column!important;
+  flex:1 1 auto;min-height:0;justify-content:center!important;
+  gap:2px!important;padding:2px 0!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-row{
+  display:grid!important;grid-template-columns:10px minmax(0,1fr) auto;
+  gap:3px!important;align-items:center;
+  width:100%;height:20px;min-height:20px;
+  padding:0 1px;border-bottom:1px solid rgba(52,103,155,.27);
+  font-size:8px!important;line-height:12px!important;white-space:nowrap;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-row:last-child{border-bottom:0}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-row:nth-child(2){border-bottom-color:rgba(139,102,181,.55)}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-direction{color:#11f4dc;font-size:12px;font-weight:950}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-row.under .hzm-prob-direction{color:#ef8af5}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-threshold{
+  color:#d0dbee;font-size:8px;overflow:hidden;text-overflow:ellipsis;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-row>b{
+  font-size:11px!important;font-weight:950!important;
+  color:#32f4d2!important;letter-spacing:-.2px;font-variant-numeric:tabular-nums;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-row.under>b{color:#e58cff!important}
+#simulations-pane[data-hzm-view="results"] #hzm-prob-explanation{
+  display:block;margin-top:2px;padding-top:3px;
+  border-top:1px solid #304f76;
+  color:#90afcd;font-size:6.7px;line-height:1.15;letter-spacing:0;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-card header{
+  display:flex;align-items:center;height:29px!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-card h2{
+  font-size:14px!important;letter-spacing:-.3px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis{
+  margin-top:4px;height:43px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-source{
+  position:relative;z-index:1;height:12px!important;margin-top:1px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard{
+  height:121px!important;min-height:121px!important;
+  margin-top:6px!important;gap:7px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ref-card{
+  padding:6px 8px!important;overflow:hidden;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-ref-card h3{
+  font-size:11px;line-height:14px;margin-bottom:5px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-slider{
+  height:15px;min-height:15px;grid-template-columns:105px minmax(0,1fr) 40px;
+  gap:6px;margin-bottom:3px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-slider input[type="range"]{
+  -webkit-appearance:none!important;appearance:none!important;
+  width:100%!important;height:4px!important;min-height:4px!important;
+  padding:0!important;margin:0!important;overflow:visible;
+  border:0!important;outline:0;border-radius:8px!important;
+  background:linear-gradient(90deg,#0aaabe 0%,#23f5f9 45%,#8658e7 70%,#c655f7 100%)!important;
+  box-shadow:0 0 8px #00dff955;cursor:pointer;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-slider input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance:none!important;appearance:none!important;
+  width:12px!important;height:12px!important;border-radius:50%!important;
+  background:#46f2fc!important;border:1px solid #c0ffff!important;
+  box-shadow:0 0 8px #23eefa;cursor:grab;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-slider:nth-of-type(3) input[type="range"]::-webkit-slider-thumb{
+  background:#e29af9!important;border-color:#e7c4ff!important;
+  box-shadow:0 0 8px #d67afa;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-slider input[type="range"]::-moz-range-track{
+  height:4px;border-radius:8px;background:linear-gradient(90deg,#0aaabe,#23f5f9,#c655f7);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-slider input[type="range"]::-moz-range-thumb{
+  width:11px;height:11px;border:1px solid #bbfeff;border-radius:50%;background:#46f2fc;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-nav-row{
+  height:17px;margin:0 0 3px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-action{
+  display:block;min-height:17px;height:17px;line-height:15px;
+  padding:0 3px!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-recent-kpis{
+  margin-top:5px;gap:5px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-recent-kpis>div{
+  padding:4px 2px 3px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-recent-kpis strong{
+  font-size:15px;line-height:21px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-recent-note{
+  margin:4px 0 3px;font-size:7.5px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-reasons{gap:4px}
+#simulations-pane[data-hzm-view="results"] .hzm-mini-reasons li{
+  font-size:8.5px;line-height:1.25;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-content{
+  height:251px!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-detail-grid{
+  height:251px!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-card,
+#simulations-pane[data-hzm-view="results"] .hzm-players-panel{
+  height:251px!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-player-rows{
+  height:161px!important;
+}
+@media(max-width:767px){
+  #simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard{
+    height:auto!important;min-height:0!important;
+  }
+  #simulations-pane[data-hzm-view="results"] .hzm-content,
+  #simulations-pane[data-hzm-view="results"] .hzm-detail-grid{height:auto!important}
+  #simulations-pane[data-hzm-view="results"] .hzm-chart-card,
+  #simulations-pane[data-hzm-view="results"] .hzm-players-panel{height:auto!important;min-height:255px}
+  #simulations-pane[data-hzm-view="results"] .hzm-chart-visual{
+    grid-template-columns:minmax(0,1fr) 118px!important;
+  }
+}
