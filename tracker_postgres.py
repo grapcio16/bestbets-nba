@@ -479,7 +479,7 @@ def remote_tracker_status(url, season):
 def remote_store_quarters(url, season, forecasts, captured_at=None):
     """Archive each pre-tipoff Q1-Q4 row once. Conflicts never overwrite."""
     from math import isfinite
-    from simulation_quarter_shadow import MODEL_ID
+    from simulation_quarter_shadow import MODEL_IDS
 
     stamp = utc_timestamp(captured_at if captured_at is not None
                           else datetime.now(timezone.utc))
@@ -496,7 +496,7 @@ def remote_store_quarters(url, season, forecasts, captured_at=None):
                                ("home_win_pct", "away_win_pct", "tie_pct"))
                 n_h, n_a = int(f["home_sample"]), int(f["away_sample"])
                 if (not gid.isdecimal() or len(gid) > 20 or start <= stamp
-                        or f.get("model_id") != MODEL_ID or not 1 <= q <= 4
+                        or f.get("model_id") not in MODEL_IDS.values() or not 1 <= q <= 4
                         or not all(isfinite(x) for x in (home, away, hp, ap, tie))
                         or not 8 <= home <= 55 or not 8 <= away <= 55
                         or min(hp, ap, tie) < 0 or max(hp, ap, tie) > 100
@@ -510,7 +510,7 @@ def remote_store_quarters(url, season, forecasts, captured_at=None):
                      tie_pct,away_sample,home_sample,source)
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     ON CONFLICT (game_id,model_id,quarter) DO NOTHING
-                """, (gid,MODEL_ID,q,str(season),stamp.to_pydatetime(),
+                """, (gid,str(f["model_id"]),q,str(season),stamp.to_pydatetime(),
                       start.to_pydatetime(),str(f["away"]),str(f["home"]),
                       away,home,ap,hp,tie,n_a,n_h,str(f["source"])[:220]))
                 saved += cur.rowcount
