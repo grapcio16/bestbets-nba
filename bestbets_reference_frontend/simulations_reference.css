@@ -1958,3 +1958,45 @@
 #simulations-pane .hzm-locked-diagnostic .hzm-sim-auth-action:focus-visible{
   outline:2px solid #ddbdff!important;outline-offset:2px!important;
 }
+
+
+/* Readable analyst narrative + model tracker, without forcing truncation
+   inside the scaled desktop layout. Extra height is used only below
+   the main plots, where independent content scrolling is supported. */
+#simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard{
+  height:186px!important;min-height:186px!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard .hzm-ref-card:nth-child(2){
+  padding:10px 12px!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-analyst-insights{
+  gap:8px!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-analyst-insights li,
+#simulations-pane[data-hzm-view="results"] .hzm-analyst-insights li .hzm-insight-copy,
+#simulations-pane[data-hzm-view="results"] .hzm-analyst-insights li .hzm-insight-copy>span,
+#simulations-pane[data-hzm-view="results"] .hzm-analyst-insights li .hzm-insight-copy>b{
+  font-size:10px!important;line-height:1.35!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard .hzm-ref-card:last-child h3{
+  font-size:11px!important;line-height:15px!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-recent-kpis>div>small{
+  font-size:8px!important;line-height:1.2!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-recent-kpis>div>strong{
+  font-size:17px!important;line-height:1.25!important;
+  font-variant-numeric:tabular-nums;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-recent-note{
+  font-size:9px!important;line-height:1.3!important;
+  overflow-wrap:break-word!important;
+}
+@media(max-width:767px){
+  #simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard{
+    height:auto!important;min-height:0!important;
+  }
+  #simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard .hzm-ref-card:nth-child(2){
+    min-height:196px!important;
+  }
+}
