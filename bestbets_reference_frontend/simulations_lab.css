@@ -1469,3 +1469,121 @@
 #simulations-pane .hzm-day-control input,
 #simulations-pane .hzm-day-control label{pointer-events:auto}
 #simulations-pane .hzm-day-control #hzm-day-title{cursor:pointer}
+
+/* Player Minutes · selected-match roster picker (closed geometry unchanged).
+   The list is an overlay, not another tall card or an OS-native select. */
+#simulations-pane .hzm-minute-panel{position:relative;isolation:isolate}
+#simulations-pane .hzm-minute-picker{position:relative;min-width:0;display:flex;flex-direction:column;gap:5px}
+#simulations-pane .hzm-minute-picker-label{color:#c2d9ed;font-size:10px;font-weight:800}
+#simulations-pane .hzm-minute-picker #hzm-minute-player{
+  position:absolute!important;width:1px!important;height:1px!important;
+  padding:0!important;margin:0!important;opacity:0!important;
+  pointer-events:none!important;border:0!important;overflow:hidden!important
+}
+#simulations-pane .hzm-minute-picker-trigger{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  min-height:36px;width:100%;min-width:0;padding:7px 11px;border-radius:9px;
+  border:1px solid #3387bf;background:linear-gradient(112deg,#0d3157,#151b48);
+  box-shadow:inset 0 1px 0 #70dcff23;color:#effcff;
+  font:800 11px inherit;text-align:left;cursor:pointer
+}
+#simulations-pane .hzm-minute-picker-trigger:hover:not(:disabled),
+#simulations-pane .hzm-minute-picker-trigger[aria-expanded="true"]{
+  border-color:#32eafb;box-shadow:0 0 0 2px #0faee51c,0 0 16px #0fb8f22c
+}
+#simulations-pane .hzm-minute-picker-trigger:disabled{opacity:.58;cursor:not-allowed}
+#simulations-pane #hzm-minute-picker-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#simulations-pane .hzm-minute-picker-chevron{color:#67e8fa;font-size:19px;line-height:12px;transition:transform .15s}
+#simulations-pane .hzm-minute-picker-trigger[aria-expanded="true"] .hzm-minute-picker-chevron{transform:rotate(180deg)}
+#simulations-pane .hzm-minute-picker-menu{
+  position:absolute;z-index:120;top:calc(100% + 7px);left:0;
+  width:min(450px,calc(100vw - 36px));max-width:none;
+  overflow:hidden;border:1px solid #39c5ee;border-radius:14px;
+  background:linear-gradient(150deg,#081a35 5%,#10143a 60%,#171239 100%);
+  box-shadow:0 19px 44px #000b1ded,0 0 27px #168cce4d,inset 0 1px #a1dcff24;
+  padding:12px
+}
+#simulations-pane .hzm-minute-picker-menu[hidden]{display:none!important}
+#simulations-pane .hzm-minute-picker-menu[data-side="top"]{top:auto;bottom:calc(100% + 7px)}
+#simulations-pane .hzm-minute-menu-top{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:0 2px 10px}
+#simulations-pane .hzm-minute-menu-top strong{color:#67f5ff;font-size:13px;font-weight:900}
+#simulations-pane #hzm-minute-menu-count{color:#b3b4e1;font-size:10px;font-weight:800}
+#simulations-pane .hzm-minute-menu-filters{display:flex;gap:5px;margin-bottom:9px}
+#simulations-pane .hzm-minute-menu-filters button{
+  flex:1;min-width:0;min-height:30px;border:1px solid #304a76;
+  background:#101f41;color:#acc4ea;border-radius:8px;
+  font:800 10px inherit;cursor:pointer;overflow:hidden;text-overflow:ellipsis
+}
+#simulations-pane .hzm-minute-menu-filters button.selected{
+  background:linear-gradient(100deg,#065f79,#393086);
+  color:#fff;border-color:#3ee3f5;box-shadow:0 0 9px #12d6f524
+}
+#simulations-pane #hzm-minute-search{
+  display:block;width:100%;height:34px;margin:0 0 8px;
+  padding:8px 11px;border:1px solid #395f8d;border-radius:9px;
+  background:#06172f;color:#f1fcff;font:600 11px inherit;outline:none
+}
+#simulations-pane #hzm-minute-search::placeholder{color:#83a1c5}
+#simulations-pane #hzm-minute-search:focus{border-color:#54e8f8;box-shadow:0 0 0 2px #26d8ee23}
+#simulations-pane .hzm-minute-menu-list{
+  max-height:min(274px,40vh);min-height:60px;overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:#388fc9 #111d3e;padding-right:3px
+}
+#simulations-pane .hzm-minute-team-title{
+  display:flex;justify-content:space-between;gap:8px;align-items:center;
+  color:#66eefa;font-size:10px;letter-spacing:.55px;font-weight:900;
+  text-transform:uppercase;padding:10px 7px 5px;border-bottom:1px solid #285176
+}
+#simulations-pane .hzm-minute-team-title.home{color:#e6adff}
+#simulations-pane .hzm-minute-team-title small{color:#96b3d4;letter-spacing:0;font-size:9px}
+#simulations-pane .hzm-minute-option{
+  width:100%;min-height:41px;display:grid;
+  grid-template-columns:30px minmax(0,1fr) auto;align-items:center;
+  gap:8px;padding:5px 7px;margin:3px 0;border-radius:9px;
+  border:1px solid transparent;background:#102b49b0;
+  color:#ecf5ff;text-align:left;cursor:pointer
+}
+#simulations-pane .hzm-minute-option:hover,
+#simulations-pane .hzm-minute-option[aria-selected="true"]{
+  border-color:#36cde9;background:linear-gradient(100deg,#114368,#282459);
+}
+#simulations-pane .hzm-minute-option:focus-visible,
+#simulations-pane .hzm-minute-menu-filters button:focus-visible,
+#simulations-pane .hzm-minute-picker-trigger:focus-visible{
+  outline:2px solid #78eafa;outline-offset:2px
+}
+#simulations-pane .hzm-minute-option.no-model{background:#151e39ad;color:#c2c9d9}
+#simulations-pane .hzm-minute-initials{
+  width:29px;height:29px;display:flex;align-items:center;justify-content:center;
+  border:1px solid #399cbd;border-radius:9px;background:#143758;
+  font-size:9px;font-weight:950;color:#89f6ff
+}
+#simulations-pane .hzm-minute-option.home .hzm-minute-initials{
+  border-color:#a26ad4;background:#3c285d;color:#e4b0ff
+}
+#simulations-pane .hzm-minute-option-identity{min-width:0;display:flex;flex-direction:column;gap:2px}
+#simulations-pane .hzm-minute-option-identity strong{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:850
+}
+#simulations-pane .hzm-minute-option-identity small{color:#88aaca;font-size:9px}
+#simulations-pane .hzm-minute-option-flag{
+  white-space:nowrap;border:1px solid #287c9c;border-radius:6px;
+  background:#064756a8;color:#78f6dd;font-size:9px;font-weight:800;padding:4px 6px
+}
+#simulations-pane .hzm-minute-option-flag.unavailable{
+  color:#b7bed2;border-color:#54557e;background:#30294a
+}
+#simulations-pane .hzm-minute-option-flag.out{
+  color:#ffb8b0;border-color:#b05d6a;background:#4a253d
+}
+#simulations-pane .hzm-minute-menu-footnote{
+  margin:9px 2px 0;font-size:9px;line-height:1.35;color:#a4b8d5
+}
+#simulations-pane .hzm-minute-menu-empty{padding:19px 10px;text-align:center;color:#a9c3db;font-size:11px}
+@media(max-width:767px){
+  #simulations-pane .hzm-minute-picker-menu{width:min(450px,calc(100vw - 40px));padding:10px}
+  #simulations-pane .hzm-minute-menu-list{max-height:min(270px,35vh)}
+}
+@media(prefers-reduced-motion:reduce){
+  #simulations-pane .hzm-minute-picker-chevron{transition:none}
+}
