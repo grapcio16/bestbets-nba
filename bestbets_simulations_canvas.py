@@ -219,6 +219,9 @@ def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"
     summary, _, home_scores, away_scores = simulate_game(
         game, means, score_noise=(context["score_noise"]
                                  if model_id != "legacy_v72" else None))
+    from simulation_flow import conditional_flow
+    flow = conditional_flow(away_scores, home_scores, game_id=game_id,
+                            model_id=model_id)
     return {
         "game_id": game_id, "model_id": model_id, "away": away, "home": home,
         "away_win_pct": summary["away_win_pct"],
@@ -231,6 +234,7 @@ def _game_simulation(day: str, game_id: str, model_id: str = "research_form_v74"
             "away": _distribution(away_scores),
             "home": _distribution(home_scores),
         },
+        "flow": flow,
         "n_sims": summary["n_sims"], "source": str(summary.get("source") or "ESPN"),
         "warning": str(warning or "")[:150],
         "retrospective": match.get("state") == "final",
@@ -701,6 +705,8 @@ def scenario_for_entitled_user(day: str, game_id: str, model_id: str,
             # integer score frequencies for editable OVER/UNDER comparisons.
             "baseline_distribution": baseline["distributions"]["match"],
             "scenario_distribution": modified["distributions"]["match"],
+            "baseline_flow": baseline.get("flow"),
+            "scenario_flow": modified.get("flow"),
             "hypothetical": True,
             "description": (
                 f"Hipotetyczne tempo {pace_pct:+d}%; "
