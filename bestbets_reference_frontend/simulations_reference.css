@@ -2748,43 +2748,225 @@
 }
 
 
-/* Proportion correction against the 1648×920 approved reference:
-   three cards roughly 370 virtual px high at the fixed Hoopzaro stage scale.
-   Keep controls reachable even at narrow desktop heights. */
-@media(min-width:1091px){
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-card{
-    height:382px!important;
+/* Scenario Lab layout stability correction — 2026-11-22.
+   Eliminate the fixed 382px card and 296px content heights. The first
+   column must never shrink sliders underneath the preset grid.
+   Preserve the approved 3-column layout at desktop width, neon palette,
+   motion and Monte Carlo interaction. */
+#simulations-pane[data-hzm-view="scenario"] .hzm-content,
+#simulations-pane[data-hzm-view="scenario"] .hzm-analysis{
+  height:auto!important;
+  min-height:0!important;
+  overflow:visible!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-panel{
+  height:auto!important;
+  min-height:0!important;
+  align-items:stretch!important;
+  grid-auto-rows:auto!important;
+  overflow:visible!important;
+  padding-bottom:12px!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-panel>.hzm-scenario-card{
+  height:auto!important;
+  min-height:465px!important;
+  max-height:none!important;
+  align-self:stretch!important;
+  box-sizing:border-box!important;
+  overflow:visible!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control{
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-start!important;
+  align-items:stretch!important;
+  gap:0!important;
+  padding:12px 13px 12px!important;
+  overflow:visible!important;
+}
+/* Every section retains its natural height, preventing the third slider
+   and the help link from collapsing underneath the preset heading. */
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control>header,
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control>.hzm-scenario-lead,
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control>.hzm-scenario-editor,
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control>.hzm-scenario-presets,
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control>#hzm-scenario-run,
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control>.hzm-scenario-disclaimer{
+  flex-shrink:0!important;
+  min-height:0;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control>.hzm-scenario-editor{
+  display:flex!important;
+  flex-direction:column!important;
+  flex:0 0 auto!important;
+  gap:7px!important;
+  overflow:visible!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-editor>.hzm-scenario-factor,
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-editor>.hzm-scenario-team-sliders,
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-editor>.hzm-scenario-minute-link,
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-team-sliders>.hzm-scenario-factor{
+  flex:0 0 auto!important;
+  min-height:max-content!important;
+  position:relative!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control .hzm-scenario-factor{
+  padding:7px 8px!important;
+  margin:0!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor>label{
+  min-height:17px!important;
+  line-height:17px!important;
+  margin:0!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control .hzm-scenario-factor-icon{
+  width:19px!important;height:19px!important;flex:0 0 19px!important;
+  font-size:12px!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-slider-line{
+  min-height:23px!important;
+  margin:5px 0 0!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-slider-line output{
+  height:23px!important;
+  min-height:23px!important;
+  font-size:12px!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-ticks{
+  margin:5px 0 0!important;
+  line-height:11px!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-team-sliders{
+  gap:7px!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-minute-link{
+  min-height:28px!important;
+  flex-shrink:0!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-presets{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:7px!important;
+  flex:0 0 auto!important;
+  margin:13px 0 10px!important;
+  padding:0!important;
+  position:relative!important;
+  z-index:1;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-presets-head{
+  min-height:19px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-presets-head>strong{
+  line-height:18px!important;
+  font-size:10px!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-preset-grid{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:7px!important;
+  width:100%!important;
+  margin:0!important;
+  padding:0!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-preset-grid>button{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:0!important;
+  min-height:43px!important;
+  height:auto!important;
+  padding:6px 5px!important;
+  white-space:normal!important;
+  line-height:1.25!important;
+  overflow-wrap:anywhere!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-preset-grid>button>span{
+  font-size:9px!important;
+  line-height:12px!important;
+  font-weight:900!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-preset-grid>button>small{
+  margin-top:2px!important;
+  font-size:8px!important;
+  line-height:10px!important;
+}
+#simulations-pane[data-hzm-view="scenario"] #hzm-scenario-run{
+  flex:0 0 42px!important;
+  min-height:42px!important;
+  height:42px!important;
+  margin:0 0 10px!important;
+  padding:6px 9px!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-disclaimer{
+  flex:0 0 auto!important;
+  margin:0!important;
+  margin-top:auto!important;
+  padding-top:5px!important;
+  font-size:8px!important;
+  line-height:1.4!important;
+  overflow-wrap:break-word!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-output{
+  overflow:visible!important;
+  min-width:0!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insights{
+  overflow:hidden!important;
+  min-width:0!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insight-list{
+  min-height:0;
+  overflow-y:auto!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-minute-panel{
+  min-width:0!important;
+  align-self:start!important;
+}
+/* The app is a 1231px virtual canvas scaled to fit desktop windows.
+   Media queries below refer to viewport size, not an extra page breakpoint
+   that would unexpectedly collapse desktop columns. */
+@media(max-width:1090px){
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-panel>.hzm-scenario-card{
+    min-height:0!important;
+    height:auto!important;
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control,
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-output{
+    overflow:visible!important;
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insights{
+    min-height:170px!important;
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insight-list{
+    overflow:visible!important;
+  }
+}
+@media(max-width:767px){
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-panel{
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-panel>.hzm-scenario-card{
+    min-height:0!important;
+    overflow:visible!important;
   }
   #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control{
-    gap:0!important;overflow-y:auto!important;scrollbar-width:thin;
-    scrollbar-color:rgba(93,155,216,.55) transparent;
+    padding:14px 12px!important;
   }
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-output{
-    overflow-y:auto!important;scrollbar-width:thin;
-    scrollbar-color:rgba(59,139,196,.6) transparent;
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insights{
+    min-height:0!important;
+    overflow:visible!important;
   }
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor{
-    padding:3px 6px!important;
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-preset-grid>button{
+    min-height:45px!important;
   }
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor-icon{
-    width:19px;height:19px;flex-basis:19px;
-    font-size:12px;
+}
+@media(prefers-reduced-motion:reduce){
+  #simulations-pane[data-hzm-view="scenario"] #hzm-scenario-run,
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-preset-grid>button{
+    animation:none!important;transition:none!important;
   }
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor>label{
-    line-height:18px!important;
-  }
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-slider-line output{
-    height:22px!important;
-  }
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-ticks{margin:3px 0 0!important}
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-editor{gap:3px}
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-team-sliders{gap:3px!important}
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-minute-link{min-height:23px}
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-presets{margin:4px 0!important;gap:3px}
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-preset-grid button{min-height:30px}
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-presets-head>strong{font-size:9px}
-  #simulations-pane[data-hzm-view="scenario"] #hzm-scenario-run{
-    min-height:32px!important;height:32px!important;flex-basis:32px;
-  }
-  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-disclaimer{font-size:7px!important;line-height:1.25!important}
 }
