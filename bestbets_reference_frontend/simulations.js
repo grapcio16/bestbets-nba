@@ -601,18 +601,43 @@ function showResultsDashboard(game,sim,premium){
    const element=$(id);
    if(element){element.textContent=findings[key];element.title=findings[key];}
  }
+ // Tracker accuracy is measured on stored pre-tipoff forecasts, not on
+ // the currently selected live 5,000-draw result. Admin-only server data;
+ // never derive historical success from the current matchup.
+ const tracker=paid?premium?.tracker_snapshot:null;
+ const modelStats=tracker?.status==="ready"?tracker?.models?.[state.model]:null;
+ const trackerValid=modelStats&&Number.isInteger(modelStats.games)&&
+   modelStats.games>0&&modelStats.games<=1500&&
+   Number.isFinite(Number(modelStats.winner_accuracy_pct))&&
+   Number(modelStats.winner_accuracy_pct)>=0&&Number(modelStats.winner_accuracy_pct)<=100;
  const report=paid?premium?.backtest:null;
  const key=state.model==="legacy_v72"?"old":state.model==="research_form_v74"?"enriched":"v75";
- const model=report&&!report.error&&Array.isArray(report.models)?
+ const tested=report&&!report.error&&Array.isArray(report.models)?
    report.models.find(row=>row?.key===key):null;
- const validReport=Number.isInteger(report?.games)&&report.games>0&&report.games<=40&&
-   model&&Number.isFinite(Number(model.winner_accuracy_pct))&&
-   Number(model.winner_accuracy_pct)>=0&&Number(model.winner_accuracy_pct)<=100;
- set("hzm-recent-accuracy",validReport?percent(model.winner_accuracy_pct):"—");
+ const testedValid=Number.isInteger(report?.games)&&report.games>0&&report.games<=40&&
+   tested&&Number.isFinite(Number(tested.winner_accuracy_pct))&&
+   Number(tested.winner_accuracy_pct)>=0&&Number(tested.winner_accuracy_pct)<=100;
+ set("hzm-recent-accuracy",trackerValid?percent(modelStats.winner_accuracy_pct):
+   testedValid?percent(tested.winner_accuracy_pct):"—");
  set("hzm-recent-roi","N/D");
- set("hzm-recent-sample",validReport?String(report.games):"—");
- set("hzm-recent-note",validReport?"Backtest offline · nie jest potwierdzeniem skuteczności wersji produkcyjnej. ROI: brak kursów.":
-   "Uruchom Model & Backtest, aby zobaczyć zweryfikowaną próbę. ROI wymaga kursów.");
+ set("hzm-recent-sample",trackerValid?String(modelStats.games):
+   testedValid?String(report.games):"—");
+ const trackerStatus=tracker?.status;
+ const statusNote=trackerStatus==="setup_required"?
+   "Brak TRACKER_DATABASE_URL w Streamlit Secrets — połącz serwer z Neon, aby pokazać wyniki.":
+   trackerStatus==="connection_issue"?
+   "Nie udało się odczytać Neon. Sprawdź połączenie serwera z bazą danych.":
+   trackerStatus==="invalid_archive"?
+   "Archiwum prognoz ma niekompletny schemat; wyników nie można zweryfikować.":
+   trackerStatus==="no_results"?
+   "Brak rozliczonych prognoz z tego sezonu w podłączonym archiwum Neon.":
+   "Uruchom Model & Backtest, aby zobaczyć historię. ROI wymaga kursów.";
+ set("hzm-recent-note",trackerValid?
+   "Tracker "+String(tracker.season||"")+
+   " · "+modelStats.games+" rozliczonych meczów · prognozy zapisane przed meczem. ROI: brak kursów.":
+   testedValid?
+   "Backtest offline, "+report.games+" meczów · nie oznacza skuteczności produkcyjnej. ROI: brak kursów.":
+   statusNote);
 }
 
 
