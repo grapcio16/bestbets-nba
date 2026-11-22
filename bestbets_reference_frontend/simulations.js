@@ -351,15 +351,15 @@ function chartSvg(dist,code){
    '<defs>'+
      '<linearGradient id="hzm-curve-fill" x1="0%" y1="0%" x2="100%" y2="0%">'+
        '<stop offset="0%" stop-color="#06e9f1" stop-opacity=".32"/>'+
-       '<stop offset="30%" stop-color="#17dffc" stop-opacity=".53"/>'+
-       '<stop offset="59%" stop-color="#4889fa" stop-opacity=".57"/>'+
-       '<stop offset="85%" stop-color="#9662f5" stop-opacity=".49"/>'+
+       '<stop offset="28%" stop-color="#17dffc" stop-opacity=".53"/>'+
+       '<stop offset="52%" stop-color="#387fe7" stop-opacity=".61"/>'+
+       '<stop offset="72%" stop-color="#9c52ef" stop-opacity=".57"/>'+
        '<stop offset="100%" stop-color="#d65cf8" stop-opacity=".28"/>'+
      '</linearGradient>'+
      '<linearGradient id="hzm-curve-stroke" x1="0%" y1="0%" x2="100%" y2="0%">'+
        '<stop offset="0%" stop-color="#07f6f4"/>'+
-       '<stop offset="36%" stop-color="#19ecfc"/>'+
-       '<stop offset="66%" stop-color="#70b9ff"/>'+
+       '<stop offset="32%" stop-color="#19ecfc"/>'+
+       '<stop offset="62%" stop-color="#866dfa"/>'+
        '<stop offset="100%" stop-color="#c969fb"/>'+
      '</linearGradient>'+
      '<filter id="hzm-line-glow" x="-30%" y="-45%" width="170%" height="190%">'+
