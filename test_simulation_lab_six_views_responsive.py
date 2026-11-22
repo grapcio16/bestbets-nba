@@ -133,8 +133,12 @@ def check(page, width, height):
     page.evaluate(
         "d => window.postMessage({type:'streamlit:render',args:{payload:d}}, '*')",
         data)
-    page.locator("#hzm-day-input").fill("2026-11-23")
-    page.locator("#hzm-day-input").dispatch_event("change")
+    # The approved custom calendar uses a deliberately hidden native input.
+    # Set its value and dispatch a change in the test harness rather than
+    # trying to perform a visible user interaction on a hidden DOM element.
+    page.locator("#hzm-day-input").evaluate(
+        """el => {el.value='2026-11-23';
+                   el.dispatchEvent(new Event('change',{bubbles:true}));}""")
     page.locator("#hzm-model-trigger").click()
     page.locator("#hzm-model-option-research_context_v75").click()
     assert page.locator("#hzm-lab-nav button:disabled").count() == 0
