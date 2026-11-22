@@ -2093,10 +2093,56 @@ function showMatchIntelligence(game,sim,premium){
  }
 }
 
+function showComparisonProfile(game,data,n){
+ // The plot is DESCRIPTIVE and normalized to explicitly documented fixed
+ // display ranges, never a probability, forecast, or secretly imputed value.
+ const svg=$("hzm-compare-profile-svg"),
+       empty=$("hzm-compare-profile-empty"),
+       awayPolygon=$("hzm-compare-polygon-away"),
+       homePolygon=$("hzm-compare-polygon-home");
+ if(!svg||!empty||!awayPolygon||!homePolygon)return;
+ svg.hidden=true;empty.hidden=false;
+ awayPolygon.setAttribute("points","");
+ homePolygon.setAttribute("points","");
+ $("hzm-compare-legend-away").textContent=game?.away||"GOŚCIE";
+ $("hzm-compare-legend-home").textContent=game?.home||"GOSPODARZE";
+ $("hzm-compare-profile-window").textContent="L"+n;
+ if(!game||!data||data.away?.team!==game.away||data.home?.team!==game.home)return;
+ const clip=v=>Math.min(1,Math.max(0,v));
+ const numbers=t=>{
+   const vals=[t["pts"+n],t["win_pct"+n],t["margin"+n],
+               t["allowed"+n],t.venue_scored].map(Number);
+   if(!Number.isInteger(t["n"+n])||t["n"+n]<Math.min(n,5)||
+      !Number.isInteger(t.venue_sample)||t.venue_sample<4||
+      !vals.every(Number.isFinite)||
+      !(vals[0]>=60&&vals[0]<=180&&vals[1]>=0&&vals[1]<=100&&
+        vals[2]>=-80&&vals[2]<=80&&vals[3]>=60&&vals[3]<=180&&
+        vals[4]>=60&&vals[4]<=180))return null;
+   return [clip((vals[0]-85)/60),clip(vals[1]/100),
+           clip((vals[2]+30)/60),clip((145-vals[3])/60),
+           clip((vals[4]-85)/60)];
+ };
+ const away=numbers(data.away),home=numbers(data.home);
+ if(!away||!home){
+   empty.querySelector("p").textContent=
+     "Brak dostatecznej próby L"+n+" lub kompletnych danych wyjazd/u siebie. Profilu nie wyliczamy.";
+   return;
+ }
+ const points=values=>values.map((val,i)=>{
+   const angle=-Math.PI/2+i*2*Math.PI/5;
+   return (170+112*val*Math.cos(angle)).toFixed(1)+","+
+          (156+112*val*Math.sin(angle)).toFixed(1);
+ }).join(" ");
+ awayPolygon.setAttribute("points",points(away));
+ homePolygon.setAttribute("points",points(home));
+ svg.hidden=false;empty.hidden=true;
+}
+
 function showTeamComparison(game,sim,premium){
  const status=$("hzm-compare-status"),disclaimer=$("hzm-compare-disclaimer");
  if(!status||!disclaimer)return;
  const n=state.comparisonWindow===5?5:10;
+ showComparisonProfile(game,null,n);
  const fields=["pts","allowed","margin","win-pct","venue-scored","venue-allowed","pace","off-rating","def-rating"];
  const count=v=>Number.isInteger(v)&&v>=0&&v<=200?String(v):"—";
  const mean=v=>v!==null&&v!==undefined&&v!==""&&Number.isFinite(Number(v))?fmt(v):"—";
@@ -2145,6 +2191,7 @@ function showTeamComparison(game,sim,premium){
       ["pace",t.pace],["off-rating",t.off_rating],["def-rating",t.def_rating]])
       $("hzm-compare-"+side+"-"+key).textContent=data.advanced_available===true?mean(val):"—";
  }
+ showComparisonProfile(game,data,n);
  status.textContent="Forma L"+n+": "+game.away+" "+count(data.away["n"+n])+
     " meczów · "+game.home+" "+count(data.home["n"+n])+
     " meczów; wyłącznie zakończone spotkania sprzed rozpoczęcia wybranego meczu.";
