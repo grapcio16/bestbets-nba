@@ -589,3 +589,196 @@
   #simulations-pane .hzm-intel-premium-v2 .hzm-intel-head h2{font-size:21px}
   #simulations-pane .hzm-intel-research-tag{display:none}
 }
+
+/* Premium phone fidelity — a real responsive layout, not 1231px scaled
+   to 390px. Activated ONLY for Match Intelligence by resize(), with complete
+   cleanup when leaving the tab. Keep other page layouts unaffected. */
+@media(max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+  #app-shell.hz-mobile-intelligence{
+    width:100%!important;height:auto!important;min-height:100%!important;margin:0!important;
+  }
+  #app-shell.hz-mobile-intelligence #stage{
+    position:relative!important;inset:auto!important;transform:none!important;
+    width:100%!important;height:auto!important;min-height:100dvh!important;
+    overflow:visible!important;background:
+      radial-gradient(ellipse 120% 25% at 95% 0%,rgba(99,29,197,.27),transparent 79%),
+      radial-gradient(ellipse 80% 30% at -20% 90%,rgba(0,182,220,.10),transparent 70%),
+      #050b1d;
+  }
+  #app-shell.hz-mobile-intelligence #stage>aside,
+  #app-shell.hz-mobile-intelligence #stage .top-orange,
+  #app-shell.hz-mobile-intelligence #stage #footer,
+  #app-shell.hz-mobile-intelligence #stage #attribution{
+    display:none!important;
+  }
+  #app-shell.hz-mobile-intelligence #work{
+    position:relative!important;left:auto!important;top:auto!important;
+    width:100%!important;height:auto!important;min-height:100dvh!important;
+    overflow:visible!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane{
+    position:relative!important;left:auto!important;top:auto!important;
+    width:100%!important;height:auto!important;max-height:none!important;
+    min-height:100dvh!important;overflow:visible!important;
+    padding:12px 12px calc(105px + env(safe-area-inset-bottom))!important;
+    margin:0!important;touch-action:pan-y;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-header{
+    display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    gap:9px!important;width:100%;height:auto!important;min-height:0!important;
+    margin:0 0 11px!important;padding:0!important;align-items:stretch!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-title{
+    display:flex;grid-column:1/-1;flex-wrap:wrap;
+    align-items:center;justify-content:space-between;gap:10px;
+    width:100%;min-width:0;margin:0!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-title-copy{
+    min-width:0;white-space:normal;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-title h1{
+    font-size:23px!important;line-height:1.2!important;
+    letter-spacing:-.75px!important;white-space:normal;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-premium{
+    flex:none;height:30px;margin:0!important;padding:0 9px!important;
+    font-size:9px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-match-picker{
+    min-width:0;max-width:none;width:100%;height:39px;min-height:39px;
+    flex:auto;margin:0!important;padding:0 10px;font-size:11px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-model-choice{
+    flex:auto;align-self:stretch;width:100%;min-width:0;margin:0!important;gap:0;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-model-caption{
+    display:none!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-model-dropdown{
+    width:100%!important;min-width:0;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-model-trigger{
+    height:39px;min-height:39px;font-size:10px;padding-left:9px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-simulation-count{
+    min-width:0;width:100%;height:39px;min-height:39px;margin:0;
+    padding:4px 6px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-day-control{
+    flex:auto;width:100%;max-width:none;min-width:0;height:39px;
+    min-height:39px;margin:0!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-day-main{
+    min-width:0;flex:1;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane #hzm-day-title{
+    min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;font-size:9px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-day-control .hzm-day-arrow{
+    min-width:27px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-match-list{
+    position:absolute!important;z-index:100;left:12px;right:12px;
+    top:calc(100% - 9px);width:calc(100% - 24px);max-width:none;
+    max-height:420px;overflow:hidden;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-lab-nav{
+    display:flex!important;flex-wrap:nowrap!important;
+    gap:7px!important;width:100%;min-height:45px;height:auto!important;
+    overflow-x:auto!important;overflow-y:hidden!important;
+    overscroll-behavior-x:contain;scrollbar-width:thin;
+    scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
+    padding:5px!important;margin:0 0 12px!important;
+    border-radius:12px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-lab-nav button{
+    flex:0 0 auto;min-width:145px;height:34px!important;min-height:34px;
+    padding:7px 9px!important;font-size:10px!important;
+    scroll-snap-align:start;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-content,
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-analysis{
+    display:block;width:100%;height:auto!important;min-height:0!important;
+    overflow:visible!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-premium-v2{
+    width:100%;padding:16px 12px 13px;gap:12px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-premium-v2 .hzm-intel-head{
+    display:flex;align-items:flex-start;gap:9px;min-height:0;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-head-copy small{
+    font-size:9px;letter-spacing:1px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-premium-v2 .hzm-intel-head h2{
+    font-size:25px;line-height:1.14;letter-spacing:-.8px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-head p{
+    font-size:11px;line-height:1.4;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-head-actions{
+    align-self:flex-start;flex:none;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-premium-v2 .hzm-intel-model{
+    font-size:11px;min-width:55px;max-width:65px;height:32px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-status{
+    font-size:11px!important;line-height:1.5;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-evidence{
+    display:grid;grid-template-columns:minmax(0,1fr)!important;
+    gap:9px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-evidence>.hzm-intel-kpi{
+    grid-column:auto!important;min-height:80px;padding:12px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-kpi-copy small{
+    font-size:11px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-kpi-copy strong{
+    font-size:21px!important;line-height:1.2;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-kpi-copy>span{
+    font-size:10px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-main-grid{
+    display:grid;grid-template-columns:minmax(0,1fr);gap:11px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-teams{
+    display:grid;grid-template-columns:minmax(0,1fr)!important;gap:11px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-main-grid .hzm-intel-team{
+    min-height:0;padding:14px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-main-grid .hzm-intel-team header strong{
+    font-size:23px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-main-grid .hzm-intel-team>.hzm-intel-team-stat{
+    min-height:34px;padding:7px 1px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-main-grid .hzm-intel-team-stat>span,
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-main-grid .hzm-intel-team-sample>span{
+    font-size:11px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-main-grid .hzm-intel-team-stat>strong{
+    font-size:12px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-main-grid .hzm-intel-factors header{
+    padding:14px 11px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-main-grid .hzm-intel-factor-head,
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-main-grid .hzm-intel-factor-row{
+    grid-template-columns:minmax(0,1.25fr) minmax(65px,.7fr) minmax(65px,.7fr);
+    padding:11px 8px;gap:5px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-main-grid .hzm-intel-factor-row>span{
+    font-size:10px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-main-grid .hzm-intel-factor-row>strong{
+    font-size:11px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-intel-premium-v2 .hzm-intel-caveat{
+    font-size:10px;line-height:1.5;
+  }
+}
