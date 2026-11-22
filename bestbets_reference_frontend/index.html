@@ -838,11 +838,11 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
           </div>
 
           <section id="hzm-minute-panel" class="hzm-minute-panel" aria-label="Player Minutes What-if — wariant zawodnika">
-            <div class="hzm-minute-head"><strong>◷ Player Minutes · What-if</strong><span>V7.5 · HISTORYCZNE MINUTY ESPN</span></div>
+            <div class="hzm-minute-head"><strong>◷ Player Minutes · What-if</strong><span>ESPN · MINUTY HISTORYCZNE / V7.5</span></div>
             <p class="hzm-minute-note">Oddzielny test wpływu minut na PTS / REB / AST / PRA. Stała produkcja na minutę; <strong>nie zmienia wyniku meczu</strong> i nie potwierdza dostępności zawodnika.</p>
             <div class="hzm-minute-controls">
               <label class="hzm-minute-picker">Zawodnik
-                <select id="hzm-minute-player" aria-label="Wybierz zawodnika ze zweryfikowanymi historycznymi minutami" disabled><option value="">Brak dostępnej próbki V7.5</option></select>
+                <select id="hzm-minute-player" aria-label="Wybierz zawodnika ze zweryfikowanymi historycznymi minutami" disabled><option value="">Pobieranie historii minut ESPN…</option></select>
               </label>
               <label class="hzm-minute-adjust">Korekta minut
                 <span class="hzm-minute-slider-line"><input id="hzm-minute-delta" type="range" min="-5" max="5" step="1" value="0" disabled aria-label="Hipotetyczna zmiana minut zawodnika"><output id="hzm-minute-delta-output" for="hzm-minute-delta">0 min</output></span>
@@ -858,14 +858,14 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <div id="hzm-minute-result" class="hzm-minute-result" aria-live="polite" hidden>
               <span id="hzm-minute-minutes">Minuty: —</span><span id="hzm-minute-pts">PTS: —</span><span id="hzm-minute-reb">REB: —</span><span id="hzm-minute-ast">AST: —</span><span id="hzm-minute-pra">PRA: —</span>
             </div>
-            <p id="hzm-minute-status" class="hzm-minute-status" role="status">Wybierz model V7.5 i zweryfikowanego zawodnika.</p>
+            <p id="hzm-minute-status" class="hzm-minute-status" role="status">Wybierz przyszły mecz; analiza wykorzystuje minuty ESPN dla wybranego modelu.</p>
           </section>
           <section id="hzm-availability-panel" class="hzm-availability-panel" aria-label="Injury Watch — dowody i dostępność składu">
             <header class="hzm-availability-head">
               <strong>✚ Injury Watch · skład i kontuzje</strong>
               <span id="hzm-availability-freshness" class="hzm-availability-freshness">SPRAWDZANIE DANYCH</span>
             </header>
-            <p id="hzm-availability-message" class="hzm-availability-message" role="status">Wybierz model V7.5, aby zobaczyć statusy dostępności z ESPN.</p>
+            <p id="hzm-availability-message" class="hzm-availability-message" role="status">Statusy ESPN będą pobierane dla obu drużyn bez względu na wybrany model.</p>
             <div class="hzm-availability-teams" role="group" aria-label="Statusy zawodników obu drużyn">
               <div class="hzm-availability-team">
                 <header><strong id="hzm-availability-away-code">GOŚCIE</strong><span id="hzm-availability-away-count">—</span></header>
@@ -878,7 +878,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
                 <small id="hzm-availability-home-impact">Korekta modelu V7.5: —</small>
               </div>
             </div>
-            <p class="hzm-availability-warning">ESPN nie jest oficjalnym raportem NBA. Brak wpisu o zawodniku nie potwierdza, że zagra. Statusy i małe korekty punktów są nieskalibrowanym kontekstem V7.5, nie oddzielnym scenariuszem ani nową symulacją.</p>
+            <p class="hzm-availability-warning">Wpisy ESPN są nieoficjalne i mogą się zmieniać. Brak wpisu nie potwierdza dostępności zawodnika. V7.2 i V7.4 nie zmieniają prognozy na podstawie tych statusów; ewentualna ograniczona korekta OUT dotyczy tylko V7.5 i wyłącznie świeżego raportu.</p>
           </section>
         </section>
         <section id="hzm-intel-panel" class="hzm-intel-panel" aria-label="Match Intelligence — czynniki modelu" hidden>
