@@ -175,12 +175,37 @@ def main():
         assert page.locator("#hzm-intel-panel").is_visible()
         assert page.locator("#hzm-intel-away-form").inner_text() == "6 W / 4 L"
         assert page.locator("#hzm-intel-factors-v75").is_visible()
+        mobile_layout = page.evaluate("""() => {
+           const stage=document.querySelector('#stage');
+           const shell=document.querySelector('#app-shell');
+           const panel=document.querySelector('#hzm-intel-panel');
+           return {
+             mode:shell.classList.contains('hz-mobile-intelligence'),
+             transform:getComputedStyle(stage).transform,
+             stageWidth:stage.getBoundingClientRect().width,
+             cardWidth:panel.getBoundingClientRect().width,
+             labelFont:parseFloat(getComputedStyle(document.querySelector('.hzm-intel-team-stat>span')).fontSize),
+             bodyExtent:document.documentElement.scrollHeight,
+             viewHeight:window.innerHeight
+           };
+        }""")
+        assert mobile_layout["mode"], mobile_layout
+        assert mobile_layout["transform"]=="none", mobile_layout
+        assert 350 <= mobile_layout["stageWidth"] <= 400, mobile_layout
+        assert mobile_layout["cardWidth"] >= 315, mobile_layout
+        assert mobile_layout["labelFont"] >= 10, mobile_layout
+        assert mobile_layout["bodyExtent"] > mobile_layout["viewHeight"] + 400, mobile_layout
+        page.locator("#hzm-intel-caveat").scroll_into_view_if_needed()
+        assert page.locator("#hzm-intel-caveat").is_visible()
         card_overflow = page.locator("#hzm-intel-panel").evaluate("""el =>
            ({client:el.clientWidth, scroll:el.scrollWidth,
              cols:getComputedStyle(el.querySelector('.hzm-intel-teams')).gridTemplateColumns})""")
         assert card_overflow["scroll"] <= card_overflow["client"]+2, card_overflow
         page.screenshot(path=str(OUT / "match-intelligence-v75-mobile.png"), full_page=True)
         page.locator("#hzm-intel-panel").screenshot(path=str(OUT / "match-intelligence-v75-mobile-panel.png"))
+        page.locator("#hzm-lab-tab-results").click()
+        assert not page.locator("#app-shell").evaluate("el => el.classList.contains('hz-mobile-intelligence')")
+        assert page.locator("#hzm-detail-grid").is_visible()
         assert not errors, errors
         browser.close()
         print("Match Intelligence: V7.5 factors, V7.4 isolation and Premium gate OK")
