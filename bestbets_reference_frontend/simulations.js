@@ -74,6 +74,14 @@ function toggleMatchPicker(open){
 }
 function chooseView(view){
  if(!["results","players","scenario","intelligence","flow","comparison","backtest"].includes(view)||view===state.view)return;
+ // Flow is research-only until independently backtested. Never route public
+ // users into its unreliably modeled timelines, including delegated clicks.
+ // In isolated Chromium research QA the hidden/disabled button is explicitly
+ // unlocked by the test harness. This is a UX gate, NOT an auth boundary.
+ if(view==="flow"){
+   const researchTab=$("hzm-lab-tab-flow");
+   if(!researchTab||researchTab.hidden||researchTab.disabled)return;
+ }
  state.view=view;
  state.expanded=view==="players";
  render(state.lastHome,state.lastPremium);
