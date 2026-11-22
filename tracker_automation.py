@@ -185,6 +185,34 @@ def run_cycle(schedule, history, now, save_forecasts, settle_results,
     }
 
 
+
+def run_quarter_cycle(schedule, history, now, save_quarter_forecasts,
+                      settle_quarter_results, season=None):
+    """Independent, research-only Q1-Q4 archival; cannot change game models."""
+    from simulation_quarter_shadow import build_quarter_forecasts, MODEL_ID
+
+    stamp = pd.to_datetime(now, utc=True, errors="coerce")
+    if pd.isna(stamp):
+        raise ValueError("Invalid UTC decision timestamp")
+    season = season or active_nba_season(stamp)
+    completed = verified_history(history, stamp)
+    settled = int(settle_quarter_results(completed))
+    upcoming = upcoming_events(schedule, stamp)
+    forecasts = build_quarter_forecasts(upcoming, completed)
+    saved = (save_quarter_forecasts(forecasts, season) if forecasts
+             else {"saved": 0, "duplicates_or_rejected": 0})
+    return {
+        "status": "research_only",
+        "model_id": MODEL_ID,
+        "games_checked": len(upcoming),
+        "games_forecastable": len(forecasts) // 4,
+        "candidate_quarter_rows": len(forecasts),
+        "new_quarter_rows": int(saved["saved"]),
+        "quarter_rows_settled": settled,
+        "duplicates_or_rejected": int(saved.get("duplicates_or_rejected", 0)),
+    }
+
+
 def run_player_cycle(schedule, history, now, save_player_forecasts,
                      settle_player_results, season=None, fetch_logs=None,
                      include_shadow_v76=False):
@@ -222,7 +250,8 @@ def run_player_cycle(schedule, history, now, save_player_forecasts,
 def run_scheduled_job():
     """No silent SQLite fallback for unattended jobs: disk is ephemeral."""
     from tracker_storage import (tracker_backend, save, settle,
-                                 save_players, settle_players, record_tracker_run)
+                                 save_players, settle_players, save_quarters, settle_quarters,
+                                 record_tracker_run)
     cfg = tracker_backend()
     if not cfg["remote"]:
         raise RuntimeError(
@@ -278,6 +307,20 @@ def run_scheduled_job():
         # Preserve the finished team-tracker cycle, but make a player-side
         # outage visible in logs without printing credentials or user data.
         result["player_tracking"] = {
+            "status": "temporarily_unavailable", "error_type": type(exc).__name__}
+    try:
+        result["quarter_tracking"] = run_quarter_cycle(
+            upcoming, finals, pd.Timestamp.now(tz="UTC"),
+            save_quarter_forecasts=lambda records, target_season: save_quarters(
+                records, target_season, config=cfg),
+            settle_quarter_results=lambda completed: settle_quarters(
+                completed, config=cfg),
+            season=season,
+        )
+    except (ValueError, TypeError, KeyError, RuntimeError, OSError,
+            ConnectionError, TimeoutError) as exc:
+        # A research-model failure must not risk existing team/player archives.
+        result["quarter_tracking"] = {
             "status": "temporarily_unavailable", "error_type": type(exc).__name__}
     try:
         result["monitoring"] = record_tracker_run(result, config=cfg)
