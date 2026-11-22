@@ -345,57 +345,58 @@ function updateChartMarker(svg,dist,bins,lineValue){
 /* Results screenshot: derive every metric from the entitled game simulation.
    The histogram is grouped into five-point buckets, hence estimates are
    explicitly approximate. No bookmaker ROI or hit rate is synthesized. */
+/* All percentages on Results are conditional on a SINGLE model run.
+   OVER/UNDER percentages are complementary for the chosen half-point line. */
 function showDistributionOverview(sim,game,premium){
  const paid=premium?.entitled===true&&sim&&!sim.error&&game;
  const set=(id,value)=>{const el=$(id);if(el)el.textContent=value};
  const dist=paid?sim.distributions?.[state.chart]:null;
- const average=dist?.average===null||dist?.average===undefined?NaN:Number(dist.average);
- const bins=Array.isArray(dist?.bins)?dist.bins.filter(row=>
-    Number.isFinite(Number(row.x))&&Number.isFinite(Number(row.p))&&Number(row.p)>=0):[];
- const count=bins.reduce((sum,row)=>sum+Number(row.p),0);
- const estimate=t=>count>0?100*bins.reduce((sum,row)=>
-    sum+(Number(row.x)+2.5>=t?Number(row.p):0),0)/count:null;
- const probability=$("hzm-probability-rows");
- const explanation=$("hzm-prob-explanation");
+ const bins=paid?chartBins(dist):[];
+ const avg=Number(dist?.average);
+ const valid=!!paid&&bins.length>=3&&dist?.average!=null&&Number.isFinite(avg);
+ const line=valid?chartLineFor(dist,bins):null;
+ const profile=valid?chartOverUnderAt(dist,bins,line):null;
+ const probability=$("hzm-probability-rows"),explanation=$("hzm-prob-explanation");
+ const input=$("hzm-ou-line");
+ if(input){
+   input.disabled=!valid;
+   input.title=valid?"Wpisz własną linię (np. 229,5), następnie Enter":"Wybierz mecz Premium";
+   if(document.activeElement!==input)input.value=profile?fmt(profile.line):"";
+ }
+ set("hzm-ou-over",profile?.over!=null?(profile.approx?"≈":"")+percent(profile.over):"—");
+ set("hzm-ou-under",profile?.under!=null?(profile.approx?"≈":"")+percent(profile.under):"—");
  if(probability){
-   if(!paid||!Number.isFinite(average)||!bins.length){
+   if(!valid||!profile){
      probability.textContent=paid?"Brak zweryfikowanego rozkładu punktów.":"Dostępne w Premium.";
-     if(explanation)explanation.textContent="Prognoza z modelu · nie kurs bukmacherski";
+     if(explanation)explanation.textContent="Prognoza modelu · nie kurs bukmacherski";
    }else{
-     const sorted=chartBins(dist);
-     const selectedIndex=chartBinIndex(sorted,dist);
-     const profile=chartProbabilityProfile(dist,sorted,selectedIndex);
-     if(!profile){
-       probability.textContent="Brak poprawnego rozkładu.";return;
-     }
-     const fmtLine=value=>Number(value).toFixed(1).replace(".",",");
-     const renderPair=item=>[
-       {kind:"over",label:"Ponad "+fmtLine(item.line),fullLabel:"Ponad "+fmtLine(item.line)+" pkt",pct:item.over},
-       {kind:"under",label:"Poniżej "+fmtLine(item.line),fullLabel:"Poniżej "+fmtLine(item.line)+" pkt",pct:item.under}
-     ].map(row=>
-       '<div class="hzm-prob-row '+row.kind+'"><span class="hzm-prob-direction" aria-hidden="true">'+
-       (row.kind==="over"?"↑":"↓")+'</span><span class="hzm-prob-threshold" title="'+esc(row.fullLabel)+'">'+esc(row.label)+
-       '</span><b>'+(row.pct===null?"—":(item.approx?"≈":"")+percent(row.pct))+'</b></div>'
-     ).join("");
-     probability.innerHTML=profile.lines.map(renderPair).join("");
-     if(explanation)explanation.textContent=
-       "Wybrano "+profile.start+"–"+profile.end+" pkt: "+
-       (profile.exact?"dokładne wyniki z 5 000 symulacji":"≈ z histogramu 5 pkt")+" · nie kursy";
+     const comparisonLine=profile.line<=494.5?profile.line+5:profile.line-5;
+     const compared=chartOverUnderAt(dist,bins,comparisonLine);
+     const thresholdRows=[profile,compared].filter(Boolean);
+     const label=t=>fmt(t);
+     probability.innerHTML=thresholdRows.map((pair,index)=>{
+       const prefix=index===0?'':'';
+       return [
+         {kind:"over",short:"Ponad "+label(pair.line),full:"Ponad "+label(pair.line)+" pkt",pct:pair.over},
+         {kind:"under",short:"Poniżej "+label(pair.line),full:"Poniżej "+label(pair.line)+" pkt",pct:pair.under}
+       ].map(row=>'<div class="hzm-prob-row '+row.kind+(index===0?' is-selected-line':'')+'">'+
+         '<span class="hzm-prob-direction" aria-hidden="true">'+(row.kind==="over"?"↑":"↓")+'</span>'+
+         '<span class="hzm-prob-threshold" title="'+esc(row.full)+'">'+esc(row.short)+'</span>'+
+         '<b>'+(row.pct==null?"—":(pair.approx?"≈":"")+percent(row.pct))+'</b></div>').join('');
+     }).join('');
+     if(explanation)explanation.textContent=profile.approx?
+       "≈ z histogramu; wybierz mecz z pełnymi danymi":"Pierwsze 2 wiersze: wybrana linia · 5 000 symulacji";
    }
  }
  set("hzm-result-favorite",paid?(sim.home_win_pct>=sim.away_win_pct?
-    String(game.home)+" "+percent(sim.home_win_pct):String(game.away)+" "+percent(sim.away_win_pct)):"—");
+   String(game.home)+" "+percent(sim.home_win_pct):String(game.away)+" "+percent(sim.away_win_pct)):"—");
  set("hzm-result-total",paid?fmt(sim.total_points):"—");
- const sorted=paid?chartBins(dist):[];
- const selection=sorted.length?chartProbabilityProfile(dist,sorted,chartBinIndex(sorted,dist)):null;
- set("hzm-result-range",paid&&selection?
-   selection.windowFrom+"–"+selection.windowTo:"—");
- set("hzm-result-range-pct",paid&&selection&&selection.windowPct!==null?
-   (selection.windowApprox?"≈":"")+percent(selection.windowPct)+" szans":"—");
- const variance=count>0&&Number.isFinite(average)?
-   bins.reduce((sum,row)=>sum+Math.pow(Number(row.x)+2.5-average,2)*Number(row.p),0)/count:null;
+ const total=bins.reduce((sum,row)=>sum+row.p,0);
+ const variance=total>0&&Number.isFinite(avg)?
+   bins.reduce((sum,row)=>sum+Math.pow(row.x+2.5-avg,2)*row.p,0)/total:null;
  set("hzm-result-sd",paid&&variance!==null?"±"+fmt(Math.sqrt(variance)):"—");
 }
+
 function showResultsDashboard(game,sim,premium){
  const paid=premium?.entitled===true;
  const ctx=paid&&sim&&!sim.error?sim.model_context:null;
