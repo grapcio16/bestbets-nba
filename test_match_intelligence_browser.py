@@ -79,6 +79,22 @@ def main():
         page.locator("#hzm-model-option-research_context_v75").click()
         page.locator("#hzm-lab-tab-intelligence").click()
         assert page.locator("#hzm-intel-panel").is_visible()
+        assert page.locator(".hzm-hero").is_hidden(), (
+            "Premium Match Intelligence should not repeat the match hero.")
+        assert page.locator("#hzm-intel-main-grid").count() == 0
+        geometry = page.locator("#hzm-intel-panel").evaluate("""el => {
+          const get = s => el.querySelector(s).getBoundingClientRect();
+          const teams = get('.hzm-intel-teams'), factors = get('.hzm-intel-factors');
+          const evidence = get('.hzm-intel-evidence');
+          const tag = get('.hzm-intel-research-tag'), version = get('.hzm-intel-model');
+          return {teamTop:teams.top, factorTop:factors.top,
+            kpiBottom:evidence.bottom, cardsWidth:teams.width, factorWidth:factors.width,
+            badgeOverlap:tag.right>version.left+1, panelTop:el.getBoundingClientRect().top};
+        }""")
+        assert abs(geometry["teamTop"]-geometry["factorTop"]) < 4, geometry
+        assert geometry["cardsWidth"] > geometry["factorWidth"] > 180, geometry
+        assert not geometry["badgeOverlap"], geometry
+        assert geometry["panelTop"] < 210, geometry
         assert page.locator("#hzm-intel-panel").get_attribute("class").find("premium-v2") != -1
         assert page.locator("#hzm-intel-away-form").inner_text() == "6 W / 4 L"
         assert page.locator("#hzm-intel-home-form").inner_text() == "7 W / 3 L"
@@ -96,6 +112,7 @@ def main():
         assert "gradient" in appearance["background"], appearance
         assert len(appearance["columns"].split(" ")) >= 3, appearance
         page.screenshot(path=str(OUT / "match-intelligence-v75-desktop.png"), full_page=True)
+        page.locator("#hzm-intel-panel").screenshot(path=str(OUT / "match-intelligence-v75-panel.png"))
 
         assert page.locator("#hzm-detail-grid").is_hidden()
         assert page.locator("#hzm-scenario-panel").is_hidden()
@@ -158,7 +175,12 @@ def main():
         assert page.locator("#hzm-intel-panel").is_visible()
         assert page.locator("#hzm-intel-away-form").inner_text() == "6 W / 4 L"
         assert page.locator("#hzm-intel-factors-v75").is_visible()
+        card_overflow = page.locator("#hzm-intel-panel").evaluate("""el =>
+           ({client:el.clientWidth, scroll:el.scrollWidth,
+             cols:getComputedStyle(el.querySelector('.hzm-intel-teams')).gridTemplateColumns})""")
+        assert card_overflow["scroll"] <= card_overflow["client"]+2, card_overflow
         page.screenshot(path=str(OUT / "match-intelligence-v75-mobile.png"), full_page=True)
+        page.locator("#hzm-intel-panel").screenshot(path=str(OUT / "match-intelligence-v75-mobile-panel.png"))
         assert not errors, errors
         browser.close()
         print("Match Intelligence: V7.5 factors, V7.4 isolation and Premium gate OK")
