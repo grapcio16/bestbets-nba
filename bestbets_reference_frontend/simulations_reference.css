@@ -2970,3 +2970,38 @@
     animation:none!important;transition:none!important;
   }
 }
+
+
+/* Scenario Lab: explicit on-demand ESPN injury refresh, independent of model.
+   State remains server-authorized and throttled. */
+#simulations-pane[data-hzm-view="scenario"] .hzm-availability-head{
+  display:flex!important;align-items:center!important;gap:8px!important;
+  flex-wrap:wrap!important;
+}
+#simulations-pane[data-hzm-view="scenario"] #hzm-availability-refresh{
+  display:inline-flex;align-items:center;justify-content:center;
+  margin-left:auto!important;min-height:27px;padding:5px 10px;
+  border-radius:8px;border:1px solid #24c4e6;
+  color:#dffeff;font-size:10px;font-weight:900;white-space:nowrap;
+  background:linear-gradient(118deg,#0d4363,#1e2856);
+  box-shadow:0 0 9px rgba(18,211,236,.16);
+  cursor:pointer;
+}
+#simulations-pane[data-hzm-view="scenario"] #hzm-availability-refresh:hover:not(:disabled){
+  border-color:#d79aff;
+  box-shadow:0 0 12px rgba(33,229,253,.25),0 0 9px rgba(179,83,243,.16);
+}
+#simulations-pane[data-hzm-view="scenario"] #hzm-availability-refresh:disabled{
+  opacity:.43;cursor:not-allowed;box-shadow:none;
+}
+#simulations-pane[data-hzm-view="scenario"] #hzm-availability-refresh:focus-visible{
+  outline:2px solid #60ebfb;outline-offset:2px;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-availability-freshness{
+  flex:0 0 auto;max-width:100%;overflow-wrap:break-word;
+}
+@media(max-width:767px){
+  #simulations-pane[data-hzm-view="scenario"] #hzm-availability-refresh{
+    margin-left:0!important;
+  }
+}
