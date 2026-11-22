@@ -488,9 +488,10 @@ function buildSimulationFindings(game,sim,ctx,paid,modelId){
    const narrow=edge<8;
    results.winner=(narrow?"Wyrównany mecz: ":"Model częściej wskazuje ")+
      favourite+" ("+percent(favouritePct)+
-     " symulacji). Śr. "+fmt(favouritePts)+" vs "+fmt(opponentPts)+
-     " pkt ("+(expectedEdge>=0?"+":"")+fmt(expectedEdge)+
-     (expectedEdge>=0?" pkt przewagi.":" pkt różnicy; wyższa szansa nie wynika z wyższej średniej.");
+     " symulacji). Śr. "+favourite+" "+fmt(favouritePts)+
+     " vs "+opponent+" "+fmt(opponentPts)+
+     " pkt (różnica "+(expectedEdge>=0?"+":"")+fmt(expectedEdge)+" pkt)."+
+     (expectedEdge<0?" Wyższa szansa mimo niższej średniej punktowej.":"");
  }else if(validChances){
    results.winner=favourite+" uzyskuje "+percent(favouritePct)+
      " wygranych symulacji; brak kompletnych danych o średnich punktach.";
@@ -503,7 +504,7 @@ function buildSimulationFindings(game,sim,ctx,paid,modelId){
        "ostatnie wyniki ataku i obrony ESPN (do 12 meczów)";
    }else{
      method=ctx?.advanced_available===true?
-       "PACE i ratingi NBA Advanced, wspierane ważoną formą ESPN":
+       "PACE i ratingi NBA Advanced; forma ESPN, gdy wystarczy danych":
        "ważona forma ataku i obrony ESPN, siła rywali i regresja do średniej";
    }
    results.context=fmt(total)+" pkt = "+away+" "+fmt(ptsAway)+" + "+
