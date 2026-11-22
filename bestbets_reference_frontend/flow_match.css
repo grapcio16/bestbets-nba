@@ -1,9 +1,14 @@
 /* HOOPZARO · Flow meczu Premium | approved cyan/purple Simulation Lab language.
    This view only; no overrides of Results, Players, Scenario or Match Intel. */
+/* Restore the original six-module Premium tab layout. The Flow research
+   tab remains in the DOM for internal QA, but is absent from public UI. */
 #simulations-pane .hzm-lab-nav{
-  grid-template-columns:1.22fr 1.25fr .91fr 1.01fr .81fr 1.11fr 1.1fr;
+  grid-template-columns:1.28fr 1.28fr .99fr 1.06fr 1.24fr 1.22fr;
 }
-#simulations-pane .hzm-lab-nav button{font-size:8.6px;letter-spacing:-.08px;padding:0 3px}
+#simulations-pane .hzm-lab-nav #hzm-lab-tab-flow[hidden]{
+  display:none!important;
+}
+#simulations-pane .hzm-lab-nav button{font-size:9px;letter-spacing:0;padding:0 5px}
 #simulations-pane[data-hzm-view="flow"] .hzm-content,
 #simulations-pane[data-hzm-view="flow"] .hzm-analysis{
   height:auto!important;min-height:0!important;overflow:visible!important;
