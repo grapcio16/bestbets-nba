@@ -89,8 +89,13 @@ def _neutral_run_proxy(away_points: np.ndarray, home_points: np.ndarray, rng) ->
     }
 
 
-def conditional_flow(away_scores, home_scores, *, game_id: str, model_id: str):
-    """Derive compact, evidence-limited flow data from final score draws only."""
+def conditional_flow(away_scores, home_scores, *, game_id: str, model_id: str,
+                     quarter_evidence: dict | None = None):
+    """Allocate original final-score draws using verified pretipoff quarter profiles.
+
+    A neutral illustrative trajectory is retained when ESPN Q evidence is
+    missing, but NO quarter forecast or quarter-winning percentage is exposed.
+    """
     a = np.asarray(away_scores)
     h = np.asarray(home_scores)
     if (a.ndim != 1 or h.ndim != 1 or len(a) != 5000 or len(h) != 5000
@@ -101,11 +106,53 @@ def conditional_flow(away_scores, home_scores, *, game_id: str, model_id: str):
     digest = sha256((str(game_id)+"|"+str(model_id)+"|FLOW_V1|"+
                      str(int(np.sum(a)))+"|"+str(int(np.sum(h)))).encode()).digest()
     rng = np.random.default_rng(int.from_bytes(digest[:8], "big"))
-    # Both teams share a game-specific pace profile within a draw. We have
-    # no quarter-specific evidence, so 8 equal prior windows, not fake trends.
-    weights = rng.dirichlet(np.full(8, 20.0), size=5000)
-    away = _allocate(a.astype(np.int32), weights, rng)
-    home = _allocate(h.astype(np.int32), weights, rng)
+    evidence = quarter_evidence if isinstance(quarter_evidence, dict) else {}
+    def valid_profile(key):
+        raw = evidence.get(key)
+        if not isinstance(raw, (list, tuple)) or len(raw) != 4:
+            return None
+        try:
+            vec = np.asarray(raw, dtype=float)
+        except (ValueError, TypeError):
+            return None
+        if (not np.isfinite(vec).all() or np.any(vec < .08)
+                or np.any(vec > .45) or abs(float(vec.sum()) - 1.0) > .001):
+            return None
+        return vec / vec.sum()
+
+    aw_profile = valid_profile("away")
+    ho_profile = valid_profile("home")
+    observed = (evidence.get("available") is True
+                and evidence.get("method") == "espn_regulation_quarters_v1"
+                and isinstance(evidence.get("away_sample"), int)
+                and isinstance(evidence.get("home_sample"), int)
+                and evidence["away_sample"] >= 6
+                and evidence["home_sample"] >= 6
+                and aw_profile is not None and ho_profile is not None)
+    if observed:
+        # Data-driven Q shares for each team. Common random pace creates
+        # correlated high/low-scoring quarters; team-specific Q shape comes
+        # only from observed offense/defense/venue, NOT a 25%-per-Q prior.
+        shared = rng.dirichlet((aw_profile + ho_profile) * 32, size=5000)
+        aw_q = rng.dirichlet(aw_profile * 90, size=5000)
+        ho_q = rng.dirichlet(ho_profile * 90, size=5000)
+        aw_q = .35 * shared + .65 * aw_q
+        ho_q = .35 * shared + .65 * ho_q
+        # No 6-minute evidence: the two halves within each real-data-backed
+        # quarter are still transparently neutral illustrative allocations.
+        halves = rng.beta(18.0, 18.0, size=(5000, 4))
+        aw_weights = np.empty((5000, 8), dtype=float)
+        ho_weights = np.empty((5000, 8), dtype=float)
+        aw_weights[:, ::2] = aw_q * halves
+        aw_weights[:, 1::2] = aw_q * (1.0 - halves)
+        ho_weights[:, ::2] = ho_q * halves
+        ho_weights[:, 1::2] = ho_q * (1.0 - halves)
+    else:
+        # Never claim this neutral pattern predicts Q1–Q4 points.
+        weights = rng.dirichlet(np.full(8, 20.0), size=5000)
+        aw_weights = ho_weights = weights
+    away = _allocate(a.astype(np.int32), aw_weights, rng)
+    home = _allocate(h.astype(np.int32), ho_weights, rng)
     delta = home - away
     cumulative = np.column_stack(
         [np.zeros(5000, dtype=int), np.cumsum(delta, axis=1)])
@@ -126,16 +173,17 @@ def conditional_flow(away_scores, home_scores, *, game_id: str, model_id: str):
         m = np.sum(delta[:, q*2:q*2+2], axis=1)
         quarters.append({
             "quarter": q + 1,
-            "away_outscores_pct": round(float(np.mean(m < 0))*100, 1),
-            "home_outscores_pct": round(float(np.mean(m > 0))*100, 1),
-            "tie_pct": round(float(np.mean(m == 0))*100, 1),
-            # Mean Q points are the SUM of both six-minute windows for
-            # each of the same 5,000 final-score draws, not a separate
-            # calibrated quarter or play-by-play forecasting engine.
+            "away_outscores_pct": round(float(np.mean(m < 0))*100, 1)
+                                   if observed else None,
+            "home_outscores_pct": round(float(np.mean(m > 0))*100, 1)
+                                   if observed else None,
+            "tie_pct": round(float(np.mean(m == 0))*100, 1) if observed else None,
             "away_mean": round(float(np.mean(
-                np.sum(away[:, q*2:q*2+2], axis=1))), 2),
+                np.sum(away[:, q*2:q*2+2], axis=1))), 2)
+                         if observed else None,
             "home_mean": round(float(np.mean(
-                np.sum(home[:, q*2:q*2+2], axis=1))), 2),
+                np.sum(home[:, q*2:q*2+2], axis=1))), 2)
+                         if observed else None,
         })
     # One demonstrative path selected deterministically from these same 5k
     # final results, closest to the mean final spread. NEVER call it the mean.
@@ -160,9 +208,24 @@ def conditional_flow(away_scores, home_scores, *, game_id: str, model_id: str):
     clutch = delta[:, 7]
     spread = h - a
     return {
-        "available": True, "method": "conditional_neutral_6min_v1",
-        "n_sims": 5000, "source": METHOD,
+        "available": True, "method": ("conditional_espn_quarters_v1"
+                                        if observed else "conditional_neutral_6min_v1"),
+        "n_sims": 5000,
+        "source": ((str(evidence.get("description") or "")+
+                    " Pozostałe sześciominutowe przebiegi są hipotetyczne; "+
+                    "nie są to rzeczywiste NBA play-by-play.")
+                   if observed else METHOD),
         "timeline": timeline, "quarters": quarters,
+        "quarter_model": {
+            "available": bool(observed),
+            "method": "espn_regulation_quarters_v1" if observed else "unavailable",
+            "source": str(evidence.get("source") or "ESPN")[:125],
+            "away_sample": evidence.get("away_sample", 0),
+            "home_sample": evidence.get("home_sample", 0),
+            "basis": (str(evidence.get("description") or "")[:550] if observed
+                      else str(evidence.get("reason") or
+                      "Brak historycznych wyników kwart; nie pokazujemy sztucznych Q1–Q4.")[:250]),
+        },
         "sample_path": sample_path,
         "sample_path_source": "Pojedynczy przykładowy przebieg losowy z tej samej "
                               "próby 5 000 wyników. Nie jest średnią prognozą "
