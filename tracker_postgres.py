@@ -477,18 +477,56 @@ def remote_tracker_status(url, season):
 
 
 def remote_store_quarters(url, season, forecasts, captured_at=None):
-    """Archive each pre-tipoff Q1-Q4 row once. Conflicts never overwrite."""
+    """Freeze only complete quartet predictions matching an archived parent."""
     from math import isfinite
     from simulation_quarter_shadow import MODEL_IDS
 
     stamp = utc_timestamp(captured_at if captured_at is not None
                           else datetime.now(timezone.utc))
+    groups = {}
+    for f in forecasts:
+        key = (str(f.get("game_id") or ""), str(f.get("base_model_id") or ""))
+        groups.setdefault(key, []).append(f)
+
     saved = 0
     with connect(url) as conn:
         init_remote(conn)
+        valid_groups = set()
+        for (gid, parent_id), items in groups.items():
+            if (parent_id not in MODEL_IDS or len(items) != 4
+                    or {item.get("quarter") for item in items} != {1, 2, 3, 4}
+                    or not gid.isdecimal()):
+                continue
+            # The parent complete-game forecast must already be frozen.
+            parent = conn.execute("""
+                SELECT home_points,away_points,start_utc,home,away
+                FROM bestbets_forecasts_by_model
+                WHERE game_id=%s AND model_id=%s
+            """, (gid, parent_id)).fetchone()
+            if parent is None:
+                continue
+            try:
+                home_total = sum(float(item["home_points"]) for item in items)
+                away_total = sum(float(item["away_points"]) for item in items)
+                start = utc_timestamp(items[0]["start_utc"])
+                if (start <= stamp or start != utc_timestamp(parent[2])
+                        or any(item.get("model_id") != MODEL_IDS[parent_id]
+                               or str(item.get("home")) != str(parent[3])
+                               or str(item.get("away")) != str(parent[4])
+                               for item in items)
+                        or abs(home_total - float(parent[0])) > .15
+                        or abs(away_total - float(parent[1])) > .15):
+                    continue
+            except (KeyError, ValueError, TypeError, OverflowError):
+                continue
+            valid_groups.add((gid, parent_id))
+
         for f in forecasts:
             try:
                 gid = str(f["game_id"])
+                base_id = str(f["base_model_id"])
+                if (gid, base_id) not in valid_groups:
+                    continue
                 start = utc_timestamp(f["start_utc"])
                 q = int(f["quarter"])
                 home, away = float(f["home_points"]), float(f["away_points"])
@@ -496,7 +534,7 @@ def remote_store_quarters(url, season, forecasts, captured_at=None):
                                ("home_win_pct", "away_win_pct", "tie_pct"))
                 n_h, n_a = int(f["home_sample"]), int(f["away_sample"])
                 if (not gid.isdecimal() or len(gid) > 20 or start <= stamp
-                        or f.get("model_id") not in MODEL_IDS.values() or not 1 <= q <= 4
+                        or f.get("model_id") != MODEL_IDS[base_id] or not 1 <= q <= 4
                         or not all(isfinite(x) for x in (home, away, hp, ap, tie))
                         or not 8 <= home <= 55 or not 8 <= away <= 55
                         or min(hp, ap, tie) < 0 or max(hp, ap, tie) > 100
