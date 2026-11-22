@@ -1950,6 +1950,28 @@ if(window.HoopzaroSimulations){
         id:String(Date.now())+"-scenario-"+id+"-"+Math.random().toString(36).slice(2)
       }});
     },
+    saveFlow:function(day,id,modelId,variant){
+      if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled||
+         !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(day||""))||
+         !/^\\d{1,30}$/.test(String(id||""))||
+         !["legacy_v72","research_form_v74","research_context_v75"].includes(modelId)||
+         !["base","scenario"].includes(variant))return;
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"premium_sim_flow_save",date:day,game_id:id,model_id:modelId,variant,
+        id:String(Date.now())+"-flow-save-"+id+"-"+Math.random().toString(36).slice(2)
+      }});
+    },
+    exportFlow:function(day,id,modelId,variant){
+      if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled||
+         !/^\\d{4}-\\d{2}-\\d{2}$/.test(String(day||""))||
+         !/^\\d{1,30}$/.test(String(id||""))||
+         !["legacy_v72","research_form_v74","research_context_v75"].includes(modelId)||
+         !["base","scenario"].includes(variant))return;
+      notify("streamlit:setComponentValue",{dataType:"json",value:{
+        type:"premium_sim_flow_export",date:day,game_id:id,model_id:modelId,variant,
+        id:String(Date.now())+"-flow-pdf-"+id+"-"+Math.random().toString(36).slice(2)
+      }});
+    },
     loadBacktest:function(){
       if(state.page!=="simulations"||!state.payload.premium_simulation?.entitled)return;
       notify("streamlit:setComponentValue",{dataType:"json",value:{
