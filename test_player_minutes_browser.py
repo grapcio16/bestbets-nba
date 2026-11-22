@@ -72,8 +72,10 @@ def main():
             "data => window.postMessage({type:'streamlit:render',args:{payload:data}}, '*')",
             payload,
         )
-        page.locator("#hzm-day-input").fill(day)
-        page.locator("#hzm-day-input").dispatch_event("change")
+        # The current calendar keeps its native date input hidden; the
+        # selected fixture/day comes from the verified server home snapshot.
+        page.wait_for_function(
+            "document.querySelector('#hzm-day-title')?.textContent.includes('23')")
         page.locator("#hzm-model-trigger").click()
         page.locator("#hzm-model-option-research_context_v75").click()
         page.locator("#hzm-lab-tab-scenario").click()
