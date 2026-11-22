@@ -404,3 +404,188 @@
   #simulations-pane .hzm-intel-premium-v2 .hzm-intel-kpi,
   #simulations-pane .hzm-intel-evidence-details summary>span{transition:none!important}
 }
+
+/* Fidelity pass 2 — align desktop with the approved six-panel mock:
+   no duplicate hero inside Match Intelligence; factor table alongside
+   the two teams, not below the fold. The matchup/date/model controls remain. */
+#simulations-pane[data-hzm-view="intelligence"] .hzm-hero{display:none!important}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-header{
+  height:49px;min-height:49px;align-items:center;gap:7px;padding:0 1px 4px;
+}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-title{gap:8px}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-title h1{
+  font-size:20px;line-height:26px;letter-spacing:-.7px;
+}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-lab-subtitle{
+  display:none;
+}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-premium{
+  height:29px;margin-top:0;padding:0 8px;font-size:10px;
+}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-match-picker{
+  margin-top:0;min-width:96px;height:31px;flex-basis:125px;
+}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-model-choice{flex-basis:174px}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-model-dropdown{width:174px}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-day-control{margin-top:0}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-simulation-count{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-width:69px;height:34px;margin-top:0;padding:2px 5px;
+  border:1px solid rgba(65,148,193,.57);border-radius:8px;
+  background:linear-gradient(115deg,#092640,#131d46);
+  box-sizing:border-box;
+}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-simulation-count>small{
+  display:block;white-space:nowrap;font-size:7px;letter-spacing:.15px;line-height:11px;
+}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-simulation-count>strong{
+  display:block;white-space:nowrap;font-size:13px;line-height:17px;
+}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-lab-nav{
+  min-height:36px;margin-bottom:6px;padding:3px;
+}
+#simulations-pane[data-hzm-view="intelligence"] .hzm-lab-nav button{height:28px}
+
+#simulations-pane .hzm-intel-premium-v2{
+  gap:10px;padding:13px 17px 12px;
+}
+#simulations-pane .hzm-intel-premium-v2 .hzm-intel-head{
+  min-height:48px;gap:10px;
+}
+#simulations-pane .hzm-intel-premium-v2 .hzm-intel-head h2{font-size:25px}
+#simulations-pane .hzm-intel-head-actions{
+  flex:0 0 auto;gap:7px;align-self:center;
+}
+#simulations-pane .hzm-intel-research-tag{font-size:8px;padding:5px 8px}
+#simulations-pane .hzm-intel-premium-v2 .hzm-intel-model{
+  min-width:58px;max-width:80px;min-height:32px;padding:7px 10px;font-size:12px;
+}
+#simulations-pane .hzm-intel-premium-v2 .hzm-intel-status{
+  padding:6px 10px;font-size:10px;
+}
+#simulations-pane .hzm-intel-premium-v2 .hzm-intel-evidence{gap:9px}
+#simulations-pane .hzm-intel-premium-v2 .hzm-intel-kpi{
+  min-height:77px;padding:10px 11px;gap:8px;
+}
+#simulations-pane .hzm-intel-kpi-icon{
+  flex-basis:26px;width:26px;height:26px;font-size:17px;
+}
+#simulations-pane .hzm-intel-kpi-copy{gap:2px}
+#simulations-pane .hzm-intel-kpi-copy small{font-size:9px}
+#simulations-pane .hzm-intel-kpi-copy strong{font-size:19px}
+#simulations-pane .hzm-intel-premium-v2 .hzm-intel-kpi:nth-child(2) .hzm-intel-kpi-copy strong{
+  font-size:clamp(12px,1.45vw,17px);
+  letter-spacing:-.3px;
+}
+#simulations-pane .hzm-intel-kpi-copy>span{font-size:8px}
+#simulations-pane .hzm-intel-main-grid{
+  display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);
+  gap:10px;align-items:stretch;min-width:0;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-teams{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  align-items:stretch;gap:9px;min-width:0;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-team{padding:10px 10px 8px;min-width:0}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-team header{
+  margin-bottom:5px;padding-bottom:5px;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-team header strong{font-size:19px}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-team-identity small{
+  font-size:8px;letter-spacing:.5px;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-team>.hzm-intel-team-sample{
+  min-height:29px;padding:5px 7px;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-team>.hzm-intel-team-stat{
+  min-height:26px;padding:4px 1px;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-team-stat>span,
+#simulations-pane .hzm-intel-main-grid .hzm-intel-team-sample>span{
+  font-size:10px;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-team-stat>strong{
+  font-size:11px;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-evidence-details{padding-top:4px}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-evidence-details summary{
+  font-size:9px;padding:3px 0;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factors{
+  min-width:0;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factors header{
+  align-items:center;gap:5px;padding:9px;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factor-emblem{
+  flex:0 0 23px;width:23px;height:23px;font-size:16px;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factors header strong{
+  font-size:12px;line-height:1.25;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factors-title{gap:7px}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factors-title p{font-size:9px}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factors header>small{
+  display:none;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factor-head,
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factor-row{
+  grid-template-columns:minmax(0,1.5fr) minmax(55px,.76fr) minmax(55px,.76fr);
+  column-gap:4px;padding:10px 7px;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factor-head{font-size:9px}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factor-row>span{
+  gap:4px;font-size:9px;line-height:1.35;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factor-row>span i{
+  flex-basis:17px;width:17px;height:17px;font-size:12px;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factor-row>strong{
+  font-size:10px;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factor-row.total{
+  padding:11px 7px;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factor-row.total>strong{font-size:11px}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factors-info{
+  min-height:100%;padding:13px 10px;gap:9px;align-items:center;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-info-symbol{
+  flex:0 0 27px;width:27px;height:27px;font-size:17px;
+}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factors-info strong{font-size:12px}
+#simulations-pane .hzm-intel-main-grid .hzm-intel-factors-info p{font-size:10px}
+#simulations-pane .hzm-intel-premium-v2 .hzm-intel-caveat{
+  padding:8px 12px 8px 30px;font-size:9px;
+}
+
+@media(max-width:1060px){
+  #simulations-pane .hzm-intel-main-grid{grid-template-columns:minmax(0,1fr)}
+  #simulations-pane .hzm-intel-main-grid .hzm-intel-factors{
+    width:100%;
+  }
+  #simulations-pane .hzm-intel-main-grid .hzm-intel-factor-head,
+  #simulations-pane .hzm-intel-main-grid .hzm-intel-factor-row{
+    grid-template-columns:minmax(0,2.1fr) minmax(90px,1fr) minmax(90px,1fr);
+    padding:10px 13px;
+  }
+  #simulations-pane .hzm-intel-main-grid .hzm-intel-factors header>small{display:block}
+}
+@media(max-width:767px){
+  #simulations-pane[data-hzm-view="intelligence"] .hzm-header{
+    min-height:0;height:auto;
+  }
+  #simulations-pane .hzm-intel-main-grid .hzm-intel-teams{
+    grid-template-columns:minmax(0,1fr);
+  }
+  #simulations-pane .hzm-intel-main-grid .hzm-intel-factor-head,
+  #simulations-pane .hzm-intel-main-grid .hzm-intel-factor-row{
+    grid-template-columns:minmax(0,1.2fr) minmax(52px,.7fr) minmax(52px,.7fr);
+    gap:4px;padding:9px 7px;
+  }
+  #simulations-pane .hzm-intel-main-grid .hzm-intel-factors header>small{
+    display:none;
+  }
+  #simulations-pane .hzm-intel-premium-v2 .hzm-intel-head h2{font-size:21px}
+  #simulations-pane .hzm-intel-research-tag{display:none}
+}
