@@ -647,3 +647,70 @@
     transition:none!important;
   }
 }
+
+
+/* 22 Nov 2026 — interactive results distribution.
+   Keep actual 5-point bin readout visible while dragging the marker. */
+#simulations-pane[data-hzm-view="results"] .hzm-chart-card > header{
+  position:relative!important;z-index:5;isolation:isolate;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-chart-tabs{
+  position:relative!important;z-index:8!important;
+  display:flex!important;pointer-events:auto!important;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-chart-tabs button{
+  pointer-events:auto!important;cursor:pointer!important;
+  touch-action:manipulation;position:relative;z-index:9;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-chart-tabs button:focus-visible{
+  outline:2px solid #55f1ff;outline-offset:-3px;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-chart-tabs button:not(.active):hover{
+  border-color:#63d9fa;background:linear-gradient(110deg,#164c74,#241e50)!important;
+  color:#eafaff;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-plot{
+  position:relative;z-index:1;pointer-events:auto;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-plot svg.hzm-neon-curve{
+  cursor:grab;touch-action:none;pointer-events:auto;
+  -webkit-user-select:none;user-select:none;outline:none;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-plot:active svg.hzm-neon-curve{
+  cursor:grabbing;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-plot svg.hzm-neon-curve:focus-visible{
+  outline:2px solid #53eeff;outline-offset:-3px;border-radius:5px;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-plot .hzm-marker-ring{
+  stroke:#8df8ff;stroke-width:2.5;
+  filter:drop-shadow(0 0 4px rgba(31,242,255,.9));
+}
+#simulations-pane[data-hzm-view="results"] #hzm-plot .hzm-marker-centre{
+  fill:#f6ffff;
+  filter:drop-shadow(0 0 4px rgba(255,255,255,.85));
+}
+#simulations-pane[data-hzm-view="results"] #hzm-plot .hzm-marker-pill{
+  fill:#261b51;stroke:#e29afa;stroke-width:1.25;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-plot .hzm-marker-pill-text{
+  fill:#fff;letter-spacing:.12px;
+  paint-order:stroke;stroke:rgba(18,11,46,.25);stroke-width:.8px;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-plot .hzm-marker-guide{
+  stroke:#d4deff;stroke-dasharray:4 4;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-probability-rows{
+  transition:opacity .12s ease;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-prob-threshold{
+  font-size:7.5px!important;letter-spacing:-.2px;
+}
+#simulations-pane[data-hzm-view="results"] #hzm-chart-source{
+  color:#a6def5;font-size:7px;
+}
+@media(prefers-reduced-motion:reduce){
+  #simulations-pane[data-hzm-view="results"] #hzm-probability-rows{
+    transition:none!important;
+  }
+}
