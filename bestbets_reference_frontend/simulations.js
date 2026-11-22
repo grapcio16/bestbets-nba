@@ -1318,6 +1318,7 @@ function render(home,premium){
   $("hzm-day-title").textContent=labelDay(state.day);
   $("hzm-day-title").setAttribute("aria-label","Otwórz kalendarz: "+labelDay(state.day));
   $("hzm-day-input").value=state.day;
+  if(!$("hzm-calendar-popover")?.hidden)renderCalendar();
   gameButtons(data.games);
   const game=data.games.find(item=>item.id===state.gameId);
   const sim=trustedResult(premium,game),players=trustedPlayers(premium,game);
@@ -1392,8 +1393,151 @@ function render(home,premium){
   if(revoking||state.view==="backtest")showModelBacktest(premium);
   maybeLoadPaid(game,premium,sim,players);
 }
+
+/* Custom neon calendar: a deterministic Monday-first Polish month grid.
+   It selects dates through the existing navigate() path, so server cache,
+   subscription guards and scheduled-game data behavior are unchanged. */
+let visibleCalendarMonth="";
+function calendarMonthKey(day){
+ return safeDate(day)?day.slice(0,7):localDay(new Date().toISOString()).slice(0,7);
+}
+function calendarMonthShift(month,step){
+ const first=month+"-01",shift=new Date(first+"T12:00:00Z");
+ if(!Number.isFinite(shift.getTime()))return "";
+ shift.setUTCMonth(shift.getUTCMonth()+step);
+ return shift.toISOString().slice(0,7);
+}
+function calendarMonthAllowed(month){
+ if(!/^\d{4}-\d{2}$/.test(month))return false;
+ const first=month+"-01",following=calendarMonthShift(month,1);
+ if(!following)return false;
+ const last=dayShift(following+"-01",-1);
+ return withinRange(first)||withinRange(last);
+}
+function renderCalendar(){
+ const panel=$("hzm-calendar-popover"),grid=$("hzm-calendar-grid");
+ if(!panel||panel.hidden||!grid)return;
+ const month=visibleCalendarMonth||calendarMonthKey(state.day);
+ if(!calendarMonthAllowed(month))visibleCalendarMonth=calendarMonthKey(state.day);
+ else visibleCalendarMonth=month;
+ const monthFirst=visibleCalendarMonth+"-01";
+ const firstDate=new Date(monthFirst+"T12:00:00Z");
+ const offset=(firstDate.getUTCDay()+6)%7;
+ $("hzm-calendar-month").textContent=new Intl.DateTimeFormat("pl-PL",{
+   timeZone:"UTC",month:"long",year:"numeric"
+ }).format(firstDate);
+ const today=localDay(new Date().toISOString());
+ const rowCount=Math.ceil((offset+new Date(Date.UTC(firstDate.getUTCFullYear(),
+   firstDate.getUTCMonth()+1,0)).getUTCDate())/7);
+ const cells=Array.from({length:rowCount*7},(_,i)=>{
+   const day=dayShift(monthFirst,i-offset);
+   const valid=withinRange(day),current=day.slice(0,7)===visibleCalendarMonth;
+   const selected=day===state.day,todayMark=day===today;
+   const dateLabel=new Intl.DateTimeFormat("pl-PL",{timeZone:"UTC",
+     day:"numeric",month:"long",year:"numeric"}).format(new Date(day+"T12:00:00Z"));
+   return '<button type="button" class="hzm-calendar-day'+
+      (current?"":" is-outside")+(todayMark?" is-today":"")+
+      (selected?" is-selected":"")+
+      '" data-hzm-calendar-day="'+day+'" role="gridcell"'+
+      ' aria-label="'+esc(dateLabel)+(todayMark?", dzisiaj":"")+
+      (selected?", wybrany":"")+'" aria-selected="'+selected+'"'+
+      (valid?"":" disabled")+'>'+Number(day.slice(8,10))+
+      (todayMark?'<i aria-hidden="true"></i>':'')+'</button>';
+ });
+ grid.innerHTML=cells.join("");
+ $("hzm-calendar-selected").textContent="Wybrano: "+state.day.split("-").reverse().join(".");
+ for(const [id,step] of [["hzm-calendar-prev-month",-1],["hzm-calendar-next-month",1]]){
+   const nav=$(id);if(nav)nav.disabled=!calendarMonthAllowed(calendarMonthShift(visibleCalendarMonth,step));
+ }
+ const nowBtn=$("hzm-calendar-today");if(nowBtn)nowBtn.disabled=!withinRange(today);
+}
+function toggleCalendar(open,returnFocus=false){
+ const panel=$("hzm-calendar-popover");
+ if(!panel)return;
+ if(open){
+   visibleCalendarMonth=calendarMonthKey(state.day);
+   panel.hidden=false;
+   renderCalendar();
+ }else panel.hidden=true;
+ for(const id of ["hzm-day-title","hzm-calendar-toggle"])
+   $(id)?.setAttribute("aria-expanded",String(!!open));
+ if(open){
+   (panel.querySelector('[data-hzm-calendar-day][aria-selected="true"]:not([disabled])')||
+    panel.querySelector('[data-hzm-calendar-day]:not([disabled])'))?.focus();
+ }else if(returnFocus)$("hzm-day-title")?.focus();
+}
+function calendarFocusDay(day){
+ if(!withinRange(day))return;
+ const month=calendarMonthKey(day);
+ if(month!==visibleCalendarMonth){visibleCalendarMonth=month;renderCalendar()}
+ $("hzm-calendar-grid")?.querySelector('[data-hzm-calendar-day="'+day+'"]')?.focus();
+}
+function bindCalendar(){
+ const toggle=event=>{event.preventDefault();event.stopPropagation();
+   const panel=$("hzm-calendar-popover");
+   if(panel)toggleCalendar(panel.hidden);
+ };
+ for(const id of ["hzm-day-title","hzm-calendar-toggle"])
+   $(id)?.addEventListener("click",toggle);
+ $("hzm-calendar-popover")?.addEventListener("click",event=>{
+   const target=event.target.closest("button");
+   if(!target)return;
+   const day=target.dataset.hzmCalendarDay;
+   if(day){
+     if(!withinRange(day))return;
+     toggleCalendar(false);navigate(day);return;
+   }
+   if(target.id==="hzm-calendar-close"){toggleCalendar(false,true);return}
+   if(target.id==="hzm-calendar-today"){
+     const today=localDay(new Date().toISOString());
+     if(withinRange(today)){toggleCalendar(false);navigate(today)}
+     return;
+   }
+   const delta=target.id==="hzm-calendar-prev-month"?-1:
+     target.id==="hzm-calendar-next-month"?1:0;
+   if(delta){
+     const month=calendarMonthShift(visibleCalendarMonth,delta);
+     if(!calendarMonthAllowed(month))return;
+     visibleCalendarMonth=month;renderCalendar();
+     $("hzm-calendar-popover")?.querySelector('[data-hzm-calendar-day]:not([disabled]):not(.is-outside)')?.focus();
+   }
+ });
+ $("hzm-calendar-popover")?.addEventListener("keydown",event=>{
+   const cell=event.target.closest("[data-hzm-calendar-day]");
+   if(!cell||!withinRange(cell.dataset.hzmCalendarDay))return;
+   const shifts={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7};
+   let next="";
+   if(Object.prototype.hasOwnProperty.call(shifts,event.key))
+     next=dayShift(cell.dataset.hzmCalendarDay,shifts[event.key]);
+   else if(event.key==="Home")next=dayShift(cell.dataset.hzmCalendarDay,-(new Date(
+     cell.dataset.hzmCalendarDay+"T12:00:00Z").getUTCDay()+6)%7);
+   else if(event.key==="End")next=dayShift(cell.dataset.hzmCalendarDay,
+     6-(new Date(cell.dataset.hzmCalendarDay+"T12:00:00Z").getUTCDay()+6)%7);
+   else if(event.key==="PageUp"||event.key==="PageDown"){
+     const month=calendarMonthShift(cell.dataset.hzmCalendarDay.slice(0,7),
+       event.key==="PageDown"?1:-1);
+     const last=new Date(Date.UTC(Number(month.slice(0,4)),Number(month.slice(5,7)),0)).getUTCDate();
+     next=month+"-"+String(Math.min(Number(cell.dataset.hzmCalendarDay.slice(8,10)),last)).padStart(2,"0");
+   }
+   if(next&&withinRange(next)){event.preventDefault();calendarFocusDay(next)}
+ });
+ // Document-level close handles the backdrop and any other navigation tab.
+ document.addEventListener?.("pointerdown",event=>{
+   const panel=$("hzm-calendar-popover");
+   if(panel&&!panel.hidden&&!event.target.closest("#hzm-day-control,.hzm-day-control"))
+     toggleCalendar(false);
+ });
+ document.addEventListener?.("keydown",event=>{
+   const panel=$("hzm-calendar-popover");
+   if(panel&&!panel.hidden&&event.key==="Escape"){
+     event.preventDefault();toggleCalendar(false,true);
+   }
+ });
+}
+
 function navigate(day){
   if(!safeDate(day)||!withinRange(day)||state.day===day)return;
+  toggleCalendar(false);
   state.day=day;state.localDayIntent=true;state.chartPoint={match:null,away:null,home:null};state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
@@ -1412,16 +1556,11 @@ function init(api){
   for(const [id,amount] of [["hzm-day-prev",-1],["hzm-day-next",1]]){
     $(id)?.addEventListener("click",event=>{
       event.preventDefault();event.stopPropagation();
+      toggleCalendar(false);
       navigate(dayShift(state.day,amount));
     });
   }
-  $("hzm-day-title")?.addEventListener("click",event=>{
-    const picker=$("hzm-day-input");
-    if(!picker)return;
-    // Open the native calendar when allowed by the browser/iframe.
-    // A blocked showPicker does not prevent keyboard entry or date changes.
-    try{picker.showPicker?.()}catch(error){picker.focus();}
-  });
+  bindCalendar();
     $("hzm-model-select").addEventListener("change",event=>chooseModel(event.target.value));
   // Give the model dropdown its own control listeners. The new Simulation Lab
   // has a scrollable canvas and overlay fixture picker: model controls must
