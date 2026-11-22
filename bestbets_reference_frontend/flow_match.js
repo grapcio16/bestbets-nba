@@ -158,66 +158,137 @@ function render(d){
    feedback.append(" · ");feedback.appendChild(a);
  }
  $("hzm-flow-timeline-desc").textContent=ready?
-   "Różnica punktów "+d.game.home+" − "+d.game.away+" (dodatnia = gospodarze)"+
-     " · warunkowy podział wyniku na odcinki 6 minut":
-   "Brak pełnych danych symulacji dla wybranego meczu.";
+   (Array.isArray(data.sample_path)&&data.sample_path.length===17?
+     "Jeden przykładowy przebieg z 5 000 · linia przerywana = średnia modelu":
+     "Warunkowa średnia z 5 000 wyników · dodatnie = przewaga gości"):
+   "Brak kompletnych danych symulacji dla wybranego meczu.";
  $("hzm-flow-plot").innerHTML=ready?
-   drawChart(data,cfg.period,d.game.away,d.game.home):'<p>Brak danych bazowych. Nie pokazujemy przykładowego przebiegu.</p>';
- $("hzm-flow-final-margin").textContent=ready?
-   "Śr. przewaga "+(number(data.timeline[8]?.margin_mean)>0?d.game.home:
-     number(data.timeline[8]?.margin_mean)<0?d.game.away:"remis")+
-   ": "+fmt(Math.abs(Number(data.timeline[8]?.margin_mean)))+" pkt":"—";
+   drawChart(data,cfg.period,d.game.away,d.game.home):
+   '<p>Brak danych Premium dla wybranego meczu.</p>';
+ $("hzm-flow-final-margin").textContent=ready&&Array.isArray(data.timeline)&&data.timeline.length===9?
+   "Śr. przewaga "+(number(data.timeline[8].margin_mean)>0?d.game.home:
+     number(data.timeline[8].margin_mean)<0?d.game.away:"remis")+
+   ": "+fmt(Math.abs(Number(data.timeline[8].margin_mean)))+" pkt":"—";
  $("hzm-flow-quarter-data").innerHTML=ready&&Array.isArray(data.quarters)?
    data.quarters.map(q=>{
      const a=number(q.away_outscores_pct),h=number(q.home_outscores_pct),tie=number(q.tie_pct);
-     if(a===null||h===null||tie===null)return "";
+     if(a===null||h===null||tie===null||a+h+tie>100.3)return "";
      const hi=cfg.period==="all"||cfg.period===String(q.quarter);
-     return '<div class="hzm-flow-quarter-row '+(hi?"highlight":"")+'"><b>Q'+q.quarter+
-       '</b><div><div class="hzm-flow-quarter-values"><b>'+esc(d.game.away)+' '+pct(a)+
-       '</b><b>'+pct(h)+' '+esc(d.game.home)+'</b></div>'+
-       '<div class="hzm-flow-quarter-track"><i style="width:'+a+'%"></i><i style="width:'+h+'%"></i></div></div>'+
-       '<small>Remis kwarty: '+pct(tie)+'</small></div>';
+     return '<div class="hzm-flow-quarter-row '+(hi?"highlight":"")+
+       '" title="Warunkowe losowania punktów; nie zweryfikowana skuteczność kwart"><b>Q'+
+       Number(q.quarter)+'</b><div class="hzm-flow-quarter-content">'+
+       '<div class="hzm-flow-quarter-values"><b>'+esc(d.game.away)+' '+pct(a)+'</b>'+
+       '<b>'+pct(h)+' '+esc(d.game.home)+'</b></div>'+
+       '<div class="hzm-flow-quarter-track"><i style="width:'+a+
+       '%"></i><i style="width:'+h+'%"></i></div></div>'+
+       '<small class="hzm-flow-tie">Remis '+pct(tie)+'</small></div>';
    }).join(""):'<p class="hzm-flow-empty">Brak danych kwart.</p>';
  const clutch=ready?data.clutch:null;
- $("hzm-flow-clutch").textContent=clutch?
-   (number(clutch.home_margin_mean)>0?d.game.home:d.game.away)+
-   " · "+fmt(Math.abs(Number(clutch.home_margin_mean)))+" pkt":"—";
- $("hzm-flow-volatility").textContent=ready&&number(data.volatility?.final_spread_sd)!==null?
-   "σ "+fmt(data.volatility.final_spread_sd)+" pkt":"—";
- $("hzm-flow-runrisk").textContent="Brak play-by-play";
- const actual=ready?Array.isArray(d?.players?.players)?d.players.players:[]:[];
- const eligible=actual.filter(p=>number(p.minutes)!==null&&
-   Number(p.minutes)>=5&&Number(p.minutes)<=48&&Number(p.minutes_sample)>=3&&
-   p.availability!=="Out"&&[d.game.away,d.game.home].includes(p.team));
- const awayPlayers=eligible.filter(p=>p.team===d.game.away).sort((a,b)=>b.minutes-a.minutes).slice(0,3);
- const homePlayers=eligible.filter(p=>p.team===d.game.home).sort((a,b)=>b.minutes-a.minutes).slice(0,3);
+ const clutchDiff=number(clutch?.home_margin_mean);
+ $("hzm-flow-clutch").textContent=clutchDiff!==null?
+   (clutchDiff>0?d.game.home:clutchDiff<0?d.game.away:"REMIS")+
+   " "+(clutchDiff===0?"":signed(Math.abs(clutchDiff)))+
+   (clutchDiff===0?"":"+ pkt"):"—";
+ const proxy=ready&&data.run_proxy?.n_sims===5000&&
+   data.run_proxy?.method==="neutral_order_two_point_events_v1"?data.run_proxy:null;
+ const eight=number(proxy?.at_least_8_pct);
+ $("hzm-flow-runrisk").textContent=eight!==null?"≈"+pct(eight)+" (neutralny)":"Brak danych";
+ const change=ready?number(data.neutral_scoring_window_sd):null;
+ $("hzm-flow-volatility").textContent=change!==null?
+   "σ "+fmt(change)+" pkt / 6 min":"—";
+ $("hzm-flow-run-data").innerHTML=[6,8,10].map((threshold,i)=>{
+   const value=number(proxy?.["at_least_"+threshold+"_pct"]);
+   const good=value!==null&&value>=0&&value<=100;
+   return '<div class="hzm-flow-run-row"><span>≥'+threshold+
+     '–0</span><div class="hzm-flow-run-track"><i style="width:'+(good?value:0)+
+     '%;'+(i===2?'background:linear-gradient(90deg,#8c50cf,#db78ef)':'')+
+     '"></i></div><strong>'+(good?"≈"+pct(value):"—")+'</strong></div>';
+ }).join("");
+ $("hzm-flow-run-note").textContent=proxy?
+   "Neutralne losowanie kolejności trafień 2 pkt · bez play-by-play i bez kalibracji":
+   "Brak modelu sekwencji; nie są pokazywane fikcyjne prawdopodobieństwa.";
+ const observed=ready&&Array.isArray(d?.players?.players)?d.players.players:[];
+ const eligible=observed.filter(p=>
+   number(p.minutes)!==null&&Number(p.minutes)>=5&&Number(p.minutes)<=48&&
+   Number(p.minutes_sample)>=3&&p.availability!=="Out"&&
+   [d.game.away,d.game.home].includes(p.team));
+ const sorted=(team)=>eligible.filter(p=>p.team===team)
+   .sort((a,b)=>Number(b.minutes)-Number(a.minutes));
+ const topAway=sorted(d?.game?.away),topHome=sorted(d?.game?.home);
+ const picked=[...topAway.slice(0,3),...topHome.slice(0,3)];
+ const ticks=Array.from({length:17},(_,i)=>"<span>"+i*3+"′</span>").join("");
+ const heat=(p)=>{
+   const sample=Array.isArray(p.history)?
+     p.history.map(x=>number(x?.min)).filter(v=>v!==null&&v>=0&&v<=48):[];
+   return Array.from({length:16},(_,i)=>{
+     const threshold=(i+1)*3;
+     const rate=sample.length>=3?100*sample.filter(m=>m>=threshold).length/sample.length:null;
+     const level=rate===null?"hzm-heat-off":rate>=75?"hzm-heat-hi":
+       rate>=50?"hzm-heat-med":rate>=25?"hzm-heat-low":"hzm-heat-off";
+     const description=rate===null?"Brak minimum 3 obserwacji":"W "+sample.length+
+       " meczach ESPN co najmniej "+threshold+" minut: "+pct(rate);
+     return '<span class="hzm-flow-heat-cell '+level+
+       '" title="'+esc(description)+'"></span>';
+   }).join("");
+ };
  $("hzm-flow-roster").innerHTML=!ready?
-   "<p>Zweryfikowane minuty historyczne są niedostępne.</p>":
-   !eligible.length?"<p>Brak zweryfikowanych minut zawodników z tego meczu. Użyj „Pobierz dane zawodników”.</p>":
-   '<div class="hzm-flow-time-ticks"><span>0′</span><span>12′</span><span>24′</span><span>36′</span><span>48′</span></div>'+
-   [...awayPlayers,...homePlayers].map(p=>
-     '<div class="hzm-flow-player-row '+(p.team===d.game.home?"home":"")+'">'+
-     '<span>'+esc(p.name)+' ('+esc(p.team)+')</span>'+
-     '<div class="hzm-flow-player-track" role="img" aria-label="'+esc('Średnio '+fmt(p.minutes)+' minut w historii ESPN; bez określania momentu gry')+'">'+
-     '<i style="width:'+Math.min(100,Number(p.minutes)/48*100).toFixed(2)+'%"></i></div>'+
+   '<p>Zweryfikowane minuty ESPN są niedostępne dla konta bez wyniku Premium.</p>':
+   !picked.length?
+     '<p>Brak wymaganych 3 obserwacji minut zawodników. Użyj „Odśwież skład”.</p>':
+   '<div class="hzm-flow-history-grid">'+
+   '<div class="hzm-flow-history-head"><span>Zawodnik (drużyna)</span><span>POZ.</span>'+
+   '<div class="hzm-flow-time-ticks">'+ticks+'</div><span>ŚR. MIN</span></div>'+
+   picked.map(p=>
+     '<div class="hzm-flow-player-row '+(p.team===d.game.home?"home":"away")+'">'+
+     '<span class="hzm-flow-player-name" title="'+esc(p.name)+'">'+esc(p.name)+
+       ' <small>('+esc(p.team)+')</small></span>'+
+     '<span class="hzm-flow-player-role">'+esc(p.position||"—")+'</span>'+
+     '<div class="hzm-flow-player-track" role="img" aria-label="'+
+       esc('Odsetek występów ESPN, w których zawodnik osiągnął kolejne progi łącznego czasu gry. Średnio '+fmt(p.minutes)+' minut.')+
+       '">'+heat(p)+'</div>'+
      '<strong>'+fmt(p.minutes)+'′</strong></div>').join("")+
-   '<p class="hzm-flow-roster-note">Długość paska to <b>łączny historyczny czas gry</b>; położenie nie oznacza minut wejścia, wyjścia ani składu na parkiecie.</p>';
- const topA=awayPlayers.filter(p=>number(p.pts)!==null&&number(p.ast)!==null)
+   '</div><p class="hzm-flow-roster-note">Oś 0–48′ pokazuje <b>osiągnięty łączny czas gry</b> w poprzednich meczach ESPN, a nie to, kiedy zawodnik był na boisku. Kolor = odsetek występów z minimum X minutami.</p>';
+ // The cards below are exclusively model projections. "Bench" and
+ // "rim attempts" cannot be inferred from ESPN minutes/points alone.
+ const modelValues=team=>observed.filter(p=>p.team===team&&
+   p.availability!=="Out"&&number(p.pts)!==null);
+ const ranked=team=>modelValues(team).sort((a,b)=>Number(b.pts)-Number(a.pts));
+ const lead=(team)=>ranked(team).filter(p=>number(p.ast)!==null)
    .sort((a,b)=>Number(b.pts)+Number(b.ast)-Number(a.pts)-Number(a.ast))[0];
- const topH=homePlayers.filter(p=>number(p.pts)!==null&&number(p.ast)!==null)
-   .sort((a,b)=>Number(b.pts)+Number(b.ast)-Number(a.pts)-Number(a.ast))[0];
- const duel=topA&&topH?'<h3>'+esc(topA.name.split(" ").slice(-1)[0])+' vs '+
-     esc(topH.name.split(" ").slice(-1)[0])+'</h3><p>PTS + AST · prognozy wybranego modelu</p>'+
-     '<strong>'+fmt(Number(topA.pts)+Number(topA.ast))+' vs '+
-     fmt(Number(topH.pts)+Number(topH.ast))+'</strong>':
-     '<h3>Liderzy ofensywy</h3><p>Wymagane projekcje obu zespołów.</p><strong>—</strong>';
- $("hzm-flow-matchups").innerHTML='<div class="hzm-flow-duel">'+duel+'</div>'+
-   '<div class="hzm-flow-duel"><h3>Suma punktów</h3><p>Średnie końcowe tego samego modelu</p><strong>'+
-   (ready?fmt(d.sim.away_points)+" / "+fmt(d.sim.home_points):"—")+
-   '</strong></div><div class="hzm-flow-duel purple"><h3>Rozpiętość przewagi</h3>'+
-   '<p>P10–P90 końcowej różnicy gospodarze − goście</p><strong>'+
-   (ready?fmt(data.volatility.final_spread_p10)+" do "+fmt(data.volatility.final_spread_p90):"—")+
-   '</strong></div>';
+ const A=lead(d?.game?.away),H=lead(d?.game?.home);
+ const duelText=A&&H?{
+   title:esc(A.name.split(" ").slice(-1)[0])+" vs "+esc(H.name.split(" ").slice(-1)[0]),
+   subtitle:"Prognoza PTS + AST · bez pojedynku 1 na 1",
+   away:Number(A.pts)+Number(A.ast),home:Number(H.pts)+Number(H.ast)
+ }:{title:"Liderzy ofensywy",subtitle:"Brak danych obu zawodników",away:null,home:null};
+ const depth=team=>ranked(team).slice(5,8);
+ const depA=depth(d?.game?.away),depH=depth(d?.game?.home);
+ const points=arr=>arr.length===3?arr.reduce((sum,p)=>sum+Number(p.pts),0):null;
+ const rankReb=team=>modelValues(team).filter(p=>number(p.reb)!==null)
+   .sort((a,b)=>Number(b.reb)-Number(a.reb)).slice(0,5);
+ const rebA=rankReb(d?.game?.away),rebH=rankReb(d?.game?.home);
+ const rebSum=arr=>arr.length===5?arr.reduce((sum,p)=>sum+Number(p.reb),0):null;
+ const cards=[
+   {title:duelText.title,subtitle:duelText.subtitle,away:duelText.away,home:duelText.home,icon:"◎"},
+   {title:"Depth Edge",subtitle:"PTS · miejsca 6–8 wg prognozy (nie potwierdzona ławka)",
+      away:points(depA),home:points(depH),icon:"♙"},
+   {title:"Rebound Pressure",subtitle:"REB · pięciu liderów wg modelu (nie rzuty spod kosza)",
+      away:rebSum(rebA),home:rebSum(rebH),icon:"▥"}
+ ];
+ $("hzm-flow-matchups").innerHTML=cards.map((card,i)=>{
+   const supported=ready&&number(card.away)!==null&&number(card.home)!==null;
+   const a=supported?Number(card.away):null,h=supported?Number(card.home):null;
+   const leader=!supported?"BRAK DANYCH":a>h?d.game.away:h>a?d.game.home:"REMIS";
+   const delta=supported?Math.abs(a-h):null;
+   return '<div class="hzm-flow-duel '+(i===1?"purple":"")+'">'+
+     '<div class="hzm-flow-duel-head"><span>'+card.icon+'</span><h3>'+card.title+'</h3></div>'+
+     '<p>'+card.subtitle+'</p>'+
+     '<div class="hzm-flow-duel-nums"><strong>'+(supported?fmt(a):"—")+
+       '</strong><b>vs</b><strong>'+(supported?fmt(h):"—")+'</strong></div>'+
+     '<div class="hzm-flow-duel-advantage"><small>PRZEWAGA</small>'+
+       '<b>'+esc(leader)+(delta!==null&&delta>0?" +"+fmt(delta):"")+'</b></div>'+
+     '</div>';
+ }).join("");
  $("hzm-flow-method").textContent=ready?String(data.source||"").slice(0,560):
    "Flow nie korzysta z fikcyjnych rotacji, serii punktowych ani wyników kwart. Model dostępny wyłącznie po zweryfikowanej symulacji Premium.";
 }
