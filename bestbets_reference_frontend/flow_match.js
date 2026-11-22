@@ -69,17 +69,23 @@ function drawChart(data,period,away,home){
       homePts<0||awayPts<0||homePts>100||awayPts>100)return "";
    const mid=x(6+i*12),leftEdge=mid-68;
    const picked=period==="all"||period===String(i+1)||(period==="clutch"&&i===3);
-   const note="Q"+(i+1)+": "+home+" gospodarze "+fmt(homePts)+" pkt, "+
-     away+" goście "+fmt(awayPts)+
-     " pkt. Historyczne punkty kwartowe ESPN dopasowane do 5 000 wyników meczu; model eksperymentalny.";
+   const hasRange=[q?.away_p10,q?.away_p90,q?.home_p10,q?.home_p90]
+     .every(v=>number(v)!==null);
+   const range=hasRange?
+     " P10–P90: "+home+" "+fmt(q.home_p10)+"–"+fmt(q.home_p90)+
+     " pkt, "+away+" "+fmt(q.away_p10)+"–"+fmt(q.away_p90)+" pkt.":"";
+   const note="Q"+(i+1)+": "+home+" gospodarze śr. "+fmt(homePts)+" pkt, "+
+     away+" goście śr. "+fmt(awayPts)+
+     " pkt. Historyczne punkty kwartowe ESPN i 5 000 wyników meczu; model eksperymentalny."+
+     range;
    return '<g class="hzm-flow-quarter-points'+(picked?" selected":"")+
      '" data-flow-quarter-points="'+(i+1)+'" role="group" aria-label="'+esc(note)+'">'+
      '<title>'+esc(note)+'</title>'+
      '<rect x="'+leftEdge+'" y="21" width="136" height="39" rx="7"/>'+
      '<text class="hzm-flow-q-home" x="'+mid+'" y="37" text-anchor="middle">'+
-     esc(home)+' '+fmt(homePts)+' pkt</text>'+
+     esc(home)+' śr. '+fmt(homePts)+' pkt</text>'+
      '<text class="hzm-flow-q-away" x="'+mid+'" y="53" text-anchor="middle">'+
-     esc(away)+' '+fmt(awayPts)+' pkt</text></g>';
+     esc(away)+' śr. '+fmt(awayPts)+' pkt</text></g>';
  }).join("");
  const dividers=[12,24,36,42].map(m=>
    '<line x1="'+x(m)+'" x2="'+x(m)+'" y1="'+top+'" y2="'+bottom+
@@ -182,7 +188,7 @@ function render(d){
  }
  const hasQuarterProof=ready&&data?.quarter_model?.available===true;
  $("hzm-flow-timeline-desc").textContent=hasQuarterProof?
-   "Średnia przewaga z 5 000 symulacji · profil Q1–Q4 z wcześniejszych meczów ESPN ("+
+   "Średnia przewaga 5 000 symulacji · Q1–Q4 to ŚREDNIE, nie pewne wyniki; historia ESPN ("+
    d.game.away+": "+data.quarter_model.away_sample+", "+
    d.game.home+": "+data.quarter_model.home_sample+")":
    "Brak wystarczającej historii kwart ESPN — sztucznych prognoz nie wyświetlamy.";
