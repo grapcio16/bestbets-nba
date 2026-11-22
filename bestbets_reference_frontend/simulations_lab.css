@@ -1587,3 +1587,6 @@
 @media(prefers-reduced-motion:reduce){
   #simulations-pane .hzm-minute-picker-chevron{transition:none}
 }
+
+/* Keep the open roster panel above later Injury Watch cards. */
+#simulations-pane .hzm-minute-panel.menu-open{z-index:80}
