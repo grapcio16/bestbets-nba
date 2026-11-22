@@ -290,7 +290,7 @@ function showDistributionOverview(sim,game,premium){
  set("hzm-result-range",paid?range:"—");
  const variance=count>0&&Number.isFinite(average)?
    bins.reduce((sum,row)=>sum+Math.pow(Number(row.x)+2.5-average,2)*Number(row.p),0)/count:null;
- set("hzm-result-sd",paid&&variance!==null?fmt(Math.sqrt(variance)):"—");
+ set("hzm-result-sd",paid&&variance!==null?"±"+fmt(Math.sqrt(variance)):"—");
 }
 function showResultsDashboard(game,sim,premium){
  const paid=premium?.entitled===true;
