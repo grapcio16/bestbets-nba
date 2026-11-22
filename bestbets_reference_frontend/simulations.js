@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",chartLine:{match:null,away:null,home:null},view:"results",resultTeam:"all",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",chartLine:{match:null,away:null,home:null},intervalWidth:20,view:"results",resultTeam:"all",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -231,14 +231,14 @@ function chartOverUnderAt(dist,bins,line){
  if(over!==null)over=Math.max(0,Math.min(100,over));
  return {line:t,over,under:over===null?null:100-over,approx:!exact};
 }
-/* 20-point span around the selected OVER/UNDER market line.
-   For integer basketball scores, endpoints differ by 20; both are inclusive.
-   Uses the SAME 5000 original score draws as the side OVER/UNDER control. */
-function chartTwentyPointAt(dist,bins,line){
+/* Adjustable 10/20/30-point span around the chosen OVER/UNDER line.
+   Inclusive integer endpoints have a difference of "width" points.
+   Uses only the SAME 5000 already simulated scores as side OVER/UNDER. */
+function chartIntervalAt(dist,bins,line,width=20){
  const t=validChartLine(line);
- if(t===null||!bins.length)return null;
+ if(t===null||!bins.length||![10,20,30].includes(width))return null;
  const centre=Math.floor(t)+1;
- const from=centre-10,to=centre+10;
+ const half=width/2,from=centre-half,to=centre+half;
  const counts=Array.isArray(dist?.score_counts)?dist.score_counts
    .filter(item=>Array.isArray(item)&&item.length===2&&
      Number.isInteger(Number(item[0]))&&Number.isInteger(Number(item[1]))&&
@@ -386,7 +386,13 @@ function showDistributionOverview(sim,game,premium){
  const valid=!!paid&&bins.length>=3&&dist?.average!=null&&Number.isFinite(avg);
  const line=valid?chartLineFor(dist,bins):null;
  const profile=valid?chartOverUnderAt(dist,bins,line):null;
- const concentration=valid?chartTwentyPointAt(dist,bins,line):null;
+ const width=[10,20,30].includes(state.intervalWidth)?state.intervalWidth:20;
+ const concentration=valid?chartIntervalAt(dist,bins,line,width):null;
+ $("hzm-window-kpi")?.querySelectorAll("[data-hzm-interval-width]").forEach(button=>{
+   const selected=Number(button.dataset.hzmIntervalWidth)===width;
+   button.setAttribute("aria-pressed",String(selected));
+   button.disabled=!valid;
+ });
  const explanation=$("hzm-prob-explanation"),input=$("hzm-ou-line");
  if(input){
    input.disabled=!valid;
@@ -507,6 +513,23 @@ function chartLineAtPointer(event,svg,bins){
  const score=xmin+(Math.max(43,Math.min(445,x))-43)/(445-43)*(xmax-xmin);
  return Math.max(0.5,Math.min(499.5,Math.floor(score)+0.5));
 }
+/* Set the interval width independently of the selected model/market line.
+   Recompute from cached 5000 scores; no server requests or redraw needed. */
+function bindWindowInterval(){
+ const card=$("hzm-window-kpi");
+ card?.addEventListener("click",event=>{
+   const button=event.target.closest?.("[data-hzm-interval-width]");
+   if(!button||button.disabled)return;
+   const width=Number(button.dataset.hzmIntervalWidth);
+   if(![10,20,30].includes(width))return;
+   event.preventDefault();
+   event.stopPropagation();
+   state.intervalWidth=width;
+   const {game,sim}=selectedChartContext();
+   showDistributionOverview(sim,game,state.lastPremium);
+ });
+}
+
 function bindChartInteraction(){
  const plot=$("hzm-plot"),tabs=$("hzm-chart-tabs");
  let activePointer=null;
@@ -1592,6 +1615,7 @@ function navigate(day){
 function init(api){
   callbacks=api;
   bindChartInteraction();
+  bindWindowInterval();
   // Keep the verified ESPN photo optional: network and CDN errors should
   // reveal the local initials fallback, not a broken-image icon.
   $("simulations-pane")?.addEventListener("error",event=>{
