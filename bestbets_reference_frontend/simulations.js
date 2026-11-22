@@ -62,7 +62,7 @@ function toggleModelDropdown(open,restoreFocus=false){
 }
 function chooseModel(model){
   if(!MODEL_CHOICES.some(item=>item.id===model)||model===state.model)return;
-  state.model=model;state.gamePending="";state.playersPending="";state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
+  state.model=model;state.chartPoint={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function toggleMatchPicker(open){
@@ -424,6 +424,104 @@ function showResultsDashboard(game,sim,premium){
    "Uruchom Model & Backtest, aby zobaczyć zweryfikowaną próbę. ROI wymaga kursów.");
 }
 
+
+/* Interactive histogram: event listeners stay on the persistent plot wrapper,
+   so a Streamlit re-render or a team switch cannot disconnect the slider. */
+function selectedChartContext(){
+ const game=gamesForDay(state.lastHome).games.find(item=>item.id===state.gameId);
+ return {game,sim:trustedResult(state.lastPremium,game)};
+}
+function chooseChartPoint(index){
+ const plot=$("hzm-plot"),svg=plot?.querySelector("svg.hzm-neon-curve");
+ const {game,sim}=selectedChartContext();
+ const dist=sim?.distributions?.[state.chart],bins=chartBins(dist);
+ if(!svg||!game||!sim||index<0||index>=bins.length)return;
+ state.chartPoint[state.chart]=bins[index].x;
+ updateChartMarker(svg,dist,bins,index);
+ showDistributionOverview(sim,game,state.lastPremium);
+ const source=$("hzm-chart-source");
+ if(source)source.textContent="Przeciągnij punkt lub użyj ← → · zakres: "+
+   bins[index].x+"–"+(bins[index].x+4)+" pkt · "+fmt(bins[index].p)+"% w przedziale";
+}
+function chartIndexAtPointer(event,svg,bins){
+ const matrix=svg.getScreenCTM?.();
+ if(!matrix||!bins.length)return -1;
+ let x;
+ try{
+   if(typeof svg.createSVGPoint==="function"){
+     const point=svg.createSVGPoint();point.x=event.clientX;point.y=event.clientY;
+     x=point.matrixTransform(matrix.inverse()).x;
+   }else{
+     const rect=svg.getBoundingClientRect();
+     x=(event.clientX-rect.left)/Math.max(1,rect.width)*456;
+   }
+ }catch(error){return -1}
+ if(!Number.isFinite(x))return -1;
+ const xmin=bins[0].x,xmax=bins[bins.length-1].x+5;
+ if(xmax<=xmin)return -1;
+ const score=xmin+(Math.max(43,Math.min(445,x))-43)/(445-43)*(xmax-xmin);
+ return bins.reduce((best,row,i)=>Math.abs(row.x+2.5-score)<
+   Math.abs(bins[best].x+2.5-score)?i:best,0);
+}
+function bindChartInteraction(){
+ const plot=$("hzm-plot"),tabs=$("hzm-chart-tabs");
+ let activePointer=null;
+ if(!plot||!tabs)return;
+ const handlePointer=event=>{
+   const svg=plot.querySelector("svg.hzm-neon-curve");
+   const {sim}=selectedChartContext();
+   const bins=chartBins(sim?.distributions?.[state.chart]);
+   if(!svg||bins.length<3)return;
+   const index=chartIndexAtPointer(event,svg,bins);
+   if(index>=0)chooseChartPoint(index);
+ };
+ plot.addEventListener("pointerdown",event=>{
+   if(!event.target.closest?.("svg.hzm-neon-curve")||
+      (event.button!==undefined&&event.button!==0))return;
+   activePointer=event.pointerId;
+   try{plot.setPointerCapture(event.pointerId)}catch(error){}
+   handlePointer(event);
+   event.preventDefault();
+ });
+ plot.addEventListener("pointermove",event=>{
+   if(activePointer!==event.pointerId)return;
+   handlePointer(event);
+   event.preventDefault();
+ });
+ const finish=event=>{
+   if(activePointer!==event.pointerId)return;
+   if(event.type==="pointerup")handlePointer(event);
+   activePointer=null;
+   try{if(plot.hasPointerCapture?.(event.pointerId))plot.releasePointerCapture(event.pointerId)}catch(error){}
+ };
+ plot.addEventListener("pointerup",finish);
+ plot.addEventListener("pointercancel",finish);
+ plot.addEventListener("lostpointercapture",()=>{activePointer=null});
+ plot.addEventListener("keydown",event=>{
+   if(!event.target.closest?.("svg.hzm-neon-curve"))return;
+   if(!["ArrowLeft","ArrowRight","Home","End"].includes(event.key))return;
+   const {sim}=selectedChartContext();
+   const dist=sim?.distributions?.[state.chart],bins=chartBins(dist);
+   if(!bins.length)return;
+   const previous=chartBinIndex(bins,dist);
+   const next=event.key==="Home"?0:event.key==="End"?bins.length-1:
+     Math.max(0,Math.min(bins.length-1,previous+(event.key==="ArrowRight"?1:-1)));
+   event.preventDefault();
+   chooseChartPoint(next);
+ });
+ // This control is intentionally direct: the old delegated click caused the
+ // entire Simulation Lab to rebuild and could appear inert in the embedded UI.
+ tabs.addEventListener("click",event=>{
+   const tab=event.target.closest?.("[data-hzm-chart]");
+   if(!tab||!["match","away","home"].includes(tab.dataset.hzmChart))return;
+   event.preventDefault();event.stopPropagation();
+   if(state.chart===tab.dataset.hzmChart)return;
+   state.chart=tab.dataset.hzmChart;
+   const {game,sim}=selectedChartContext();
+   showChart(sim,game,state.lastPremium);
+ });
+}
+
 function showChart(sim,game,premium){
   showDistributionOverview(sim,game,premium);
   const tabs=$("hzm-chart-tabs").querySelectorAll("button");
@@ -455,8 +553,10 @@ function showChart(sim,game,premium){
      dist.p10!==null&&dist.p90!==null){
    range.textContent="Przedział 80%: "+fmt(dist.p10)+" – "+fmt(dist.p90)+" pkt";
   }
-  if(Number.isFinite(Number(dist?.threshold))&&Number.isFinite(Number(dist?.over_pct))){
-    $("hzm-chart-source").textContent='P('+code+' ≥ '+dist.threshold+' pkt): '+fmt(dist.over_pct)+'% · przedział 80%: '+dist.p10+'–'+dist.p90+' pkt';
+  if(chartBins(dist).length){
+    const bins=chartBins(dist),chosen=bins[chartBinIndex(bins,dist)];
+    $("hzm-chart-source").textContent="Przeciągnij punkt lub użyj ← → · zakres: "+
+      chosen.x+"–"+(chosen.x+4)+" pkt · "+fmt(chosen.p)+"% w przedziale";
   }
 }
 function safeProjection(value){
@@ -1197,7 +1297,7 @@ function render(home,premium){
   }
   if(!data.games.some(game=>game.id===state.gameId)){
     const next=data.games.find(game=>game.state==="scheduled")||data.games[0];
-    state.gameId=next?.id||"";state.gamePending="";state.playersPending="";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
+    state.gameId=next?.id||"";state.chartPoint={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
   }
   $("hzm-day-title").textContent=labelDay(state.day);
   $("hzm-day-input").value=state.day;
@@ -1277,11 +1377,12 @@ function render(home,premium){
 }
 function navigate(day){
   if(!safeDate(day)||!withinRange(day)||state.day===day)return;
-  state.day=day;state.localDayIntent=true;state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
+  state.day=day;state.localDayIntent=true;state.chartPoint={match:null,away:null,home:null};state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function init(api){
   callbacks=api;
+  bindChartInteraction();
   // Keep the verified ESPN photo optional: network and CDN errors should
   // reveal the local initials fallback, not a broken-image icon.
   $("simulations-pane")?.addEventListener("error",event=>{
@@ -1420,7 +1521,7 @@ function init(api){
     const selected=event.target.closest("[data-hzm-game]");
     if(!selected)return;
     event.stopPropagation();
-    state.gameId=selected.dataset.hzmGame;state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
+    state.gameId=selected.dataset.hzmGame;state.chartPoint={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
     state.expanded=state.view==="players";state.resultTeam="all";
     toggleMatchPicker(false);
     render(state.lastHome,state.lastPremium);
@@ -1504,12 +1605,11 @@ function init(api){
     // The date buttons are wired directly above rather than delegated.
     const gameButton=event.target.closest("[data-hzm-game]");
     if(gameButton){
-      state.gameId=gameButton.dataset.hzmGame;state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";
+      state.gameId=gameButton.dataset.hzmGame;state.chartPoint={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";
       state.expanded=state.view==="players";toggleMatchPicker(false);
       render(state.lastHome,state.lastPremium);return;
     }
-    const metric=event.target.closest("[data-hzm-chart]");
-    if(metric){state.chart=metric.dataset.hzmChart;render(state.lastHome,state.lastPremium);return}
+    // #hzm-chart-tabs has a dedicated handler; no full-page rerender on team switch.
     if(event.target.closest("#hzm-expand-players")){state.expanded=!state.expanded;render(state.lastHome,state.lastPremium);return}
     if(event.target.closest("#hzm-premium-link")){callbacks?.premium?.()}
   });
