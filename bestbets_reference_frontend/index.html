@@ -678,7 +678,14 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
               <small id="hzm-prob-explanation">Przesuń linię na wykresie lub wpisz własną · model 5 000 symulacji</small>
             </div></div>
             <div class="hzm-averages"><div class="hzm-avg cyan"><span id="hzm-away-average-label">Śr. goście</span><strong id="hzm-away-average">—</strong></div><div class="hzm-avg purple"><span id="hzm-home-average-label">Śr. gospodarze</span><strong id="hzm-home-average">—</strong></div><div class="hzm-avg gold"><span>Suma meczu</span><strong id="hzm-total-average">—</strong></div></div>
-            <div class="hzm-result-kpis" aria-label="Podsumowanie rozkładu punktowego"><div><small>Zwycięzca (proj.)</small><strong id="hzm-result-favorite">—</strong></div><div><small>Suma punktów</small><strong id="hzm-result-total">—</strong></div><div class="hzm-window-kpi" title="Przedział o szerokości 20 punktów, centrowany względem linii z wykresu"><small>Szansa na wybrany przedział</small><strong id="hzm-result-range">—</strong><span id="hzm-result-range-pct" aria-live="polite">—</span></div><div><small>Odchylenie ≈</small><strong id="hzm-result-sd">—</strong></div></div>
+            <div class="hzm-result-kpis" aria-label="Podsumowanie rozkładu punktowego"><div><small>Zwycięzca (proj.)</small><strong id="hzm-result-favorite">—</strong></div><div><small>Suma punktów</small><strong id="hzm-result-total">—</strong></div><div class="hzm-window-kpi" id="hzm-window-kpi" title="Szansa na wybrany przedział wokół linii z wykresu">
+                <div class="hzm-window-head"><small>Szansa w przedziale</small><div class="hzm-window-widths" role="group" aria-label="Szerokość przedziału punktowego">
+                  <button type="button" data-hzm-interval-width="10" aria-pressed="false" title="Przedział 10 punktów">10</button>
+                  <button type="button" data-hzm-interval-width="20" aria-pressed="true" title="Przedział 20 punktów">20</button>
+                  <button type="button" data-hzm-interval-width="30" aria-pressed="false" title="Przedział 30 punktów">30</button>
+                </div></div>
+                <strong id="hzm-result-range">—</strong><span id="hzm-result-range-pct" aria-live="polite">—</span>
+              </div><div><small>Odchylenie ≈</small><strong id="hzm-result-sd">—</strong></div></div>
             <div class="hzm-chart-source"><span id="hzm-chart-source">Średnie wyłącznie z wykonanych symulacji.</span><strong id="hzm-lab-range">Przedział 80%: —</strong></div>
           </section>
           <section id="hzm-players-panel" class="hzm-players-panel" aria-label="Player Simulations — projekcje modelu">
