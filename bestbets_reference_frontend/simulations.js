@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",resultTeam:"all",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -217,7 +217,100 @@ function chartSvg(dist,code){
     '<text x="'+Math.max(105,Math.min(mx+2,w-56))+'" y="17" fill="#fff" font-weight="800" font-size="12" text-anchor="middle">'+fmt(mean)+' PTS</text>'+
     xticks+'<text x="'+w/2+'" y="183" text-anchor="middle" fill="#c4d9ea" font-size="10">Punkty – '+esc(code)+'</text></svg>';
 }
+
+/* Results screenshot: derive every metric from the entitled game simulation.
+   The histogram is grouped into five-point buckets, hence estimates are
+   explicitly approximate. No bookmaker ROI or hit rate is synthesized. */
+function showDistributionOverview(sim,game,premium){
+ const paid=premium?.entitled===true&&sim&&!sim.error&&game;
+ const set=(id,value)=>{const el=$(id);if(el)el.textContent=value};
+ const dist=paid?sim.distributions?.[state.chart]:null;
+ const average=dist?.average===null||dist?.average===undefined?NaN:Number(dist.average);
+ const bins=Array.isArray(dist?.bins)?dist.bins.filter(row=>
+    Number.isFinite(Number(row.x))&&Number.isFinite(Number(row.p))&&Number(row.p)>=0):[];
+ const count=bins.reduce((sum,row)=>sum+Number(row.p),0);
+ const estimate=t=>count>0?100*bins.reduce((sum,row)=>
+    sum+(Number(row.x)+2.5>=t?Number(row.p):0),0)/count:null;
+ const probability=$("hzm-probability-rows");
+ if(probability){
+   if(!paid||!Number.isFinite(average)||!bins.length){
+     probability.textContent=paid?"Brak pełnego rozkładu.":"Dane dostępne w Premium.";
+   }else{
+     const base=Number(dist.threshold),exact=Number(dist.over_pct);
+     const validBase=dist.threshold!==null&&Number.isFinite(base);
+     const exactKnown=validBase&&dist.over_pct!==null&&dist.over_pct!==undefined&&
+       Number.isFinite(exact)&&exact>=0&&exact<=100;
+     const at=validBase?base:5*Math.round(average/5);
+     const options=[
+       {label:"Powyżej "+at+" pkt",p:exactKnown?exact:estimate(at),approx:!exactKnown},
+       {label:"Poniżej "+at+" pkt",p:exactKnown?100-exact:estimate(at)===null?null:100-estimate(at),approx:!exactKnown},
+       {label:"Powyżej "+(at+10)+" pkt",p:estimate(at+10),approx:true},
+       {label:"Poniżej "+(at-10)+" pkt",p:estimate(at-10)===null?null:100-estimate(at-10),approx:true}
+     ];
+     probability.innerHTML=options.map(item=>
+       '<div class="hzm-prob-row"><span>'+esc(item.label)+'</span><b>'+
+       (item.p===null?"—":(item.approx?"≈":"")+percent(Math.max(0,Math.min(100,item.p))))+
+       '</b></div>').join("");
+   }
+ }
+ set("hzm-result-favorite",paid?(sim.home_win_pct>=sim.away_win_pct?
+    String(game.home)+" "+percent(sim.home_win_pct):String(game.away)+" "+percent(sim.away_win_pct)):"—");
+ set("hzm-result-total",paid?fmt(sim.total_points):"—");
+ const range=dist&&Number.isFinite(Number(dist.p10))&&Number.isFinite(Number(dist.p90))&&dist.p10!==null&&dist.p90!==null
+  ?Math.round(Number(dist.p10))+"–"+Math.round(Number(dist.p90)):"—";
+ set("hzm-result-range",paid?range:"—");
+ const variance=count>0&&Number.isFinite(average)?
+   bins.reduce((sum,row)=>sum+Math.pow(Number(row.x)+2.5-average,2)*Number(row.p),0)/count:null;
+ set("hzm-result-sd",paid&&variance!==null?fmt(Math.sqrt(variance)):"—");
+}
+function showResultsDashboard(game,sim,premium){
+ const paid=premium?.entitled===true;
+ const ctx=paid&&sim&&!sim.error?sim.model_context:null;
+ const set=(id,value)=>{const el=$(id);if(el)el.textContent=value};
+ set("hzm-hero-away-label",game?.away||"goście");
+ set("hzm-hero-home-label",game?.home||"gospodarze");
+ set("hzm-hero-away-points",paid&&sim&&!sim.error?fmt(sim.away_points):"—");
+ set("hzm-hero-home-points",paid&&sim&&!sim.error?fmt(sim.home_points):"—");
+ set("hzm-mini-away-code",game?.away||"gości");
+ set("hzm-mini-home-code",game?.home||"gospodarzy");
+ const sliders=[["hzm-mini-pace","hzm-mini-pace-output",state.scenarioPct],
+                ["hzm-mini-off-away","hzm-mini-off-away-output",state.offAwayPct],
+                ["hzm-mini-off-home","hzm-mini-off-home-output",state.offHomePct]];
+ sliders.forEach(([id,output,value])=>{
+   const element=$(id);if(element&&Number(element.value)!==value)element.value=String(value);
+   set(output,(value>0?"+":"")+value+"%");
+ });
+ const eligible=paid&&game?.state==="scheduled"&&Date.parse(game?.start||"")>Date.now()&&sim&&!sim.error;
+ const run=$("hzm-mini-run");if(run)run.disabled=!eligible;
+ set("hzm-mini-finding-form",ctx?
+   "Zweryfikowane mecze obu drużyn: "+String(ctx.away_sample??"—")+" / "+String(ctx.home_sample??"—")+
+   ". Próbki mogą być ograniczone.":"Forma: brak wystarczających danych w bieżącym widoku.");
+ set("hzm-mini-finding-winner",paid&&sim&&!sim.error&&game?
+   "Model wskazuje "+String(sim.home_win_pct>=sim.away_win_pct?game.home:game.away)+
+   " ("+percent(Math.max(Number(sim.home_win_pct),Number(sim.away_win_pct)))+") — szansa niekalibrowana.":
+   "Wybierz mecz Premium, aby poznać prognozę zwycięzcy.");
+ set("hzm-mini-finding-context",ctx?
+   (ctx.advanced_available?"NBA Advanced i historia ESPN w danych modelu. ":
+    "Brak pełnego NBA Advanced; model opiera się na historii meczów. ")+
+    (ctx.v75_factors?.injuries_espn_fresh?
+     "Statusy ESPN wymagają potwierdzenia.":"Kontuzje/składy mogą być niepotwierdzone."):
+   "Informacje o kontuzjach i składach mogą być niepełne.");
+ const report=paid?premium?.backtest:null;
+ const key=state.model==="legacy_v72"?"old":state.model==="research_form_v74"?"enriched":"v75";
+ const model=report&&!report.error&&Array.isArray(report.models)?
+   report.models.find(row=>row?.key===key):null;
+ const validReport=Number.isInteger(report?.games)&&report.games>0&&report.games<=40&&
+   model&&Number.isFinite(Number(model.winner_accuracy_pct))&&
+   Number(model.winner_accuracy_pct)>=0&&Number(model.winner_accuracy_pct)<=100;
+ set("hzm-recent-accuracy",validReport?percent(model.winner_accuracy_pct):"—");
+ set("hzm-recent-roi","N/D");
+ set("hzm-recent-sample",validReport?String(report.games):"—");
+ set("hzm-recent-note",validReport?"Backtest offline · nie jest potwierdzeniem skuteczności wersji produkcyjnej. ROI: brak kursów.":
+   "Uruchom Model & Backtest, aby zobaczyć zweryfikowaną próbę. ROI wymaga kursów.");
+}
+
 function showChart(sim,game,premium){
+  showDistributionOverview(sim,game,premium);
   const tabs=$("hzm-chart-tabs").querySelectorAll("button");
   tabs.forEach(btn=>{
     btn.classList.toggle("active",btn.dataset.hzmChart===state.chart);
@@ -441,12 +534,20 @@ function showPlayerAnalytics(item){
 }
 function showPlayers(premium,players,game){
  const panel=$("hzm-players-panel"),button=$("hzm-expand-players"),rows=$("hzm-player-rows");
- const focused=state.view==="players",withMinutes=state.model==="research_context_v75";
+ const focused=state.view==="players",withMinutes=state.model==="research_context_v75"&&focused;
  const version=$("hzm-player-version");
  if(version)version.textContent=state.model==="research_context_v75"?"V7.5":state.model==="research_form_v74"?"V7.4":"V7.2";
  const headings=$("hzm-player-headings");
  headings.classList.toggle("with-min",withMinutes);
- headings.innerHTML=(withMinutes?'<span>MIN</span>':'')+'<span>PTS</span><span>REB</span><span>AST</span>';
+ headings.innerHTML=focused?(withMinutes?'<span>MIN</span>':'')+'<span>PTS</span><span>REB</span><span>AST</span>':
+   '<span>PTS</span><span>REB</span><span>AST</span><span>PRA</span>';
+ for(const side of ["away","home"]){
+   const btn=$("hzm-result-team-"+side);
+   if(btn)btn.textContent=game?.[side]|| (side==="away"?"GOŚCIE":"GOSP.");
+ }
+ $("hzm-players-panel")?.querySelectorAll("[data-hzm-result-team]").forEach(button=>{
+   button.setAttribute("aria-pressed",String(button.dataset.hzmResultTeam===state.resultTeam));
+ });
  panel.classList.toggle("expanded",state.expanded);
  button.setAttribute("aria-expanded",String(state.expanded));
  button.innerHTML=(state.expanded?'Zwiń listę':'Rozwiń pełną listę zawodników')+' <span aria-hidden="true">⌄</span>';
@@ -485,12 +586,15 @@ function showPlayers(premium,players,game){
  const query=state.playerQuery.trim().toLocaleLowerCase("pl");
  const filtered=focused?athletes.filter(({item})=>
    (state.playerTeam==="all"||String(item.team).toUpperCase()===String(codes[state.playerTeam]||"").toUpperCase())&&
-   (!query||String(item.name||"").toLocaleLowerCase("pl").includes(query))):athletes;
+   (!query||String(item.name||"").toLocaleLowerCase("pl").includes(query))):
+   athletes.filter(({item})=>state.resultTeam==="all"||
+     String(item.team||"").toUpperCase()===String(game?.[state.resultTeam]||"").toUpperCase());
+ if(!focused)filtered.sort((a,b)=>(safeProjection(b.item.pts)??-1)-(safeProjection(a.item.pts)??-1));
  if(focused){
    const market=state.playerMarket;
    filtered.sort((a,b)=>(playerMetric(b.item,market)??-1)-(playerMetric(a.item,market)??-1));
  }
- const visible=focused?filtered:(state.expanded?filtered:filtered.slice(0,4));
+ const visible=focused?filtered:(state.expanded?filtered:filtered.slice(0,5));
  if(count)count.textContent=focused?filtered.length+" z "+athletes.length+" zawodników":"";
  if(focused&&!filtered.some(p=>p.index===state.playerIndex))state.playerIndex=filtered[0]?.index??-1;
  if(!visible.length){
@@ -515,15 +619,18 @@ function showPlayers(premium,players,game){
        avatar+'<span class="hzm-player-info"><strong title="'+esc(item.name)+'">'+esc(item.name)+'</strong>'+statusHtml+'</span>'+
        '<span class="hzm-player-stats">'+scores+'</span></button>';
    }
+   const pts=safeProjection(item.pts);
+   const meter=pts===null?0:Math.max(0,Math.min(100,Math.round(pts/40*100)));
+   const pra=playerMetric(item,"PRA");
    return '<button type="button" class="hzm-player-row" data-hzm-player-index="'+index+
       '" aria-pressed="false" aria-label="'+esc('Szczegóły prognozy '+item.name+', '+item.team)+'">'+
-     avatar+'<span class="hzm-player-info"><strong>'+esc(item.name)+'</strong>'+statusHtml+'</span>'+
-     '<span class="hzm-player-stats'+(withMinutes?' with-min':'')+'">'+
-     (withMinutes?'<span title="Szacowane minuty z '+esc(item.minutes_sample||0)+' występów">'+fmt(item.minutes)+'</span>':'')+
-     '<span>'+fmt(item.pts)+'</span><span>'+fmt(item.reb)+'</span><span>'+fmt(item.ast)+'</span></span></button>';
+     avatar+'<span class="hzm-player-info"><strong>'+esc(item.name)+'</strong>'+statusHtml+
+     '<span class="hzm-result-roster-bar" aria-hidden="true" title="Względna projekcja PTS, nie prawdopodobieństwo trafienia"><i style="width:'+meter+'%"></i></span></span>'+
+     '<span class="hzm-player-stats"><span>'+fmt(item.pts)+'</span><span>'+fmt(item.reb)+
+     '</span><span>'+fmt(item.ast)+'</span><span>'+fmt(pra)+'</span></span></button>';
  }).join("");
  if(focused)rows.scrollTop=lastScroll;
- if(!state.expanded&&athletes.length>4)button.textContent='Pokaż wszystkich zawodników ('+athletes.length+') ▾';
+ if(!state.expanded&&filtered.length>5)button.textContent='Pokaż wszystkich zawodników ('+filtered.length+') ▾';
  if(focused){
    const item=filtered.find(p=>p.index===state.playerIndex)?.item||null;
    playerInspector(item,players,game,withMinutes);
@@ -1019,6 +1126,7 @@ function render(home,premium){
     ?"Zweryfikowane Premium wymagane":!game?"Wybierz mecz":sim?.error||(!sim?"Trwa obliczanie modelu":
       sim.retrospective?"Analiza retrospektywna · nie zapisany typ sprzed meczu":"Średnia z 5 000 symulacji · "+modelLabel());
   $("simulations-pane").classList.toggle("hzm-premium-locked",!premium?.entitled);
+  if(state.view==="results"||premium?.entitled!==true)showResultsDashboard(game,sim,premium);
   // Heavy charts, player lists and scenario cards are only rebuilt while
   // visible. On entitlement revocation update everything so hidden Premium
   // panes cannot retain a paid result in the in-memory DOM.
@@ -1097,6 +1205,14 @@ function init(api){
   });
   // Popup buttons are rerendered in place, but the list container stays
   // mounted. Handle its clicks directly so selecting a game always closes it.
+  for(const [id,stateKey] of [["hzm-mini-pace","scenarioPct"],["hzm-mini-off-away","offAwayPct"],["hzm-mini-off-home","offHomePct"]]){
+    $(id)?.addEventListener("input",event=>{
+      const value=Number(event.target.value);
+      if(!Number.isInteger(value)||value< -5||value>5)return;
+      state[stateKey]=value;state.scenarioPending="";
+      const out=$(id+"-output");if(out)out.textContent=(value>0?"+":"")+value+"%";
+    });
+  }
   $("hzm-scenario-pace")?.addEventListener("input",event=>{
     const value=Number(event.target.value);
     if(!Number.isInteger(value)||value< -5||value>5)return;
@@ -1189,7 +1305,7 @@ function init(api){
     if(!selected)return;
     event.stopPropagation();
     state.gameId=selected.dataset.hzmGame;state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
-    state.expanded=state.view==="players";
+    state.expanded=state.view==="players";state.resultTeam="all";
     toggleMatchPicker(false);
     render(state.lastHome,state.lastPremium);
   });
@@ -1201,6 +1317,22 @@ function init(api){
     render(state.lastHome,state.lastPremium);
   });
   $("simulations-pane").addEventListener("click",event=>{
+    const resultTeam=event.target.closest("[data-hzm-result-team]");
+    if(resultTeam&&["all","away","home"].includes(resultTeam.dataset.hzmResultTeam)){
+      state.resultTeam=resultTeam.dataset.hzmResultTeam;
+      const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+      showPlayers(state.lastPremium,trustedPlayers(state.lastPremium,game),game);return;
+    }
+    if(event.target.closest("#hzm-mini-run")){
+      if($("hzm-mini-run").disabled)return;
+      chooseView("scenario");
+      $("hzm-scenario-run")?.click();return;
+    }
+    if(event.target.closest("#hzm-mini-backtest")){
+      chooseView("backtest");
+      if(state.lastPremium?.entitled)$("hzm-backtest-run")?.click();
+      return;
+    }
     if(event.target.closest("#hzm-backtest-run")){
       if(state.lastPremium?.entitled===true&&!state.backtestPending){
         state.backtestPending=true;
