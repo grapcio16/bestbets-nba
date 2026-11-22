@@ -510,6 +510,11 @@ def scenario_for_entitled_user(day: str, game_id: str, model_id: str,
             "off_home_pct": off_home_pct, "n_sims": 5000,
             "baseline": {key: baseline[key] for key in keys},
             "scenario": {key: modified[key] for key in keys},
+            # Reuse already generated Monte Carlo distributions (no model
+            # re-run): 5-point bins for the two overlay curves and exact
+            # integer score frequencies for editable OVER/UNDER comparisons.
+            "baseline_distribution": baseline["distributions"]["match"],
+            "scenario_distribution": modified["distributions"]["match"],
             "hypothetical": True,
             "description": (
                 f"Hipotetyczne tempo {pace_pct:+d}%; "
