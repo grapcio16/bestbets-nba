@@ -630,7 +630,7 @@ def scenario_for_entitled_user(day: str, game_id: str, model_id: str,
 def player_minutes_scenario_for_entitled_user(
         day: str, game_id: str, model_id: str, player_name: str,
         team: str, minute_delta: int) -> dict:
-    """Isolated V7.5 minute *sensitivity*, not another Monte Carlo run.
+    """Isolated ESPN-history minute sensitivity, not another Monte Carlo run.
 
     Reuses server-confirmed historical player means and minutes for the
     exact future NBA fixture. Assumes constant rate per minute. It does NOT
@@ -639,7 +639,7 @@ def player_minutes_scenario_for_entitled_user(
     """
     if not premium_entitled():
         return {"error": "Wymagana jest zweryfikowana subskrypcja Premium."}
-    if (model_id != "research_context_v75" or
+    if (model_id not in SIMULATION_MODELS or
             not isinstance(day, str) or len(day) != 10 or
             not isinstance(game_id, str) or
             not game_id.isdigit() or len(game_id) > 30 or
@@ -663,7 +663,7 @@ def player_minutes_scenario_for_entitled_user(
         tipoff = pd.to_datetime(fixture.get("start"), utc=True, errors="coerce")
         if pd.isna(tipoff) or tipoff <= now:
             return {"error": "Spotkanie już się rozpoczęło."}
-        player_pack = _game_players(day, game_id, "research_context_v75")
+        player_pack = _game_players(day, game_id, model_id)
         if not isinstance(player_pack, dict) or player_pack.get("error"):
             return {"error": "Zweryfikowane projekcje zawodników są niedostępne."}
         choices = [p for p in player_pack.get("players", [])
@@ -697,10 +697,11 @@ def player_minutes_scenario_for_entitled_user(
             "minute_delta": minute_delta, "baseline_minutes": minutes,
             "scenario_minutes": new_minutes, "minutes_sample": sample,
             "availability": status,
+            "minutes_source": str(player.get("minutes_source") or "ESPN · ostatnie mecze")[:110],
             "baseline": baseline, "scenario": adjusted,
             "hypothetical": True,
             "method": "Stała produkcja na minutę; skalowanie średnich, bez symulacji rozkładu.",
-            "warning": ("ESPN: " + status +
+            "warning": ("Minuty z historii ESPN / V7.5: " + status +
                         ". Nie jest to potwierdzony czas gry. "
                         "Bez wpływu na wynik meczu i produkcję kolegów z drużyny."),
         }
