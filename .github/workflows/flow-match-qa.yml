@@ -23,11 +23,11 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Validate source syntax
         run: |
-          python -m py_compile simulation_flow.py flow_report.py bestbets_simulations_canvas.py bestbets_custom_screen.py test_simulation_flow.py test_flow_match_browser.py
+          python -m py_compile simulation_sources.py simulation_quarter_model.py simulation_flow.py flow_report.py bestbets_simulations_canvas.py bestbets_custom_screen.py test_simulation_quarter_model.py test_simulation_flow.py test_flow_match_browser.py
           node --check bestbets_reference_frontend/flow_match.js
           node --check bestbets_reference_frontend/simulations.js
-      - name: Verify conservative 5000-run flow and PDF
-        run: python -m unittest -v test_simulation_flow
+      - name: Verify ESPN regulation quarters, no lookahead, 5000-run score preservation and PDF
+        run: python -m unittest -v test_simulation_quarter_model test_simulation_flow
       - name: Chromium Premium Flow smoke on desktop and mobile
         run: python test_flow_match_browser.py
       - name: Responsive visual reachability for seven Premium modules
