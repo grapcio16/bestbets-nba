@@ -370,11 +370,11 @@ function showDistributionOverview(sim,game,premium){
      }
      const fmtLine=value=>Number(value).toFixed(1).replace(".",",");
      const renderPair=item=>[
-       {kind:"over",label:"Ponad "+fmtLine(item.line)+" pkt",pct:item.over},
-       {kind:"under",label:"Poniżej "+fmtLine(item.line)+" pkt",pct:item.under}
+       {kind:"over",label:"Ponad "+fmtLine(item.line),fullLabel:"Ponad "+fmtLine(item.line)+" pkt",pct:item.over},
+       {kind:"under",label:"Poniżej "+fmtLine(item.line),fullLabel:"Poniżej "+fmtLine(item.line)+" pkt",pct:item.under}
      ].map(row=>
        '<div class="hzm-prob-row '+row.kind+'"><span class="hzm-prob-direction" aria-hidden="true">'+
-       (row.kind==="over"?"↑":"↓")+'</span><span class="hzm-prob-threshold" title="'+esc(row.label)+'">'+esc(row.label)+
+       (row.kind==="over"?"↑":"↓")+'</span><span class="hzm-prob-threshold" title="'+esc(row.fullLabel)+'">'+esc(row.label)+
        '</span><b>'+(row.pct===null?"—":(item.approx?"≈":"")+percent(row.pct))+'</b></div>'
      ).join("");
      probability.innerHTML=profile.lines.map(renderPair).join("");
@@ -1318,6 +1318,7 @@ function render(home,premium){
     state.gameId=next?.id||"";state.chartPoint={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
   }
   $("hzm-day-title").textContent=labelDay(state.day);
+  $("hzm-day-title").setAttribute("aria-label","Otwórz kalendarz: "+labelDay(state.day));
   $("hzm-day-input").value=state.day;
   gameButtons(data.games);
   const game=data.games.find(item=>item.id===state.gameId);
