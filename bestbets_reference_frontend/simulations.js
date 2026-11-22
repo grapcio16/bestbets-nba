@@ -1357,7 +1357,7 @@ function maybeLoadPaid(game,premium,sim,players){
     callbacks?.loadGame?.(state.day,game.id,state.model);
   }
   const needsPlayers=state.view==="players"||state.view==="results"||
-    (state.view==="scenario");
+    state.view==="scenario"||state.view==="flow";
   if(needsPlayers&&sim&&!sim.error&&!players&&state.playersPending!==key){
     state.playersPending=key;
     callbacks?.loadPlayers?.(state.day,game.id,state.model);
@@ -2421,7 +2421,7 @@ function init(api){
     onSave:(day,id,model,variant)=>callbacks?.saveFlow?.(day,id,model,variant),
     onExport:(day,id,model,variant)=>callbacks?.exportFlow?.(day,id,model,variant),
     onPlayers:(day,id,model)=>{
-      if(state.playersPending===day+"|"+id+"|"+model)return;
+      // Explicit retry is allowed; automatic loading remains deduped.
       state.playersPending=day+"|"+id+"|"+model;
       callbacks?.loadPlayers?.(day,id,model);
     },
