@@ -2746,3 +2746,45 @@
     animation:none!important;stroke-dashoffset:0!important;
   }
 }
+
+
+/* Proportion correction against the 1648×920 approved reference:
+   three cards roughly 370 virtual px high at the fixed Hoopzaro stage scale.
+   Keep controls reachable even at narrow desktop heights. */
+@media(min-width:1091px){
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-card{
+    height:382px!important;
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control{
+    gap:0!important;overflow-y:auto!important;scrollbar-width:thin;
+    scrollbar-color:rgba(93,155,216,.55) transparent;
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-output{
+    overflow-y:auto!important;scrollbar-width:thin;
+    scrollbar-color:rgba(59,139,196,.6) transparent;
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor{
+    padding:3px 6px!important;
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor-icon{
+    width:19px;height:19px;flex-basis:19px;
+    font-size:12px;
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor>label{
+    line-height:18px!important;
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-slider-line output{
+    height:22px!important;
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-ticks{margin:3px 0 0!important}
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-editor{gap:3px}
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-team-sliders{gap:3px!important}
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-minute-link{min-height:23px}
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-presets{margin:4px 0!important;gap:3px}
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-preset-grid button{min-height:30px}
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-presets-head>strong{font-size:9px}
+  #simulations-pane[data-hzm-view="scenario"] #hzm-scenario-run{
+    min-height:32px!important;height:32px!important;flex-basis:32px;
+  }
+  #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-disclaimer{font-size:7px!important;line-height:1.25!important}
+}
