@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",chartPoint:{match:null,away:null,home:null},view:"results",resultTeam:"all",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",chartLine:{match:null,away:null,home:null},view:"results",resultTeam:"all",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -62,7 +62,7 @@ function toggleModelDropdown(open,restoreFocus=false){
 }
 function chooseModel(model){
   if(!MODEL_CHOICES.some(item=>item.id===model)||model===state.model)return;
-  state.model=model;state.chartPoint={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
+  state.model=model;state.chartLine={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function toggleMatchPicker(open){
@@ -197,52 +197,59 @@ function chartBins(dist){
    Number(row.p)>=0).map(row=>({x:Number(row.x),p:Number(row.p)}))
    .sort((a,b)=>a.x-b.x):[];
 }
-function chartBinIndex(bins,dist){
- if(!bins.length)return -1;
- const picked=state.chartPoint?.[state.chart];
- const target=picked!==null&&picked!==undefined&&Number.isFinite(Number(picked))
-    ?Number(picked)+2.5:Number(dist?.average);
- const selected=Number.isFinite(target)?target:bins[Math.floor(bins.length/2)].x+2.5;
- return bins.reduce((best,bin,i)=>
-   Math.abs(bin.x+2.5-selected)<Math.abs(bins[best].x+2.5-selected)?i:best,0);
+function validChartLine(value){
+ const raw=String(value??"").trim().replace(",",".");
+ const n=Number(raw);
+ return raw&&Number.isFinite(n)&&n>=0.5&&n<=499.5&&
+   Math.abs(n-0.5-Math.round(n-0.5))<1e-8 ? n:null;
 }
-function chartProbabilityProfile(dist,bins,index){
- if(!bins.length||index<0||index>=bins.length)return null;
- const row=bins[index],start=row.x;
+function chartLineFor(dist,bins){
+ const saved=validChartLine(state.chartLine?.[state.chart]);
+ if(saved!==null)return saved;
+ const avg=Number(dist?.average);
+ const center=Number.isFinite(avg)&&dist?.average!=null?avg:
+   (bins.length?bins[Math.floor(bins.length/2)].x+2.5:220);
+ return Math.max(0.5,Math.min(499.5,Math.floor(center)+0.5));
+}
+function chartOverUnderAt(dist,bins,line){
+ const t=validChartLine(line);
+ if(t===null||!bins.length)return null;
  const counts=Array.isArray(dist?.score_counts)?dist.score_counts
    .filter(v=>Array.isArray(v)&&v.length===2&&Number.isInteger(Number(v[0]))&&
      Number.isInteger(Number(v[1]))&&Number(v[1])>=0&&Number(v[1])<=5000)
    .map(v=>[Number(v[0]),Number(v[1])]):[];
  const countTotal=counts.reduce((n,item)=>n+item[1],0);
- const hasExact=countTotal===5000;
+ const exact=countTotal===5000;
  const binsTotal=bins.reduce((n,item)=>n+item.p,0);
- const exactOver=t=>100*counts.reduce((n,item)=>n+(item[0]>t?item[1]:0),0)/countTotal;
- const histogramOver=t=>binsTotal>0?100*bins.reduce((n,item)=>
-     n+(item.x+2.5>t?item.p:0),0)/binsTotal:null;
- const over=t=>hasExact?exactOver(t):histogramOver(t);
- const first=over(start-.5),second=over(start+4.5);
- const probBin=hasExact?100*counts.reduce((n,item)=>
-    n+(item[0]>=start&&item[0]<start+5?item[1]:0),0)/countTotal:row.p;
- // Fixed-width (20 point) sliding interval, centred on the histogram
- // selection. Inclusive endpoints: e.g. 217-237 covers 21 integer scores,
- // whose maximum minus minimum is 20. The frequency comes from existing
- // simulation scores, not the game's p10/p90 80% prediction interval.
- const centre=start+2,windowFrom=centre-10,windowTo=centre+10;
- const exactWindow=hasExact?100*counts.reduce((n,item)=>
-   n+(item[0]>=windowFrom&&item[0]<=windowTo?item[1]:0),0)/countTotal:null;
- // Stale cached server payload: interpolate within five-point histogram
- // buckets. Clearly mark approximate, never show as exact.
- const approximateWindow=binsTotal>0?bins.reduce((n,bin)=>{
-   const low=Math.max(windowFrom,bin.x),high=Math.min(windowTo,bin.x+4);
-   return n+(high>=low?bin.p*(high-low+1)/5:0);
- },0)/binsTotal*100:null;
- const windowPct=hasExact?exactWindow:approximateWindow;
- return {start,end:start+4,binPct:probBin,exact:hasExact,
-   windowFrom,windowTo,windowPct,windowApprox:!hasExact,
-   lines:[
-     {line:start-.5,over:first,under:first===null?null:100-first,approx:!hasExact},
-     {line:start+4.5,over:second,under:second===null?null:100-second,approx:!hasExact}
-   ]};
+ let over=null;
+ if(exact)over=100*counts.reduce((n,item)=>n+(item[0]>t?item[1]:0),0)/countTotal;
+ else if(binsTotal>0)over=100*bins.reduce((n,item)=>{
+   // Uniform interpolation WITHIN each 5-point histogram bucket: approximate.
+   const countAbove=Math.max(0,Math.min(5,item.x+4-Math.floor(t)));
+   return n+item.p*countAbove/5;
+ },0)/binsTotal;
+ if(over!==null)over=Math.max(0,Math.min(100,over));
+ return {line:t,over,under:over===null?null:100-over,approx:!exact};
+}
+function chartMarkerGeometry(bins,line){
+ const x0=43,x1=445,y0=15,y1=147;
+ const xmin=bins[0].x,xmax=bins[bins.length-1].x+5;
+ const maxp=Math.max(1,...bins.map(b=>b.p))*1.22;
+ const px=x=>x0+(x-xmin)/(xmax-xmin)*(x1-x0);
+ const x=Math.max(x0,Math.min(x1,px(line)));
+ let p=bins[0].p;
+ for(let i=1;i<bins.length;i++){
+   const left=bins[i-1].x+2.5,right=bins[i].x+2.5;
+   if(line<=right){
+     const fraction=Math.max(0,Math.min(1,(line-left)/(right-left)));
+     p=bins[i-1].p+(bins[i].p-bins[i-1].p)*fraction;
+     break;
+   }
+   p=bins[i].p;
+ }
+ return {x,y:y1-p/maxp*(y1-y0),
+   pillX:Math.max(x0,Math.min(x-58,x1-116)),
+   outside:line<xmin||line>xmax};
 }
 function chartSvg(dist,code){
  const bins=chartBins(dist);
@@ -1313,7 +1320,7 @@ function render(home,premium){
   }
   if(!data.games.some(game=>game.id===state.gameId)){
     const next=data.games.find(game=>game.state==="scheduled")||data.games[0];
-    state.gameId=next?.id||"";state.chartPoint={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
+    state.gameId=next?.id||"";state.chartLine={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
   }
   $("hzm-day-title").textContent=labelDay(state.day);
   $("hzm-day-title").setAttribute("aria-label","Otwórz kalendarz: "+labelDay(state.day));
@@ -1538,7 +1545,7 @@ function bindCalendar(){
 function navigate(day){
   if(!safeDate(day)||!withinRange(day)||state.day===day)return;
   toggleCalendar(false);
-  state.day=day;state.localDayIntent=true;state.chartPoint={match:null,away:null,home:null};state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
+  state.day=day;state.localDayIntent=true;state.chartLine={match:null,away:null,home:null};state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function init(api){
@@ -1677,7 +1684,7 @@ function init(api){
     const selected=event.target.closest("[data-hzm-game]");
     if(!selected)return;
     event.stopPropagation();
-    state.gameId=selected.dataset.hzmGame;state.chartPoint={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
+    state.gameId=selected.dataset.hzmGame;state.chartLine={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
     state.expanded=state.view==="players";state.resultTeam="all";
     toggleMatchPicker(false);
     render(state.lastHome,state.lastPremium);
@@ -1761,7 +1768,7 @@ function init(api){
     // The date buttons are wired directly above rather than delegated.
     const gameButton=event.target.closest("[data-hzm-game]");
     if(gameButton){
-      state.gameId=gameButton.dataset.hzmGame;state.chartPoint={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";
+      state.gameId=gameButton.dataset.hzmGame;state.chartLine={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";
       state.expanded=state.view==="players";toggleMatchPicker(false);
       render(state.lastHome,state.lastPremium);return;
     }
