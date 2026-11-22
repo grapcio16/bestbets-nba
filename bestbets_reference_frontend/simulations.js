@@ -33,7 +33,7 @@ function withinRange(day){
   if(!safeDate(day))return false;
   return Math.abs(Math.round((new Date(day+"T12:00:00Z")-new Date(localDay(new Date().toISOString())+"T12:00:00Z"))/86400000))<=366;
 }
-const state={day:"",gameId:"",model:"research_form_v74",chart:"match",view:"results",resultTeam:"all",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
+const state={day:"",gameId:"",model:"research_form_v74",chart:"match",chartPoint:{match:null,away:null,home:null},view:"results",resultTeam:"all",playerMarket:"PTS",playerHistoryWindow:5,comparisonWindow:10,backtestPending:false,expanded:false,playerTeam:"all",playerQuery:"",playerIndex:-1,fromProps:null,scenarioPct:0,offAwayPct:0,offHomePct:0,scenarioPending:"",minuteIndex:-1,minuteDelta:0,minutePending:"",requestedDay:"",localDayIntent:false,gamePending:"",playersPending:"",lastHome:null,lastPremium:null};
 let callbacks=null;
 const MODEL_CHOICES=[
   {id:"research_context_v75",label:"V7.5 · PEŁNY KONTEKST"},
@@ -187,77 +187,142 @@ function trustedPlayers(premium,game){
   return premium?.entitled===true&&data&&data.date===state.day&&data.model_id===state.model&&String(data.game_id)===String(game?.id)
     ?data:null;
 }
+/* The slider follows the actual five-point histogram; each bin represents
+   the probability of a five-point RANGE, not the chance of one exact score.
+   Exact cumulative OVER/UNDER uses preaggregated counts from the same 5000
+   score draws. No model or simulation settings are changed. */
+function chartBins(dist){
+ return Array.isArray(dist?.bins)?dist.bins.filter(row=>
+   row&&Number.isFinite(Number(row.x))&&Number.isFinite(Number(row.p))&&
+   Number(row.p)>=0).map(row=>({x:Number(row.x),p:Number(row.p)}))
+   .sort((a,b)=>a.x-b.x):[];
+}
+function chartBinIndex(bins,dist){
+ if(!bins.length)return -1;
+ const picked=state.chartPoint?.[state.chart];
+ const target=picked!==null&&picked!==undefined&&Number.isFinite(Number(picked))
+    ?Number(picked)+2.5:Number(dist?.average);
+ const selected=Number.isFinite(target)?target:bins[Math.floor(bins.length/2)].x+2.5;
+ return bins.reduce((best,bin,i)=>
+   Math.abs(bin.x+2.5-selected)<Math.abs(bins[best].x+2.5-selected)?i:best,0);
+}
+function chartProbabilityProfile(dist,bins,index){
+ if(!bins.length||index<0||index>=bins.length)return null;
+ const row=bins[index],start=row.x;
+ const counts=Array.isArray(dist?.score_counts)?dist.score_counts
+   .filter(v=>Array.isArray(v)&&v.length===2&&Number.isInteger(Number(v[0]))&&
+     Number.isInteger(Number(v[1]))&&Number(v[1])>=0&&Number(v[1])<=5000)
+   .map(v=>[Number(v[0]),Number(v[1])]):[];
+ const countTotal=counts.reduce((n,item)=>n+item[1],0);
+ const hasExact=countTotal===5000;
+ const binsTotal=bins.reduce((n,item)=>n+item.p,0);
+ const exactOver=t=>100*counts.reduce((n,item)=>n+(item[0]>t?item[1]:0),0)/countTotal;
+ const histogramOver=t=>binsTotal>0?100*bins.reduce((n,item)=>
+     n+(item.x+2.5>t?item.p:0),0)/binsTotal:null;
+ const over=t=>hasExact?exactOver(t):histogramOver(t);
+ const first=over(start-.5),second=over(start+4.5);
+ const probBin=hasExact?100*counts.reduce((n,item)=>
+    n+(item[0]>=start&&item[0]<start+5?item[1]:0),0)/countTotal:row.p;
+ return {start,end:start+4,binPct:probBin,exact:hasExact,
+   lines:[
+     {line:start-.5,over:first,under:first===null?null:100-first,approx:!hasExact},
+     {line:start+4.5,over:second,under:second===null?null:100-second,approx:!hasExact}
+   ]};
+}
 function chartSvg(dist,code){
-  const bins=Array.isArray(dist?.bins)?dist.bins.filter(row=>
-    Number.isFinite(Number(row.x))&&Number.isFinite(Number(row.p))&&Number(row.p)>=0):[];
-  if(bins.length<3)return '<div class="hzm-no-chart">Brak danych do wyświetlenia wykresu.</div>';
-  // Visual treatment only. Coordinates and probabilities are drawn from the
-  // same Premium distribution, not from example or fabricated sample values.
-  const w=456,h=188,x0=43,y0=15,x1=w-11,y1=147;
-  const xmin=Number(bins[0].x),xmax=Number(bins[bins.length-1].x)+5;
-  const peak=Math.max(1,...bins.map(row=>Number(row.p)));
-  const maxp=peak*1.22;
-  if(!Number.isFinite(xmin)||!Number.isFinite(xmax)||xmax<=xmin)
-    return '<div class="hzm-no-chart">Brak poprawnej skali rozkładu.</div>';
-  const px=x=>x0+(x-xmin)/(xmax-xmin)*(x1-x0);
-  const py=p=>y1-p/maxp*(y1-y0);
-  const coords=bins.map(row=>[px(Number(row.x)+2.5),py(Number(row.p))]);
-  const line=coords.map(([x,y],i)=>(i?'L':'M')+x.toFixed(2)+' '+y.toFixed(2)).join(' ');
-  const area=line+' L '+coords[coords.length-1][0].toFixed(2)+' '+y1+
-    ' L '+coords[0][0].toFixed(2)+' '+y1+' Z';
-  const mean=Number(dist.average);
-  if(!Number.isFinite(mean))return '<div class="hzm-no-chart">Brak średniej symulacji.</div>';
-  const mx=Math.max(x0,Math.min(x1,px(mean)));
-  const peakIndex=bins.reduce((best,row,i)=>Number(row.p)>Number(bins[best].p)?i:best,0);
-  const my=py(Number(bins[peakIndex].p));
-  const grids=Array.from({length:5},(_,i)=>{
-    const y=y1-i*(y1-y0)/4;
-    return '<line x1="'+x0+'" y1="'+y+'" x2="'+x1+'" y2="'+y+
-      '" stroke="#4275b2" stroke-opacity="'+(i===0?'.65':'.36')+'"/>'+
-      '<text x="'+(x0-7)+'" y="'+(y+3)+
-      '" text-anchor="end" fill="#b9cae8" font-size="10">'+(i*maxp/4).toFixed(0)+'%</text>';
-  }).join("");
-  const xticks=Array.from({length:6},(_,i)=>{
-    const x=xmin+(xmax-xmin)*i/5;
-    return '<text x="'+px(x)+'" y="164" text-anchor="middle" fill="#c4d7f4" font-size="11">'+Math.round(x)+'</text>';
-  }).join("");
-  const labelX=Math.max(55,Math.min(mx-48,w-106));
-  const labelCenter=labelX+50.5;
-  return '<svg class="hzm-neon-curve" viewBox="0 0 '+w+' '+h+
-    '" role="img" aria-label="Rozkład punktów: '+esc(code)+'; średnia '+fmt(mean)+'">'+
-    '<defs>'+
-      '<linearGradient id="hzm-curve-fill" x1="0%" y1="0%" x2="100%" y2="0%">'+
-        '<stop offset="0%" stop-color="#06e9f1" stop-opacity=".32"/>'+
-        '<stop offset="30%" stop-color="#17dffc" stop-opacity=".53"/>'+
-        '<stop offset="59%" stop-color="#4889fa" stop-opacity=".57"/>'+
-        '<stop offset="85%" stop-color="#9662f5" stop-opacity=".49"/>'+
-        '<stop offset="100%" stop-color="#d65cf8" stop-opacity=".28"/>'+
-      '</linearGradient>'+
-      '<linearGradient id="hzm-curve-stroke" x1="0%" y1="0%" x2="100%" y2="0%">'+
-        '<stop offset="0%" stop-color="#07f6f4"/>'+
-        '<stop offset="36%" stop-color="#19ecfc"/>'+
-        '<stop offset="66%" stop-color="#70b9ff"/>'+
-        '<stop offset="100%" stop-color="#c969fb"/>'+
-      '</linearGradient>'+
-      '<filter id="hzm-line-glow" x="-30%" y="-45%" width="170%" height="190%">'+
-        '<feGaussianBlur stdDeviation="2.5"/>'+
-      '</filter>'+
-      '<filter id="hzm-peak-glow" x="-160%" y="-160%" width="420%" height="420%">'+
-        '<feGaussianBlur stdDeviation="5"/>'+
-      '</filter>'+
-    '</defs>'+
-    grids+
-    '<path class="hzm-area-gradient" d="'+area+'" fill="url(#hzm-curve-fill)"/>'+
-    '<path class="hzm-curve-glow" d="'+line+'" fill="none" stroke="url(#hzm-curve-stroke)" stroke-width="7" opacity=".66" filter="url(#hzm-line-glow)"/>'+
-    '<path class="hzm-curve-line" d="'+line+'" fill="none" stroke="url(#hzm-curve-stroke)" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>'+
-    '<line x1="'+mx+'" y1="'+(y0+3)+'" x2="'+mx+'" y2="'+y1+
-      '" stroke="#f0e9ff" opacity=".78" stroke-dasharray="5 4" stroke-width="1.2"/>'+
-    '<circle class="hzm-peak-halo" cx="'+mx+'" cy="'+my+'" r="10" fill="#57deff" opacity=".55" filter="url(#hzm-peak-glow)"/>'+
-    '<circle class="hzm-peak-ring" cx="'+mx+'" cy="'+my+'" r="6" fill="#0b2745" stroke="#69eaff" stroke-width="1.7"/>'+
-    '<circle cx="'+mx+'" cy="'+my+'" r="3.5" fill="#f7ffff"/>'+
-    '<rect x="'+labelX+'" y="1" width="101" height="23" rx="9" fill="#1a1c4a" stroke="#cb79ff" stroke-width="1.15"/>'+
-    '<text x="'+labelCenter+'" y="17" fill="#fff" font-weight="900" font-size="12" text-anchor="middle">'+fmt(mean)+' PTS</text>'+
-    xticks+'<text x="'+w/2+'" y="183" text-anchor="middle" fill="#c5dbef" font-size="10">Punkty – '+esc(code)+'</text></svg>';
+ const bins=chartBins(dist);
+ if(bins.length<3)return '<div class="hzm-no-chart">Brak danych do wyświetlenia wykresu.</div>';
+ const w=456,h=188,x0=43,y0=15,x1=w-11,y1=147;
+ const xmin=bins[0].x,xmax=bins[bins.length-1].x+5;
+ const peak=Math.max(1,...bins.map(row=>row.p)),maxp=peak*1.22;
+ if(!Number.isFinite(xmin)||!Number.isFinite(xmax)||xmax<=xmin)
+   return '<div class="hzm-no-chart">Brak poprawnej skali rozkładu.</div>';
+ const px=x=>x0+(x-xmin)/(xmax-xmin)*(x1-x0);
+ const py=p=>y1-p/maxp*(y1-y0);
+ const coords=bins.map(row=>[px(row.x+2.5),py(row.p)]);
+ const line=coords.map(([x,y],i)=>(i?'L':'M')+x.toFixed(2)+' '+y.toFixed(2)).join(' ');
+ const area=line+' L '+coords[coords.length-1][0].toFixed(2)+' '+y1+
+   ' L '+coords[0][0].toFixed(2)+' '+y1+' Z';
+ const selectedIndex=chartBinIndex(bins,dist),selection=chartProbabilityProfile(dist,bins,selectedIndex);
+ const selected=bins[selectedIndex],mx=px(selected.x+2.5),my=py(selected.p);
+ const pillX=Math.max(x0,Math.min(mx-67,x1-134));
+ const label=selected.x+'–'+(selected.x+4)+' · '+fmt(selection.binPct)+'%';
+ const grids=Array.from({length:5},(_,i)=>{
+   const y=y1-i*(y1-y0)/4;
+   return '<line x1="'+x0+'" y1="'+y+'" x2="'+x1+'" y2="'+y+
+     '" stroke="#4275b2" stroke-opacity="'+(i===0?'.65':'.36')+'"/>'+
+     '<text x="'+(x0-7)+'" y="'+(y+3)+
+     '" text-anchor="end" fill="#b9cae8" font-size="10">'+(i*maxp/4).toFixed(0)+'%</text>';
+ }).join("");
+ const xticks=Array.from({length:6},(_,i)=>{
+   const x=xmin+(xmax-xmin)*i/5;
+   return '<text x="'+px(x)+'" y="164" text-anchor="middle" fill="#c4d7f4" font-size="11">'+Math.round(x)+'</text>';
+ }).join("");
+ return '<svg class="hzm-neon-curve" viewBox="0 0 '+w+' '+h+
+   '" role="slider" tabindex="0" aria-label="Przesuń punkt, aby zbadać prawdopodobieństwo punktów: '+esc(code)+
+   '" aria-valuemin="'+bins[0].x+'" aria-valuemax="'+bins[bins.length-1].x+
+   '" aria-valuenow="'+selected.x+'" aria-valuetext="'+esc(selected.x+' do '+(selected.x+4)+
+   ' punktów; '+fmt(selection.binPct)+'% symulacji')+'">'+
+   '<defs>'+
+     '<linearGradient id="hzm-curve-fill" x1="0%" y1="0%" x2="100%" y2="0%">'+
+       '<stop offset="0%" stop-color="#06e9f1" stop-opacity=".32"/>'+
+       '<stop offset="30%" stop-color="#17dffc" stop-opacity=".53"/>'+
+       '<stop offset="59%" stop-color="#4889fa" stop-opacity=".57"/>'+
+       '<stop offset="85%" stop-color="#9662f5" stop-opacity=".49"/>'+
+       '<stop offset="100%" stop-color="#d65cf8" stop-opacity=".28"/>'+
+     '</linearGradient>'+
+     '<linearGradient id="hzm-curve-stroke" x1="0%" y1="0%" x2="100%" y2="0%">'+
+       '<stop offset="0%" stop-color="#07f6f4"/>'+
+       '<stop offset="36%" stop-color="#19ecfc"/>'+
+       '<stop offset="66%" stop-color="#70b9ff"/>'+
+       '<stop offset="100%" stop-color="#c969fb"/>'+
+     '</linearGradient>'+
+     '<filter id="hzm-line-glow" x="-30%" y="-45%" width="170%" height="190%">'+
+       '<feGaussianBlur stdDeviation="2.5"/>'+
+     '</filter>'+
+     '<filter id="hzm-peak-glow" x="-160%" y="-160%" width="420%" height="420%">'+
+       '<feGaussianBlur stdDeviation="5"/>'+
+     '</filter>'+
+   '</defs>'+
+   grids+
+   '<path class="hzm-area-gradient" d="'+area+'" fill="url(#hzm-curve-fill)"/>'+
+   '<path class="hzm-curve-glow" d="'+line+'" fill="none" stroke="url(#hzm-curve-stroke)" stroke-width="7" opacity=".66" filter="url(#hzm-line-glow)"/>'+
+   '<path class="hzm-curve-line" d="'+line+'" fill="none" stroke="url(#hzm-curve-stroke)" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>'+
+   '<g class="hzm-selection-marker">'+
+     '<line class="hzm-marker-guide" x1="'+mx+'" y1="'+(y0+3)+'" x2="'+mx+'" y2="'+y1+
+       '" stroke="#f0e9ff" opacity=".78" stroke-dasharray="5 4" stroke-width="1.2"/>'+
+     '<circle class="hzm-peak-halo hzm-marker-halo" cx="'+mx+'" cy="'+my+'" r="10" fill="#57deff" opacity=".55" filter="url(#hzm-peak-glow)"/>'+
+     '<circle class="hzm-marker-ring" cx="'+mx+'" cy="'+my+'" r="6" fill="#0b2745" stroke="#69eaff" stroke-width="1.7"/>'+
+     '<circle class="hzm-marker-centre" cx="'+mx+'" cy="'+my+'" r="3.5" fill="#f7ffff"/>'+
+     '<rect class="hzm-marker-pill" x="'+pillX+'" y="1" width="134" height="23" rx="9" fill="#1a1c4a" stroke="#cb79ff" stroke-width="1.15"/>'+
+     '<text class="hzm-marker-pill-text" x="'+(pillX+67)+'" y="17" fill="#fff" font-weight="900" font-size="11" text-anchor="middle">'+esc(label)+'</text>'+
+   '</g>'+
+   xticks+'<text x="'+w/2+'" y="183" text-anchor="middle" fill="#c5dbef" font-size="10">Punkty – '+esc(code)+'</text></svg>';
+}
+function updateChartMarker(svg,dist,bins,index){
+ const profile=chartProbabilityProfile(dist,bins,index);
+ if(!svg||!profile)return;
+ const row=bins[index],x0=43,x1=445,y0=15,y1=147;
+ const xmin=bins[0].x,xmax=bins[bins.length-1].x+5;
+ const maxp=Math.max(1,...bins.map(b=>b.p))*1.22;
+ const mx=x0+(row.x+2.5-xmin)/(xmax-xmin)*(x1-x0);
+ const my=y1-row.p/maxp*(y1-y0);
+ const pillX=Math.max(x0,Math.min(mx-67,x1-134));
+ const line=svg.querySelector(".hzm-marker-guide");
+ if(line){line.setAttribute("x1",String(mx));line.setAttribute("x2",String(mx))}
+ for(const cls of [".hzm-marker-halo",".hzm-marker-ring",".hzm-marker-centre"]){
+   const node=svg.querySelector(cls);
+   if(node){node.setAttribute("cx",String(mx));node.setAttribute("cy",String(my))}
+ }
+ const pill=svg.querySelector(".hzm-marker-pill"),text=svg.querySelector(".hzm-marker-pill-text");
+ if(pill)pill.setAttribute("x",String(pillX));
+ if(text){
+   text.setAttribute("x",String(pillX+67));
+   text.textContent=row.x+"–"+(row.x+4)+" · "+fmt(profile.binPct)+"%";
+ }
+ svg.setAttribute("aria-valuenow",String(row.x));
+ svg.setAttribute("aria-valuetext",row.x+" do "+(row.x+4)+
+   " punktów; "+fmt(profile.binPct)+"% symulacji");
 }
 
 /* Results screenshot: derive every metric from the entitled game simulation.
@@ -274,8 +339,7 @@ function showDistributionOverview(sim,game,premium){
  const estimate=t=>count>0?100*bins.reduce((sum,row)=>
     sum+(Number(row.x)+2.5>=t?Number(row.p):0),0)/count:null;
  const probability=$("hzm-probability-rows");
- const context=$("hzm-prob-context");
- const explanation=$("hzm-prob-explanation");
+ const context=$("hzm-prob-context"),explanation=$("hzm-prob-explanation");
  if(context)context.textContent=state.chart==="match"?"MECZ":state.chart==="away"?
    (game?.away||"GOŚCIE"):(game?.home||"GOSP.");
  if(probability){
@@ -283,45 +347,25 @@ function showDistributionOverview(sim,game,premium){
      probability.textContent=paid?"Brak zweryfikowanego rozkładu punktów.":"Dostępne w Premium.";
      if(explanation)explanation.textContent="Prognoza z modelu · nie kurs bukmacherski";
    }else{
-     const validPct=value=>value!==null&&value!==undefined&&value!==""&&
-       Number.isFinite(Number(value))&&Number(value)>=0&&Number(value)<=100;
-     // The new Premium payload carries exact counts from the SAME 5000
-     // team or combined score draws. Never derive those odds from ROI.
-     const exactLines=(Array.isArray(dist?.lines)?dist.lines:[])
-       .filter(row=>row&&Number.isFinite(Number(row.line))&&
-         Number(row.line)>0&&Number(row.line)<450&&
-         validPct(row.over_pct)&&validPct(row.under_pct)&&
-         Math.abs(Number(row.over_pct)+Number(row.under_pct)-100)<0.21)
-       .slice(0,2);
-     let lines=exactLines.map(row=>({
-       line:Number(row.line),over:Number(row.over_pct),under:Number(row.under_pct),approx:false
-     }));
-     // During an in-progress Streamlit redeploy, a cached forecast may
-     // still carry only the original one-threshold field. Maintain a
-     // clearly labeled approximation until refreshed by the server.
-     if(lines.length<2){
-       const t=dist?.threshold!==null&&dist?.threshold!==undefined&&Number.isFinite(Number(dist.threshold))
-         ?Number(dist.threshold):5*Math.round(average/5);
-       const estimate=threshold=>count>0?100*bins.reduce((sum,row)=>
-          sum+(Number(row.x)+2.5>threshold?Number(row.p):0),0)/count:null;
-       const first=validPct(dist?.over_pct)?Number(dist.over_pct):estimate(t-.5);
-       lines=[
-         {line:t-.5,over:first,under:first===null?null:100-first,approx:!validPct(dist?.over_pct)},
-         {line:t+4.5,over:estimate(t+4.5),under:estimate(t+4.5)===null?null:100-estimate(t+4.5),approx:true}
-       ];
+     const sorted=chartBins(dist);
+     const selectedIndex=chartBinIndex(sorted,dist);
+     const profile=chartProbabilityProfile(dist,sorted,selectedIndex);
+     if(!profile){
+       probability.textContent="Brak poprawnego rozkładu.";return;
      }
      const fmtLine=value=>Number(value).toFixed(1).replace(".",",");
-     const renderPair=(item)=>[
+     const renderPair=item=>[
        {kind:"over",label:"Ponad "+fmtLine(item.line)+" pkt",pct:item.over},
        {kind:"under",label:"Poniżej "+fmtLine(item.line)+" pkt",pct:item.under}
      ].map(row=>
        '<div class="hzm-prob-row '+row.kind+'"><span class="hzm-prob-direction" aria-hidden="true">'+
-       (row.kind==="over"?"↑":"↓")+'</span><span class="hzm-prob-threshold">'+esc(row.label)+
+       (row.kind==="over"?"↑":"↓")+'</span><span class="hzm-prob-threshold" title="'+esc(row.label)+'">'+esc(row.label)+
        '</span><b>'+(row.pct===null?"—":(item.approx?"≈":"")+percent(row.pct))+'</b></div>'
      ).join("");
-     probability.innerHTML=lines.map(renderPair).join("");
-     if(explanation)explanation.textContent=lines.some(row=>row.approx)?
-       "≈ z histogramu 5 pkt · nie kursy":"Dokładne częstości z 5 000 symulacji · nie kursy";
+     probability.innerHTML=profile.lines.map(renderPair).join("");
+     if(explanation)explanation.textContent=
+       "Wybrano "+profile.start+"–"+profile.end+" pkt: "+
+       (profile.exact?"dokładne wyniki z 5 000 symulacji":"≈ z histogramu 5 pkt")+" · nie kursy";
    }
  }
  set("hzm-result-favorite",paid?(sim.home_win_pct>=sim.away_win_pct?
