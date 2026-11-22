@@ -1529,6 +1529,24 @@
   max-height:min(274px,40vh);min-height:60px;overflow-y:auto;overscroll-behavior:contain;
   scrollbar-width:thin;scrollbar-color:#388fc9 #111d3e;padding-right:3px
 }
+/* Separate players eligible for What-if from roster-only, insufficient and OUT.
+   Keep both sides of the matchup visible inside either group. */
+#simulations-pane .hzm-minute-group-title{
+  display:flex;align-items:center;justify-content:space-between;
+  margin:6px 1px 4px;padding:8px 9px;border-radius:8px;
+  color:#8bf9f6;font-size:10px;font-weight:900;letter-spacing:.3px;
+  text-transform:uppercase;border:1px solid #20677b;background:#08354775
+}
+#simulations-pane .hzm-minute-group-title small{
+  font-size:10px;color:#8df4f8;font-weight:850
+}
+#simulations-pane .hzm-minute-group-title.unavailable{
+  margin-top:12px;color:#b5b4cd;border-color:#474567;background:#25233c99
+}
+#simulations-pane .hzm-minute-group-title.unavailable small{color:#c9bddb}
+#simulations-pane .hzm-minute-group-title.unavailable + .hzm-minute-team-title{
+  border-top:none
+}
 #simulations-pane .hzm-minute-team-title{
   display:flex;justify-content:space-between;gap:8px;align-items:center;
   color:#66eefa;font-size:10px;letter-spacing:.55px;font-weight:900;
