@@ -62,7 +62,7 @@ function toggleModelDropdown(open,restoreFocus=false){
 }
 function chooseModel(model){
   if(!MODEL_CHOICES.some(item=>item.id===model)||model===state.model)return;
-  state.model=model;state.chartLine={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
+  state.model=model;state.chartLine={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.minuteUnavailable=null;state.minuteMenuOpen=false;state.minuteQuery="";state.minuteTeam="all";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function toggleMatchPicker(open){
@@ -2120,7 +2120,7 @@ function render(home,premium,auth){
   }
   if(!data.games.some(game=>game.id===state.gameId)){
     const next=data.games.find(game=>game.state==="scheduled")||data.games[0];
-    state.gameId=next?.id||"";state.chartLine={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
+    state.gameId=next?.id||"";state.chartLine={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.expanded=state.view==="players";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.minuteUnavailable=null;state.minuteMenuOpen=false;state.minuteQuery="";state.minuteTeam="all";
   }
   $("hzm-day-title").textContent=labelDay(state.day);
   $("hzm-day-title").setAttribute("aria-label","Otwórz kalendarz: "+labelDay(state.day));
@@ -2353,7 +2353,7 @@ function bindCalendar(){
 function navigate(day){
   if(!safeDate(day)||!withinRange(day)||state.day===day)return;
   toggleCalendar(false);
-  state.day=day;state.localDayIntent=true;state.chartLine={match:null,away:null,home:null};state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
+  state.day=day;state.localDayIntent=true;state.chartLine={match:null,away:null,home:null};state.gameId="";state.chart="match";state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.minuteUnavailable=null;state.minuteMenuOpen=false;state.minuteQuery="";state.minuteTeam="all";state.expanded=state.view==="players";state.gamePending="";state.playersPending="";state.playerIndex=-1;state.playerQuery="";state.playerTeam="all";
   render(state.lastHome,state.lastPremium);
 }
 function init(api){
@@ -2441,10 +2441,80 @@ function init(api){
     if(message)message.textContent="Sprawdzanie wpisów ESPN dla "+game.away+" i "+game.home+"…";
     callbacks?.refreshPlayers?.(state.day,game.id,state.model);
   });
+  $("hzm-minute-picker-trigger")?.addEventListener("click",event=>{
+    event.preventDefault();event.stopPropagation();
+    const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+    const players=trustedPlayers(state.lastPremium,game);
+    if(!state.lastPremium?.entitled||game?.state!=="scheduled"||
+       !(Date.parse(game?.start||"")>Date.now())||!players)return;
+    state.minuteMenuOpen=!state.minuteMenuOpen;
+    const popup=$("hzm-minute-picker-menu");
+    if(popup&&state.minuteMenuOpen){
+      const rect=event.currentTarget?.getBoundingClientRect?.();
+      const height=Number(window.innerHeight)||0;
+      popup.dataset.side=rect&&height-rect.bottom<310&&rect.top>=340?"top":"bottom";
+    }
+    showPlayerMinutes(game,players,state.lastPremium);
+    if(state.minuteMenuOpen)$("hzm-minute-search")?.focus();
+  });
+  $("hzm-minute-search")?.addEventListener("input",event=>{
+    state.minuteQuery=String(event.target.value||"").slice(0,75);
+    const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+    renderMinutePicker(game,trustedPlayers(state.lastPremium,game),
+      state.lastPremium?.entitled===true&&game?.state==="scheduled"&&
+      Date.parse(game?.start||"")>Date.now());
+  });
+  $("hzm-minute-picker-menu")?.addEventListener("click",event=>{
+    event.stopPropagation();
+    const filter=event.target.closest?.("[data-hzm-minute-team]");
+    if(filter){
+      const mode=filter.dataset.hzmMinuteTeam;
+      if(!["all","away","home"].includes(mode))return;
+      state.minuteTeam=mode;
+      const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+      renderMinutePicker(game,trustedPlayers(state.lastPremium,game),
+        state.lastPremium?.entitled===true&&game?.state==="scheduled"&&
+        Date.parse(game?.start||"")>Date.now());
+      return;
+    }
+    const item=event.target.closest?.("[data-hzm-minute-index]");
+    if(!item)return;
+    const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
+    const players=trustedPlayers(state.lastPremium,game);
+    if(!players||!state.lastPremium?.entitled)return;
+    const i=Number(item.dataset.hzmMinuteIndex);
+    const name=String(item.dataset.hzmMinuteName||"");
+    const team=String(item.dataset.hzmMinuteTeamCode||"");
+    if(![game?.away,game?.home].includes(team)||!name)return;
+    const projected=Number.isInteger(i)&&i>=0&&
+      players.players?.[i]?.name===name&&players.players?.[i]?.team===team?
+      players.players[i]:null;
+    if(minuteCanProject(projected,game)){
+      state.minuteIndex=i;state.minuteUnavailable=null;
+    }else{
+      state.minuteIndex=-1;
+      state.minuteUnavailable={name,team,reason:
+        projected?.availability==="Out"?"status OUT":
+        projected&&Number(projected.minutes_sample)<3?"za mało występów z minutami ESPN":
+        "brak wiarygodnych minut lub kompletu PTS/REB/AST"};
+    }
+    state.minuteDelta=0;state.minutePending="";
+    closeMinutePicker();
+    showPlayerMinutes(game,players,state.lastPremium);
+    $("hzm-minute-picker-trigger")?.focus();
+  });
+  $("hzm-minute-picker-menu")?.addEventListener("keydown",event=>{
+    if(event.key==="Escape"){event.preventDefault();closeMinutePicker(true)}
+  });
+  document.addEventListener?.("click",event=>{
+    if(state.minuteMenuOpen&&!event.target.closest?.(".hzm-minute-picker"))
+      closeMinutePicker();
+  });
   $("hzm-minute-player")?.addEventListener("change",event=>{
     const next=Number(event.target.value);
     if(!Number.isInteger(next)||next<0)return;
-    state.minuteIndex=next;state.minuteDelta=0;state.minutePending="";
+    state.minuteIndex=next;state.minuteUnavailable=null;state.minuteDelta=0;state.minutePending="";
+    closeMinutePicker();
     const game=gamesForDay(state.lastHome).games.find(g=>g.id===state.gameId);
     showPlayerMinutes(game,trustedPlayers(state.lastPremium,game),state.lastPremium);
   });
@@ -2505,7 +2575,7 @@ function init(api){
     const selected=event.target.closest("[data-hzm-game]");
     if(!selected)return;
     event.stopPropagation();
-    state.gameId=selected.dataset.hzmGame;state.chartLine={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";
+    state.gameId=selected.dataset.hzmGame;state.chartLine={match:null,away:null,home:null};state.gamePending="";state.playersPending="";state.chart="match";state.playerIndex=-1;state.fromProps=null;state.scenarioPct=0;state.offAwayPct=0;state.offHomePct=0;state.scenarioPending="";state.minuteIndex=-1;state.minuteDelta=0;state.minutePending="";state.minuteUnavailable=null;state.minuteMenuOpen=false;state.minuteQuery="";state.minuteTeam="all";
     state.expanded=state.view==="players";state.resultTeam="all";
     toggleMatchPicker(false);
     render(state.lastHome,state.lastPremium);
