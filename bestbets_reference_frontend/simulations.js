@@ -188,34 +188,76 @@ function trustedPlayers(premium,game){
     ?data:null;
 }
 function chartSvg(dist,code){
-  const bins=Array.isArray(dist?.bins)?dist.bins.filter(row=>Number.isFinite(Number(row.x))&&Number.isFinite(Number(row.p))):[];
+  const bins=Array.isArray(dist?.bins)?dist.bins.filter(row=>
+    Number.isFinite(Number(row.x))&&Number.isFinite(Number(row.p))&&Number(row.p)>=0):[];
   if(bins.length<3)return '<div class="hzm-no-chart">Brak danych do wyświetlenia wykresu.</div>';
+  // Visual treatment only. Coordinates and probabilities are drawn from the
+  // same Premium distribution, not from example or fabricated sample values.
   const w=456,h=188,x0=43,y0=15,x1=w-11,y1=147;
-  const xmin=bins[0].x,xmax=bins[bins.length-1].x+5,maxp=Math.max(1,...bins.map(row=>Number(row.p)))*1.18;
+  const xmin=Number(bins[0].x),xmax=Number(bins[bins.length-1].x)+5;
+  const peak=Math.max(1,...bins.map(row=>Number(row.p)));
+  const maxp=peak*1.22;
+  if(!Number.isFinite(xmin)||!Number.isFinite(xmax)||xmax<=xmin)
+    return '<div class="hzm-no-chart">Brak poprawnej skali rozkładu.</div>';
   const px=x=>x0+(x-xmin)/(xmax-xmin)*(x1-x0);
   const py=p=>y1-p/maxp*(y1-y0);
   const coords=bins.map(row=>[px(Number(row.x)+2.5),py(Number(row.p))]);
   const line=coords.map(([x,y],i)=>(i?'L':'M')+x.toFixed(2)+' '+y.toFixed(2)).join(' ');
-  const area=line+' L '+coords[coords.length-1][0].toFixed(2)+' '+y1+' L '+coords[0][0].toFixed(2)+' '+y1+' Z';
-  const mean=Number(dist.average),mx=px(mean),my=py(Math.max(...bins.map(row=>Number(row.p))));
+  const area=line+' L '+coords[coords.length-1][0].toFixed(2)+' '+y1+
+    ' L '+coords[0][0].toFixed(2)+' '+y1+' Z';
+  const mean=Number(dist.average);
+  if(!Number.isFinite(mean))return '<div class="hzm-no-chart">Brak średniej symulacji.</div>';
+  const mx=Math.max(x0,Math.min(x1,px(mean)));
+  const peakIndex=bins.reduce((best,row,i)=>Number(row.p)>Number(bins[best].p)?i:best,0);
+  const my=py(Number(bins[peakIndex].p));
   const grids=Array.from({length:5},(_,i)=>{
     const y=y1-i*(y1-y0)/4;
-    return '<line x1="'+x0+'" y1="'+y+'" x2="'+x1+'" y2="'+y+'" stroke="#245076" stroke-opacity=".45"/>'+
-      '<text x="'+(x0-7)+'" y="'+(y+3)+'" text-anchor="end" fill="#afc6e4" font-size="10">'+(i*maxp/4).toFixed(0)+'%</text>';
+    return '<line x1="'+x0+'" y1="'+y+'" x2="'+x1+'" y2="'+y+
+      '" stroke="#4275b2" stroke-opacity="'+(i===0?'.65':'.36')+'"/>'+
+      '<text x="'+(x0-7)+'" y="'+(y+3)+
+      '" text-anchor="end" fill="#b9cae8" font-size="10">'+(i*maxp/4).toFixed(0)+'%</text>';
   }).join("");
   const xticks=Array.from({length:6},(_,i)=>{
     const x=xmin+(xmax-xmin)*i/5;
-    return '<text x="'+px(x)+'" y="164" text-anchor="middle" fill="#bdd8ef" font-size="11">'+Math.round(x)+'</text>';
+    return '<text x="'+px(x)+'" y="164" text-anchor="middle" fill="#c4d7f4" font-size="11">'+Math.round(x)+'</text>';
   }).join("");
-  return '<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Rozkład punktów: '+esc(code)+'; średnia '+fmt(mean)+'">'+
-    '<defs><linearGradient id="hzm-curve-fill" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#14e9f5" stop-opacity=".42"/><stop offset="1" stop-color="#b54df5" stop-opacity=".49"/></linearGradient></defs>'+
-    grids+'<path d="'+area+'" fill="url(#hzm-curve-fill)"/>'+
-    '<path d="'+line+'" fill="none" stroke="#37ecfa" stroke-width="2.2"/>'+
-    '<line x1="'+mx+'" y1="'+(y0+3)+'" x2="'+mx+'" y2="'+y1+'" stroke="#e7e5ff" stroke-dasharray="5 4"/>'+
-    '<circle cx="'+mx+'" cy="'+my+'" r="4" fill="#fff" stroke="#28ecfc" stroke-width="2"/>'+
-    '<rect x="'+Math.max(55,Math.min(mx-48,w-106))+'" y="1" width="101" height="23" rx="9" fill="#0e2243" stroke="#bc70f4"/>'+
-    '<text x="'+Math.max(105,Math.min(mx+2,w-56))+'" y="17" fill="#fff" font-weight="800" font-size="12" text-anchor="middle">'+fmt(mean)+' PTS</text>'+
-    xticks+'<text x="'+w/2+'" y="183" text-anchor="middle" fill="#c4d9ea" font-size="10">Punkty – '+esc(code)+'</text></svg>';
+  const labelX=Math.max(55,Math.min(mx-48,w-106));
+  const labelCenter=labelX+50.5;
+  return '<svg class="hzm-neon-curve" viewBox="0 0 '+w+' '+h+
+    '" role="img" aria-label="Rozkład punktów: '+esc(code)+'; średnia '+fmt(mean)+'">'+
+    '<defs>'+
+      '<linearGradient id="hzm-curve-fill" x1="0%" y1="0%" x2="100%" y2="0%">'+
+        '<stop offset="0%" stop-color="#06e9f1" stop-opacity=".32"/>'+
+        '<stop offset="30%" stop-color="#17dffc" stop-opacity=".53"/>'+
+        '<stop offset="59%" stop-color="#4889fa" stop-opacity=".57"/>'+
+        '<stop offset="85%" stop-color="#9662f5" stop-opacity=".49"/>'+
+        '<stop offset="100%" stop-color="#d65cf8" stop-opacity=".28"/>'+
+      '</linearGradient>'+
+      '<linearGradient id="hzm-curve-stroke" x1="0%" y1="0%" x2="100%" y2="0%">'+
+        '<stop offset="0%" stop-color="#07f6f4"/>'+
+        '<stop offset="36%" stop-color="#19ecfc"/>'+
+        '<stop offset="66%" stop-color="#70b9ff"/>'+
+        '<stop offset="100%" stop-color="#c969fb"/>'+
+      '</linearGradient>'+
+      '<filter id="hzm-line-glow" x="-30%" y="-45%" width="170%" height="190%">'+
+        '<feGaussianBlur stdDeviation="2.5"/>'+
+      '</filter>'+
+      '<filter id="hzm-peak-glow" x="-160%" y="-160%" width="420%" height="420%">'+
+        '<feGaussianBlur stdDeviation="5"/>'+
+      '</filter>'+
+    '</defs>'+
+    grids+
+    '<path class="hzm-area-gradient" d="'+area+'" fill="url(#hzm-curve-fill)"/>'+
+    '<path class="hzm-curve-glow" d="'+line+'" fill="none" stroke="url(#hzm-curve-stroke)" stroke-width="7" opacity=".66" filter="url(#hzm-line-glow)"/>'+
+    '<path class="hzm-curve-line" d="'+line+'" fill="none" stroke="url(#hzm-curve-stroke)" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>'+
+    '<line x1="'+mx+'" y1="'+(y0+3)+'" x2="'+mx+'" y2="'+y1+
+      '" stroke="#f0e9ff" opacity=".78" stroke-dasharray="5 4" stroke-width="1.2"/>'+
+    '<circle class="hzm-peak-halo" cx="'+mx+'" cy="'+my+'" r="10" fill="#57deff" opacity=".55" filter="url(#hzm-peak-glow)"/>'+
+    '<circle class="hzm-peak-ring" cx="'+mx+'" cy="'+my+'" r="6" fill="#0b2745" stroke="#69eaff" stroke-width="1.7"/>'+
+    '<circle cx="'+mx+'" cy="'+my+'" r="3.5" fill="#f7ffff"/>'+
+    '<rect x="'+labelX+'" y="1" width="101" height="23" rx="9" fill="#1a1c4a" stroke="#cb79ff" stroke-width="1.15"/>'+
+    '<text x="'+labelCenter+'" y="17" fill="#fff" font-weight="900" font-size="12" text-anchor="middle">'+fmt(mean)+' PTS</text>'+
+    xticks+'<text x="'+w/2+'" y="183" text-anchor="middle" fill="#c5dbef" font-size="10">Punkty – '+esc(code)+'</text></svg>';
 }
 
 /* Results screenshot: derive every metric from the entitled game simulation.
