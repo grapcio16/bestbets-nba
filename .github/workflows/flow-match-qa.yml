@@ -1,0 +1,32 @@
+name: HOOPZARO Premium Flow meczu QA
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flow-premium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python and Chromium
+        run: |
+          python -m pip install -r requirements.txt 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - name: Validate source syntax
+        run: |
+          python -m py_compile simulation_flow.py flow_report.py bestbets_simulations_canvas.py bestbets_custom_screen.py test_simulation_flow.py test_flow_match_browser.py
+          node --check bestbets_reference_frontend/flow_match.js
+          node --check bestbets_reference_frontend/simulations.js
+      - name: Verify conservative 5000-run flow and PDF
+        run: python -m unittest -v test_simulation_flow
+      - name: Chromium Premium Flow smoke on desktop and mobile
+        run: python test_flow_match_browser.py

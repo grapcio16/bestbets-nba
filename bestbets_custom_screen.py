@@ -498,6 +498,9 @@ def main() -> None:
         st.session_state.pop("bb10_premium_scenario", None)
         st.session_state.pop("bb10_premium_minute_scenario", None)
         st.session_state.pop("bb10_premium_backtest", None)
+        st.session_state.pop("bb10_premium_flow_saved", None)
+        st.session_state.pop("bb10_premium_flow_saves", None)
+        st.session_state.pop("bb10_premium_flow_pdf", None)
         st.session_state.pop("bb10_premium_player_averages", None)
         st.session_state.pop("bb10_premium_team_analytics", None)
         st.session_state.pop("bb10_team_analytics_attempt_at", None)
@@ -512,10 +515,12 @@ def main() -> None:
     # Existing Streamlit sessions may retain old player payloads without the
     # selected-team minute roster. Invalidate once per data-contract revision
     # so Scenario Lab requests current, entitlement-checked roster data.
-    if st.session_state.get("bb10_scenario_evidence_schema") != 3:
+    if st.session_state.get("bb10_scenario_evidence_schema") != 4:
+        st.session_state.pop("bb10_premium_game", None)
+        st.session_state.pop("bb10_premium_scenario", None)
         st.session_state.pop("bb10_premium_players", None)
         st.session_state.pop("bb10_premium_minute_scenario", None)
-        st.session_state["bb10_scenario_evidence_schema"] = 3
+        st.session_state["bb10_scenario_evidence_schema"] = 4
     # CRITICAL: preload data BEFORE mounting the v1 iframe. Production
     # sometimes discards the initial setComponentValue/home_data message,
     # leaving the dashboard spinning indefinitely. The home snapshot is
@@ -569,6 +574,8 @@ def main() -> None:
             "scenario": st.session_state.get("bb10_premium_scenario") if has_premium else None,
             "minute_scenario": st.session_state.get("bb10_premium_minute_scenario") if has_premium else None,
             "backtest": st.session_state.get("bb10_premium_backtest") if has_premium else None,
+            "flow_saved": st.session_state.get("bb10_premium_flow_saved") if has_premium else None,
+            "flow_pdf": st.session_state.get("bb10_premium_flow_pdf") if has_premium else None,
         },
     }
     event = COMPONENT(payload=payload, default=None, key="bb10_reference_canvas")
@@ -736,6 +743,77 @@ def main() -> None:
         if not premium_entitled():
             return
         st.session_state["bb10_premium_backtest"] = backtest_for_entitled_user()
+        st.rerun()
+        return
+    if event.get("type") in ("premium_sim_flow_save", "premium_sim_flow_export"):
+        # The browser supplies ONLY fixture identity and chosen server-backed
+        # variant. Never serialize a browser-supplied point value or PDF.
+        if not premium_entitled():
+            return
+        import re
+        day = _plain(event.get("date"))
+        game_id = _plain(event.get("game_id"))
+        model_id = _plain(event.get("model_id"))
+        variant = _plain(event.get("variant"))
+        if (not re.fullmatch(r"\d{4}-\d{2}-\d{2}", day)
+                or not re.fullmatch(r"\d{1,30}", game_id)
+                or model_id not in ("legacy_v72", "research_form_v74", "research_context_v75")
+                or variant not in ("base", "scenario")):
+            return
+        base = st.session_state.get("bb10_premium_game") or {}
+        if (base.get("date") != day or str(base.get("game_id")) != game_id
+                or base.get("model_id") != model_id or base.get("error")):
+            return
+        # Only finalized 5,000-run output is eligible for a Flow download.
+        if variant == "base":
+            flow = base.get("flow")
+            stats = base
+        else:
+            prior = st.session_state.get("bb10_premium_scenario") or {}
+            if (prior.get("date") != day or str(prior.get("game_id")) != game_id
+                    or prior.get("model_id") != model_id or prior.get("error")):
+                return
+            flow = prior.get("scenario_flow")
+            stats = prior.get("scenario") or {}
+        if (not isinstance(flow, dict) or flow.get("available") is not True
+                or flow.get("n_sims") != 5000
+                or any(not isinstance(stats.get(k), (int, float))
+                       for k in ("away_points", "home_points"))):
+            return
+        saved = {
+            "date": day, "game_id": game_id, "model_id": model_id,
+            "variant": variant, "away": _plain(base.get("away")),
+            "home": _plain(base.get("home")), "flow": flow,
+            "summary": {k: float(stats[k]) for k in ("away_points", "home_points")},
+        }
+        if event["type"] == "premium_sim_flow_save":
+            # Session-only save, not a database or a false cross-device sync.
+            history = st.session_state.setdefault("bb10_premium_flow_saves", [])
+            history[:] = [row for row in history if not (
+                row["date"] == day and row["game_id"] == game_id
+                and row["model_id"] == model_id and row["variant"] == variant)]
+            history.append(saved)
+            del history[:-8]
+            st.session_state["bb10_premium_flow_saved"] = {
+                k: saved[k] for k in ("date", "game_id", "model_id", "variant")}
+        else:
+            try:
+                from flow_report import build_flow_pdf
+                pdf = build_flow_pdf(
+                    day=day, game_id=game_id, model_id=model_id,
+                    away=saved["away"], home=saved["home"],
+                    stats=saved["summary"], flow=flow, variant=variant)
+                if len(pdf) > 200_000:
+                    raise ValueError("Report PDF over size limit")
+                st.session_state["bb10_premium_flow_pdf"] = {
+                    "date": day, "game_id": game_id,
+                    "model_id": model_id, "variant": variant,
+                    "content_base64": b64encode(pdf).decode("ascii")}
+            except (ImportError, ValueError, TypeError, RuntimeError) as exc:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "Premium Flow PDF export unavailable: %s", type(exc).__name__)
+                st.session_state["bb10_premium_flow_pdf"] = None
         st.rerun()
         return
     if event.get("type") == "premium_sim_player_minutes":
