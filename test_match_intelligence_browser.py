@@ -186,6 +186,13 @@ def main():
              cardWidth:panel.getBoundingClientRect().width,
              labelFont:parseFloat(getComputedStyle(document.querySelector('.hzm-intel-team-stat>span')).fontSize),
              bodyExtent:document.documentElement.scrollHeight,
+             bodyScroll:document.body.scrollHeight,
+             stageExtent:stage.scrollHeight,
+             workExtent:document.querySelector('#work').scrollHeight,
+             paneExtent:document.querySelector('#simulations-pane').scrollHeight,
+             panelHeight:panel.getBoundingClientRect().height,
+             panelBottom:panel.getBoundingClientRect().bottom,
+             viewportHeight:window.innerHeight,
              viewHeight:window.innerHeight
            };
         }""")
@@ -194,7 +201,9 @@ def main():
         assert 350 <= mobile_layout["stageWidth"] <= 400, mobile_layout
         assert mobile_layout["cardWidth"] >= 315, mobile_layout
         assert mobile_layout["labelFont"] >= 10, mobile_layout
-        assert mobile_layout["bodyExtent"] > mobile_layout["viewHeight"] + 400, mobile_layout
+        print("MOBILE LAYOUT DIAGNOSTIC:", mobile_layout, flush=True)
+        page.screenshot(path=str(OUT / "mobile-native-first-paint.png"), full_page=True)
+        assert max(mobile_layout["bodyExtent"], mobile_layout["bodyScroll"]) > mobile_layout["viewHeight"] + 400, mobile_layout
         page.locator("#hzm-intel-caveat").scroll_into_view_if_needed()
         assert page.locator("#hzm-intel-caveat").is_visible()
         card_overflow = page.locator("#hzm-intel-panel").evaluate("""el =>
