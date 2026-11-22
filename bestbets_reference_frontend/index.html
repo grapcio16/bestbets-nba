@@ -685,7 +685,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
                   <button type="button" data-hzm-interval-width="30" aria-pressed="false" title="Przedział 30 punktów">30</button>
                 </div></div>
                 <strong id="hzm-result-range">—</strong><span id="hzm-result-range-pct" aria-live="polite">—</span>
-              </div><div><small>Odchylenie ≈</small><strong id="hzm-result-sd">—</strong></div></div>
+              </div><div class="hzm-sd-kpi"><div class="hzm-sd-kpi-title"><small>Odchylenie ≈</small><button id="hzm-sd-info-trigger" class="hzm-sd-info-trigger" type="button" aria-label="Wyjaśnij odchylenie standardowe" aria-expanded="false" aria-haspopup="dialog" aria-controls="hzm-sd-info-dialog" title="Co oznacza odchylenie?">i</button></div><strong id="hzm-result-sd">—</strong></div></div>
             <div class="hzm-chart-source"><span id="hzm-chart-source">Średnie wyłącznie z wykonanych symulacji.</span><strong id="hzm-lab-range">Przedział 80%: —</strong></div>
           </section>
           <section id="hzm-players-panel" class="hzm-players-panel" aria-label="Player Simulations — projekcje modelu">
@@ -1052,6 +1052,33 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       <button id="hzt-premium-cta" type="button">✦ Odblokuj pełne analizy Premium</button>
       <p class="hzt-dialog-source">Dane historyczne z potwierdzonych meczów NBA · nie są prognozą wyniku.</p>
     </section>
+  </section>
+</div>
+<!-- Simulation glossary follows the same full-screen blur and centered popup pattern as Centrum. -->
+<div id="hzm-sd-info-backdrop" class="bc-free-info-backdrop hzm-sd-info-backdrop" hidden>
+  <section id="hzm-sd-info-dialog" class="bc-free-info-popup hzm-sd-info-dialog" role="dialog" aria-modal="true" aria-labelledby="hzm-sd-info-title" aria-describedby="hzm-sd-info-description" tabindex="-1">
+    <div class="bc-free-info-heading">
+      <div>
+        <span class="bc-free-info-kicker">HOOPZARO · SIMULATION LAB</span>
+        <strong id="hzm-sd-info-title">Czym jest odchylenie?</strong>
+        <p id="hzm-sd-info-description">Odchylenie standardowe określa, jak bardzo wyniki symulacji rozpraszają się wokół przewidywanej średniej liczby punktów.</p>
+      </div>
+      <button id="hzm-sd-info-close" type="button" aria-label="Zamknij wyjaśnienie">×</button>
+    </div>
+    <div class="hzm-sd-info-body">
+      <div class="hzm-sd-info-context">AKTUALNY ROZKŁAD: <strong id="hzm-sd-info-chart">MECZ</strong></div>
+      <div class="hzm-sd-info-metrics">
+        <div class="hzm-sd-info-metric"><span>ŚREDNIA MODELU</span><strong id="hzm-sd-info-mean">—</strong><small>Średnia liczba punktów z symulacji</small></div>
+        <div class="hzm-sd-info-metric"><span>ODCHYLENIE STANDARDOWE ≈</span><strong id="hzm-sd-info-deviation">—</strong><small>Miara zmienności przewidywanych wyników</small></div>
+        <div class="hzm-sd-info-metric"><span>ŚREDNIA ± ODCHYLENIE</span><strong id="hzm-sd-info-interval">—</strong><small>Zakres orientacyjny, nie gwarancja</small></div>
+      </div>
+      <div class="hzm-sd-info-explainer">
+        <p><b>Mniejsze odchylenie</b> oznacza, że symulowane wyniki są bardziej skupione wokół średniej. <b>Większe odchylenie</b> oznacza większy rozrzut prognoz.</p>
+        <p>Gdy rozkład jest zbliżony do normalnego, w zakresie średnia ± jedno odchylenie mieści się około <b>68% wyników</b>. Nie jest to uniwersalna reguła dla każdego meczu.</p>
+        <p><b>To nie to samo co przedział 80%</b>, który powstaje z percentyli symulacji. Odchylenie opisuje zmienność, a nie prawdopodobieństwo wygranej ani dokładność modelu.</p>
+      </div>
+    </div>
+    <div class="bc-free-info-foot"><span>Analiza na podstawie rozkładu symulacji · prognozy są eksperymentalne.</span><button id="hzm-sd-info-ok" type="button">Rozumiem</button></div>
   </section>
 </div>
 <!-- Keep this modal outside the scaled dashboard: it fills the actual viewport. -->
