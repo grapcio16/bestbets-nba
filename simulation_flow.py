@@ -129,8 +129,13 @@ def conditional_flow(away_scores, home_scores, *, game_id: str, model_id: str):
             "away_outscores_pct": round(float(np.mean(m < 0))*100, 1),
             "home_outscores_pct": round(float(np.mean(m > 0))*100, 1),
             "tie_pct": round(float(np.mean(m == 0))*100, 1),
-            "away_mean": round(float(np.mean(away[:, q*2:q*2+2])), 2) * 2,
-            "home_mean": round(float(np.mean(home[:, q*2:q*2+2])), 2) * 2,
+            # Mean Q points are the SUM of both six-minute windows for
+            # each of the same 5,000 final-score draws, not a separate
+            # calibrated quarter or play-by-play forecasting engine.
+            "away_mean": round(float(np.mean(
+                np.sum(away[:, q*2:q*2+2], axis=1))), 2),
+            "home_mean": round(float(np.mean(
+                np.sum(home[:, q*2:q*2+2], axis=1))), 2),
         })
     # One demonstrative path selected deterministically from these same 5k
     # final results, closest to the mean final spread. NEVER call it the mean.
