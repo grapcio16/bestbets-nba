@@ -1441,10 +1441,15 @@ function resize(){
   const mobileLayout=viewportWidth<=767 || shortLandscape;
   const mobileHome=mobileLayout && state.page==="home";
   const mobileSchedule=mobileLayout && state.page==="games";
+  // Only the approved Match Intelligence panel gets native-width phone UI.
+  // Other premium modules retain their current viewport behavior.
+  const mobileIntelligence=mobileLayout && state.page==="simulations" &&
+    $("simulations-pane")?.dataset.hzmView==="intelligence";
+  shell.classList.toggle("hz-mobile-intelligence",mobileIntelligence);
   shell.classList.toggle("hz-mobile-centre",mobileHome);
   shell.classList.toggle("hz-mobile-schedule",mobileSchedule);
   shell.classList.toggle("hz-independent-scroll",!mobileLayout);
-  if(mobileHome||mobileSchedule){
+  if(mobileHome||mobileSchedule||mobileIntelligence){
     // Native touch scrolling for the free Home and Schedule routes.
     root.style.transform="none";
     root.style.height="";
