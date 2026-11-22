@@ -33,11 +33,14 @@ def _distribution(values):
     values = np.asarray(values, dtype=float)
     if values.size == 0:
         return {"bins": [], "p10": None, "p90": None, "average": None,
-                "threshold": None, "over_pct": None, "lines": []}
+                "threshold": None, "over_pct": None, "lines": [], "score_counts": []}
     lo = int(np.floor(float(values.min()) / 5) * 5)
     hi = int(np.ceil(float(values.max()) / 5) * 5) + 5
     edges = np.arange(lo, hi + 1, 5)
     counts, _ = np.histogram(values, bins=edges)
+    # Exact integer score frequencies from the existing 5,000 draws. They
+    # support interactive thresholds without rerunning or changing the model.
+    score_values, score_frequencies = np.unique(values.astype(int), return_counts=True)
     average = float(values.mean())
     threshold = int(round(average / 5) * 5)
     # Display only: exact OVER/UNDER percentages from the same 5,000
@@ -60,6 +63,7 @@ def _distribution(values):
         "threshold": threshold,
         "over_pct": round(100 * float(np.count_nonzero(values >= threshold)) / values.size, 1),
         "lines": lines,
+        "score_counts": [[int(score), int(count)] for score, count in zip(score_values, score_frequencies)],
     }
 
 
