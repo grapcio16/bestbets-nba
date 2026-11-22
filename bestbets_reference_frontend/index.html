@@ -550,12 +550,28 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
         <button type="button" class="hzm-day-arrow" id="hzm-day-prev" data-hzm-shift="-1" aria-label="Poprzedni dzień">‹</button>
         <div class="hzm-day-main">
           <button type="button" id="hzm-day-title" title="Kliknij, aby wybrać datę" aria-label="Otwórz kalendarz: wybrany dzień">Dzisiaj</button>
-          <span class="hzm-day-picker" title="Otwórz kalendarz">
+          <button type="button" class="hzm-day-picker" id="hzm-calendar-toggle" aria-label="Rozwiń kalendarz" aria-controls="hzm-calendar-popover" aria-expanded="false" title="Wybierz dzień z kalendarza">
             <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/></svg>
-            <input id="hzm-day-input" type="date" aria-label="Wybierz datę spotkań NBA">
-          </span>
+          </button>
+          <input id="hzm-day-input" type="date" tabindex="-1" aria-hidden="true" hidden>
         </div>
         <button type="button" class="hzm-day-arrow" id="hzm-day-next" data-hzm-shift="1" aria-label="Następny dzień">›</button>
+        <div id="hzm-calendar-popover" class="hzm-calendar-popover" role="dialog" aria-label="Kalendarz terminów NBA" aria-modal="false" hidden>
+          <div class="hzm-calendar-head">
+            <div class="hzm-calendar-head-label"><small>WYBIERZ DATĘ MECZU</small><strong id="hzm-calendar-month" aria-live="polite">Listopad 2026</strong></div>
+            <div class="hzm-calendar-month-nav">
+              <button type="button" id="hzm-calendar-prev-month" aria-label="Poprzedni miesiąc">‹</button>
+              <button type="button" id="hzm-calendar-next-month" aria-label="Następny miesiąc">›</button>
+              <button type="button" id="hzm-calendar-close" aria-label="Zamknij kalendarz">×</button>
+            </div>
+          </div>
+          <div class="hzm-calendar-weekdays" aria-hidden="true"><span>Pn</span><span>Wt</span><span>Śr</span><span>Cz</span><span>Pt</span><span>So</span><span>Nd</span></div>
+          <div id="hzm-calendar-grid" class="hzm-calendar-grid" role="grid" aria-label="Dni miesiąca"></div>
+          <div class="hzm-calendar-foot">
+            <button type="button" id="hzm-calendar-today" class="hzm-calendar-today">Dzisiaj</button>
+            <span id="hzm-calendar-selected">Wybrany dzień</span>
+          </div>
+        </div>
       </div>
     </header>
         <section class="hzm-hero" aria-label="Wynik symulacji">
