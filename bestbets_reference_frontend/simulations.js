@@ -490,14 +490,15 @@ function buildSimulationFindings(game,sim,ctx,paid,modelId){
      favourite+" ("+percent(favouritePct)+
      " symulacji). Śr. "+fmt(favouritePts)+" vs "+fmt(opponentPts)+
      " pkt ("+(expectedEdge>=0?"+":"")+fmt(expectedEdge)+
-     " na korzyść "+favourite+").";
+     (expectedEdge>=0?" pkt przewagi.":" pkt różnicy; wyższa szansa nie wynika z wyższej średniej.");
  }else if(validChances){
    results.winner=favourite+" uzyskuje "+percent(favouritePct)+
      " wygranych symulacji; brak kompletnych danych o średnich punktach.";
  }
  if(validPoints&&total!==null){
    let method="";
-   if(modelId==="legacy_v72"){
+   if(!ctx||typeof ctx!=="object")method="brak potwierdzonego kontekstu wejściowego";
+   else if(modelId==="legacy_v72"){
      method=ctx?.advanced_available===true?"PACE i ratingi ataku/obrony NBA Advanced":
        "ostatnie wyniki ataku i obrony ESPN (do 12 meczów)";
    }else{
@@ -525,9 +526,11 @@ function buildSimulationFindings(game,sim,ctx,paid,modelId){
  const recordValid=(w,l,n)=>Number.isInteger(w)&&Number.isInteger(l)&&
    w>=0&&l>=0&&w+l===n;
  if(scored!==null&&allowed!==null){
+   const records=recordValid(wins,losses,favouriteRow?.n5)&&
+     recordValid(oppWins,oppLosses,otherRow?.n5)?
+       " Bilans: "+favourite+" "+wins+"–"+losses+", "+opponent+" "+oppWins+"–"+oppLosses+".":"";
    results.form="L5: "+favourite+" zdobywało "+fmt(scored)+
-     " pkt/mecz; obrona "+opponent+" traciła "+fmt(allowed)+
-     ". To historyczne tło projekcji, nie gwarancja.";
+     " pkt/mecz; "+opponent+" traciło "+fmt(allowed)+" pkt/mecz."+records;
  }else if(recordValid(wins,losses,favouriteRow?.n5)&&
           recordValid(oppWins,oppLosses,otherRow?.n5)){
    results.form="Bilans L5: "+favourite+" "+wins+"–"+losses+
@@ -561,6 +564,8 @@ function buildSimulationFindings(game,sim,ctx,paid,modelId){
    }else conditions="V7.5: brak istotnych korekt dom/wyjazd, odpoczynku lub absencji.";
    if(factors.injuries_espn_fresh!==true)
      conditions+=" Brak świeżego raportu kontuzji ESPN.";
+ }else if(modelId==="research_context_v75"){
+   conditions="V7.5: brak potwierdzonego rozbicia korekt; szanse niekalibrowane.";
  }else if(modelId==="research_form_v74"){
    conditions="V7.4 bez indywidualnych korekt absencji i odpoczynku; szanse niekalibrowane.";
  }else{
