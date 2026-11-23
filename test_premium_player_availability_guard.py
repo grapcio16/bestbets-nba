@@ -10,14 +10,14 @@ from simulation_player_availability_guard import (
     suppress_player_forecasts,
 )
 
-NOW = pd.Timestamp("2026-11-23T20:00:00Z")
+NOW = pd.Timestamp.now(tz="UTC")
 
 
 def watch(*rows, future=True):
     return {
         "fresh": future,
-        "checked_at": "2026-11-23T19:30:00Z",
-        "valid_until": "2026-11-23T21:00:00Z",
+        "checked_at": (NOW - pd.Timedelta(minutes=10)).isoformat(),
+        "valid_until": (NOW + pd.Timedelta(minutes=80)).isoformat(),
         "rows": list(rows),
     }
 
@@ -78,7 +78,7 @@ class AvailabilityGuardTest(unittest.TestCase):
     def test_expired_report_blocks_all_future_player_forecasts(self):
         old = watch({"name": "Test Guard Alpha", "team": "PHI",
                      "status": "Probable"})
-        self.assertFalse(report_is_current(old, now=pd.Timestamp("2026-11-23T21:05:00Z")))
+        self.assertFalse(report_is_current(old, now=NOW + pd.Timedelta(minutes=85)))
         old["fresh"] = False
         players = [{"name": "Test Guard Alpha", "team": "PHI",
                     "pts": 23, "availability": "Probable"}]
@@ -113,7 +113,7 @@ class AvailabilityGuardTest(unittest.TestCase):
 
     def test_out_of_window_report_cannot_be_verified(self):
         invalid = watch()
-        invalid["checked_at"] = "2026-11-23T15:00:00Z"
+        invalid["checked_at"] = (NOW - pd.Timedelta(hours=4)).isoformat()
         self.assertFalse(report_is_current(invalid, now=NOW))
 
 
