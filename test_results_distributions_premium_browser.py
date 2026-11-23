@@ -41,7 +41,12 @@ def fixture():
             },
             "players": {
                 "date": day, "game_id": "401000001", "model_id": "research_form_v74",
-                "home": "IND", "players": [
+                "home": "IND",
+                "injury_watch": {"fresh": True,
+                                 "checked_at": "2026-11-23T11:30:00Z",
+                                 "valid_until": "2026-11-23T13:00:00Z",
+                                 "rows": []},
+                "players": [
                     {"name": "QA Test Player", "team": "IND",
                      "pts": 19.1, "reb": 5.3, "ast": 7.4},
                 ],
