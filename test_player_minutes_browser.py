@@ -32,7 +32,7 @@ def main():
         }
         active = {
             "name": "Test Athlete A", "team": "NYK", "minutes": 30.0,
-            "minutes_sample": 4, "availability": "Questionable",
+            "minutes_sample": 4, "availability": "Probable",
             "pts": 24.0, "reb": 6.0, "ast": 9.0,
         }
         out = {
@@ -58,7 +58,17 @@ def main():
                 "players": {
                     "date": day, "game_id": game_id,
                     "model_id": "research_context_v75",
-                    "home": "BOS", "players": [active, out, active_home],
+                    "home": "BOS",
+                    "injury_watch": {
+                        "fresh": True,
+                        "checked_at": "2026-11-21T11:30:00Z",
+                        "valid_until": "2026-11-21T13:00:00Z",
+                        "rows": [
+                            {"name": "Test Athlete B", "team": "BOS", "status": "Out"},
+                            {"name": "Test Athlete A", "team": "NYK", "status": "Probable"}
+                        ],
+                    },
+                    "players": [active, out, active_home],
                     "minute_roster": [
                         {"name": "Test Athlete A", "team": "NYK",
                          "position": "PG", "projection_index": 0},
@@ -174,7 +184,7 @@ def main():
             "name": "Test Athlete A", "team": "NYK",
             "minute_delta": 5,
             "baseline_minutes": 30.0, "scenario_minutes": 35.0,
-            "minutes_sample": 4, "availability": "Questionable",
+            "minutes_sample": 4, "availability": "Probable",
             "baseline": {"pts": 24.0, "reb": 6.0, "ast": 9.0, "pra": 39.0},
             "scenario": {"pts": 28.0, "reb": 7.0, "ast": 10.5, "pra": 45.5},
         }

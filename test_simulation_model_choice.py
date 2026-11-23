@@ -66,16 +66,26 @@ class ModelChoiceTests(unittest.TestCase):
                 "state": "scheduled"}
         dummy = types.ModuleType("simulation_view")
         dummy.matchup_players_cached = lambda *_a, **_kw: (table, {})
+        checked = pd.Timestamp.now(tz="UTC")
+        report = {"fresh": True, "checked_at": checked.isoformat(),
+                  "valid_until": (checked + pd.Timedelta(minutes=90)).isoformat(),
+                  "rows": [{"name": "Sample Starter", "team": "BOS", "status": "Out"}]}
         with patch.dict(sys.modules, {"simulation_view": dummy}), \
              patch.object(canvas, "_day_for_simulations", return_value={"games": [game]}), \
              patch.object(canvas, "_history_for_simulations", return_value=(pd.DataFrame(), "")), \
              patch.object(canvas, "_advanced_from_verified_cache", return_value=pd.DataFrame()), \
-             patch.object(canvas, "_v75_player_evidence", return_value=(table, evidence)):
+             patch.object(canvas, "_v75_player_evidence", return_value=(table, evidence)), \
+             patch.object(canvas, "_selected_injury_watch", return_value=report), \
+             patch.object(canvas, "_minute_roster_for_fixture", return_value=([], [], "")), \
+             patch("espn_player_data.matchup_espn_logs",
+                   return_value=(pd.DataFrame(), {})):
+            canvas._game_players.clear()
             result = canvas._game_players("2026-11-19", "401123456", "research_context_v75")
-        self.assertEqual(len(result["players"]), 2)
+        self.assertEqual(len(result["players"]), 1)
+        self.assertEqual(result["excluded_players"][0]["name"], "Sample Starter")
+        self.assertEqual(result["excluded_players"][0]["status"], "Out")
         by_name = {entry["name"]: entry for entry in result["players"]}
-        self.assertEqual(by_name["Sample Starter"]["minutes"], 0)
-        self.assertIsNone(by_name["Sample Starter"]["pts"])
+        self.assertNotIn("Sample Starter", by_name)
         self.assertEqual(by_name["Sample Guard"]["minutes"], 28)
         self.assertEqual(by_name["Sample Guard"]["pts"], 15.0)
 

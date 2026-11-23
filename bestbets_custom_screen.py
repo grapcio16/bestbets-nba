@@ -905,7 +905,8 @@ def main() -> None:
             now_refresh = time.monotonic()
             if not since or now_refresh - float(since) >= 180:
                 from bestbets_simulations_canvas import (
-                    _day_for_simulations, _selected_injury_watch, _game_players)
+                    _day_for_simulations, _selected_injury_watch, _game_players,
+                    _fresh_selected_injury_feed)
                 selected = next((fixture for fixture in
                     _day_for_simulations(day).get("games", [])
                     if str(fixture.get("id")) == game_id), None)
@@ -916,8 +917,8 @@ def main() -> None:
                         and start > pd.Timestamp.now(tz="UTC")):
                     st.session_state["bb10_espn_refresh_at"] = now_refresh
                     try:
-                        from sources import injuries
-                        injuries(refresh=True)
+                        _fresh_selected_injury_feed.clear()
+                        _fresh_selected_injury_feed()
                     except Exception as exc:
                         import logging
                         logging.getLogger(__name__).warning(

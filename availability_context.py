@@ -29,7 +29,7 @@ def team_code(value):
 def matchup_injuries(raw, home, away, metadata=None):
     """Only filter explicit team-associated entries, never guess team by name."""
     expected={str(home),str(away)}
-    cols=["Zawodnik","Drużyna","Status ESPN","Informacja"]
+    cols=["Zawodnik","Drużyna","Status ESPN","Informacja","ESPN_ID"]
     if raw is None or not isinstance(raw,pd.DataFrame) or raw.empty:
         return pd.DataFrame(columns=cols), {
             "source":"ESPN injuries",
@@ -48,6 +48,7 @@ def matchup_injuries(raw, home, away, metadata=None):
             "Zawodnik":player,"Drużyna":code,
             "Status ESPN":status,
             "Informacja":str(row.get("note") or "")[:240],
+            "ESPN_ID":str(row.get("athlete_id") or "").strip()[:20],
         })
     result=pd.DataFrame(items,columns=cols)
     if not result.empty:

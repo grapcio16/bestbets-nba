@@ -231,8 +231,40 @@ function trustedResult(premium,game){
 }
 function trustedPlayers(premium,game){
   const data=premium?.players;
-  return premium?.entitled===true&&data&&data.date===state.day&&data.model_id===state.model&&String(data.game_id)===String(game?.id)
-    ?data:null;
+  if(!(premium?.entitled===true&&data&&data.date===state.day&&
+      data.model_id===state.model&&String(data.game_id)===String(game?.id)))return null;
+  if(game?.state!=="scheduled")return data;
+  const watch=data.injury_watch;
+  const until=Date.parse(String(watch?.valid_until||""));
+  const checked=Date.parse(String(watch?.checked_at||""));
+  const fresh=watch?.fresh===true&&Number.isFinite(until)&&until>Date.now()&&
+    Number.isFinite(checked)&&checked<=Date.now()&&until-checked<=90*60*1000;
+  if(!fresh)return {...data,players:[],minute_roster:[],
+    error:"Wstrzymano projekcje zawodników: brak aktualnego raportu kontuzji ESPN."};
+  // Defense in depth for pre-deployment cached V7.2/V7.4 data. Always
+  // cross-check the current shared injury entries independently of model.
+  const blocked=new Set(["Out","Doubtful","Questionable","Day-to-day",
+    "Sprzeczne","Inny / niepotwierdzony"]);
+  const key=v=>String(v||"").normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const rows=Array.isArray(watch.rows)?watch.rows:[];
+  const eligible=p=>(!blocked.has(p?.availability)&&!rows.some(r=>
+    r?.team===p?.team&&blocked.has(r.status)&&
+    ((String(r.espn_id||"")&&String(p.espn_id||"")===String(r.espn_id))||
+      (key(r.name)&&key(r.name)===key(p.name)))));
+  const safe=Array.isArray(data.players)?data.players.filter(eligible):[];
+  const roster=Array.isArray(data.minute_roster)?data.minute_roster.map(item=>{
+    if(!item)return item;
+    const index=safe.findIndex(p=>p.team===item.team&&
+      ((String(p.espn_id||"")&&String(item.espn_id||"")===String(p.espn_id))||
+       key(p.name)===key(item.name)));
+    const risk=rows.find(r=>r?.team===item.team&&blocked.has(r.status)&&
+      ((String(r.espn_id||"")&&String(item.espn_id||"")===String(r.espn_id))||
+       key(r.name)===key(item.name)));
+    return {...item,projection_index:index<0?null:index,
+      availability:risk?.status||item.availability};
+  }):[];
+  return {...data,players:safe,minute_roster:roster};
 }
 /* The slider follows the actual five-point histogram; each bin represents
    the probability of a five-point RANGE, not the chance of one exact score.
@@ -1076,7 +1108,7 @@ function playerAvatar(item,large=false){
 }
 function playerMetric(item,market){
  const a=safeProjection(item?.pts),b=safeProjection(item?.reb),c=safeProjection(item?.ast);
- if(item?.availability==="Out"&&state.model==="research_context_v75")return null;
+ if(["Out","Doubtful","Questionable","Day-to-day","Sprzeczne","Inny / niepotwierdzony"].includes(item?.availability))return null;
  return market==="PTS"?a:market==="REB"?b:market==="AST"?c:
    market==="PRA"&&a!==null&&b!==null&&c!==null?a+b+c:null;
 }
@@ -1655,7 +1687,8 @@ function minuteNameKey(name){
    .toLowerCase().replace(/[^a-z0-9]/g,"");
 }
 function minuteCanProject(p,game){
- return !!p&&p.availability!=="Out"&&[game?.away,game?.home].includes(p.team)&&
+ return !!p&&!["Out","Doubtful","Questionable","Day-to-day","Sprzeczne",
+   "Inny / niepotwierdzony"].includes(p.availability)&&[game?.away,game?.home].includes(p.team)&&
   Number.isInteger(Number(p.minutes_sample))&&Number(p.minutes_sample)>=3&&
   safeProjection(p.minutes)!==null&&Number(p.minutes)>=5&&Number(p.minutes)<=44&&
   ["pts","reb","ast"].every(k=>safeProjection(p[k])!==null);

@@ -66,7 +66,12 @@ def main():
                     },
                     "players": {
                         "date": day, "game_id": game_id, "model_id": "research_form_v74",
-                        "home": "PHI", "players": [
+                        "home": "PHI",
+                        "injury_watch": {"fresh": True,
+                                         "checked_at": "2026-11-21T11:30:00Z",
+                                         "valid_until": "2026-11-21T13:00:00Z",
+                                         "rows": []},
+                        "players": [
                             {"name": "Test Guard Alpha", "team": "PHI",
                              "pts": 20, "reb": 2.4, "ast": 6.5,
                              "position": "PG", "espn_id": "123456789",

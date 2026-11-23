@@ -1,0 +1,45 @@
+name: Hoopzaro critical player OUT hotfix QA
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verified-player-availability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies and browser
+        run: |
+          python -m pip install -r requirements.txt 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - name: Syntax and medical status gate
+        run: |
+          python -m py_compile simulation_player_availability_guard.py bestbets_simulations_canvas.py bestbets_custom_screen.py availability_context.py test_premium_player_availability_guard.py test_premium_player_availability_browser.py
+          node --check bestbets_reference_frontend/simulations.js
+          node --check bestbets_reference_frontend/player_simulations_v3.js
+      - name: All-model injury/roster unit regression
+        run: python -m unittest -v test_premium_player_availability_guard.py test_player_simulations_visual_data.py
+      - name: UI injury gate desktop and iPhone — all models
+        run: python test_premium_player_availability_browser.py
+      - name: Existing Player Simulations regression
+        run: python test_player_simulations_neon_browser.py
+      - name: Existing Results regression
+        run: python test_results_distributions_premium_browser.py
+      - name: Existing integrated six-tab release gate
+        run: python test_simulation_lab_release_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hoopzaro-premium-player-injury-hotfix
+          path: |
+            test-results/premium-player-injury-guard/*.png
+          if-no-files-found: ignore
