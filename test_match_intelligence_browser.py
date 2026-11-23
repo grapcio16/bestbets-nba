@@ -204,8 +204,10 @@ def main():
         page.screenshot(path=str(OUT / "match-intelligence-v75-mobile.png"), full_page=True)
         page.locator("#hzm-intel-panel").screenshot(path=str(OUT / "match-intelligence-v75-mobile-panel.png"))
         page.locator("#hzm-lab-tab-results").click()
-        assert not page.locator("#app-shell").evaluate("el => el.classList.contains('hz-mobile-intelligence')")
+        assert page.locator("#app-shell").evaluate("el => el.classList.contains('hz-mobile-intelligence')")
         assert page.locator("#hzm-detail-grid").is_visible()
+        page.locator('#hz-mobile-nav [data-page="home"]').click()
+        assert not page.locator("#app-shell").evaluate("el => el.classList.contains('hz-mobile-intelligence')")
         assert not errors, errors
         browser.close()
         print("Match Intelligence: V7.5 factors, V7.4 isolation and Premium gate OK")
