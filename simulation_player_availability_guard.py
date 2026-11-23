@@ -65,7 +65,7 @@ def injury_status(name: str, team: str, espn_id: str, watch: dict,
         label = str(item.get("status") or "").strip()
         statuses.add(label if label in {
             "Out", "Questionable", "Doubtful", "Day-to-day", "Probable",
-            "Sprzeczne", "Inny / niepotwierdzony", "Brak potwierdzenia"
+            "Available", "Sprzeczne", "Inny / niepotwierdzony", "Brak potwierdzenia"
         } else status_class(label))
     if "Out" in statuses:
         return "Out"
