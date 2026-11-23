@@ -1495,7 +1495,7 @@ function resize(){
   // Match Intelligence and Team Comparison get native-width phone UI.
   // All other existing Premium modules keep their current viewport behavior.
   const mobileIntelligence=mobileLayout && state.page==="simulations" &&
-    ["intelligence","comparison"].includes($("simulations-pane")?.dataset.hzmView);
+    ["intelligence","comparison","scenario"].includes($("simulations-pane")?.dataset.hzmView);
   shell.classList.toggle("hz-mobile-intelligence",mobileIntelligence);
   shell.classList.toggle("hz-mobile-centre",mobileHome);
   shell.classList.toggle("hz-mobile-schedule",mobileSchedule);
