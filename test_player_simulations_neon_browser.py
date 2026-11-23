@@ -8,7 +8,7 @@ from shutil import which
 from playwright.sync_api import sync_playwright
 
 PAGE = (Path(__file__).parent / "bestbets_reference_frontend" / "index.html").as_uri()
-OUT = Path("test-results/hoopzaro-responsive")
+OUT = Path("test-results/hoopzaro-player-v4")
 OUT.mkdir(parents=True, exist_ok=True)
 
 
@@ -69,7 +69,7 @@ def main():
                         "home": "PHI", "players": [
                             {"name": "Test Guard Alpha", "team": "PHI",
                              "pts": 20, "reb": 2.4, "ast": 6.5,
-                             "position": "PG", "espn_id": "",
+                             "position": "PG", "espn_id": "123456789",
                              "history": history,
                              "season_team_mean": {"pts": 25.0, "reb": 3.47,
                                                   "ast": 5.93, "pra": 34.4},
@@ -86,12 +86,31 @@ def main():
                     "d => window.postMessage({type:'streamlit:render',args:{payload:d}}, '*')",
                     payload)
             push()
-            page.locator("#hzm-day-input").fill(day)
-            page.locator("#hzm-day-input").dispatch_event("change")
+            # Native date input lives behind the custom calendar and is hidden.
+            page.locator("#hzm-day-input").evaluate(
+                """(el, day) => {el.value=day;
+                     el.dispatchEvent(new Event('change',{bubbles:true}));}""", day)
             page.locator("#hzm-lab-tab-players").click()
             assert page.locator("#hzm-detail-grid").is_hidden()
             panel = page.locator("#hzv3")
             assert panel.is_visible()
+            assert page.locator(".hzm-hero").is_hidden()
+            assert page.locator("#hzv3 .hzv4-eyebrow").is_visible()
+            assert page.locator("#hzv3-model-context").inner_text() == "MODEL V7.4 · PROJEKCJA"
+            assert "5000 symulacji" in page.locator("#hzv3 .hzv3-description").inner_text() or (
+                "Monte Carlo" in page.locator("#hzv3 .hzv3-description").inner_text())
+            assert page.locator("#hzv3 img[src^='https://']").count() == 0, (
+                "Public preview must not hotlink unlicensed player portraits.")
+            assert page.locator("#hzv3 .hzv3-headshot").count() == 0
+            assert page.locator("#hzv3-hist-title button.hzm-help-trigger").count() == 1
+            assert page.locator("#hzv3-trend-title button.hzm-help-trigger").count() == 1
+            styles=page.locator("#hzv3").evaluate("""el=>({
+               gradient:getComputedStyle(el).backgroundImage,
+               shadow:getComputedStyle(el).boxShadow,
+               sourceFont:parseFloat(getComputedStyle(el.querySelector('.hzv3-description')).fontSize)
+            })""")
+            assert "gradient" in styles["gradient"] and "rgba" in styles["shadow"],styles
+
             assert page.locator("#hzv3-roster").is_visible()
             assert page.locator("#hzv3-inspector").is_visible()
             assert page.locator("#hzv3-analytics").count() == 0  # semantic section uses a class
@@ -183,6 +202,9 @@ def main():
                 assert all(l["right"] <= r["left"]+1 for l,r in zip(bounds["cells"],bounds["cells"][1:])),bounds
             page.locator('[data-hzv3-market="REB"]').click()
             assert page.locator("#hzv3-rates-title").inner_text() == "Historyczne over (REB)"
+            assert page.locator("#hzv3-hist-title button.hzm-help-trigger").count() == 1
+            assert page.locator("#hzv3-trend-title button.hzm-help-trigger").count() == 1
+
             assert "2,4" in page.locator('#hzv3-inspector [data-hzv3-metric="REB"]').inner_text()
             assert page.locator('[data-hzv3-market="REB"]').get_attribute("aria-pressed") == "true"
             page.locator('[data-hzv3-window="10"]').click()
@@ -197,6 +219,50 @@ def main():
             assert page.locator("#hzv3-inspector .hzv3-team-watermark-label").inner_text() == "MIL"
             page.locator('#hzv3-roster [data-hzv3-pick="0"]').click()
             assert page.locator("#hzv3-inspector .hzv3-team-watermark img").get_attribute("src") == phi_logo
+            if width < 500:
+                native = page.evaluate("""()=>{
+                  const shell=document.querySelector('#app-shell'),
+                        stage=document.querySelector('#stage'),
+                        board=document.querySelector('#hzv3'),
+                        history=document.querySelector('#hzv3-hist'),
+                        roster=document.querySelector('.hzv3-roster-card'),
+                        right=document.querySelector('.hzv3-analytics'),
+                        card=document.querySelector('#hzv3-inspector');
+                  return {enabled:shell.classList.contains('hz-mobile-intelligence'),
+                    transform:getComputedStyle(stage).transform,
+                    stageWidth:stage.getBoundingClientRect().width,
+                    panelWidth:board.getBoundingClientRect().width,
+                    overflow:board.scrollWidth-board.clientWidth,
+                    bodyHeight:document.body.scrollHeight,
+                    viewHeight:window.innerHeight,
+                    inspectorY:card.getBoundingClientRect().top,
+                    rosterY:roster.getBoundingClientRect().top,
+                    analyticsY:right.getBoundingClientRect().top,
+                    font:parseFloat(getComputedStyle(board.querySelector('.hzv3-description')).fontSize)};
+                }""")
+                assert native["enabled"] and native["transform"]=="none",native
+                assert 350<=native["stageWidth"]<=400,native
+                assert native["panelWidth"]>=340,native
+                assert native["overflow"]<=2,native
+                assert native["font"]>=10,native
+                assert native["inspectorY"]<native["rosterY"]<native["analyticsY"],native
+                assert native["bodyHeight"]>native["viewHeight"]+500,native
+                page.locator("#hzv3-rates").scroll_into_view_if_needed()
+                rates_visible=page.locator("#hzv3-rates").evaluate("""el=>{
+                  const r=el.getBoundingClientRect();
+                  return {top:r.top,bottom:r.bottom,height:window.innerHeight,
+                    scroll:document.body.scrollTop};
+                }""")
+                assert rates_visible["top"]>=-2 and rates_visible["top"]<rates_visible["height"],rates_visible
+                page.screenshot(path=str(OUT / "player-v4-mobile-rates-scrolled.png"))
+                page.locator("#hzv3-averages").scroll_into_view_if_needed()
+                page.screenshot(path=str(OUT / "player-v4-mobile-averages-scrolled.png"))
+                page.evaluate("window.scrollTo(0,0);document.body.scrollTop=0")
+                page.screenshot(path=str(OUT / "player-v4-mobile-first-fold.png"))
+            else:
+                page.evaluate("""() => {document.activeElement?.blur();
+                  document.querySelector('#work').scrollTop=0;window.scrollTo(0,0);}""")
+                page.screenshot(path=str(OUT / "player-v4-desktop-first-fold.png"))
             page.screenshot(path=str(OUT / f"player-simulations-neon-{width}x{height}.png"))
             payload["premium_simulation"] = {"entitled": False, "game": None, "players": None}
             payload["auth"] = {"role": "free"}
@@ -205,6 +271,10 @@ def main():
             assert "Test Guard Alpha" not in page.locator("#hzv3-inspector").inner_text()
             assert page.locator("#hzv3-hist svg").count() == 0
             assert "Premium" in page.locator("#hzv3-roster").inner_text()
+            if width<500:
+                page.locator("#hzm-lab-tab-results").click()
+                assert not page.locator("#app-shell").evaluate(
+                  "el=>el.classList.contains('hz-mobile-intelligence')")
             assert not errors, (width, height, errors)
             page.close()
         browser.close()
