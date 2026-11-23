@@ -111,7 +111,7 @@ def test_browser():
                 measures = page.evaluate("""() => {
                     const rect = q => {
                         const r = document.querySelector(q).getBoundingClientRect();
-                        return {width:r.width, height:r.height, left:r.left, right:r.right};
+                        return {width:r.width, height:r.height, left:r.left, right:r.right, top:r.top, bottom:r.bottom};
                     };
                     return {
                         root:rect('#stage'),
@@ -134,7 +134,7 @@ def test_browser():
                 assert measures["chartSvg"]["width"] >= 290, measures
                 assert measures["plot"]["left"] >= measures["card"]["left"], measures
                 assert measures["plot"]["right"] <= measures["card"]["right"] + 1, measures
-                assert measures["plot"]["height"] + 1 <= measures["probability"]["height"] + measures["plot"]["height"], measures
+                assert measures["plot"]["bottom"] + 5 <= measures["probability"]["top"], measures
 
                 assert measures["switcher"]["width"] >= 310, measures
                 assert measures["horizontalOverflow"] <= measures["viewport"] + 2, measures
