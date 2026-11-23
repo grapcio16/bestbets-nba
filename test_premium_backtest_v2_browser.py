@@ -155,6 +155,32 @@ def main():
             assert "niedostępny" in page.locator(".hzm-backtest-roi").inner_text().lower()
             assert "nie odtworzono" in page.locator("#hzm-backtest-caveat").inner_text().lower()
             page.screenshot(path=str(OUTPUT / f"{label}-verified-fixture.png"), full_page=True)
+            if width == 390:
+                diagnostic = page.evaluate("""() => {
+                    const sels=['#app-shell','#stage','#work','#simulations-pane',
+                        '.hzm-content','.hzm-analysis','#hzm-backtest-panel',
+                        '.hzm-backtest-results','#hzm-backtest-caveat'];
+                    return {
+                        viewport:innerHeight, scroll:document.documentElement.scrollHeight,
+                        bodyScroll:document.body.scrollHeight,
+                        boxes:sels.map(sel=>{
+                            const el=document.querySelector(sel);
+                            const r=el.getBoundingClientRect(),css=getComputedStyle(el);
+                            return {sel,top:Math.round(r.top),bottom:Math.round(r.bottom),
+                                height:Math.round(r.height),scrollHeight:el.scrollHeight,
+                                overflow:css.overflow,overflowY:css.overflowY,
+                                maxHeight:css.maxHeight,position:css.position}
+                        })
+                    };
+                }""")
+                print("Mobile Backtest geometry:", diagnostic)
+                page.evaluate("window.scrollTo(0, 1300)")
+                assert page.evaluate("window.scrollY") > 500, diagnostic
+                page.locator("#hzm-backtest-caveat").scroll_into_view_if_needed()
+                box = page.locator("#hzm-backtest-caveat").bounding_box()
+                assert box and box["y"] < height - 75, (box, diagnostic)
+                page.screenshot(path=str(OUTPUT / "iphone-scrolled-bottom.png"), full_page=False)
+
 
             # Traverse all released Premium panes; a tab switch must not hide
             # the other pages' content or leak stale selected state.
