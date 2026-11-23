@@ -240,6 +240,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="match_intelligence_premium.css">
 <link rel="stylesheet" href="team_comparison_premium.css">
 <link rel="stylesheet" href="scenario_builder_premium_v2.css">
+<link rel="stylesheet" href="player_simulations_premium_v4.css">
 </head>
 <body>
 <!-- Original, reusable HOOPZARO icons: one visual language on desktop and mobile. -->
@@ -605,16 +606,16 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
              1672x941 screenshot: 278/390/rest columns, 412+130 rows. -->
         <section id="hzv3" class="hzv3" aria-label="Player Simulations Premium" hidden>
           <header class="hzv3-titlebar">
-            <div class="hzv3-title"><h2>Player Simulations</h2><span id="hzv3-version" class="hzv3-version">V7.5</span></div>
+            <div class="hzv3-title"><div class="hzv4-title-copy"><span class="hzv4-eyebrow">HOOPZARO · PREMIUM PLAYER LAB</span><h2>Player Simulations</h2></div><span id="hzv3-version" class="hzv3-version">V7.5</span></div>
             <div class="hzv3-markets" role="group" aria-label="Wybrana statystyka">
               <button type="button" data-hzv3-market="PTS" aria-pressed="true">PTS</button>
               <button type="button" data-hzv3-market="REB" aria-pressed="false">REB</button>
               <button type="button" data-hzv3-market="AST" aria-pressed="false">AST</button>
               <button type="button" data-hzv3-market="PRA" aria-pressed="false">PRA</button>
             </div>
-            <span class="hzv3-model-selector">Projekcja modelu <span aria-hidden="true">⌄</span></span>
+            <span id="hzv3-model-context" class="hzv3-model-selector" title="To oznaczenie metody. Model zmieniasz w prawdziwym selektorze nad kartą.">MODEL V7.4 · PROJEKCJA</span>
           </header>
-          <p class="hzv3-description">Projekcje na wybrany mecz · wykresy oparte na wcześniejszych wynikach ESPN. Historia nie jest rozkładem z 5000 symulacji; PRA to suma średnich prognoz.</p>
+          <p class="hzv3-description"><strong>Projekcja meczu</strong> = wynik wybranego modelu. <strong>Histogram, forma i over</strong> = wyłącznie wcześniejsze, zweryfikowane występy ESPN. To nie są losowania zawodnika w Monte Carlo. PRA = suma prognoz PTS + REB + AST.</p>
           <div class="hzv3-toolbar">
             <div class="hzv3-teams" role="group" aria-label="Filtr drużyn">
               <button type="button" data-hzv3-team="all" aria-pressed="true">Obie drużyny</button>
@@ -1495,7 +1496,7 @@ function resize(){
   // Match Intelligence and Team Comparison get native-width phone UI.
   // All other existing Premium modules keep their current viewport behavior.
   const mobileIntelligence=mobileLayout && state.page==="simulations" &&
-    ["intelligence","comparison","scenario"].includes($("simulations-pane")?.dataset.hzmView);
+    ["intelligence","comparison","scenario","players"].includes($("simulations-pane")?.dataset.hzmView);
   shell.classList.toggle("hz-mobile-intelligence",mobileIntelligence);
   shell.classList.toggle("hz-mobile-centre",mobileHome);
   shell.classList.toggle("hz-mobile-schedule",mobileSchedule);
