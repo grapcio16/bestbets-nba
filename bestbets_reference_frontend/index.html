@@ -239,6 +239,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="mobile.css">
 <link rel="stylesheet" href="match_intelligence_premium.css">
 <link rel="stylesheet" href="team_comparison_premium.css">
+<link rel="stylesheet" href="scenario_builder_premium_v2.css">
 </head>
 <body>
 <!-- Original, reusable HOOPZARO icons: one visual language on desktop and mobile. -->
@@ -763,7 +764,15 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <button type="button" id="hzm-expand-players" class="hzm-expand" aria-expanded="false" aria-controls="hzm-player-rows">Rozwiń pełną listę zawodników <span aria-hidden="true">⌄</span></button>
           </section>
         </div>
-        <section id="hzm-scenario-panel" class="hzm-scenario-panel hzm-scenario-premium" aria-label="Scenario Lab — interaktywna analiza hipotetyczna" hidden>
+        <section id="hzm-scenario-panel" class="hzm-scenario-panel hzm-scenario-premium hzm-scenario-premium-v2" aria-label="Scenario Lab — interaktywna analiza hipotetyczna" hidden>
+          <div class="hzm-scenario-v2-heading">
+            <div class="hzm-scenario-v2-heading-copy">
+              <small>HOOPZARO · WHAT-IF SIMULATION LAB</small>
+              <h2>Scenariusze <span>meczu</span></h2>
+              <p>Zmodyfikuj założenia modelu, a następnie przelicz wariant. To analiza warunkowa, nie oficjalna prognoza przyszłego tempa lub składu.</p>
+            </div>
+            <span class="hzm-scenario-v2-experimental"><span aria-hidden="true">♧</span> EKSPERYMENTALNE · WHAT-IF</span>
+          </div>
           <div class="hzm-scenario-control hzm-scenario-card">
             <header class="hzm-scenario-card-head">
               <span class="hzm-scenario-head-icon" aria-hidden="true">☷</span><strong>Scenario Builder</strong>
@@ -802,7 +811,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
               </div>
             </div>
             <button id="hzm-scenario-run" type="button"><span aria-hidden="true">▶</span> Przelicz 5 000 symulacji</button>
-            <p class="hzm-scenario-disclaimer">Hipotetyczne założenia użytkownika — niepotwierdzona forma ani tempo NBA. Zmiana składu, minut i kontuzji nie jest przeliczana w scenariuszu zespołowym.</p>
+            <p class="hzm-scenario-disclaimer">Zmiany tempa i ofensywy to hipotetyczne założenia użytkownika, nie potwierdzone statystyki NBA. Moduł Player Minutes jest oddzielny i <strong>nie przelicza wyniku zespołowego.</strong></p>
           </div>
 
           <div class="hzm-scenario-output hzm-scenario-card" aria-live="polite">
@@ -820,7 +829,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
               <div class="hzm-scenario-table-row hzm-scenario-table-over" role="row"><label role="cell" for="hzm-scenario-ou-line">↑ OVER <input type="text" id="hzm-scenario-ou-line" inputmode="decimal" autocomplete="off" spellcheck="false" value="229,5" aria-label="Próg OVER do porównania, np. 229,5"/></label><b role="cell" id="hzm-scenario-table-over-base">—</b><b role="cell" id="hzm-scenario-table-over-new">—</b><strong role="cell" id="hzm-scenario-table-over-delta">—</strong></div>
             </div>
             <div class="hzm-scenario-curve-wrap">
-              <div class="hzm-scenario-chart-title"><strong><span aria-hidden="true">▥</span> Rozkład punktów meczu</strong><span id="hzm-scenario-curve-caption">5 000 symulacji na wariant</span></div>
+              <div class="hzm-scenario-chart-title"><strong><span aria-hidden="true">▥</span> Rozkład punktów meczu</strong><span id="hzm-scenario-curve-caption">Nowy rozkład pojawi się po przeliczeniu</span></div>
               <div class="hzm-scenario-curve-viewport">
                 <svg id="hzm-scenario-curve" viewBox="0 0 500 160" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Rozkład prognozowanej sumy punktów: model bazowy oraz, jeśli obliczony, scenariusz hipotetyczny"></svg>
               </div>
@@ -831,7 +840,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
               <div class="hzm-scenario-split home"><strong id="hzm-scenario-home-code">GOSPODARZE</strong><span>PTS <b id="hzm-scenario-home-points">—</b></span><span>WIN <b id="hzm-scenario-home-win">—</b></span></div>
             </div>
             <p id="hzm-scenario-status">Zmień założenia i kliknij „Przelicz 5 000 symulacji”.</p>
-            <small id="hzm-scenario-context">Wariant hipotetyczny · 5 000 symulacji · prawdopodobieństwa nie są kursami bukmachera.</small>
+            <small id="hzm-scenario-context">Wariant warunkowy · 5 000 losowań na dostępny wariant · prawdopodobieństwa są nieskalibrowane, nie są kursami bukmachera.</small>
           </div>
 
           <div class="hzm-scenario-insights hzm-scenario-card" role="complementary" aria-label="Kluczowe wnioski wybranego scenariusza">
