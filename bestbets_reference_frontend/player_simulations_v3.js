@@ -244,8 +244,12 @@ function drawCharts(player){
  function titleWithHelp(id,label){
    const h=$(id),button=h?.querySelector('button.hzm-help-trigger');
    if(!h)return;
-   h.replaceChildren(document.createTextNode(label+' '));
+   const text=document.createElement('span');
+   text.className='hzv4-chart-title-text';
+   text.textContent=label;
+   h.replaceChildren(text);
    if(button)h.append(button);
+   h.title=label;
  }
  titleWithHelp("hzv3-hist-title","Rozkład historyczny — "+titles[m]+" · "+(player?.name||"zawodnik"));
  $("hzv3-rates-title").textContent="Historyczne over ("+m+")";
