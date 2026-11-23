@@ -117,6 +117,8 @@ def test_browser():
                         root:rect('#stage'),
                         card:rect('.hzm-chart-card'),
                         plot:rect('#hzm-plot'),
+                        probability:rect('.hzm-chart-visual .hzm-side-ou'),
+                        chartSvg:rect('#hzm-plot svg'),
                         switcher:rect('#hzm-chart-tabs'),
                         mobile:document.querySelector('#app-shell').classList.contains('hz-mobile-intelligence'),
                         scrollHeight:document.documentElement.scrollHeight,
@@ -129,6 +131,11 @@ def test_browser():
                 assert measures["card"]["width"] >= 325, measures
                 assert measures["plot"]["width"] >= 290, measures
                 assert measures["plot"]["height"] >= 200, measures
+                assert measures["chartSvg"]["width"] >= 290, measures
+                assert measures["plot"]["left"] >= measures["card"]["left"], measures
+                assert measures["plot"]["right"] <= measures["card"]["right"] + 1, measures
+                assert measures["plot"]["height"] + 1 <= measures["probability"]["height"] + measures["plot"]["height"], measures
+
                 assert measures["switcher"]["width"] >= 310, measures
                 assert measures["horizontalOverflow"] <= measures["viewport"] + 2, measures
                 assert measures["scrollHeight"] > height, measures
