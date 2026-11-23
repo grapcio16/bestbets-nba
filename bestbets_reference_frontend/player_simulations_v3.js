@@ -123,7 +123,8 @@ function status(player){
   return {text:"PROGNOZA WARUNKOWA · zakładamy występ; nie mamy aktualnego potwierdzenia składu",kind:"neutral",icon:"!"};
  if(v==="Niezweryfikowany")return {text:"Prognoza warunkowa · brak potwierdzonego statusu występu",kind:"neutral",icon:"!"};
  if(v==="Out")return {text:"ESPN: OUT — prognoza nieaktywna",kind:"negative",icon:"×"};
- if(v==="Probable")return {text:"ESPN: prawdopodobny występ (Probable)",kind:"positive",icon:"✓"};
+ if(v==="Available")return {text:"Raport: Available — zgłoszony jako dostępny, nie gwarancja minut",kind:"positive",icon:"✓"};
+ if(v==="Probable")return {text:"Raport: prawdopodobny występ (Probable)",kind:"positive",icon:"✓"};
  if(["Questionable","Doubtful","Day-to-day","Sprzeczne"].includes(v))
   return {text:"ESPN: "+v+" — występ niepewny",kind:"neutral",icon:"!"};
  return {text:"Status ESPN: "+(v||"brak potwierdzenia"),kind:"neutral",icon:"ⓘ"};
