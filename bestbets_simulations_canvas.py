@@ -378,6 +378,7 @@ def _minute_roster_for_fixture(away: str, home: str):
                     output.append({
                         "name": name[:70], "team": team,
                         "position": pos if pos in {"PG", "SG", "SF", "PF", "C", "G", "F"} else "",
+                        "espn_id": str(row.get("PLAYER_ID") or "")[:20],
                         "roster_status": str(row.get("ROSTER_STATUS") or "")[:35],
                     })
             except (OSError, RuntimeError, ValueError, TypeError, KeyError):
@@ -388,7 +389,19 @@ def _minute_roster_for_fixture(away: str, home: str):
     return output, verified, warning
 
 
-@st.cache_data(ttl=180, max_entries=90, show_spinner=False)
+@st.cache_data(ttl=150, max_entries=1, show_spinner=False)
+def _fresh_selected_injury_feed():
+    """One fresh ESPN read per app instance, shared across Premium matchups.
+
+    The regular source cache is 45 minutes: too long for a medical status.
+    The explicit refresh is deduplicated for all users and fixtures for
+    150 seconds. If ESPN fails, no player projections are authorized.
+    """
+    from sources import injuries
+    return injuries(refresh=True)
+
+
+@st.cache_data(ttl=60, max_entries=90, show_spinner=False)
 def _selected_injury_watch(day: str, game_id: str) -> dict:
     """Read ESPN injury entries for the exact upcoming matchup, independent of
     the selected MODEL. Purely informational: never adjusts V7.2/V7.4 points.
@@ -411,8 +424,7 @@ def _selected_injury_watch(day: str, game_id: str) -> dict:
         return {"fresh": False, "valid_until": None, "rows": [],
                 "reason": "Mecz nie jest już przed rozpoczęciem."}
     try:
-        from sources import injuries
-        raw, meta = injuries()
+        raw, meta = _fresh_selected_injury_feed()
         report, match_meta = matchup_injuries(
             raw, str(fixture["home"]), str(fixture["away"]), meta)
         fetched = pd.to_datetime((meta or {}).get("timestamp"),
@@ -432,14 +444,19 @@ def _selected_injury_watch(day: str, game_id: str) -> dict:
             if code not in (str(fixture["away"]), str(fixture["home"])) or not name:
                 continue
             item = grouped.setdefault(key, {"name": name[:70], "team": code,
-                                            "statuses": set()})
+                                            "statuses": set(), "espn_ids": set()})
+            ident = str(row.get("ESPN_ID") or "").strip()
+            if ident.isdigit() and len(ident) <= 20:
+                item["espn_ids"].add(ident)
             item["statuses"].add(status_class(row.get("Status ESPN")))
         rows = []
         for item in grouped.values():
             statuses = item["statuses"]
             status = next(iter(statuses)) if len(statuses) == 1 else "Sprzeczne"
             rows.append({"name": item["name"], "team": item["team"],
-                         "status": status})
+                         "status": status,
+                         "espn_id": next(iter(item["espn_ids"]))
+                             if len(item["espn_ids"]) == 1 else ""})
         rows.sort(key=lambda x: (x["team"], x["name"]))
         return {"fresh": True,
                 "checked_at": fetched.isoformat(),
@@ -453,7 +470,7 @@ def _selected_injury_watch(day: str, game_id: str) -> dict:
                 "reason": "Nie udało się odczytać ESPN. Brak potwierdzonych statusów."}
 
 
-@st.cache_data(ttl=600, max_entries=50, show_spinner=False)
+@st.cache_data(ttl=60, max_entries=50, show_spinner=False)
 def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     """Lazily fetch only the selected matchup's two actual ESPN player histories."""
     from simulation_view import matchup_players_cached
