@@ -371,3 +371,23 @@
     max-width:145px
   }
 }
+
+
+/* Medical evidence is a conditional input, not a hard dependency on ESPN
+   uptime. Keep the warning compact and readable without redesigning V4. */
+#hzv3 .hzv3-availability-banner {
+  grid-column:1/-1;
+  box-sizing:border-box;
+  margin:6px 8px 10px;
+  padding:9px 12px;
+  border:1px solid rgba(244,180,83,.44);
+  border-left:3px solid #ebae51;
+  border-radius:9px;
+  background:linear-gradient(105deg,rgba(90,51,20,.37),rgba(39,31,65,.49));
+  box-shadow:0 0 12px rgba(229,147,57,.08);
+  color:#f7d8a1;
+  font-size:11px;
+  font-weight:600;
+  line-height:1.45;
+  letter-spacing:.12px;
+}
