@@ -204,6 +204,17 @@ def main():
             assert page.locator("#hzv3-rates-title").inner_text() == "Historyczne over (REB)"
             assert page.locator("#hzv3-hist-title button.hzm-help-trigger").count() == 1
             assert page.locator("#hzv3-trend-title button.hzm-help-trigger").count() == 1
+            # Regression: earlier render replaced buttons with inert glyphs.
+            page.locator("#hzv3-hist-title button.hzm-help-trigger").click()
+            assert page.locator("#hzm-glossary-backdrop").is_visible()
+            assert "rozkład" in page.locator("#hzm-glossary-title").inner_text().lower()
+            page.locator("#hzm-glossary-close").click()
+            assert page.locator("#hzm-glossary-backdrop").is_hidden()
+            page.locator("#hzv3-trend-title button.hzm-help-trigger").click()
+            assert page.locator("#hzm-glossary-backdrop").is_visible()
+            page.locator("#hzm-glossary-close").click()
+            assert page.locator("#hzm-glossary-backdrop").is_hidden()
+            assert page.locator("#simulations-pane img[src^='https://a.espncdn.com/']").count() == 0
 
             assert "2,4" in page.locator('#hzv3-inspector [data-hzv3-metric="REB"]').inner_text()
             assert page.locator('[data-hzv3-market="REB"]').get_attribute("aria-pressed") == "true"
@@ -247,6 +258,15 @@ def main():
                 assert native["font"]>=10,native
                 assert native["inspectorY"]<native["rosterY"]<native["analyticsY"],native
                 assert native["bodyHeight"]>native["viewHeight"]+500,native
+                help_geometry=page.locator("#hzv3-hist-title").evaluate("""el=>{
+                    const head=el.getBoundingClientRect(),
+                          button=el.querySelector('button').getBoundingClientRect(),
+                          card=el.closest('.hzv3-analytics-card').getBoundingClientRect();
+                    return {iconTop:button.top,headerTop:head.top,
+                           iconRight:button.right,cardRight:card.right}
+                }""")
+                assert help_geometry["iconTop"]<=help_geometry["headerTop"]+12,help_geometry
+                assert help_geometry["iconRight"]<=help_geometry["cardRight"]-3,help_geometry
                 page.locator("#hzv3-rates").scroll_into_view_if_needed()
                 rates_visible=page.locator("#hzv3-rates").evaluate("""el=>{
                   const r=el.getBoundingClientRect();
