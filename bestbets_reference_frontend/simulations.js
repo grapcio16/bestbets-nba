@@ -231,8 +231,28 @@ function trustedResult(premium,game){
 }
 function trustedPlayers(premium,game){
   const data=premium?.players;
-  return premium?.entitled===true&&data&&data.date===state.day&&data.model_id===state.model&&String(data.game_id)===String(game?.id)
-    ?data:null;
+  if(!(premium?.entitled===true&&data&&data.date===state.day&&
+      data.model_id===state.model&&String(data.game_id)===String(game?.id)))return null;
+  if(game?.state!=="scheduled")return data;
+  const watch=data.injury_watch;
+  const until=Date.parse(String(watch?.valid_until||""));
+  const checked=Date.parse(String(watch?.checked_at||""));
+  const fresh=watch?.fresh===true&&Number.isFinite(until)&&until>Date.now()&&
+    Number.isFinite(checked)&&checked<=Date.now()&&until-checked<=90*60*1000;
+  if(!fresh)return {...data,players:[],minute_roster:[],
+    error:"Wstrzymano projekcje zawodników: brak aktualnego raportu kontuzji ESPN."};
+  // Defense in depth for pre-deployment cached V7.2/V7.4 data. Always
+  // cross-check the current shared injury entries independently of model.
+  const blocked=new Set(["Out","Doubtful","Questionable","Day-to-day",
+    "Sprzeczne","Inny / niepotwierdzony"]);
+  const key=v=>String(v||"").normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const rows=Array.isArray(watch.rows)?watch.rows:[];
+  const eligible=p=>(!blocked.has(p?.availability)&&!rows.some(r=>
+    r?.team===p?.team&&blocked.has(r.status)&&
+    ((String(r.espn_id||"")&&String(p.espn_id||"")===String(r.espn_id))||
+      (key(r.name)&&key(r.name)===key(p.name)))));
+  return {...data,players:Array.isArray(data.players)?data.players.filter(eligible):[]};
 }
 /* The slider follows the actual five-point histogram; each bin represents
    the probability of a five-point RANGE, not the chance of one exact score.
@@ -1076,7 +1096,7 @@ function playerAvatar(item,large=false){
 }
 function playerMetric(item,market){
  const a=safeProjection(item?.pts),b=safeProjection(item?.reb),c=safeProjection(item?.ast);
- if(item?.availability==="Out"&&state.model==="research_context_v75")return null;
+ if(["Out","Doubtful","Questionable","Day-to-day","Sprzeczne","Inny / niepotwierdzony"].includes(item?.availability))return null;
  return market==="PTS"?a:market==="REB"?b:market==="AST"?c:
    market==="PRA"&&a!==null&&b!==null&&c!==null?a+b+c:null;
 }
