@@ -74,8 +74,10 @@ def run():
             assert layout["first"]["top"]>=layout["list"]["top"]-1,(label,layout)
             assert layout["first"]["bottom"]<=layout["list"]["bottom"]+2,(label,layout)
             assert layout["second"]["bottom"]<=layout["list"]["bottom"]+2,(label,layout)
-            assert "QA Player 01" in page.locator("#hzm-player-rows").inner_text()
-            assert "QA Player 03" in page.locator("#hzm-player-rows").inner_text()
+            # Results sorts predicted PTS descending: highest five players
+            # are visible, not the oldest in the synthetic source list.
+            assert "QA Player 24" in page.locator("#hzm-player-rows").inner_text()
+            assert "QA Player 22" in page.locator("#hzm-player-rows").inner_text()
             row=page.locator("#hzm-player-rows .hzm-player-row").first
             assert row.locator(".hzm-player-stats span").count()==4
             assert all(x.strip() not in ("","—") for x in row.locator(".hzm-player-stats span").all_inner_texts())
