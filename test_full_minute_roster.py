@@ -59,6 +59,10 @@ class FullMinuteRosterTests(unittest.TestCase):
         ]
         dummy = types.ModuleType("simulation_view")
         dummy.matchup_players_cached = lambda *_a, **_kw: (table, {})
+        now = pd.Timestamp.now(tz="UTC")
+        report = {"fresh": True, "checked_at": now.isoformat(),
+                  "valid_until": (now + pd.Timedelta(minutes=90)).isoformat(),
+                  "rows": []}
         with patch.dict(sys.modules, {"simulation_view": dummy}), \
              patch.object(canvas, "_day_for_simulations",
                           return_value={"games": [fixture]}), \
@@ -71,7 +75,8 @@ class FullMinuteRosterTests(unittest.TestCase):
              patch.object(canvas, "_minute_roster_for_fixture",
                           return_value=(roster, ["DET", "ATL"], "")), \
              patch.object(canvas, "_selected_injury_watch",
-                          return_value={"fresh": False, "rows": []}):
+                          return_value=report):
+            canvas._game_players.clear()
             result = canvas._game_players(day, fixture["id"], "research_form_v74")
         self.assertEqual(len(result["players"]), 1)
         self.assertEqual(len(result["minute_roster"]), 3)
