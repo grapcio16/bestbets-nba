@@ -107,6 +107,33 @@ def test_browser():
                 assert page.locator("#hzm-chart-context").inner_text().startswith(team)
                 assert page.locator("#hzm-plot svg").count() == 1
             assert page.locator("#hzm-result-range").count() == 1
+            if width == 390:
+                measures = page.evaluate("""() => {
+                    const rect = q => {
+                        const r = document.querySelector(q).getBoundingClientRect();
+                        return {width:r.width, height:r.height, left:r.left, right:r.right};
+                    };
+                    return {
+                        root:rect('#stage'),
+                        card:rect('.hzm-chart-card'),
+                        plot:rect('#hzm-plot'),
+                        switcher:rect('#hzm-chart-tabs'),
+                        mobile:document.querySelector('#app-shell').classList.contains('hz-mobile-intelligence'),
+                        scrollHeight:document.documentElement.scrollHeight,
+                        viewport:document.documentElement.clientWidth,
+                        horizontalOverflow:document.documentElement.scrollWidth
+                    };
+                }""")
+                assert measures["mobile"], measures
+                assert 350 <= measures["root"]["width"] <= 391, measures
+                assert measures["card"]["width"] >= 325, measures
+                assert measures["plot"]["width"] >= 290, measures
+                assert measures["plot"]["height"] >= 200, measures
+                assert measures["switcher"]["width"] >= 310, measures
+                assert measures["horizontalOverflow"] <= measures["viewport"] + 2, measures
+                assert measures["scrollHeight"] > height, measures
+                page.evaluate("window.scrollTo(0,document.documentElement.scrollHeight)")
+                assert page.evaluate("window.scrollY") > 100
             page.screenshot(path=str(OUT / f"{label}-premium.png"), full_page=True)
             data["premium_simulation"] = {
                 "entitled": False, "game": None, "players": None
