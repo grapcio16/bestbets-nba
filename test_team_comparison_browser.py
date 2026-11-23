@@ -197,6 +197,9 @@ def main():
         page.evaluate("window.scrollTo(0,0); document.body.scrollTop=0")
         page.screenshot(path=str(OUT / "team-comparison-v2-mobile.png"), full_page=True)
         page.locator("#hzm-lab-tab-results").click()
+        assert page.locator("#app-shell").evaluate(
+            "el => el.classList.contains('hz-mobile-intelligence')")
+        page.locator('#hz-mobile-nav [data-page="home"]').click()
         assert not page.locator("#app-shell").evaluate(
             "el => el.classList.contains('hz-mobile-intelligence')")
         assert not errors, errors
