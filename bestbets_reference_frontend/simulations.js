@@ -2562,12 +2562,6 @@ function init(api){
     },
     onScenario:()=>chooseView("scenario")
   });
-  // Keep the verified ESPN photo optional: network and CDN errors should
-  // reveal the local initials fallback, not a broken-image icon.
-  $("simulations-pane")?.addEventListener("error",event=>{
-    if(event.target?.matches?.(".hzm-player-avatar img"))
-      event.target.remove();
-  },true);
   // Bind calendar navigation directly to persistent controls. Delegating
   // through the scrolling premium canvas can miss clicks near its top edge.
   // stopPropagation avoids a second date shift from older delegated routes.
