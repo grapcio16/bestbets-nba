@@ -26,7 +26,7 @@ jobs:
       - name: Check isolation and test syntax
         run: |
           node --check bestbets_reference_frontend/simulations.js
-          python -m py_compile test_results_distributions_premium_browser.py
+          python -m py_compile test_results_distributions_premium_browser.py test_results_conditional_roster_browser.py
           python - <<'PY'
           from pathlib import Path
           base=Path("bestbets_reference_frontend")
@@ -40,9 +40,13 @@ jobs:
           PY
       - name: Chromium desktop and iPhone results test
         run: python test_results_distributions_premium_browser.py
+      - name: Conditional injury notice never hides populated player rows
+        run: python test_results_conditional_roster_browser.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: hoopzaro-premium-results-v2-screenshots
-          path: test-results/results-premium-v2/*.png
+          path: |
+            test-results/results-premium-v2/*.png
+            test-results/results-conditional-rows/*.png
           if-no-files-found: ignore
