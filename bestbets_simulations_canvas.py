@@ -493,6 +493,7 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     if future and not report_is_current(injury_watch):
         return {"players": [], "minute_roster": [],
                 "injury_watch": injury_watch, "excluded_players": [],
+                "pregame": True,
                 "error": ("Wstrzymano prognozy zawodników: brak aktualnego "
                           "raportu kontuzji ESPN. Odśwież Injury Watch.")}
 
@@ -660,7 +661,7 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
         0 if item["team"] == str(match["away"]) else 1,
         str(item["name"]).casefold()))
     return {"players": players, "minute_roster": minute_roster,
-            "excluded_players": excluded_players,
+            "pregame": future, "excluded_players": excluded_players,
             "availability_policy": ("OUT / niepewny występ bez prognozy"
                                     if future else "Mecz historyczny"),
             "minute_roster_warning": roster_warning,
@@ -688,8 +689,16 @@ def simulation_for_entitled_user(day: str, game_id: str, players: bool = False,
         if (len(day) != 10 or not game_id.isdigit() or len(game_id) > 30
                 or model_id not in SIMULATION_MODELS):
             raise ValueError("Niepoprawny identyfikator spotkania")
-        return (_game_players(day, game_id, model_id) if players
-                else _game_simulation(day, game_id, model_id))
+        if players:
+            from simulation_player_availability_guard import report_is_current
+            pack = _game_players(day, game_id, model_id)
+            # A cached report can expire AFTER its original calculation.
+            # Never release yesterday's 'safe' forecast from the server.
+            if pack.get("pregame") and not report_is_current(pack.get("injury_watch")):
+                return {**pack, "players": [], "minute_roster": [],
+                        "error": "Wstrzymano prognozy: raport ESPN utracił ważność."}
+            return pack
+        return _game_simulation(day, game_id, model_id)
     except (ValueError, TypeError, KeyError, RuntimeError) as exc:
         import logging
         logging.getLogger(__name__).warning("Premium simulation unavailable: %s", type(exc).__name__)
@@ -806,17 +815,21 @@ def player_minutes_scenario_for_entitled_user(
         tipoff = pd.to_datetime(fixture.get("start"), utc=True, errors="coerce")
         if pd.isna(tipoff) or tipoff <= now:
             return {"error": "Spotkanie już się rozpoczęło."}
+        from simulation_player_availability_guard import (
+            report_is_current, should_suppress_forecast)
         player_pack = _game_players(day, game_id, model_id)
         if not isinstance(player_pack, dict) or player_pack.get("error"):
             return {"error": "Zweryfikowane projekcje zawodników są niedostępne."}
+        if not report_is_current(player_pack.get("injury_watch")):
+            return {"error": "Wstrzymano analizę minut: raport kontuzji ESPN jest nieaktualny."}
         choices = [p for p in player_pack.get("players", [])
                    if p.get("name") == player_name.strip() and p.get("team") == team]
         if len(choices) != 1:
             return {"error": "Nie udało się jednoznacznie dopasować zawodnika i drużyny."}
         player = choices[0]
         status = str(player.get("availability") or "Niezweryfikowany")
-        if status == "Out":
-            return {"error": "Status OUT w raporcie ESPN — nie można wyświetlić scenariusza minut."}
+        if should_suppress_forecast(status):
+            return {"error": "Występ zawodnika niepotwierdzony lub OUT — analiza minut zablokowana."}
         minutes = _clean_float(player.get("minutes"))
         sample = player.get("minutes_sample")
         if (type(sample) is not int or sample < 3 or
