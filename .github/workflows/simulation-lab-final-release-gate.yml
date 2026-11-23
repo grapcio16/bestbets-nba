@@ -27,7 +27,7 @@ jobs:
         run: |
           node --check bestbets_reference_frontend/simulations.js
           node --check bestbets_reference_frontend/player_simulations_v3.js
-          python -m py_compile test_simulation_lab_release_browser.py test_match_intelligence_browser.py test_team_comparison_browser.py test_scenario_builder_browser.py test_player_simulations_neon_browser.py test_results_distributions_premium_browser.py test_premium_backtest_v2_browser.py
+          python -m py_compile test_simulation_lab_release_browser.py test_match_intelligence_browser.py test_team_comparison_browser.py test_scenario_builder_browser.py test_player_simulations_neon_browser.py test_results_distributions_premium_browser.py test_results_conditional_roster_browser.py test_premium_backtest_v2_browser.py
           python - <<'PY'
           from pathlib import Path
           import re
@@ -83,6 +83,9 @@ jobs:
       - name: Module regression — Results V2
         if: ${{ !cancelled() }}
         run: python test_results_distributions_premium_browser.py
+      - name: Conditional roster browser regression — visible player rows
+        if: ${{ !cancelled() }}
+        run: python test_results_conditional_roster_browser.py
       - name: Module regression — Model & Backtest V2
         if: ${{ !cancelled() }}
         run: python test_premium_backtest_v2_browser.py
@@ -97,5 +100,6 @@ jobs:
             test-results/hoopzaro-scenario-v2/*.png
             test-results/hoopzaro-player-v4/*.png
             test-results/results-premium-v2/*.png
+            test-results/results-conditional-rows/*.png
             test-results/backtest-premium-v2/*.png
           if-no-files-found: ignore

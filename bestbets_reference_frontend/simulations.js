@@ -1352,9 +1352,13 @@ function showPlayers(premium,players,game){
    playerInspector(null,players,game,withMinutes);showPlayerAnalytics(null);return;
  }
  const lastScroll=rows.scrollTop;
+ // A conditional report is NOT an empty-state. The old
+ // .hzm-no-players class has min-height:170px, more than the Results
+ // roster's entire 161px viewport: it hid every player row below the clip.
  const warning=players.availability_conditional===true&&game?.state==="scheduled"?
-   '<div class="hzm-no-players" role="status" style="border-color:#ac7b3d;color:#e9c993;padding:8px 12px;">'+
-   'Projekcje warunkowe: nie potwierdzono aktualnych składów. Statystyki zakładają występ zawodnika.</div>':"";
+   '<div class="hzm-conditional-warning" role="status" title="Brak potwierdzonych statusów przedmeczowych. Prognozy zakładają występ zawodnika.">'+
+   '<span aria-hidden="true">⚠</span> Prognozy warunkowe · jeśli zawodnik wystąpi'+
+   '</div>':"";
  rows.innerHTML=warning+visible.map(({item,index})=>{
    const initials=playerInitials(item);
    const status=String(item.availability||'Niezweryfikowany');
