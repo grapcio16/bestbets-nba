@@ -252,7 +252,19 @@ function trustedPlayers(premium,game){
     r?.team===p?.team&&blocked.has(r.status)&&
     ((String(r.espn_id||"")&&String(p.espn_id||"")===String(r.espn_id))||
       (key(r.name)&&key(r.name)===key(p.name)))));
-  return {...data,players:Array.isArray(data.players)?data.players.filter(eligible):[]};
+  const safe=Array.isArray(data.players)?data.players.filter(eligible):[];
+  const roster=Array.isArray(data.minute_roster)?data.minute_roster.map(item=>{
+    if(!item)return item;
+    const index=safe.findIndex(p=>p.team===item.team&&
+      ((String(p.espn_id||"")&&String(item.espn_id||"")===String(p.espn_id))||
+       key(p.name)===key(item.name)));
+    const risk=rows.find(r=>r?.team===item.team&&blocked.has(r.status)&&
+      ((String(r.espn_id||"")&&String(item.espn_id||"")===String(r.espn_id))||
+       key(r.name)===key(item.name)));
+    return {...item,projection_index:index<0?null:index,
+      availability:risk?.status||item.availability};
+  }):[];
+  return {...data,players:safe,minute_roster:roster};
 }
 /* The slider follows the actual five-point histogram; each bin represents
    the probability of a five-point RANGE, not the chance of one exact score.
@@ -1675,7 +1687,8 @@ function minuteNameKey(name){
    .toLowerCase().replace(/[^a-z0-9]/g,"");
 }
 function minuteCanProject(p,game){
- return !!p&&p.availability!=="Out"&&[game?.away,game?.home].includes(p.team)&&
+ return !!p&&!["Out","Doubtful","Questionable","Day-to-day","Sprzeczne",
+   "Inny / niepotwierdzony"].includes(p.availability)&&[game?.away,game?.home].includes(p.team)&&
   Number.isInteger(Number(p.minutes_sample))&&Number(p.minutes_sample)>=3&&
   safeProjection(p.minutes)!==null&&Number(p.minutes)>=5&&Number(p.minutes)<=44&&
   ["pts","reb","ast"].every(k=>safeProjection(p[k])!==null);
