@@ -1957,10 +1957,14 @@ function showAvailability(game,players,sim,premium){
    return;
  }
  const checked=Date.parse(String(watch?.checked_at||""));
- freshness.textContent="ESPN · POBRANO";
- message.textContent="Wpisy ESPN pobrane"+
+ const source=String(watch.source||"ESPN").slice(0,60);
+ const official=source.includes("NBA");
+ freshness.textContent=source.toUpperCase()+" · POBRANO";
+ message.textContent="Wpisy "+source+" · odczyt"+
    (Number.isFinite(checked)?" "+new Date(checked).toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"}):"")+
-   ". Nie są oficjalnym potwierdzeniem składu. Statusy są niezależne od wybranego modelu symulacyjnego.";
+   ". Status 'Available' nie gwarantuje minut ani miejsca w piątce. Brak wpisu nie potwierdza występu. "+
+   "Statusy są niezależne od modelu symulacyjnego."+
+   (watch.partial===true?" Raport częściowy — pozostałe dane są warunkowe.":"");
  const rows=Array.isArray(watch.rows)?watch.rows:[];
  const statusSet=new Set(["Out","Questionable","Doubtful","Day-to-day","Probable","Sprzeczne","Inny / niepotwierdzony"]);
  const isRisk=new Set(["Questionable","Doubtful","Day-to-day","Sprzeczne","Inny / niepotwierdzony"]);
