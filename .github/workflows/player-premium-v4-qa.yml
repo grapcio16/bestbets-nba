@@ -37,8 +37,9 @@ jobs:
           assert 'id="hzv3-model-context"' in html
           assert '["intelligence","comparison","scenario","players"].includes' in html
           assert '#simulations-pane[data-hzm-view="players"]' in css
-          assert 'document.createTextNode(label' in js
+          assert "text.className='hzv4-chart-title-text'" in js
           assert 'a.espncdn.com/i/headshots/' not in js
+          assert 'a.espncdn.com/i/headshots/' not in (base/'simulations.js').read_text(encoding='utf-8')
           assert "record?.scenario_distribution" in (base/'simulations.js').read_text(encoding='utf-8')
           print("Model and historical analysis remain separate. No external player photos.")
           PY
