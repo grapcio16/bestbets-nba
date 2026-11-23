@@ -474,6 +474,8 @@ def _selected_injury_watch(day: str, game_id: str) -> dict:
 def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     """Lazily fetch only the selected matchup's two actual ESPN player histories."""
     from simulation_view import matchup_players_cached
+    from simulation_player_availability_guard import (
+        injury_status, report_is_current, suppress_player_forecasts)
 
     event = _day_for_simulations(day)
     match = next((g for g in event.get("games", []) if str(g.get("id")) == game_id), None)
@@ -483,6 +485,17 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     if pd.isna(tipoff) or (match.get("state") == "scheduled" and
                             tipoff <= pd.Timestamp.now(tz="UTC")):
         return {"error": "Nieaktualny termin spotkania.", "players": []}
+    # Verify the current report BEFORE computing new player numbers.
+    future = match.get("state") == "scheduled"
+    injury_watch = (_selected_injury_watch(day, game_id)
+                    if future else {"fresh": False, "rows": [],
+                                    "reason": "Mecz zakończony."})
+    if future and not report_is_current(injury_watch):
+        return {"players": [], "minute_roster": [],
+                "injury_watch": injury_watch, "excluded_players": [],
+                "error": ("Wstrzymano prognozy zawodników: brak aktualnego "
+                          "raportu kontuzji ESPN. Odśwież Injury Watch.")}
+
     season = _season_at(tipoff)
     historical, _ = _history_for_simulations(season)
     game = {"game_id": game_id, "home": str(match["home"]),
@@ -515,11 +528,7 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
         historical, historical_logs, tipoff,
         (str(match["away"]), str(match["home"]))
     )
-    # Injury Watch remains useful even when individual player projections
-    # fail; only authenticated, selected-match ESPN data leave the server.
-    injury_watch = (_selected_injury_watch(day, game_id)
-                    if match.get("state") == "scheduled"
-                    else {"fresh": False, "rows": [], "reason": "Mecz zakończony."})
+    # Injury Watch was validated before running the player projector.
     roster, verified_roster_teams, roster_warning = _minute_roster_for_fixture(
         str(match["away"]), str(match["home"]))
     if table is None or table.empty:
@@ -536,6 +545,9 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     from core import norm_name
     injury_lookup = {(item["team"], norm_name(item["name"])): item["status"]
                      for item in injury_watch.get("rows", [])}
+    roster_by_key = {(p["team"], norm_name(p["name"])): p for p in roster}
+    roster_by_id = {(p["team"], p.get("espn_id")): p for p in roster
+                    if p.get("espn_id")}
     players = []
     for row in table.to_dict("records"):
         name = str(row.get("Zawodnik") or "").strip()
@@ -547,6 +559,11 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
                 or points is None):
             continue
         observed = evidence_by_player.get((team, norm_name(name)), {})
+        roster_entry = (roster_by_id.get((team, observed.get("espn_id")))
+                        or roster_by_key.get((team, norm_name(name))))
+        if future and team in verified_roster_teams and roster_entry is None:
+            # Historical boxscores do not prove the athlete still plays here.
+            continue
         player = {"name": name[:70], "team": team[:4],
                   "pts": points, "reb": _clean_float(row.get("REB")),
                   "ast": _clean_float(row.get("AST")),
