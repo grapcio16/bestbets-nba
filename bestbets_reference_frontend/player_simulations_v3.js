@@ -70,10 +70,8 @@ function portrait(player,large){
 function fullList(){
  const {players,game,state,premium}=active;
  if(premium?.entitled!==true||!game||!Array.isArray(players?.players))return [];
- if(game.state==="scheduled"){
-   const watch=players.injury_watch,until=Date.parse(String(watch?.valid_until||""));
-   if(watch?.fresh!==true||!Number.isFinite(until)||until<=Date.now())return [];
- }
+ // A missing injury feed means conditional projections, NOT an empty paid
+ // feature. Exclude only reported OUT and known high-risk athlete statuses.
  const teams=[String(game.away||"").toUpperCase(),String(game.home||"").toUpperCase()];
  const excluded=new Set(["Out","Doubtful","Questionable","Day-to-day",
                           "Sprzeczne","Inny / niepotwierdzony"]);
@@ -98,14 +96,21 @@ function showList(entries){
  if(!entries.length){
    roster.innerHTML='<div class="hzv3-muted">Brak zawodników pasujących do filtra lub zweryfikowanej próbki.</div>';return;
  }
- roster.innerHTML=entries.map(({player,index})=>{
+ const conditional=active.game?.state==="scheduled"&&
+   active.players?.availability_conditional===true;
+ const banner=conditional?
+   '<div class="hzv3-availability-banner" role="status">'+
+   '⚠ PROGNOZY WARUNKOWE · Statusy występów niepotwierdzone. '+
+   'Wartości zakładają, że zawodnik wystąpi. Weryfikuj skład przed meczem.</div>':"";
+ roster.innerHTML=banner+entries.map(({player,index})=>{
   const team=teamOf(player);
   const vals=["PTS","REB","AST","PRA"].map(m=>
    '<span class="hzv3-player-stat" title="'+m+': '+esc(fmt(metric(player,m)))+'">'+fmt(metric(player,m))+'</span>').join("");
   const selected=index===state.playerIndex;
   return '<button class="hzv3-player" type="button" data-hzv3-pick="'+index+'" aria-pressed="'+selected+
     '" aria-label="'+esc(player.name)+' · '+esc(team)+'" title="'+esc(player.name)+' · '+esc(team)+'">'+portrait(player,false)+
-    '<span class="hzv3-player-name"><strong>'+esc(rosterName(player.name))+'</strong><small>'+esc(team)+'</small></span>'+
+    '<span class="hzv3-player-name"><strong>'+esc(rosterName(player.name))+'</strong><small>'+esc(team)+
+      (conditional||player.availability==="Niezweryfikowany"?' · JEŚLI ZAGRA':'')+'</small></span>'+
     vals+'</button>';
  }).join("");
  roster.scrollTop=scroll;
@@ -114,7 +119,9 @@ function status(player){
  const v=String(player?.availability||"").trim();
  const model=active.model;
  if(v==="Historyczny")return {text:"Mecz zakończony · historyczny wynik",kind:"neutral",icon:"ⓘ"};
- if(v==="Niezweryfikowany")return {text:"ESPN: brak wpisu — nie oznacza potwierdzonego występu",kind:"neutral",icon:"!"};
+ if(active.players?.availability_conditional===true&&active.game?.state==="scheduled")
+  return {text:"PROGNOZA WARUNKOWA · zakładamy występ; nie mamy aktualnego potwierdzenia składu",kind:"neutral",icon:"!"};
+ if(v==="Niezweryfikowany")return {text:"Prognoza warunkowa · brak potwierdzonego statusu występu",kind:"neutral",icon:"!"};
  if(v==="Out")return {text:"ESPN: OUT — prognoza nieaktywna",kind:"negative",icon:"×"};
  if(v==="Probable")return {text:"ESPN: prawdopodobny występ (Probable)",kind:"positive",icon:"✓"};
  if(["Questionable","Doubtful","Day-to-day","Sprzeczne"].includes(v))
@@ -349,7 +356,9 @@ function refresh(){
  const all=Array.isArray(players?.players)?players.players:[];
  const entries=fullList();
  const held=Array.isArray(players?.excluded_players)?players.excluded_players.length:0;
- $("hzv3-count").textContent=players?entries.length+" projekcji"+(held?" · "+held+" wstrzymanych":""):"Ładowanie zawodników…";
+ $("hzv3-count").textContent=players?entries.length+" projekcji"+
+   (players.availability_conditional===true?" · ⚠ warunkowe":"")+
+   (held?" · "+held+" wstrzymanych":""):"Ładowanie zawodników…";
  const chosen=selected(entries);
  showList(entries);drawInspector(chosen);drawCharts(chosen);drawSummary();
 }
