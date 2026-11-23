@@ -239,8 +239,10 @@ function trustedPlayers(premium,game){
   const checked=Date.parse(String(watch?.checked_at||""));
   const fresh=watch?.fresh===true&&Number.isFinite(until)&&until>Date.now()&&
     Number.isFinite(checked)&&checked<=Date.now()&&until-checked<=90*60*1000;
-  if(!fresh)return {...data,players:[],minute_roster:[],
-    error:"Wstrzymano projekcje zawodników: brak aktualnego raportu kontuzji ESPN."};
+  // Missing ESPN availability cannot disable paid historical-based forecasts.
+  // Every remaining result is explicitly CONDITIONAL on the player dressing.
+  // Any prior explicit OUT/risk status remains excluded.
+  const conditional=!fresh||data.availability_conditional===true;
   // Defense in depth for pre-deployment cached V7.2/V7.4 data. Always
   // cross-check the current shared injury entries independently of model.
   const blocked=new Set(["Out","Doubtful","Questionable","Day-to-day",
@@ -264,7 +266,12 @@ function trustedPlayers(premium,game){
     return {...item,projection_index:index<0?null:index,
       availability:risk?.status||item.availability};
   }):[];
-  return {...data,players:safe,minute_roster:roster};
+  return {...data,players:safe,minute_roster:roster,
+    availability_conditional:conditional,
+    injury_report_fresh:fresh,
+    availability_policy:conditional?
+      "Prognozy warunkowe — zakładamy, że zawodnik wystąpi; status niepotwierdzony.":
+      data.availability_policy};
 }
 /* The slider follows the actual five-point histogram; each bin represents
    the probability of a five-point RANGE, not the chance of one exact score.
@@ -1345,12 +1352,18 @@ function showPlayers(premium,players,game){
    playerInspector(null,players,game,withMinutes);showPlayerAnalytics(null);return;
  }
  const lastScroll=rows.scrollTop;
- rows.innerHTML=visible.map(({item,index})=>{
+ const warning=players.availability_conditional===true&&game?.state==="scheduled"?
+   '<div class="hzm-no-players" role="status" style="border-color:#ac7b3d;color:#e9c993;padding:8px 12px;">'+
+   'Projekcje warunkowe: nie potwierdzono aktualnych składów. Statystyki zakładają występ zawodnika.</div>':"";
+ rows.innerHTML=warning+visible.map(({item,index})=>{
    const initials=playerInitials(item);
-   const status=withMinutes?String(item.availability||''):'';
+   const status=String(item.availability||'Niezweryfikowany');
    const atRisk=["Questionable","Doubtful","Day-to-day","Sprzeczne"].includes(status);
+   const conditional=players.availability_conditional===true||
+     status==="Niezweryfikowany";
    const statusHtml=status==="Out"?'<small class="hzm-injured">'+esc(item.team)+' · OUT (ESPN)</small>':
      atRisk?'<small class="hzm-uncertain">'+esc(item.team)+' · '+esc(status)+' (ESPN)</small>':
+     conditional?'<small class="hzm-uncertain">'+esc(item.team)+' · JEŚLI ZAGRA</small>':
      '<small class="'+(item.team===players.home?'home':'')+'">'+esc(item.team)+'</small>';
    const avatar=focused?playerAvatar(item):'<span class="hzm-player-initials">'+esc(initials)+'</span>';
    if(focused){
@@ -1944,10 +1957,14 @@ function showAvailability(game,players,sim,premium){
    return;
  }
  const checked=Date.parse(String(watch?.checked_at||""));
- freshness.textContent="ESPN · POBRANO";
- message.textContent="Wpisy ESPN pobrane"+
+ const source=String(watch.source||"ESPN").slice(0,60);
+ const official=source.includes("NBA");
+ freshness.textContent=source.toUpperCase()+" · POBRANO";
+ message.textContent="Wpisy "+source+" · odczyt"+
    (Number.isFinite(checked)?" "+new Date(checked).toLocaleTimeString("pl-PL",{hour:"2-digit",minute:"2-digit"}):"")+
-   ". Nie są oficjalnym potwierdzeniem składu. Statusy są niezależne od wybranego modelu symulacyjnego.";
+   ". Status 'Available' nie gwarantuje minut ani miejsca w piątce. Brak wpisu nie potwierdza występu. "+
+   "Statusy są niezależne od modelu symulacyjnego."+
+   (watch.partial===true?" Raport częściowy — pozostałe dane są warunkowe.":"");
  const rows=Array.isArray(watch.rows)?watch.rows:[];
  const statusSet=new Set(["Out","Questionable","Doubtful","Day-to-day","Probable","Sprzeczne","Inny / niepotwierdzony"]);
  const isRisk=new Set(["Questionable","Doubtful","Day-to-day","Sprzeczne","Inny / niepotwierdzony"]);

@@ -923,6 +923,11 @@ def main() -> None:
                         import logging
                         logging.getLogger(__name__).warning(
                             "ESPN manual refresh failed: %s", type(exc).__name__)
+                    from bestbets_simulations_canvas import (
+                        _fresh_selected_team_injuries,
+                        _official_selected_injury_feed)
+                    _fresh_selected_team_injuries.clear()
+                    _official_selected_injury_feed.clear()
                     _selected_injury_watch.clear(day, game_id)
                     _game_players.clear(day, game_id, model_id)
                     # Team rosters may change during the season. Re-check the

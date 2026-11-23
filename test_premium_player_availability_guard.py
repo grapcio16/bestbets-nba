@@ -75,7 +75,7 @@ class AvailabilityGuardTest(unittest.TestCase):
                         "status": "Out"})
         self.assertEqual(injury_status("Risk Sample", "MIA", "", report), "Out")
 
-    def test_expired_report_blocks_all_future_player_forecasts(self):
+    def test_expired_report_keeps_only_conditional_non_out_forecasts(self):
         old = watch({"name": "Test Guard Alpha", "team": "PHI",
                      "status": "Probable"})
         self.assertFalse(report_is_current(old, now=NOW + pd.Timedelta(minutes=85)))
@@ -83,8 +83,9 @@ class AvailabilityGuardTest(unittest.TestCase):
         players = [{"name": "Test Guard Alpha", "team": "PHI",
                     "pts": 23, "availability": "Probable"}]
         safe, excluded = suppress_player_forecasts(players, old, future=True)
-        self.assertEqual(safe, [])
-        self.assertEqual(len(excluded), 1)
+        self.assertEqual(len(safe), 1)
+        self.assertEqual(safe[0]["name"], "Test Guard Alpha")
+        self.assertEqual(excluded, [])
 
     def test_missing_timestamp_or_missing_report_fails_closed(self):
         report = watch()

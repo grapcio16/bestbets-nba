@@ -50,6 +50,8 @@ def status_class(value):
         return "Questionable"
     if re.search(r"\bprobable\b",s):
         return "Probable"
+    if re.search(r"\bavailable\b",s):
+        return "Available"
     if re.search(r"day[ -]?to[ -]?day|\bdtd\b",s):
         return "Day-to-day"
     return "Inny / niepotwierdzony"

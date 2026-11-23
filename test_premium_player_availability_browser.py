@@ -85,19 +85,23 @@ def main():
                 assert "Test Out Alpha" not in page.locator("#hzm-player-rows").inner_text()
                 page.locator("#hzm-lab-tab-players").click()
 
-            # An expired injury report invalidates even the formerly safe
-            # player. No recommendations/plots should be left on screen.
+            # An expired report MUST NOT make a Premium page go blank.
+            # Explicit OUT and risky statuses remain blocked; eligible
+            # projections become conditional on the player dressing.
             watch["fresh"] = False
             push()
-            assert page.locator("#hzv3-roster .hzv3-player").count() == 0
-            assert "Wstrzymano" in page.locator("#hzv3-roster").inner_text()
-            assert page.locator("#hzv3-hist svg").count() == 0
-            assert page.locator("#hzv3-trend svg").count() == 0
+            assert page.locator("#hzv3-roster .hzv3-player").count() == 1
+            assert page.locator("#hzv3 .hzv3-availability-banner").count() == 1
+            assert "WARUNKOWE" in page.locator("#hzv3-roster").inner_text()
+            assert page.locator('#hzv3-roster .hzv3-player[aria-label^="Test Out Alpha ·"]').count() == 0
+            assert page.locator('#hzv3-roster .hzv3-player[aria-label^="Test Risk Beta ·"]').count() == 0
 
-            # A new verified injury report can restore *eligible* records.
+            # A new successful report removes the general fallback notice,
+            # but does not revive a player with an explicit OUT entry.
             watch["fresh"] = True
             push()
             assert page.locator("#hzv3-roster .hzv3-player").count() == 1
+            assert page.locator("#hzv3 .hzv3-availability-banner").count() == 0
             page.screenshot(path=str(OUT / f"injury-safe-{width}.png"),full_page=True)
             assert not errors, errors
             page.close()
