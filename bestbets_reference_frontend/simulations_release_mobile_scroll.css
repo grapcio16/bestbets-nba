@@ -14,3 +14,15 @@
     overflow-y:visible!important;
   }
 }
+
+
+/* The active V7.2/V7.4/V7.5 picker must paint ABOVE the adjacent date control.
+   Only raise stacking order while the menu is open: the closed desktop mock
+   and touch target positions remain unchanged. */
+#simulations-pane .hzm-model-choice:has(#hzm-model-options:not([hidden])) {
+  z-index:1100!important;
+}
+#simulations-pane #hzm-model-options:not([hidden]) {
+  z-index:1101!important;
+  pointer-events:auto!important;
+}
