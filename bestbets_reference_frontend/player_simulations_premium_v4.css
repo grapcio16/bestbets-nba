@@ -334,3 +334,40 @@
     transition:none!important;animation:none!important
   }
 }
+
+/* Final detail pass: chart help is a real dialog trigger, not a decorative
+   character. Long translated titles wrap without pushing help off-screen. */
+#hzv3 #hzv3-hist-title,
+#hzv3 #hzv3-trend-title{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:6px;min-width:0
+}
+#hzv3 .hzv4-chart-title-text{
+  min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;line-height:1.33
+}
+#hzv3 #hzv3-hist-title button.hzm-help-trigger,
+#hzv3 #hzv3-trend-title button.hzm-help-trigger{
+  flex:0 0 18px;width:18px;height:18px;margin:0;
+  display:grid;place-items:center;align-self:flex-start;
+  border-radius:50%;border:1px solid rgba(137,204,246,.47);
+  color:#c8e7ff;background:rgba(60,92,145,.23);
+  font-size:12px;line-height:1;cursor:help
+}
+#hzv3 #hzv3-hist-title button.hzm-help-trigger:hover,
+#hzv3 #hzv3-trend-title button.hzm-help-trigger:hover{
+  color:#fbfaff;border-color:#43e9fb;box-shadow:0 0 9px rgba(32,225,253,.25)
+}
+@media(min-width:768px){
+  #simulations-pane[data-hzm-view="players"] #hzv3 .hzv3-athlete-name{
+    font-size:16px;line-height:1.12;letter-spacing:-.25px
+  }
+}
+@media(max-width:767px){
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv4-chart-title-text{
+    white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] #hzv3-trend-title{
+    max-width:145px
+  }
+}
