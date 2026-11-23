@@ -597,8 +597,9 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
             player["minutes_sample"] = len(minutes_observed)
             player["minutes_source"] = "Brak wystarczającej historii minut"
         player["availability"] = (
-            injury_lookup.get((team, norm_name(name)), "Niezweryfikowany")
-            if injury_watch.get("fresh") else "Niezweryfikowany")
+            injury_status(name, team, observed.get("espn_id", ""), injury_watch,
+                          (roster_entry or {}).get("roster_status", ""))
+            if future else "Historyczny")
         if model_id == "research_context_v75":
             pctx = (availability.get("players") or {}).get((team, norm_name(name)), {})
             # Preserve V7.5's own estimated minutes when verified; otherwise
@@ -610,14 +611,18 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
                 player["minutes"] = verified_minutes
                 player["minutes_sample"] = verified_sample
                 player["minutes_source"] = "V7.5 · szacunek na podstawie historii ESPN"
-            player["availability"] = pctx.get("status", player["availability"])
-            # A fresh OUT designation removes the player's projected minutes
-            # and production; other players are NOT blindly credited with them.
-            if pctx.get("status") == "Out":
-                player.update({"minutes": 0.0, "pts": None, "reb": None, "ast": None})
+            # Never overwrite a freshly checked status with a cached V7.5
+            # claim of health. Previous unresolved OUT may only block play.
+            if (player["availability"] == "Niezweryfikowany"
+                    and pctx.get("status") in ("Out", "Questionable",
+                                               "Doubtful", "Day-to-day",
+                                               "Sprzeczne")):
+                player["availability"] = pctx["status"]
         players.append(player)
-    # OUT players have no projected production; keep them visible after
-    # available scorers rather than treating missing values as zero points.
+    # OUT and uncertain players are absent from ALL numerical projection
+    # markets (including PRA and the roster-linked minute scenario).
+    players, excluded_players = suppress_player_forecasts(
+        players, injury_watch, future=future)
     players.sort(key=lambda item: (-(item["pts"] or 0), item["name"]))
     players = players[:40]
     # Link team-roster identities to existing, independently verified player
@@ -655,20 +660,21 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
         0 if item["team"] == str(match["away"]) else 1,
         str(item["name"]).casefold()))
     return {"players": players, "minute_roster": minute_roster,
+            "excluded_players": excluded_players,
+            "availability_policy": ("OUT / niepewny występ bez prognozy"
+                                    if future else "Mecz historyczny"),
             "minute_roster_warning": roster_warning,
             "home": str(match["home"]),
             "model_id": model_id, "error": "",
             "minutes_warning": (availability.get("warning", "")
                                 if model_id == "research_context_v75" else ""),
-            # Injury Watch consumes the exact same server-derived V7.5
-            # evidence as the team model and the selected player view.
-            "injury_report_fresh": bool(availability.get("report_fresh"))
-                if model_id == "research_context_v75" else False,
+            # Current injury availability applies to every player market
+            # regardless of team probability model V7.2/V7.4/V7.5.
+            "injury_report_fresh": report_is_current(injury_watch) if future else False,
             "injury_report_valid_until": (
-                availability.get("report_valid_until")
-                if model_id == "research_context_v75" else None),
-            # Informational ESPN injury entries, independently available to
-            # all three models. Status is NEVER applied to V7.2/V7.4 forecasts.
+                injury_watch.get("valid_until") if future else None),
+            # Informational ESPN statuses; unfit/uncertain athletes have no
+            # numerical projections in any of the three models.
             "injury_watch": injury_watch}
 
 
