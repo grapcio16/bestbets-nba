@@ -16,7 +16,7 @@ let active=null;
 
 function metric(player,key){
  if(!player)return null;
- if(active?.model==="research_context_v75"&&player.availability==="Out")return null;
+ if(["Out","Doubtful","Questionable","Day-to-day","Sprzeczne","Inny / niepotwierdzony"].includes(player.availability))return null;
  const clean=v=>num(v)!==null&&num(v)>=0?num(v):null;
  const p=clean(player.pts),r=clean(player.reb),a=clean(player.ast);
  return key==="PTS"?p:key==="REB"?r:key==="AST"?a:
@@ -70,9 +70,16 @@ function portrait(player,large){
 function fullList(){
  const {players,game,state,premium}=active;
  if(premium?.entitled!==true||!game||!Array.isArray(players?.players))return [];
+ if(game.state==="scheduled"){
+   const watch=players.injury_watch,until=Date.parse(String(watch?.valid_until||""));
+   if(watch?.fresh!==true||!Number.isFinite(until)||until<=Date.now())return [];
+ }
  const teams=[String(game.away||"").toUpperCase(),String(game.home||"").toUpperCase()];
+ const excluded=new Set(["Out","Doubtful","Questionable","Day-to-day",
+                          "Sprzeczne","Inny / niepotwierdzony"]);
  const entries=players.players.map((player,index)=>({player,index})).filter(
-   ({player})=>player&&teams.includes(teamOf(player))&&String(player.name||"").trim());
+   ({player})=>player&&teams.includes(teamOf(player))&&
+       !excluded.has(player.availability)&&String(player.name||"").trim());
  const team=state.playerTeam==="away"?teams[0]:state.playerTeam==="home"?teams[1]:"";
  const query=String(state.playerQuery||"").trim().toLocaleLowerCase("pl");
  return entries.filter(({player})=>(!team||teamOf(player)===team)&&
@@ -106,7 +113,8 @@ function showList(entries){
 function status(player){
  const v=String(player?.availability||"").trim();
  const model=active.model;
- if(model!=="research_context_v75")return {text:"Dostępność: nieoceniana w "+version(model),kind:"neutral",icon:"ⓘ"};
+ if(v==="Historyczny")return {text:"Mecz zakończony · historyczny wynik",kind:"neutral",icon:"ⓘ"};
+ if(v==="Niezweryfikowany")return {text:"ESPN: brak wpisu — nie oznacza potwierdzonego występu",kind:"neutral",icon:"!"};
  if(v==="Out")return {text:"ESPN: OUT — prognoza nieaktywna",kind:"negative",icon:"×"};
  if(v==="Probable")return {text:"ESPN: prawdopodobny występ (Probable)",kind:"positive",icon:"✓"};
  if(["Questionable","Doubtful","Day-to-day","Sprzeczne"].includes(v))
@@ -332,9 +340,16 @@ function refresh(){
   $("hzv3-inspector").innerHTML=empty("Dane zawodników są dostępne wyłącznie dla Premium.");
   drawCharts(null);drawSummary();return;
  }
+ if(players?.error){
+  $("hzv3-count").textContent="PROJEKCJE WSTRZYMANE";
+  $("hzv3-roster").innerHTML=empty(String(players.error).slice(0,250));
+  $("hzv3-inspector").innerHTML=empty("Brak potwierdzonej dostępności zawodników. Użyj odświeżania ESPN.");
+  drawCharts(null);drawSummary();return;
+ }
  const all=Array.isArray(players?.players)?players.players:[];
  const entries=fullList();
- $("hzv3-count").textContent=players?entries.length+" z "+all.length+" projekcji":"Ładowanie zawodników…";
+ const held=Array.isArray(players?.excluded_players)?players.excluded_players.length:0;
+ $("hzv3-count").textContent=players?entries.length+" projekcji"+(held?" · "+held+" wstrzymanych":""):"Ładowanie zawodników…";
  const chosen=selected(entries);
  showList(entries);drawInspector(chosen);drawCharts(chosen);drawSummary();
 }
