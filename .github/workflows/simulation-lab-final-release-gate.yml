@@ -56,25 +56,35 @@ jobs:
           assert 'Brak wiarygodnego archiwum kursów — wynik niedostępny.' in html
           assert 'a.espncdn.com/i/headshots/' not in js
           assert 'a.espncdn.com/i/headshots/' not in (base/'player_simulations_v3.js').read_text(encoding='utf-8')
+          assert html.count('href="simulations_release_mobile_scroll.css"') == 1
+          assert 'overflow-x:clip!important' in (base/'simulations_release_mobile_scroll.css').read_text(encoding='utf-8')
           assert 'id="hzm-compare-away-pace"' in html
           assert 'id="hzm-backtest-run"' in html
           print('Release preflight OK: six Premium tabs, gated Flow, source rights and honest backtest.')
           PY
       - name: Module regression — verified ESPN history and Monte Carlo semantics
+        if: ${{ !cancelled() }}
         run: python -m unittest test_player_simulations_visual_data.py
       - name: Module regression — Match Intelligence V2
+        if: ${{ !cancelled() }}
         run: python test_match_intelligence_browser.py
       - name: Module regression — Team Comparison V2
+        if: ${{ !cancelled() }}
         run: python test_team_comparison_browser.py
       - name: Module regression — Scenario Builder V2
+        if: ${{ !cancelled() }}
         run: python test_scenario_builder_browser.py
       - name: Module regression — Player Simulations V4
+        if: ${{ !cancelled() }}
         run: python test_player_simulations_neon_browser.py
       - name: Module regression — Results V2
+        if: ${{ !cancelled() }}
         run: python test_results_distributions_premium_browser.py
       - name: Module regression — Model & Backtest V2
+        if: ${{ !cancelled() }}
         run: python test_premium_backtest_v2_browser.py
       - name: Final integrated acceptance — six views and four viewports
+        if: ${{ !cancelled() }}
         run: python test_simulation_lab_release_browser.py
       - uses: actions/upload-artifact@v4
         if: always()
