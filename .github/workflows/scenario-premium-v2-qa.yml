@@ -39,7 +39,8 @@ jobs:
           assert 'id="hzm-scenario-whatif"' in html
           assert 'id="hzm-scenario-curve"' in html
           assert 'hzm-scenario-premium-v2' in css
-          assert '"scenario"].includes' in html
+          assert all('data-hzm-view="'+tab+'"' in html for tab in ('results','players','scenario','intelligence','comparison','backtest'))
+          assert 'id="hzm-lab-tab-flow"' in html and 'tabindex="-1" hidden disabled' in html
           assert 'record?.scenario_distribution' in js
           assert 'if(!ready)' in js
           assert 'id="hzm-lab-tab-flow"' in html
