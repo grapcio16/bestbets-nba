@@ -35,7 +35,8 @@ jobs:
           assert 'href="player_simulations_premium_v4.css"' in html
           assert 'hzv4-eyebrow' in html
           assert 'id="hzv3-model-context"' in html
-          assert '["intelligence","comparison","scenario","players"].includes' in html
+          assert all('data-hzm-view="'+tab+'"' in html for tab in ('results','players','scenario','intelligence','comparison','backtest'))
+          assert 'id="hzm-lab-tab-flow"' in html and 'tabindex="-1" hidden disabled' in html
           assert '#simulations-pane[data-hzm-view="players"]' in css
           assert "text.className='hzv4-chart-title-text'" in js
           assert 'a.espncdn.com/i/headshots/' not in js
