@@ -145,7 +145,7 @@ def run():
                 page.locator(f"#hzm-lab-tab-{view}").click()
                 page.wait_for_function(
                     "(view) => document.querySelector('#simulations-pane')?.dataset.hzmView===view",
-                    view,
+                    arg=view,
                 )
                 assert page.locator(panel).is_visible(), (label, view)
                 assert page.locator("#hzm-lab-main").get_attribute(
