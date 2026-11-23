@@ -171,6 +171,33 @@ def run():
                         "() => ({actual:document.documentElement.scrollWidth,viewport:document.documentElement.clientWidth})"
                     )
                     assert overflow["actual"] <= overflow["viewport"] + 2, (label, view, overflow)
+                    if width == 320:
+                        physical = page.evaluate("""() => {
+                            const w=window.innerWidth;
+                            const bad=[...document.querySelectorAll('#app-shell *')]
+                              .filter(el => {
+                                const s=getComputedStyle(el);
+                                if(s.display==='none'||s.visibility==='hidden')return false;
+                                const r=el.getBoundingClientRect();
+                                return r.width>0&&r.right>w+2;
+                              }).slice(0,12).map(el=>{
+                                const r=el.getBoundingClientRect();
+                                return {tag:el.tagName,id:el.id,cls:String(el.className).slice(0,70),
+                                  right:Math.round(r.right),width:Math.round(r.width)};
+                              });
+                            return {
+                              inner:w, outer:window.outerWidth,
+                              visual:window.visualViewport?.width,
+                              client:document.documentElement.clientWidth,
+                              scroll:document.documentElement.scrollWidth,
+                              body:document.body.scrollWidth,
+                              stage:document.querySelector('#stage').getBoundingClientRect().width,
+                              candidates:bad
+                            };
+                        }""")
+                        assert physical["inner"] <= width + 2, (label, view, physical)
+                        assert physical["scroll"] <= width + 2, (label, view, physical)
+                        assert physical["body"] <= width + 2, (label, view, physical)
                     document_height = page.evaluate(
                         "() => Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)"
                     )
