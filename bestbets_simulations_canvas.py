@@ -407,6 +407,13 @@ def _fresh_selected_team_injuries(team: str):
     return _team_fetch(team)
 
 
+@st.cache_data(ttl=240, max_entries=90, show_spinner=False)
+def _official_selected_injury_feed(day: str, game_id: str, away: str,
+                                   home: str, start: str):
+    from simulation_official_nba_injuries import selected_official_injury_rows
+    return selected_official_injury_rows(away, home, start)
+
+
 @st.cache_data(ttl=60, max_entries=90, show_spinner=False)
 def _selected_injury_watch(day: str, game_id: str) -> dict:
     """Read ESPN injury entries for the exact upcoming matchup, independent of
@@ -431,10 +438,44 @@ def _selected_injury_watch(day: str, game_id: str) -> dict:
                 "reason": "Mecz nie jest już przed rozpoczęciem."}
     try:
         from simulation_injury_sources import selected_matchup_availability
-        raw, meta = selected_matchup_availability(
-            str(fixture["away"]), str(fixture["home"]),
-            league_fetch=_fresh_selected_injury_feed,
-            team_fetch=_fresh_selected_team_injuries)
+        from concurrent.futures import ThreadPoolExecutor
+        from simulation_official_nba_injuries import selected_official_injury_rows
+        # ESPN league and official NBA report are independent. Keep either
+        # source if the other fails; team-scoped ESPN is a third endpoint path.
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            espn_future = pool.submit(
+                selected_matchup_availability,
+                str(fixture["away"]), str(fixture["home"]),
+                league_fetch=_fresh_selected_injury_feed,
+                team_fetch=_fresh_selected_team_injuries)
+            official_future = pool.submit(
+                _official_selected_injury_feed,
+                day, game_id, str(fixture["away"]),
+                str(fixture["home"]), str(fixture["start"]))
+            raw, meta = espn_future.result()
+            official, official_meta = official_future.result()
+        if official_meta.get("available") and isinstance(official, pd.DataFrame) and not official.empty:
+            primary_usable = bool(meta.get("available") and not meta.get("stale"))
+            raw = pd.concat([raw, official], ignore_index=True) if isinstance(raw, pd.DataFrame) and not raw.empty else official
+            # The oldest independent snapshot limits the combined status
+            # validity. Never silently extend an older OUT beyond its age.
+            times = [pd.to_datetime(official_meta.get("timestamp"),
+                                    utc=True, errors="coerce")]
+            if primary_usable:
+                times.append(pd.to_datetime(meta.get("timestamp"),
+                                            utc=True, errors="coerce"))
+            times = [ts for ts in times if pd.notna(ts)]
+            all_teams = sorted(set((meta.get("coverage_teams") or [])+
+                                   (official_meta.get("coverage_teams") or [])))
+            meta = {
+                "available": True, "stale": False,
+                "timestamp": min(times).isoformat() if times else "",
+                "source": ("NBA oficjalny + ESPN" if primary_usable
+                           else "NBA oficjalny"),
+                "coverage_teams": all_teams,
+                "partial": bool(meta.get("partial")) and
+                    len(all_teams) < 2,
+            }
         report, match_meta = matchup_injuries(
             raw, str(fixture["home"]), str(fixture["away"]), meta)
         fetched = pd.to_datetime((meta or {}).get("timestamp"),
@@ -464,7 +505,8 @@ def _selected_injury_watch(day: str, game_id: str) -> dict:
         rows = []
         for item in grouped.values():
             statuses = item["statuses"]
-            status = next(iter(statuses)) if len(statuses) == 1 else "Sprzeczne"
+            status = ("Out" if "Out" in statuses else
+                      next(iter(statuses)) if len(statuses) == 1 else "Sprzeczne")
             rows.append({"name": item["name"], "team": item["team"],
                          "status": status,
                          "espn_id": next(iter(item["espn_ids"]))
