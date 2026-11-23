@@ -274,6 +274,9 @@ def main():
         # independently scrollable; viewport snapshots above are authoritative.
 
         page.locator("#hzm-lab-tab-results").click()
+        assert page.locator("#app-shell").evaluate(
+            "el=>el.classList.contains('hz-mobile-intelligence')")
+        page.locator('#hz-mobile-nav [data-page="home"]').click()
         assert not page.locator("#app-shell").evaluate(
             "el=>el.classList.contains('hz-mobile-intelligence')")
         assert not errors, errors
