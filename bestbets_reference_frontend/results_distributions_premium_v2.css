@@ -254,3 +254,20 @@
     flex:0 0 auto!important;max-height:none!important;
   }
 }
+
+
+/* Mobile graph and O/U must never occupy the same grid track. */
+@media(max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] #hzm-plot{
+    grid-column:1!important;grid-row:1!important;z-index:2!important;
+    position:relative!important;display:block!important;
+    height:230px!important;min-height:230px!important;
+    overflow:visible!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-visual>.hzm-side-ou{
+    grid-column:1!important;grid-row:2!important;
+    z-index:1!important;position:relative!important;
+    min-height:150px!important;max-height:none!important;
+    margin:0!important;
+  }
+}
