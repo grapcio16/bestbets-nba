@@ -1,0 +1,48 @@
+name: Hoopzaro Premium Results V2 QA
+
+on:
+  pull_request:
+    branches:
+      - main
+      - feature/premium-player-simulations-v4-polish
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  results-v2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install app requirements and Chromium
+        run: |
+          python -m pip install -r requirements.txt 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - name: Check isolation and test syntax
+        run: |
+          node --check bestbets_reference_frontend/simulations.js
+          python -m py_compile test_results_distributions_premium_browser.py
+          python - <<'PY'
+          from pathlib import Path
+          base=Path("bestbets_reference_frontend")
+          html=(base/"index.html").read_text(encoding="utf-8")
+          css=(base/"results_distributions_premium_v2.css").read_text(encoding="utf-8")
+          assert html.count('href="results_distributions_premium_v2.css"')==1
+          assert '#simulations-pane[data-hzm-view="results"]' in css
+          assert '.hzm-chart-card' in css
+          assert '.hzm-side-ou' in css
+          print("Scoped results visual stylesheet connected once")
+          PY
+      - name: Chromium desktop and iPhone results test
+        run: python test_results_distributions_premium_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hoopzaro-premium-results-v2-screenshots
+          path: test-results/results-premium-v2/*.png
+          if-no-files-found: ignore

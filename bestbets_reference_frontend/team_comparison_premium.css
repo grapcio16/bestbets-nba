@@ -1,0 +1,339 @@
+/* HOOPZARO Team Comparison Premium V2
+   Second approved visual set: dense real-data table + neon radar chart.
+   Source: verified pre-tipoff ESPN L5/L10; NBA Advanced is optional/explicit.
+   Scoped only to the Team Comparison panel. */
+#simulations-pane #hzm-compare-panel[hidden],
+#simulations-pane #hzm-compare-profile-svg[hidden],
+#simulations-pane #hzm-compare-profile-empty[hidden]{display:none!important}
+#simulations-pane[data-hzm-view="comparison"] .hzm-hero{display:none!important}
+#simulations-pane[data-hzm-view="comparison"] .hzm-header{
+  height:49px;min-height:49px;align-items:center;gap:7px;padding:0 1px 4px;
+}
+#simulations-pane[data-hzm-view="comparison"] .hzm-title{gap:8px}
+#simulations-pane[data-hzm-view="comparison"] .hzm-title h1{
+  font-size:20px;line-height:26px;letter-spacing:-.7px
+}
+#simulations-pane[data-hzm-view="comparison"] .hzm-lab-subtitle{display:none}
+#simulations-pane[data-hzm-view="comparison"] .hzm-premium{
+  height:29px;margin-top:0;padding:0 8px;font-size:10px
+}
+#simulations-pane[data-hzm-view="comparison"] .hzm-match-picker{
+  margin-top:0;min-width:96px;height:31px;flex-basis:125px
+}
+#simulations-pane[data-hzm-view="comparison"] .hzm-model-choice{flex-basis:174px}
+#simulations-pane[data-hzm-view="comparison"] .hzm-model-dropdown{width:174px}
+#simulations-pane[data-hzm-view="comparison"] .hzm-day-control{margin-top:0}
+#simulations-pane[data-hzm-view="comparison"] .hzm-simulation-count{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-width:69px;height:34px;margin-top:0;padding:2px 5px;
+  border:1px solid rgba(65,148,193,.57);border-radius:8px;
+  background:linear-gradient(115deg,#092640,#131d46);box-sizing:border-box
+}
+#simulations-pane[data-hzm-view="comparison"] .hzm-simulation-count>small{
+  display:block;white-space:nowrap;font-size:7px;letter-spacing:.15px;line-height:11px
+}
+#simulations-pane[data-hzm-view="comparison"] .hzm-simulation-count>strong{
+  display:block;white-space:nowrap;font-size:13px;line-height:17px
+}
+#simulations-pane[data-hzm-view="comparison"] .hzm-lab-nav{
+  min-height:36px;margin-bottom:6px;padding:3px
+}
+#simulations-pane[data-hzm-view="comparison"] .hzm-lab-nav button{height:28px}
+#simulations-pane #hzm-compare-panel{
+  position:relative;isolation:isolate;gap:10px;padding:17px 18px 12px;
+  border:1px solid transparent;border-radius:16px;color:#effaff;
+  background:
+    radial-gradient(ellipse 48% 48% at 101% 0%,rgba(150,57,237,.22),transparent 85%) padding-box,
+    linear-gradient(150deg,#071b36 10%,#11193e 70%,#16163d) padding-box,
+    linear-gradient(116deg,#21dafa,#367bc2 42%,#ae4dea 88%,#1dd1ec) border-box;
+  box-shadow:inset 0 1px rgba(129,217,255,.19),0 10px 30px rgba(0,4,17,.25),0 0 25px rgba(58,56,203,.13);
+}
+#simulations-pane #hzm-compare-panel::before{
+  content:"";position:absolute;pointer-events:none;top:0;left:20px;right:20px;height:2px;
+  background:linear-gradient(90deg,transparent,#44edff 30%,#c278fa 70%,transparent);
+  box-shadow:0 0 11px rgba(35,214,250,.5)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-header small{
+  color:#5ceffa;font-size:9px;letter-spacing:1.7px;text-shadow:0 0 10px rgba(25,214,255,.2)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-header h2{
+  margin:4px 0;font-size:26px;line-height:1.1;letter-spacing:-.7px;text-shadow:0 0 11px rgba(138,75,221,.14)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-header p{
+  font-size:11px;line-height:1.5;color:#b6c9e4
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-window{
+  gap:5px;padding:4px;border-color:rgba(41,202,238,.5);
+  background:#071c3b;box-shadow:inset 0 1px rgba(72,186,246,.13)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-window button{min-width:49px}
+#simulations-pane #hzm-compare-panel .hzm-compare-window button.selected{
+  border-color:#3beaff;color:#041427;background:linear-gradient(130deg,#20ddf0,#8cefff);
+  box-shadow:0 0 13px rgba(28,214,249,.3)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-status{
+  padding:7px 10px;margin:0;border:1px solid rgba(68,131,191,.3);border-radius:7px;
+  background:linear-gradient(90deg,rgba(11,49,75,.7),rgba(45,24,83,.34));
+  font-size:10px;line-height:1.45;color:#b4d4e8
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-teams{
+  gap:10px;grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-team{
+  position:relative;min-height:91px;padding:12px 15px;
+  border:1px solid rgba(34,219,245,.65);border-radius:12px;
+  background:radial-gradient(ellipse at 0 0,rgba(6,183,215,.12),transparent 64%),linear-gradient(120deg,#07354a,#09203d);
+  box-shadow:0 0 16px rgba(19,214,255,.09),inset 0 1px rgba(125,238,255,.17)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-team.home{
+  border-color:rgba(186,93,241,.7);
+  background:radial-gradient(ellipse at 100% 0,rgba(166,77,230,.19),transparent 65%),linear-gradient(120deg,#271544,#1c1b45);
+  box-shadow:0 0 17px rgba(193,75,238,.11),inset 0 1px rgba(220,152,255,.17)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-side{
+  font-size:9px;letter-spacing:1.1px;color:#96dce9
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-team strong{
+  font-size:27px;line-height:1.15;color:#55efff;text-shadow:0 0 12px rgba(22,206,248,.26)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-team.home strong{
+  color:#e3a6fa;text-shadow:0 0 12px rgba(207,86,249,.25)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-team-record{font-size:16px;color:#f1f6ff}
+#simulations-pane #hzm-compare-panel .hzm-compare-team small{font-size:10px;color:#94b2d3}
+#simulations-pane #hzm-compare-panel .hzm-compare-versus{
+  font-size:17px;color:#d9a4fa;text-shadow:0 0 13px rgba(176,88,239,.35)
+}
+#simulations-pane .hzm-compare-v2-grid{
+  display:grid;grid-template-columns:minmax(0,1.44fr) minmax(0,1fr);gap:10px;align-items:stretch;min-width:0
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-table{
+  border:1px solid rgba(49,163,233,.65);border-radius:11px;
+  background:linear-gradient(150deg,#091f3c,#0b1b37);
+  box-shadow:0 0 18px rgba(21,143,236,.08),inset 0 1px rgba(149,214,255,.13)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-table-head,
+#simulations-pane #hzm-compare-panel .hzm-compare-row{
+  grid-template-columns:minmax(0,.91fr) minmax(0,1.75fr) minmax(0,.91fr);gap:7px;
+  min-height:35px;padding:8px 9px
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-table-head{
+  background:linear-gradient(90deg,#07324e,#1c1b47);font-size:10px;
+  border-bottom:1px solid rgba(73,193,242,.36);
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-row{
+  border-bottom:1px solid rgba(75,140,197,.25);background:rgba(5,37,61,.41)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-row:nth-child(odd){
+  background:rgba(20,39,84,.55)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-row.distinct{
+  background:linear-gradient(100deg,rgba(15,97,117,.28),rgba(91,49,126,.25))
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-row strong{
+  font-size:15px;line-height:1.2;color:#57ecfa;text-shadow:0 0 9px rgba(20,218,255,.13)
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-row strong:last-child{color:#db9efc}
+#simulations-pane #hzm-compare-panel .hzm-compare-row span{
+  font-size:10px;line-height:1.35;color:#b9cde4
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-row span small{font-size:9px}
+#simulations-pane .hzm-compare-v2-profile{
+  /* Reset the app's GLOBAL aside positioning: this is a nested data card,
+     never the page navigation sidebar. */
+  position:relative!important;inset:auto!important;z-index:auto!important;
+  width:100%!important;height:auto!important;max-height:none!important;
+  display:flex;flex-direction:column;gap:10px;min-width:0;padding:13px 11px 10px;
+  border:1px solid rgba(177,87,241,.64);border-radius:11px;
+  background:radial-gradient(ellipse at 80% 30%,rgba(111,43,206,.20),transparent 67%),
+    linear-gradient(138deg,#0b2243 5%,#201741 75%,#161639);
+  box-shadow:0 0 20px rgba(155,78,232,.1),inset 0 1px rgba(222,165,255,.14)
+}
+#simulations-pane .hzm-compare-v2-profile::before,
+#simulations-pane .hzm-compare-v2-profile::after{content:none!important;display:none!important}
+#simulations-pane .hzm-compare-v2-profile-title{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding-bottom:9px;border-bottom:1px solid rgba(134,107,213,.32)
+}
+#simulations-pane .hzm-compare-v2-profile-title small{
+  color:#81ddea;font-size:8px;letter-spacing:.8px;font-weight:900
+}
+#simulations-pane .hzm-compare-v2-profile-title h3{
+  font-size:15px;line-height:1.3;margin:3px 0 0;font-weight:950
+}
+#simulations-pane .hzm-compare-v2-profile-title h3 span{
+  display:inline-flex;padding:3px 6px;margin-left:3px;vertical-align:middle;
+  font-size:9px;border:1px solid rgba(72,217,243,.45);border-radius:6px;
+  color:#61eafa;background:#12365a
+}
+#simulations-pane .hzm-compare-v2-profile-symbol{
+  color:#b47cfe;font-size:22px;line-height:1;text-shadow:0 0 13px rgba(167,92,245,.4)
+}
+#simulations-pane .hzm-compare-v2-profile-legend{
+  display:flex;align-items:center;justify-content:center;gap:18px;
+}
+#simulations-pane .hzm-compare-v2-profile-legend span{
+  display:flex;align-items:center;gap:6px;min-width:0;color:#d9e4f4;font-size:10px
+}
+#simulations-pane .hzm-compare-v2-profile-legend b{font-weight:850}
+#simulations-pane .hzm-compare-v2-profile-legend i{
+  display:inline-block;width:10px;height:8px;border-radius:2px
+}
+#simulations-pane .hzm-compare-legend-away{background:#24e5f5;box-shadow:0 0 10px rgba(16,227,249,.44)}
+#simulations-pane .hzm-compare-legend-home{background:#bd78f9;box-shadow:0 0 10px rgba(186,91,255,.5)}
+#simulations-pane .hzm-compare-v2-chart{
+  position:relative;flex:1;display:grid;place-items:center;min-width:0;
+  min-height:220px;max-height:345px
+}
+#simulations-pane .hzm-compare-v2-chart svg{
+  display:block;width:min(100%,350px);height:auto;overflow:visible
+}
+#simulations-pane .hzm-compare-radar-rings polygon{
+  stroke:rgba(79,130,196,.38);stroke-width:1.2;fill:rgba(55,87,145,.05)
+}
+#simulations-pane .hzm-compare-radar-axes line{
+  stroke:rgba(82,146,200,.22);stroke-width:1
+}
+#simulations-pane .hzm-compare-radar-area{
+  stroke-width:2.8;stroke-linejoin:round;vector-effect:non-scaling-stroke;
+}
+#simulations-pane .hzm-compare-radar-area.away{
+  stroke:#27eafa;fill:rgba(17,204,246,.20);filter:drop-shadow(0 0 5px rgba(23,216,249,.5))
+}
+#simulations-pane .hzm-compare-radar-area.home{
+  stroke:#c782ff;fill:rgba(181,74,241,.20);filter:drop-shadow(0 0 5px rgba(197,107,252,.5))
+}
+#simulations-pane #hzm-compare-profile-svg text{
+  fill:#bed0ed;font-family:Inter,Arial,sans-serif;font-size:11px;font-weight:800
+}
+#simulations-pane .hzm-compare-profile-empty{
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  gap:10px;min-height:190px;padding:16px;text-align:center;
+  border:1px dashed rgba(75,144,188,.32);border-radius:10px;
+}
+#simulations-pane .hzm-compare-profile-empty>span{
+  color:#55dff5;font-size:26px;text-shadow:0 0 12px rgba(43,214,243,.29)
+}
+#simulations-pane .hzm-compare-profile-empty p{margin:0;font-size:11px;color:#adc5dd;line-height:1.5}
+#simulations-pane .hzm-compare-profile-method{
+  margin:0;font-size:9px;line-height:1.5;color:#b7b2d1;
+  padding:8px 9px;border:1px solid rgba(104,93,171,.26);border-radius:7px;
+  background:rgba(9,20,50,.42)
+}
+#simulations-pane .hzm-compare-profile-method b{color:#d4baff}
+#simulations-pane .hzm-compare-v2-trust{
+  display:flex;gap:7px;align-items:center;color:#76e4ef;
+  font-size:9px;font-weight:800;line-height:1.45
+}
+#simulations-pane .hzm-compare-v2-trust>span{
+  display:grid;place-items:center;width:17px;height:17px;border-radius:50%;
+  color:#092f3f;font-size:12px;background:#51edf0
+}
+#simulations-pane #hzm-compare-panel .hzm-compare-disclaimer{
+  font-size:9px;line-height:1.5;color:#a5b0ce;border-top-color:rgba(129,87,173,.37)
+}
+@media(max-width:1120px){
+  #simulations-pane .hzm-compare-v2-grid{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+  #simulations-pane #hzm-compare-panel .hzm-compare-row{
+    grid-template-columns:minmax(0,.9fr) minmax(0,1.7fr) minmax(0,.9fr);
+    padding:8px 6px;gap:4px
+  }
+  #simulations-pane #hzm-compare-panel .hzm-compare-row strong{font-size:13px}
+}
+@media(max-width:850px){
+  #simulations-pane .hzm-compare-v2-grid{grid-template-columns:minmax(0,1fr)}
+  #simulations-pane .hzm-compare-v2-chart{max-height:none}
+}
+@media(max-width:767px){
+  #simulations-pane #hzm-compare-panel{padding:12px 10px;gap:9px}
+  #simulations-pane .hzm-compare-v2-grid{grid-template-columns:minmax(0,1fr)}
+  #simulations-pane .hzm-compare-v2-chart{max-height:none}
+  #simulations-pane #hzm-compare-panel .hzm-compare-row span{font-size:10px}
+  #simulations-pane .hzm-compare-v2-profile{padding:12px}
+  #simulations-pane .hzm-compare-profile-method{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  #simulations-pane .hzm-compare-radar-area{filter:none}
+}
+
+/* Native-width phone route shared with the approved Match Intelligence.
+   Parent stage, controls and tab strip are unscaled by its shared mobile CSS. */
+@media(max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+  #app-shell.hz-mobile-intelligence #simulations-pane #hzm-compare-panel{
+    width:100%;padding:15px 11px 13px;gap:11px;border-radius:13px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-header{
+    align-items:center;justify-content:space-between;gap:10px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-header h2{
+    font-size:23px!important;line-height:1.2;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-header small{
+    font-size:9px;letter-spacing:1px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-header p{
+    font-size:11px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-window{
+    flex:none;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-window button{
+    min-width:38px;padding:6px 8px;font-size:10px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-status{
+    font-size:11px;line-height:1.5;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-teams{
+    grid-template-columns:minmax(0,1fr) 19px minmax(0,1fr);
+    gap:5px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-team{
+    min-width:0;min-height:100px;padding:10px;
+    display:flex;flex-direction:column;gap:5px;align-items:flex-start;justify-content:center;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-team strong{
+    font-size:25px;line-height:1.1;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-team small{
+    font-size:10px;line-height:1.25;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-team-record{
+    font-size:12px;line-height:1.2;white-space:normal;text-align:left;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-versus{font-size:13px}
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-v2-grid{
+    display:grid;grid-template-columns:minmax(0,1fr);gap:12px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-table-head,
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-row{
+    grid-template-columns:minmax(0,.86fr) minmax(0,1.62fr) minmax(0,.86fr);
+    gap:5px;padding:10px 6px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-row span{
+    font-size:10px;line-height:1.3;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-row strong{
+    font-size:14px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-v2-profile{
+    padding:12px 10px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-v2-profile-title h3{
+    font-size:16px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-v2-profile-legend{
+    gap:17px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-v2-chart{
+    min-height:280px;max-height:none;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-v2-chart svg{
+    width:100%;max-width:340px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-profile-method{
+    font-size:10px;line-height:1.5;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-compare-disclaimer{
+    font-size:10px;line-height:1.5;
+  }
+}

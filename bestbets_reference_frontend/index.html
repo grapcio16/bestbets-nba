@@ -237,6 +237,13 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="players.css">
 <link rel="stylesheet" href="teams.css">
 <link rel="stylesheet" href="mobile.css">
+<link rel="stylesheet" href="match_intelligence_premium.css">
+<link rel="stylesheet" href="team_comparison_premium.css">
+<link rel="stylesheet" href="scenario_builder_premium_v2.css">
+<link rel="stylesheet" href="player_simulations_premium_v4.css">
+<link rel="stylesheet" href="results_distributions_premium_v2.css">
+<link rel="stylesheet" href="backtest_premium_v2.css">
+<link rel="stylesheet" href="simulations_release_mobile_scroll.css">
 </head>
 <body>
 <!-- Original, reusable HOOPZARO icons: one visual language on desktop and mobile. -->
@@ -602,16 +609,16 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
              1672x941 screenshot: 278/390/rest columns, 412+130 rows. -->
         <section id="hzv3" class="hzv3" aria-label="Player Simulations Premium" hidden>
           <header class="hzv3-titlebar">
-            <div class="hzv3-title"><h2>Player Simulations</h2><span id="hzv3-version" class="hzv3-version">V7.5</span></div>
+            <div class="hzv3-title"><div class="hzv4-title-copy"><span class="hzv4-eyebrow">HOOPZARO · PREMIUM PLAYER LAB</span><h2>Player Simulations</h2></div><span id="hzv3-version" class="hzv3-version">V7.5</span></div>
             <div class="hzv3-markets" role="group" aria-label="Wybrana statystyka">
               <button type="button" data-hzv3-market="PTS" aria-pressed="true">PTS</button>
               <button type="button" data-hzv3-market="REB" aria-pressed="false">REB</button>
               <button type="button" data-hzv3-market="AST" aria-pressed="false">AST</button>
               <button type="button" data-hzv3-market="PRA" aria-pressed="false">PRA</button>
             </div>
-            <span class="hzv3-model-selector">Projekcja modelu <span aria-hidden="true">⌄</span></span>
+            <span id="hzv3-model-context" class="hzv3-model-selector" title="To oznaczenie metody. Model zmieniasz w prawdziwym selektorze nad kartą.">MODEL V7.4 · PROJEKCJA</span>
           </header>
-          <p class="hzv3-description">Projekcje na wybrany mecz · wykresy oparte na wcześniejszych wynikach ESPN. Historia nie jest rozkładem z 5000 symulacji; PRA to suma średnich prognoz.</p>
+          <p class="hzv3-description"><strong>Projekcja meczu</strong> = wynik wybranego modelu. <strong>Histogram, forma i over</strong> = wyłącznie wcześniejsze, zweryfikowane występy ESPN. To nie są losowania zawodnika w Monte Carlo. PRA = suma prognoz PTS + REB + AST.</p>
           <div class="hzv3-toolbar">
             <div class="hzv3-teams" role="group" aria-label="Filtr drużyn">
               <button type="button" data-hzv3-team="all" aria-pressed="true">Obie drużyny</button>
@@ -761,7 +768,15 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <button type="button" id="hzm-expand-players" class="hzm-expand" aria-expanded="false" aria-controls="hzm-player-rows">Rozwiń pełną listę zawodników <span aria-hidden="true">⌄</span></button>
           </section>
         </div>
-        <section id="hzm-scenario-panel" class="hzm-scenario-panel hzm-scenario-premium" aria-label="Scenario Lab — interaktywna analiza hipotetyczna" hidden>
+        <section id="hzm-scenario-panel" class="hzm-scenario-panel hzm-scenario-premium hzm-scenario-premium-v2" aria-label="Scenario Lab — interaktywna analiza hipotetyczna" hidden>
+          <div class="hzm-scenario-v2-heading">
+            <div class="hzm-scenario-v2-heading-copy">
+              <small>HOOPZARO · WHAT-IF SIMULATION LAB</small>
+              <h2>Scenariusze <span>meczu</span></h2>
+              <p>Zmodyfikuj założenia modelu, a następnie przelicz wariant. To analiza warunkowa, nie oficjalna prognoza przyszłego tempa lub składu.</p>
+            </div>
+            <span class="hzm-scenario-v2-experimental"><span aria-hidden="true">♧</span> EKSPERYMENTALNE · WHAT-IF</span>
+          </div>
           <div class="hzm-scenario-control hzm-scenario-card">
             <header class="hzm-scenario-card-head">
               <span class="hzm-scenario-head-icon" aria-hidden="true">☷</span><strong>Scenario Builder</strong>
@@ -800,7 +815,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
               </div>
             </div>
             <button id="hzm-scenario-run" type="button"><span aria-hidden="true">▶</span> Przelicz 5 000 symulacji</button>
-            <p class="hzm-scenario-disclaimer">Hipotetyczne założenia użytkownika — niepotwierdzona forma ani tempo NBA. Zmiana składu, minut i kontuzji nie jest przeliczana w scenariuszu zespołowym.</p>
+            <p class="hzm-scenario-disclaimer">Zmiany tempa i ofensywy to hipotetyczne założenia użytkownika, nie potwierdzone statystyki NBA. Moduł Player Minutes jest oddzielny i <strong>nie przelicza wyniku zespołowego.</strong></p>
           </div>
 
           <div class="hzm-scenario-output hzm-scenario-card" aria-live="polite">
@@ -818,7 +833,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
               <div class="hzm-scenario-table-row hzm-scenario-table-over" role="row"><label role="cell" for="hzm-scenario-ou-line">↑ OVER <input type="text" id="hzm-scenario-ou-line" inputmode="decimal" autocomplete="off" spellcheck="false" value="229,5" aria-label="Próg OVER do porównania, np. 229,5"/></label><b role="cell" id="hzm-scenario-table-over-base">—</b><b role="cell" id="hzm-scenario-table-over-new">—</b><strong role="cell" id="hzm-scenario-table-over-delta">—</strong></div>
             </div>
             <div class="hzm-scenario-curve-wrap">
-              <div class="hzm-scenario-chart-title"><strong><span aria-hidden="true">▥</span> Rozkład punktów meczu</strong><span id="hzm-scenario-curve-caption">5 000 symulacji na wariant</span></div>
+              <div class="hzm-scenario-chart-title"><strong><span aria-hidden="true">▥</span> Rozkład punktów meczu</strong><span id="hzm-scenario-curve-caption">Nowy rozkład pojawi się po przeliczeniu</span></div>
               <div class="hzm-scenario-curve-viewport">
                 <svg id="hzm-scenario-curve" viewBox="0 0 500 160" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Rozkład prognozowanej sumy punktów: model bazowy oraz, jeśli obliczony, scenariusz hipotetyczny"></svg>
               </div>
@@ -829,7 +844,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
               <div class="hzm-scenario-split home"><strong id="hzm-scenario-home-code">GOSPODARZE</strong><span>PTS <b id="hzm-scenario-home-points">—</b></span><span>WIN <b id="hzm-scenario-home-win">—</b></span></div>
             </div>
             <p id="hzm-scenario-status">Zmień założenia i kliknij „Przelicz 5 000 symulacji”.</p>
-            <small id="hzm-scenario-context">Wariant hipotetyczny · 5 000 symulacji · prawdopodobieństwa nie są kursami bukmachera.</small>
+            <small id="hzm-scenario-context">Wariant warunkowy · 5 000 losowań na dostępny wariant · prawdopodobieństwa są nieskalibrowane, nie są kursami bukmachera.</small>
           </div>
 
           <div class="hzm-scenario-insights hzm-scenario-card" role="complementary" aria-label="Kluczowe wnioski wybranego scenariusza">
@@ -969,42 +984,109 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
           <p id="hzm-flow-method" class="hzm-flow-method">Flow jest rekonstrukcją warunkową wyników końcowych, nie prognozą play-by-play, rotacji ani obietnicą wyniku.</p>
         </section>
 
-        <section id="hzm-intel-panel" class="hzm-intel-panel" aria-label="Match Intelligence — czynniki modelu" hidden>
+        <!-- Premium Match Intelligence V2. Fidelity: approved dark/navy neon
+             concept; every numerical field is fed by pre-tipoff model context.
+             V7.5 attribution has its own evidence gate, never fake values. -->
+        <section id="hzm-intel-panel" class="hzm-intel-panel hzm-intel-premium-v2" aria-label="Analiza meczu Premium — zweryfikowane czynniki modelu" hidden>
+          <div class="hzm-intel-ambient" aria-hidden="true"></div>
           <header class="hzm-intel-head">
-            <div><small>HOOPZARO · MODEL EXPLAINABILITY</small><h2>Match Intelligence</h2><p>Co naprawdę wpływa na prognozę meczu?</p></div>
-            <span id="hzm-intel-model" class="hzm-intel-model">WYBIERZ MODEL</span>
+            <div class="hzm-intel-head-copy">
+              <small><span class="hzm-intel-glint" aria-hidden="true">✦</span> HOOPZARO · MODEL EXPLAINABILITY</small>
+              <h2>Match <span>Intelligence</span></h2>
+              <p>Co naprawdę wpływa na prognozę meczu?</p>
+            </div>
+            <div class="hzm-intel-head-actions">
+              <span class="hzm-intel-research-tag">PREGAME DATA LAB</span>
+              <span id="hzm-intel-model" class="hzm-intel-model">WYBIERZ MODEL</span>
+            </div>
           </header>
-          <p id="hzm-intel-status" class="hzm-intel-status" role="status">Pobieranie danych modelu Premium…</p>
-          <div class="hzm-intel-evidence">
-            <div class="hzm-intel-kpi"><small>Zweryfikowane mecze przed tip-off</small><strong id="hzm-intel-completed">—</strong></div>
-            <div class="hzm-intel-kpi"><small>Źródło modelu</small><strong id="hzm-intel-source">—</strong></div>
-            <div class="hzm-intel-kpi"><small>NBA Advanced (obie drużyny)</small><strong id="hzm-intel-advanced">—</strong></div>
+          <p id="hzm-intel-status" class="hzm-intel-status" role="status">Pobieranie zweryfikowanych danych modelu Premium…</p>
+
+          <div class="hzm-intel-evidence" aria-label="Wiarygodność i źródła danych">
+            <article class="hzm-intel-kpi">
+              <span class="hzm-intel-kpi-icon" aria-hidden="true">▦</span>
+              <div class="hzm-intel-kpi-copy">
+                <small>Zweryfikowane mecze przed tip-off</small>
+                <strong id="hzm-intel-completed">—</strong>
+                <span>Historia dostępna w chwili prognozy</span>
+              </div>
+            </article>
+            <article class="hzm-intel-kpi">
+              <span class="hzm-intel-kpi-icon" aria-hidden="true">✧</span>
+              <div class="hzm-intel-kpi-copy">
+                <small>Źródło modelu</small>
+                <strong id="hzm-intel-source">—</strong>
+                <span>Źródła rzeczywiście użyte w analizie</span>
+              </div>
+            </article>
+            <article class="hzm-intel-kpi">
+              <span class="hzm-intel-kpi-icon" aria-hidden="true">▥</span>
+              <div class="hzm-intel-kpi-copy">
+                <small>NBA Advanced (obie drużyny)</small>
+                <strong id="hzm-intel-advanced">—</strong>
+                <span id="hzm-intel-advanced-note">Bez zastępowania braków danymi szacowanymi</span>
+              </div>
+            </article>
           </div>
-          <div class="hzm-intel-teams">
+
+          <div class="hzm-intel-main-grid">
+          <div class="hzm-intel-teams" aria-label="Rzeczywiste statystyki obu drużyn przed rozpoczęciem meczu">
             <article class="hzm-intel-team away">
-              <header><strong id="hzm-intel-away-name">GOŚCIE</strong><small>AWAY</small></header>
-              <div><span>Próba drużyny</span><strong id="hzm-intel-away-sample">—</strong></div>
-              <div><span>Mecze na wyjeździe</span><strong id="hzm-intel-away-venue-sample">—</strong></div>
-              <div><span>Odpoczynek</span><strong id="hzm-intel-away-rest">—</strong></div>
-              <div><span>Próba zmienności punktów</span><strong id="hzm-intel-away-sd-sample">—</strong></div>
+              <header>
+                <div class="hzm-intel-team-identity"><small>GOŚCIE · HISTORIA ESPN</small><strong id="hzm-intel-away-name">GOŚCIE</strong></div>
+                <span class="hzm-intel-side-badge">AWAY</span>
+              </header>
+              <div class="hzm-intel-team-sample"><span>Próba drużyny przed meczem</span><strong id="hzm-intel-away-sample">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Forma ostatnich 10 meczów</span><strong id="hzm-intel-away-form">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Śr. zdobyte punkty · L10</span><strong id="hzm-intel-away-scored">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Śr. stracone punkty · L10</span><strong id="hzm-intel-away-allowed">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Mecze na wyjeździe</span><strong id="hzm-intel-away-venue-sample">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Odpoczynek przed meczem</span><strong id="hzm-intel-away-rest">—</strong></div>
+              <details class="hzm-intel-evidence-details">
+                <summary>Metodologia próby <span aria-hidden="true">⌄</span></summary>
+                <div class="hzm-intel-method-detail"><span>Próba zmienności punktów</span><strong id="hzm-intel-away-sd-sample">—</strong></div>
+              </details>
             </article>
             <article class="hzm-intel-team home">
-              <header><strong id="hzm-intel-home-name">GOSPODARZE</strong><small>HOME</small></header>
-              <div><span>Próba drużyny</span><strong id="hzm-intel-home-sample">—</strong></div>
-              <div><span>Mecze u siebie</span><strong id="hzm-intel-home-venue-sample">—</strong></div>
-              <div><span>Odpoczynek</span><strong id="hzm-intel-home-rest">—</strong></div>
-              <div><span>Próba zmienności punktów</span><strong id="hzm-intel-home-sd-sample">—</strong></div>
+              <header>
+                <div class="hzm-intel-team-identity"><small>GOSPODARZE · HISTORIA ESPN</small><strong id="hzm-intel-home-name">GOSPODARZE</strong></div>
+                <span class="hzm-intel-side-badge">HOME</span>
+              </header>
+              <div class="hzm-intel-team-sample"><span>Próba drużyny przed meczem</span><strong id="hzm-intel-home-sample">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Forma ostatnich 10 meczów</span><strong id="hzm-intel-home-form">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Śr. zdobyte punkty · L10</span><strong id="hzm-intel-home-scored">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Śr. stracone punkty · L10</span><strong id="hzm-intel-home-allowed">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Mecze u siebie</span><strong id="hzm-intel-home-venue-sample">—</strong></div>
+              <div class="hzm-intel-team-stat"><span>Odpoczynek przed meczem</span><strong id="hzm-intel-home-rest">—</strong></div>
+              <details class="hzm-intel-evidence-details">
+                <summary>Metodologia próby <span aria-hidden="true">⌄</span></summary>
+                <div class="hzm-intel-method-detail"><span>Próba zmienności punktów</span><strong id="hzm-intel-home-sd-sample">—</strong></div>
+              </details>
             </article>
           </div>
-          <section class="hzm-intel-factors" aria-label="Składniki korekty modelu V7.5">
-            <header><strong>Rozbicie korekty średniej liczby punktów</strong><small>V7.5 · eksperymentalne, nieskalibrowane</small></header>
-            <div class="hzm-intel-factor-head"><span>Czynnik</span><span id="hzm-intel-factor-away">GOŚCIE</span><span id="hzm-intel-factor-home">GOSPODARZE</span></div>
-            <div class="hzm-intel-factor-row"><span>Dom / wyjazd</span><strong id="hzm-intel-venue-away">—</strong><strong id="hzm-intel-venue-home">—</strong></div>
-            <div class="hzm-intel-factor-row"><span>Odpoczynek / B2B</span><strong id="hzm-intel-rest-away">—</strong><strong id="hzm-intel-rest-home">—</strong></div>
-            <div class="hzm-intel-factor-row"><span>ESPN OUT (modelowa korekta)</span><strong id="hzm-intel-injury-away">—</strong><strong id="hzm-intel-injury-home">—</strong></div>
-            <div class="hzm-intel-factor-row total"><span>Łącznie względem bazowej średniej V7.4</span><strong id="hzm-intel-total-away">—</strong><strong id="hzm-intel-total-home">—</strong></div>
+
+          <section class="hzm-intel-factors" aria-label="Modelowe czynniki wpływające na średnią punktów">
+            <header>
+              <div class="hzm-intel-factors-title">
+                <span class="hzm-intel-factor-emblem" aria-hidden="true">◈</span>
+                <div><strong id="hzm-intel-factor-title">Składniki modelu</strong><p id="hzm-intel-factor-description">Pokazujemy tylko obliczenia dostępne w wybranym modelu.</p></div>
+              </div>
+              <small id="hzm-intel-factor-label">DANE PRZED MECZEM</small>
+            </header>
+            <div id="hzm-intel-factors-v75" class="hzm-intel-factors-body" hidden>
+              <div class="hzm-intel-factor-head"><span>Czynnik</span><span id="hzm-intel-factor-away">GOŚCIE</span><span id="hzm-intel-factor-home">GOSPODARZE</span></div>
+              <div class="hzm-intel-factor-row"><span><i aria-hidden="true">⌂</i> Dom / wyjazd</span><strong id="hzm-intel-venue-away">—</strong><strong id="hzm-intel-venue-home">—</strong></div>
+              <div class="hzm-intel-factor-row"><span><i aria-hidden="true">◷</i> Odpoczynek / B2B</span><strong id="hzm-intel-rest-away">—</strong><strong id="hzm-intel-rest-home">—</strong></div>
+              <div class="hzm-intel-factor-row"><span><i aria-hidden="true">✚</i> ESPN OUT (modelowa korekta)</span><strong id="hzm-intel-injury-away">—</strong><strong id="hzm-intel-injury-home">—</strong></div>
+              <div class="hzm-intel-factor-row total"><span><i aria-hidden="true">◇</i> Łącznie względem bazowej średniej V7.4</span><strong id="hzm-intel-total-away">—</strong><strong id="hzm-intel-total-home">—</strong></div>
+            </div>
+            <div id="hzm-intel-factors-info" class="hzm-intel-factors-info">
+              <span class="hzm-intel-info-symbol" aria-hidden="true">ⓘ</span>
+              <div><strong id="hzm-intel-factors-info-title">Uczciwa analiza modelu</strong><p id="hzm-intel-factors-info-copy">Ten model nie udostępnia rozliczenia korekt punktowych. Zamiast fikcyjnej tabeli pokazujemy zweryfikowaną formę drużyn powyżej.</p></div>
+            </div>
           </section>
-          <p id="hzm-intel-caveat" class="hzm-intel-caveat">Model nie jest skalibrowany. Historia i kontekst nie gwarantują zwycięstwa. Wartości nie są rekomendacją bukmacherską.</p>
+          </div><!-- /.hzm-intel-main-grid -->
+          <p id="hzm-intel-caveat" class="hzm-intel-caveat">Prognoza eksperymentalna, nieskalibrowana. Historia i kontekst nie gwarantują wyniku ani zysku z zakładów.</p>
         </section>
         <section id="hzm-compare-panel" class="hzm-compare-panel" aria-label="Team Comparison — porównanie zweryfikowanych statystyk NBA" hidden>
           <header class="hzm-compare-header">
@@ -1030,6 +1112,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
               <span id="hzm-compare-home-record" class="hzm-compare-team-record">— W / — L</span>
             </div>
           </div>
+          <div class="hzm-compare-v2-grid">
           <section class="hzm-compare-table" aria-label="Ofensywa defensywa forma i tempo">
             <div class="hzm-compare-table-head"><span id="hzm-compare-table-away">GOŚCIE</span><span>STATYSTYKA</span><span id="hzm-compare-table-home">GOSPODARZE</span></div>
             <div class="hzm-compare-row"><strong id="hzm-compare-away-pts">—</strong><span>Śr. punkty zdobyte <small id="hzm-compare-pts-window">L10</small></span><strong id="hzm-compare-home-pts">—</strong></div>
@@ -1042,6 +1125,46 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
             <div class="hzm-compare-row"><strong id="hzm-compare-away-off-rating">—</strong><span>OFFRTG · na 100 posiadań</span><strong id="hzm-compare-home-off-rating">—</strong></div>
             <div class="hzm-compare-row"><strong id="hzm-compare-away-def-rating">—</strong><span>DEFRTG · na 100 posiadań (niższe = lepiej)</span><strong id="hzm-compare-home-def-rating">—</strong></div>
           </section>
+          <aside class="hzm-compare-v2-profile" aria-label="Historyczny profil obu drużyn">
+            <header class="hzm-compare-v2-profile-title">
+              <div><small>HOOPZARO · ESPN PREGAME</small><h3>Profil drużyn <span id="hzm-compare-profile-window">L10</span></h3></div>
+              <span class="hzm-compare-v2-profile-symbol" aria-hidden="true">⌘</span>
+            </header>
+            <div class="hzm-compare-v2-profile-legend">
+              <span><i class="hzm-compare-legend-away" aria-hidden="true"></i><b id="hzm-compare-legend-away">GOŚCIE</b></span>
+              <span><i class="hzm-compare-legend-home" aria-hidden="true"></i><b id="hzm-compare-legend-home">GOSPODARZE</b></span>
+            </div>
+            <div class="hzm-compare-v2-chart">
+              <svg id="hzm-compare-profile-svg" viewBox="0 0 340 304" role="img" aria-label="Porównanie rzeczywistych danych historycznych na pięciu osiowo znormalizowanych skalach" hidden>
+                <g class="hzm-compare-radar-rings" fill="none">
+                  <polygon points="170,124 192.83,140.58 184.11,167.42 155.89,167.42 147.17,140.58"/>
+                  <polygon points="170,84 230.87,128.22 207.62,199.78 132.38,199.78 109.13,128.22"/>
+                  <polygon points="170,44 268.91,115.85 231.13,232.15 108.87,232.15 71.09,115.85"/>
+                </g>
+                <g class="hzm-compare-radar-axes" fill="none">
+                  <line x1="170" y1="156" x2="170" y2="44"/>
+                  <line x1="170" y1="156" x2="268.91" y2="115.85"/>
+                  <line x1="170" y1="156" x2="231.13" y2="232.15"/>
+                  <line x1="170" y1="156" x2="108.87" y2="232.15"/>
+                  <line x1="170" y1="156" x2="71.09" y2="115.85"/>
+                </g>
+                <polygon id="hzm-compare-polygon-away" class="hzm-compare-radar-area away" points="" />
+                <polygon id="hzm-compare-polygon-home" class="hzm-compare-radar-area home" points="" />
+                <text x="170" y="25" text-anchor="middle">Atak</text>
+                <text x="308" y="111" text-anchor="middle">Forma W/L</text>
+                <text x="260" y="258" text-anchor="middle">Różnica</text>
+                <text x="80" y="258" text-anchor="middle">Obrona</text>
+                <text x="30" y="111" text-anchor="middle">Dom / wyjazd</text>
+              </svg>
+              <div id="hzm-compare-profile-empty" class="hzm-compare-profile-empty">
+                <span aria-hidden="true">▥</span>
+                <p>Wybierz mecz z kompletnymi historycznymi danymi obu drużyn.</p>
+              </div>
+            </div>
+            <p class="hzm-compare-profile-method">Profil poglądowy na pięciu osiach ze stałymi skalami. Atak i dom/wyjazd: 85–145 pkt; obrona: 145–85 pkt straconych; forma: 0–100%; różnica: −30 do +30 pkt. <b>To nie są prognozy ani modelowane prawdopodobieństwa.</b></p>
+            <div class="hzm-compare-v2-trust"><span aria-hidden="true">✓</span> Wyłącznie zakończone mecze sprzed tip-off · ESPN</div>
+          </aside>
+          </div><!-- /hzm-compare-v2-grid -->
           <footer id="hzm-compare-disclaimer" class="hzm-compare-disclaimer">Statystyki historyczne, nie przewidywany wynik. Tempo i ratingi tylko przy kompletnych danych NBA Advanced dla obu drużyn. Brak danych oznaczamy kreską.</footer>
         </section>
         <section id="hzm-backtest-panel" class="hzm-backtest-panel" aria-label="Model & Backtest — historia błędów prognoz" hidden>
@@ -1373,10 +1496,15 @@ function resize(){
   const mobileLayout=viewportWidth<=767 || shortLandscape;
   const mobileHome=mobileLayout && state.page==="home";
   const mobileSchedule=mobileLayout && state.page==="games";
+  // All active Premium module views use native-width phone UI.
+  // All other existing Premium modules keep their current viewport behavior.
+  const mobileIntelligence=mobileLayout && state.page==="simulations" &&
+    ["intelligence","comparison","scenario","players","results","backtest"].includes($("simulations-pane")?.dataset.hzmView);
+  shell.classList.toggle("hz-mobile-intelligence",mobileIntelligence);
   shell.classList.toggle("hz-mobile-centre",mobileHome);
   shell.classList.toggle("hz-mobile-schedule",mobileSchedule);
   shell.classList.toggle("hz-independent-scroll",!mobileLayout);
-  if(mobileHome||mobileSchedule){
+  if(mobileHome||mobileSchedule||mobileIntelligence){
     // Native touch scrolling for the free Home and Schedule routes.
     root.style.transform="none";
     root.style.height="";

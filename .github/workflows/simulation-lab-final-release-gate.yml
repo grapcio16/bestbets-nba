@@ -1,0 +1,101 @@
+name: Hoopzaro Simulation Lab — Final Release Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+      - feature/premium-backtest-v2-mobile-qa
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulation-lab-final:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install project requirements and Chromium
+        run: |
+          python -m pip install -r requirements.txt 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - name: Static release preflight — six modules, no public Flow
+        run: |
+          node --check bestbets_reference_frontend/simulations.js
+          node --check bestbets_reference_frontend/player_simulations_v3.js
+          python -m py_compile test_simulation_lab_release_browser.py test_match_intelligence_browser.py test_team_comparison_browser.py test_scenario_builder_browser.py test_player_simulations_neon_browser.py test_results_distributions_premium_browser.py test_premium_backtest_v2_browser.py
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          base=Path('bestbets_reference_frontend')
+          html=(base/'index.html').read_text(encoding='utf-8')
+          js=(base/'simulations.js').read_text(encoding='utf-8')
+          css_files=(
+              'match_intelligence_premium.css',
+              'team_comparison_premium.css',
+              'scenario_builder_premium_v2.css',
+              'player_simulations_premium_v4.css',
+              'results_distributions_premium_v2.css',
+              'backtest_premium_v2.css',
+          )
+          tabs=('results','players','scenario','intelligence','comparison','backtest')
+          for tab in tabs:
+              assert len(re.findall(r'id="hzm-lab-tab-'+tab+r'"', html))==1, tab
+              assert 'data-hzm-view="'+tab+'"' in html
+          for css in css_files:
+              assert html.count('href="'+css+'"')==1, css
+              assert (base/css).is_file(), css
+          assert 'id="hzm-lab-tab-flow"' in html
+          assert 'tabindex="-1" hidden disabled' in html
+          assert 'if(!researchTab||researchTab.hidden||researchTab.disabled)return;' in js
+          assert 'id="hzm-backtest-roi"' not in html or 'niedostępny' in html
+          assert 'Brak wiarygodnego archiwum kursów — wynik niedostępny.' in html
+          assert 'a.espncdn.com/i/headshots/' not in js
+          assert 'a.espncdn.com/i/headshots/' not in (base/'player_simulations_v3.js').read_text(encoding='utf-8')
+          assert html.count('href="simulations_release_mobile_scroll.css"') == 1
+          assert 'overflow-x:clip!important' in (base/'simulations_release_mobile_scroll.css').read_text(encoding='utf-8')
+          assert 'id="hzm-compare-away-pace"' in html
+          assert 'id="hzm-backtest-run"' in html
+          print('Release preflight OK: six Premium tabs, gated Flow, source rights and honest backtest.')
+          PY
+      - name: Final integrated acceptance — six views and four viewports
+        if: ${{ !cancelled() }}
+        run: python test_simulation_lab_release_browser.py
+      - name: Module regression — verified ESPN history and Monte Carlo semantics
+        if: ${{ !cancelled() }}
+        run: python -m unittest test_player_simulations_visual_data.py
+      - name: Module regression — Match Intelligence V2
+        if: ${{ !cancelled() }}
+        run: python test_match_intelligence_browser.py
+      - name: Module regression — Team Comparison V2
+        if: ${{ !cancelled() }}
+        run: python test_team_comparison_browser.py
+      - name: Module regression — Scenario Builder V2
+        if: ${{ !cancelled() }}
+        run: python test_scenario_builder_browser.py
+      - name: Module regression — Player Simulations V4
+        if: ${{ !cancelled() }}
+        run: python test_player_simulations_neon_browser.py
+      - name: Module regression — Results V2
+        if: ${{ !cancelled() }}
+        run: python test_results_distributions_premium_browser.py
+      - name: Module regression — Model & Backtest V2
+        if: ${{ !cancelled() }}
+        run: python test_premium_backtest_v2_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hoopzaro-final-release-gate-screenshots
+          path: |
+            test-results/simulation-lab-final/*.png
+            test-results/premium-match-intelligence/*.png
+            test-results/hoopzaro-team-compare/*.png
+            test-results/hoopzaro-scenario-v2/*.png
+            test-results/hoopzaro-player-v4/*.png
+            test-results/results-premium-v2/*.png
+            test-results/backtest-premium-v2/*.png
+          if-no-files-found: ignore

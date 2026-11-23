@@ -1,0 +1,170 @@
+/* HOOPZARO Premium · Model & Backtest V2 visual polish.
+   Strictly scoped to the backtest view. Metric values remain server-supplied
+   walk-forward data; no model computations or ROI assumptions live here. */
+#simulations-pane[data-hzm-view="backtest"] .hzm-backtest-panel{
+  position:relative;isolation:isolate;
+  border:1px solid rgba(50,220,251,.68);
+  background:
+    radial-gradient(ellipse 65% 75% at 0 0,rgba(28,161,229,.14),transparent 72%),
+    radial-gradient(ellipse 65% 95% at 100% 100%,rgba(168,75,248,.19),transparent 75%),
+    linear-gradient(140deg,#071930,#0a1630 57%,#0b102a);
+  box-shadow:inset 0 1px rgba(192,237,255,.14),0 0 17px rgba(22,191,253,.15);
+}
+#simulations-pane[data-hzm-view="backtest"] .hzm-backtest-panel::before{
+  content:"";position:absolute;top:0;left:12px;right:12px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(86,232,252,.82),transparent);
+  pointer-events:none;
+}
+#simulations-pane[data-hzm-view="backtest"] .hzm-backtest-head h2{
+  color:#f5faff;letter-spacing:-.45px;text-shadow:0 0 12px rgba(97,195,255,.22);
+}
+#simulations-pane[data-hzm-view="backtest"] #hzm-backtest-run{
+  background:linear-gradient(105deg,#096684,#173d88 59%,#6034a3);
+  border-color:#4df3fc;box-shadow:inset 0 1px rgba(230,255,255,.27),0 0 13px rgba(44,205,244,.17);
+}
+#simulations-pane[data-hzm-view="backtest"] .hzm-backtest-summary>div{
+  background:linear-gradient(140deg,#092b4a,#10203f);
+  box-shadow:inset 0 1px rgba(199,232,255,.15),0 0 11px rgba(32,122,244,.1);
+}
+#simulations-pane[data-hzm-view="backtest"] .hzm-backtest-summary>div:nth-child(2){
+  background:linear-gradient(120deg,#25194b,#141d46);
+}
+#simulations-pane[data-hzm-view="backtest"] .hzm-backtest-metrics-head{
+  border-color:#4d85c3;background:linear-gradient(90deg,#0a3359,#1f2150);
+}
+#simulations-pane[data-hzm-view="backtest"] .hzm-backtest-model{
+  background:linear-gradient(105deg,#0a263e,#111d3a);
+  border-bottom-color:rgba(108,154,212,.27);
+}
+#simulations-pane[data-hzm-view="backtest"] .hzm-backtest-model:nth-child(2n){
+  background:linear-gradient(105deg,#0e2546,#201a46);
+}
+#simulations-pane[data-hzm-view="backtest"] .hzm-backtest-model:last-child{
+  background:linear-gradient(105deg,#103e5b,#2d2055);
+}
+#simulations-pane[data-hzm-view="backtest"] .hzm-backtest-model b{
+  font-variant-numeric:tabular-nums;
+}
+#simulations-pane[data-hzm-view="backtest"] .hzm-backtest-status{
+  min-height:18px;color:#c8e5fa;
+}
+#simulations-pane[data-hzm-view="backtest"] .hzm-backtest-roi{
+  background:linear-gradient(110deg,#241a45,#151d3e);
+  border-color:rgba(178,106,234,.68);
+}
+@media(max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-hero{
+    display:none!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-content,
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-analysis{
+    display:block!important;width:100%!important;height:auto!important;
+    min-height:0!important;overflow:visible!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-panel{
+    width:100%!important;min-width:0!important;max-width:100%!important;
+    padding:16px 12px!important;gap:13px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-head{
+    display:flex!important;flex-direction:column!important;align-items:stretch!important;
+    gap:12px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-head h2{
+    font-size:23px!important;line-height:1.18!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-head p{
+    font-size:12px!important;line-height:1.5!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] #hzm-backtest-run{
+    width:100%!important;min-height:45px!important;font-size:12px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-status{
+    font-size:12px!important;line-height:1.55!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-summary{
+    grid-template-columns:minmax(0,1fr)!important;gap:8px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-summary>div{
+    min-height:72px!important;padding:11px 12px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-summary small{
+    font-size:11px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-summary strong{
+    font-size:18px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-metrics-head{
+    display:none!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-results{
+    display:grid!important;gap:10px!important;
+    border:0!important;overflow:visible!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-model{
+    display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:9px!important;min-width:0!important;min-height:0!important;
+    padding:14px 11px!important;border:1px solid rgba(82,150,213,.6)!important;
+    border-radius:10px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-model strong{
+    grid-column:1/-1!important;font-size:13px!important;line-height:1.45;
+    padding-bottom:8px!important;border-bottom:1px solid rgba(122,165,209,.24);
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-model b{
+    display:flex!important;flex-direction:column!important;
+    gap:4px!important;align-items:flex-start!important;
+    min-width:0!important;text-align:left!important;
+    font-size:18px!important;line-height:1.35!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-model b::before{
+    display:block;font-size:9px;letter-spacing:.4px;font-weight:800;
+    color:#b4cde8;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-model b:nth-of-type(1)::before{content:"MAE SUMY PTS"}
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-model b:nth-of-type(2)::before{content:"MAE DRUŻYNY"}
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-model b:nth-of-type(3)::before{content:"TRAFNOŚĆ W/L"}
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-model b:nth-of-type(4)::before{content:"BRIER"}
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-metric-notes,
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-roi,
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-backtest-caveat{
+    font-size:11px!important;line-height:1.55!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  #simulations-pane[data-hzm-view="backtest"] #hzm-backtest-run{transition:none!important}
+}
+
+
+/* The app's global html/body overflow-x:hidden creates a nested scroll
+   container on mobile Chromium/WebKit. The content then has full height but
+   window.scrollY remains zero, so lower backtest rows are unreachable.
+   Clip horizontal decoration without establishing that scroll container.
+   Scope to this backtest view only; leave other pages untouched. */
+@media(max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+  html:has(#app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"]),
+  body:has(#app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"]){
+    height:auto!important;min-height:100%!important;
+    overflow-x:clip!important;overflow-y:visible!important;
+  }
+}
+
+
+/* Avoid irrelevant game Monte Carlo count above an offline walk-forward report,
+   and remove the legacy compressed sidebar-style insights on narrow screens.
+   The verified methodology, sample and Premium disclosures remain visible. */
+@media(max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-simulation-count{
+    display:none!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] .hzm-day-control{
+    grid-column:1/-1!important;width:100%!important;justify-content:space-between!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] #hzm-insights{
+    display:none!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"] #hzm-footer{
+    display:flex!important;height:auto!important;min-height:0!important;
+    flex-wrap:wrap!important;gap:6px!important;padding:10px 2px!important;
+    font-size:10px!important;line-height:1.4!important;
+  }
+}

@@ -1,0 +1,273 @@
+/* HOOPZARO · Wyniki i rozkłady V2. Scoped visual finishing pass.
+   No forecast, sample, model, slider or statistical calculations are changed.
+   Designed to load after the established Simulation Lab and Player V4 sheets. */
+#simulations-pane[data-hzm-view="results"]{
+  --hzr-cyan:#39e8ff;
+  --hzr-purple:#bd7bff;
+  --hzr-border:rgba(106,149,220,.53);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-card{
+  position:relative;
+  isolation:isolate;
+  border:1px solid rgba(48,205,250,.65)!important;
+  background:
+    radial-gradient(ellipse 85% 140% at -10% 0%,rgba(20,139,205,.17),transparent 67%),
+    radial-gradient(ellipse 80% 120% at 108% 106%,rgba(138,59,226,.16),transparent 67%),
+    linear-gradient(155deg,#071b35 0%,#0b1630 62%,#0a1127 100%)!important;
+  box-shadow:inset 0 1px 0 rgba(184,235,255,.15),0 0 17px rgba(17,179,247,.15)!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-card::before{
+  content:"";position:absolute;left:14px;right:14px;top:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(66,232,255,.7),transparent);
+  pointer-events:none;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-card>header h2{
+  color:#f3f8ff!important;
+  letter-spacing:-.35px;
+  text-shadow:0 0 12px rgba(43,199,255,.22);
+}
+#simulations-pane[data-hzm-view="results"] #hzm-chart-context{
+  color:#b2c8e4;letter-spacing:.1px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-tabs{
+  border-radius:9px;overflow:hidden;
+  background:rgba(6,22,47,.85);
+  border:1px solid rgba(79,125,184,.55);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-tabs button{
+  transition:background-color .16s ease,color .16s ease,box-shadow .16s ease;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-tabs button.active,
+#simulations-pane[data-hzm-view="results"] .hzm-chart-tabs button[aria-pressed="true"]{
+  color:#f7ffff!important;
+  background:linear-gradient(115deg,#09688e,#174b95 60%,#5535a1)!important;
+  box-shadow:inset 0 1px rgba(205,249,255,.26),0 0 11px rgba(38,205,255,.26);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-tabs button:focus-visible,
+#simulations-pane[data-hzm-view="results"] .hzm-window-widths button:focus-visible,
+#simulations-pane[data-hzm-view="results"] .hzm-side-line input:focus-visible{
+  outline:2px solid #6eeaff!important;outline-offset:2px;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-visual{
+  border-radius:9px;
+  background:linear-gradient(135deg,rgba(5,21,46,.42),rgba(17,24,55,.27));
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-visual .hzm-side-ou{
+  border:1px solid rgba(61,178,231,.67)!important;
+  background:radial-gradient(ellipse 95% 60% at 100% 0%,rgba(94,72,209,.2),transparent),
+    linear-gradient(150deg,#092342,#111833)!important;
+  box-shadow:inset 0 1px rgba(129,214,255,.15),0 0 12px rgba(22,129,239,.12)!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-side-line input{
+  min-width:0;color:#e6faff;
+  font-variant-numeric:tabular-nums;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-side-ou-results strong,
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis strong{
+  font-variant-numeric:tabular-nums;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div{
+  position:relative;overflow:hidden;
+  box-shadow:inset 0 1px 0 rgba(199,226,255,.14),0 0 11px rgba(51,118,241,.12);
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div::before{
+  content:"";position:absolute;top:0;left:7px;right:7px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(198,234,255,.37),transparent);
+  pointer-events:none;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-result-kpis small{
+  color:#c8d9ef!important;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-source{
+  color:#b3c7e3;
+}
+#simulations-pane[data-hzm-view="results"] .hzm-chart-source strong{
+  color:#b9eaff;
+}
+@media (prefers-reduced-motion:reduce){
+  #simulations-pane[data-hzm-view="results"] .hzm-chart-tabs button{transition:none}
+}
+
+
+/* Native-width mobile Results layout. Reuses the shared premium phone shell
+   and preserves the original 1231px desktop composition without alterations. */
+@media(max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-hero{
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    width:100%!important;height:auto!important;min-height:0!important;
+    margin-bottom:12px!important;overflow:visible!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-match-identity,
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-projected,
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-win{
+    width:100%!important;height:auto!important;min-height:94px!important;
+    padding:13px 12px!important;border-right:0!important;
+    border-bottom:1px solid rgba(103,146,205,.32);
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-versus{
+    justify-content:space-around;gap:6px;font-size:19px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-hero-team{
+    min-width:0;max-width:42%;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-hero-team .hzm-mark{
+    width:41px;height:41px;flex-basis:41px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-hero-team strong{
+    font-size:19px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-content,
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-analysis{
+    display:block!important;width:100%!important;height:auto!important;
+    min-height:0!important;overflow:visible!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-detail-grid{
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    width:100%!important;height:auto!important;gap:12px!important;
+    overflow:visible!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-card,
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-players-panel{
+    width:100%!important;min-width:0!important;height:auto!important;
+    min-height:0!important;padding:13px 10px!important;overflow:visible!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-card>header{
+    display:flex!important;flex-direction:column!important;align-items:stretch!important;
+    gap:9px!important;width:100%!important;height:auto!important;
+    min-height:0!important;margin-bottom:9px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-card h2{
+    font-size:16px!important;line-height:1.3;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] #hzm-chart-context{
+    display:block;font-size:10px;line-height:1.5;white-space:normal;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-tabs{
+    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    width:100%!important;min-height:37px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-tabs button{
+    min-width:0!important;height:37px!important;font-size:11px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-visual{
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    width:100%!important;height:auto!important;min-height:0!important;
+    gap:12px!important;overflow:visible!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] #hzm-plot{
+    width:100%!important;height:230px!important;min-width:0!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] #hzm-plot svg{
+    display:block;width:100%!important;height:100%!important;max-width:100%;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-visual .hzm-side-ou{
+    width:100%!important;height:auto!important;min-height:150px!important;
+    display:flex!important;gap:10px!important;padding:11px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-side-ou>strong{
+    font-size:12px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-side-line input{
+    font-size:16px!important;min-height:32px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-side-ou-results{
+    display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-side-ou-results>div{
+    min-width:0!important;min-height:47px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-side-ou-results strong{
+    font-size:18px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-result-kpis{
+    display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    width:100%!important;height:auto!important;gap:8px!important;margin-top:11px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-result-kpis>div{
+    min-height:67px!important;padding:7px 4px!important;overflow:visible;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-result-kpis small{
+    font-size:10px!important;white-space:normal;text-align:center;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-result-kpis strong{
+    font-size:16px!important;white-space:normal;text-align:center;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-source{
+    display:flex!important;flex-wrap:wrap;gap:4px;justify-content:space-between;
+    width:100%!important;height:auto!important;min-height:29px!important;
+    padding-top:8px!important;overflow:visible!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-source>span,
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-source>strong{
+    font-size:9px!important;white-space:normal!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-players-panel>header{
+    display:flex!important;flex-wrap:wrap;align-items:center;
+    gap:8px!important;width:100%!important;height:auto!important;min-height:42px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-players-panel h2{
+    font-size:16px!important;white-space:normal;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-player-rows{
+    height:auto!important;max-height:400px!important;overflow-y:auto!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-player-row{
+    min-height:47px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-reference-dashboard{
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    width:100%!important;height:auto!important;gap:11px!important;margin-top:12px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-ref-card{
+    width:100%!important;height:auto!important;min-height:140px!important;overflow:visible!important;
+  }
+}
+
+
+/* Explicit mobile grid placement: inherited desktop selectors otherwise
+   assign automatic columns and collapse the chart to a sliver. */
+@media(max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+  html:has(#app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"]),
+  body:has(#app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"]){
+    overflow-x:hidden!important;overflow-y:auto!important;height:auto!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-visual{
+    grid-template-columns:minmax(0,1fr)!important;
+    grid-template-rows:230px auto!important;
+    align-items:stretch!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] #hzm-plot,
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-visual>.hzm-probability-panel{
+    grid-column:1 / -1!important;min-width:0!important;max-width:100%!important;
+    width:100%!important;justify-self:stretch!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-tabs{
+    flex:none!important;align-self:stretch!important;
+    height:39px!important;min-height:39px!important;max-height:39px!important;
+    grid-template-rows:39px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-tabs>button{
+    height:39px!important;min-height:39px!important;max-height:39px!important;
+    align-self:stretch!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-card>header{
+    flex:0 0 auto!important;max-height:none!important;
+  }
+}
+
+
+/* Mobile graph and O/U must never occupy the same grid track. */
+@media(max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] #hzm-plot{
+    grid-column:1!important;grid-row:1!important;z-index:2!important;
+    position:relative!important;display:block!important;
+    height:230px!important;min-height:230px!important;
+    overflow:visible!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-visual>.hzm-side-ou{
+    grid-column:1!important;grid-row:2!important;
+    z-index:1!important;position:relative!important;
+    min-height:150px!important;max-height:none!important;
+    margin:0!important;
+  }
+}

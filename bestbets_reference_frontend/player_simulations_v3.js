@@ -17,7 +17,8 @@ let active=null;
 function metric(player,key){
  if(!player)return null;
  if(active?.model==="research_context_v75"&&player.availability==="Out")return null;
- const p=num(player.pts),r=num(player.reb),a=num(player.ast);
+ const clean=v=>num(v)!==null&&num(v)>=0?num(v):null;
+ const p=clean(player.pts),r=clean(player.reb),a=clean(player.ast);
  return key==="PTS"?p:key==="REB"?r:key==="AST"?a:
    key==="PRA"&&[p,r,a].every(v=>v!==null)?p+r+a:null;
 }
@@ -33,10 +34,6 @@ function mean(rows,n){
  return rows.slice(-n).reduce((a,b)=>a+b.value,0)/n;
 }
 function teamOf(player){return String(player?.team||"").trim().toUpperCase();}
-function safeId(player){
- const id=String(player?.espn_id||"");
- return /^\d{1,12}$/.test(id)?id:"";
-}
 function initials(name){
  return String(name||"").trim().split(/\s+/).slice(0,2).map(v=>v.charAt(0)).join("").toUpperCase();
 }
@@ -59,7 +56,8 @@ function playerTeamLogo(player){
  return typeof resolved==="string"&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(resolved)?resolved:"";
 }
 function portrait(player,large){
- const id=safeId(player);
+ // Use original neon initials and the fixture's authorized badge only.
+ // Do not hotlink third-party player headshots without image rights.
  const caption=esc(initials(player?.name));
  const logo=large?playerTeamLogo(player):"";
  const team=esc(teamOf(player));
@@ -67,9 +65,7 @@ function portrait(player,large){
    '<span class="hzv3-team-watermark-label">'+team+'</span>'+
    (logo?'<img alt="" src="'+logo+'" loading="lazy">':"")+'</span>':"";
  return '<span class="'+(large?"hzv3-athlete-photo":"hzv3-face")+'" aria-hidden="true">'+
-  mark+'<span class="hzv3-avatar-fallback">'+caption+'</span>'+
-  (id?'<img class="hzv3-headshot" loading="lazy" referrerpolicy="no-referrer" src="https://a.espncdn.com/i/headshots/nba/players/full/'+id+'.png" alt="">':"")+
-  '</span>';
+  mark+'<span class="hzv3-avatar-fallback">'+caption+'</span></span>';
 }
 function fullList(){
  const {players,game,state,premium}=active;
@@ -243,10 +239,21 @@ function trendChart(player,m){
 function drawCharts(player){
  const m=active.state.playerMarket;
  const titles={PTS:"punkty",REB:"zbiórki",AST:"asysty",PRA:"PTS + REB + AST"};
- $("hzv3-hist-title").innerHTML="Rozkład "+titles[m]+" — "+esc(player?.name||"zawodnika")+
-   ' <span class="hzv3-help" title="Wygładzona częstość z rozegranych meczów, NIE rozkład z symulacji.">ⓘ</span>';
+ // Preserve the original accessible help buttons. Replacing headings
+ // through innerHTML used to delete both click handlers and dialog semantics.
+ function titleWithHelp(id,label){
+   const h=$(id),button=h?.querySelector('button.hzm-help-trigger');
+   if(!h)return;
+   const text=document.createElement('span');
+   text.className='hzv4-chart-title-text';
+   text.textContent=label;
+   h.replaceChildren(text);
+   if(button)h.append(button);
+   h.title=label;
+ }
+ titleWithHelp("hzv3-hist-title","Rozkład historyczny — "+titles[m]+" · "+(player?.name||"zawodnik"));
  $("hzv3-rates-title").textContent="Historyczne over ("+m+")";
- $("hzv3-trend-title").innerHTML="Forma — "+titles[m]+' <span class="hzv3-help" title="Tylko wcześniejsze występy ESPN">ⓘ</span>';
+ titleWithHelp("hzv3-trend-title","Forma historyczna — "+titles[m]);
  $("hzv3-averages-title").textContent="Średnie "+titles[m];
  root.querySelectorAll("[data-hzv3-window]").forEach(b=>b.setAttribute("aria-pressed",
    String(b.dataset.hzv3Window===String(active.state.playerHistoryWindow))));
@@ -311,6 +318,7 @@ function refresh(){
  const {premium,game,players,state}=active;
  const v=version(active.model);
  $("hzv3-version").textContent=v;
+ $("hzv3-model-context").textContent="MODEL "+v+" · PROJEKCJA";
  $("hzv3-away-filter").textContent=game?.away||"GOŚCIE";
  $("hzv3-home-filter").textContent=game?.home||"GOSPODARZE";
  root.querySelectorAll("[data-hzv3-team]").forEach(button=>button.setAttribute("aria-pressed",

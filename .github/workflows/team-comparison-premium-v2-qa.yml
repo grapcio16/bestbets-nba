@@ -1,0 +1,45 @@
+name: Hoopzaro Team Comparison Premium V2 QA
+on:
+  pull_request:
+    branches: [main, feature/premium-match-intelligence-v2-visual]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  team-comparison:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser and app dependencies
+        run: |
+          python -m pip install -r requirements.txt 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - name: Verify assets and code integrity
+        run: |
+          node --check bestbets_reference_frontend/simulations.js
+          python -m py_compile test_team_comparison_browser.py
+          python - <<'PY'
+          from pathlib import Path
+          html=Path('bestbets_reference_frontend/index.html').read_text(encoding='utf-8')
+          js=Path('bestbets_reference_frontend/simulations.js').read_text(encoding='utf-8')
+          css=Path('bestbets_reference_frontend/team_comparison_premium.css').read_text(encoding='utf-8')
+          assert 'href="team_comparison_premium.css"' in html
+          for ident in ('hzm-compare-profile-svg', 'hzm-compare-profile-empty',
+                        'hzm-compare-polygon-away', 'hzm-compare-polygon-home'):
+              assert 'id="'+ident+'"' in html
+          assert 'showComparisonProfile(game,data,n)' in js
+          assert 'prem?.entitled' not in js
+          assert '#hzm-compare-panel' in css
+          PY
+      - name: Chromium Team Comparison exact evidence, L5/L10, gates and visual screenshots
+        run: python test_team_comparison_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hoopzaro-team-comparison-v2-screenshots
+          path: test-results/hoopzaro-team-compare/*.png
+          if-no-files-found: ignore

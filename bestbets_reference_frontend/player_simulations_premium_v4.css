@@ -1,0 +1,373 @@
+/* HOOPZARO Premium Player Simulations V4 — fidelity & usability pass.
+   Existing independently-tested V3 data grid and calculations are retained.
+   No new predictions, photographs or invented historical records. */
+#simulations-pane[data-hzm-view="players"] .hzm-hero{display:none!important}
+#simulations-pane[data-hzm-view="players"] .hzm-header{
+  height:49px;min-height:49px;align-items:center;gap:7px;padding:0 1px 4px
+}
+#simulations-pane[data-hzm-view="players"] .hzm-title{gap:8px}
+#simulations-pane[data-hzm-view="players"] .hzm-title h1{
+  font-size:20px;line-height:26px;letter-spacing:-.7px
+}
+#simulations-pane[data-hzm-view="players"] .hzm-lab-subtitle{display:none}
+#simulations-pane[data-hzm-view="players"] .hzm-premium{
+  height:29px;margin-top:0;padding:0 8px;font-size:10px
+}
+#simulations-pane[data-hzm-view="players"] .hzm-match-picker{
+  margin-top:0;min-width:96px;height:31px;flex-basis:125px
+}
+#simulations-pane[data-hzm-view="players"] .hzm-model-choice{flex-basis:174px}
+#simulations-pane[data-hzm-view="players"] .hzm-model-dropdown{width:174px}
+#simulations-pane[data-hzm-view="players"] .hzm-day-control{margin-top:0}
+#simulations-pane[data-hzm-view="players"] .hzm-simulation-count{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-width:69px;height:34px;margin-top:0;padding:2px 5px;
+  border:1px solid rgba(65,148,193,.57);border-radius:8px;
+  background:linear-gradient(115deg,#092640,#131d46);box-sizing:border-box
+}
+#simulations-pane[data-hzm-view="players"] .hzm-simulation-count>small{
+  display:block;white-space:nowrap;font-size:7px;letter-spacing:.15px;line-height:11px
+}
+#simulations-pane[data-hzm-view="players"] .hzm-simulation-count>strong{
+  display:block;white-space:nowrap;font-size:13px;line-height:17px
+}
+#simulations-pane[data-hzm-view="players"] .hzm-lab-nav{
+  min-height:36px;margin-bottom:6px;padding:3px
+}
+#simulations-pane[data-hzm-view="players"] .hzm-lab-nav button{height:28px}
+#simulations-pane[data-hzm-view="players"] .hzm-content{
+  height:auto!important;min-height:0!important;max-height:none!important;
+  overflow:visible!important
+}
+#simulations-pane[data-hzm-view="players"] .hzm-analysis{
+  height:auto!important;min-height:0!important;overflow:visible!important
+}
+#simulations-pane[data-hzm-view="players"] #hzv3{
+  position:relative;isolation:isolate;overflow:visible;
+  border:1px solid transparent;border-radius:15px;
+  background:
+    radial-gradient(ellipse 47% 69% at 101% 99%,rgba(122,30,201,.25),transparent 78%) padding-box,
+    radial-gradient(ellipse 53% 37% at 4% 0%,rgba(15,148,221,.22),transparent 81%) padding-box,
+    linear-gradient(140deg,#071b37,#111637 70%,#1b113b) padding-box,
+    linear-gradient(115deg,#19e9fc 0%,#8351d8 62%,#d766fa 100%) border-box;
+  box-shadow:inset 0 1px rgba(145,220,255,.22),
+    0 0 22px rgba(116,50,196,.22),0 15px 33px rgba(2,7,26,.27)
+}
+#simulations-pane[data-hzm-view="players"] #hzv3::before{
+  content:"";pointer-events:none;position:absolute;left:24px;right:24px;top:0;
+  height:2px;background:linear-gradient(90deg,transparent,#25e6fa 26%,#ba77ff 76%,transparent);
+  box-shadow:0 0 10px rgba(42,215,255,.45)
+}
+#hzv3 .hzv4-title-copy{display:flex;flex-direction:column;gap:1px;min-width:0}
+#hzv3 .hzv4-eyebrow{
+  color:#59eaff;font-size:7px;line-height:1.3;font-weight:950;
+  letter-spacing:1.25px;text-shadow:0 0 11px rgba(40,226,255,.37)
+}
+#hzv3 .hzv3-titlebar{gap:12px}
+#hzv3 .hzv3-title{gap:12px}
+#hzv3 .hzv3-title h2{
+  font-weight:950;color:#f6fbff;text-shadow:0 0 13px rgba(94,185,247,.17)
+}
+#hzv3 .hzv3-version{
+  border:1px solid #c068f7;
+  background:linear-gradient(105deg,#7334bd,#c03fe3);
+  box-shadow:0 0 14px rgba(179,57,234,.47),inset 0 1px rgba(255,217,255,.32)
+}
+#hzv3 .hzv3-model-selector{
+  width:auto;min-width:140px;padding:0 10px;
+  justify-content:center;text-align:center;cursor:default;
+  border:1px solid rgba(48,153,212,.63);color:#d9efff;
+  background:linear-gradient(120deg,#0a3452,#192149);
+  box-shadow:inset 0 1px rgba(106,225,255,.17);
+  font-size:9px;letter-spacing:.2px
+}
+#hzv3 .hzv3-description{
+  max-width:100%;white-space:normal;font-size:10px;line-height:1.45;
+  color:#acc9df
+}
+#hzv3 .hzv3-description strong{color:#e3f7ff;font-weight:850}
+#hzv3 .hzv3-markets,
+#hzv3 .hzv3-teams,
+#hzv3 .hzv3-search{
+  box-shadow:inset 0 1px rgba(125,223,255,.10),0 0 10px rgba(4,136,215,.08)
+}
+#hzv3 .hzv3-markets button[aria-pressed="true"],
+#hzv3 .hzv3-teams button[aria-pressed="true"]{
+  box-shadow:0 0 12px rgba(25,231,246,.54),inset 0 1px rgba(245,255,255,.32)
+}
+#hzv3 .hzv3-search:focus-within{
+  border-color:#53effa;
+  box-shadow:0 0 0 1px rgba(51,221,253,.35),0 0 16px rgba(31,217,252,.16)
+}
+#hzv3 .hzv3-count{color:#c3dcef}
+#hzv3 .hzv3-inspector{
+  border-color:#b75af0;
+  box-shadow:0 0 20px rgba(173,74,235,.25),inset 0 1px rgba(234,171,255,.24)
+}
+#hzv3 .hzv3-athlete-photo{
+  border:1px solid rgba(179,116,239,.44);
+  background:
+    radial-gradient(ellipse at 48% 67%,rgba(45,233,254,.26),transparent 70%),
+    radial-gradient(ellipse at 70% 15%,rgba(207,77,236,.34),transparent 78%),
+    linear-gradient(150deg,#13365b,#271244)
+}
+#hzv3 .hzv3-athlete-photo .hzv3-avatar-fallback{
+  font-size:clamp(27px,2.1vw,37px);font-weight:950;letter-spacing:-2px;
+  color:#d7faff;text-shadow:0 0 10px rgba(16,220,253,.92),0 0 27px rgba(151,69,245,.43)
+}
+#hzv3 .hzv3-face .hzv3-avatar-fallback{
+  color:#b4f8ff;text-shadow:0 0 6px rgba(6,208,252,.35)
+}
+#hzv3 .hzv3-team-watermark{opacity:.30;filter:drop-shadow(0 0 9px rgba(150,83,252,.36))}
+#hzv3 .hzv3-metric{
+  border-color:rgba(37,190,228,.71);
+  box-shadow:inset 0 1px rgba(47,232,254,.16),0 0 10px rgba(18,190,239,.13)
+}
+#hzv3 .hzv3-metric[data-hzv3-metric="PRA"]{
+  border-color:rgba(209,84,249,.85);
+  box-shadow:inset 0 1px rgba(240,166,255,.25),0 0 13px rgba(213,79,247,.18)
+}
+#hzv3 .hzv3-metric[data-active="true"]{
+  border-color:#48f5fd;box-shadow:0 0 13px rgba(41,225,255,.41),inset 0 1px rgba(236,255,255,.22)
+}
+#hzv3 .hzv3-roster-card{
+  border-color:#20e6f8;
+  box-shadow:inset 0 1px rgba(149,235,255,.26),0 0 18px rgba(35,199,247,.18)
+}
+#hzv3 .hzv3-player:focus-visible{
+  outline:2px solid #50f4fa;outline-offset:-2px
+}
+#hzv3 .hzv3-player[aria-pressed="true"]{
+  border-color:#30f2fd;
+  background:linear-gradient(90deg,rgba(12,117,149,.82),rgba(15,62,108,.84));
+  box-shadow:0 0 0 1px rgba(18,223,246,.25),inset 0 0 15px rgba(12,208,242,.25),
+    0 0 11px rgba(18,233,246,.20)
+}
+#hzv3 .hzv3-analytics-card{
+  box-shadow:inset 0 1px rgba(237,184,255,.22),0 0 14px rgba(147,69,227,.18)
+}
+#hzv3 .hzv3-hist-card,#hzv3 .hzv3-trend-card{
+  border-color:#b86af5;
+  background:
+    radial-gradient(ellipse at 70% 95%,rgba(142,35,202,.24),transparent 75%),
+    linear-gradient(140deg,#092345,#1d123e)
+}
+#hzv3 .hzv3-rates-card,#hzv3 .hzv3-averages-card{
+  border-color:#8054ca;
+  background:linear-gradient(130deg,#102e4f,#221441)
+}
+#hzv3 .hzv3-summary-card{
+  border-color:rgba(46,151,230,.71);
+  box-shadow:inset 0 1px rgba(87,215,251,.18),0 0 12px rgba(22,152,228,.1)
+}
+#hzv3 .hzv3-summary-card:nth-child(2){border-color:rgba(155,92,225,.61)}
+#hzv3 .hzv3-summary-card:nth-child(3){border-color:rgba(36,206,223,.58)}
+#hzv3 .hzv3-analytics-card h3{color:#f4fcff}
+#hzv3 .hzv3-rates>div strong{color:#42eff9;text-shadow:0 0 8px rgba(18,211,238,.15)}
+#hzv3 .hzv3-history-actions button{
+  border-color:rgba(27,225,247,.90);
+  box-shadow:inset 0 1px rgba(100,238,255,.19),0 0 9px rgba(31,207,240,.17)
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  #hzv3 .hzv3-summary-card:hover,
+  #hzv3 .hzv3-analytics-card:hover{
+    box-shadow:0 0 21px rgba(83,134,234,.20),inset 0 1px rgba(204,242,255,.20)
+  }
+}
+@media(max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+  /* Shared Premium native-width wrapper is enabled ONLY while Players
+     is the active premium view, and torn down on the tab switch. */
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] #hzv3{
+    width:100%;min-width:0;padding:13px 10px 14px;overflow:visible
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-titlebar{
+    display:flex!important;flex-wrap:wrap;gap:10px!important;min-width:0;
+    width:100%;height:auto
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-title{
+    flex:0 0 100%;width:100%;gap:10px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-title h2{
+    font-size:22px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv4-eyebrow{
+    font-size:8px;letter-spacing:1px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-version{
+    min-width:60px;flex:0 0 60px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-markets{
+    flex:1 1 170px;min-width:0;height:39px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-markets button{
+    flex:1;min-width:0;width:auto;padding:0 5px;font-size:11px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-model-selector{
+    flex:0 1 143px;height:39px;min-width:125px;
+    padding:0 6px;font-size:9px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-description{
+    margin:12px 1px 13px;font-size:11px;line-height:1.55
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-toolbar{
+    display:grid;grid-template-columns:minmax(0,1fr) auto!important;gap:9px;
+    height:auto;margin:0 0 13px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-teams{
+    grid-column:1/-1;max-width:100%;justify-self:stretch;
+    height:38px;padding:3px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-teams button{
+    flex:1;min-width:0;height:31px;padding:0 6px;font-size:10px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-search{
+    grid-column:1/2;grid-row:2;order:initial;width:100%;
+    height:39px;min-width:0;justify-self:stretch
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-count{
+    grid-column:2/3;grid-row:2;justify-self:end;
+    font-size:10px;white-space:normal;text-align:right;max-width:82px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-grid{
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    grid-template-rows:auto!important;
+    grid-template-areas:"inspector" "roster" "analytics" "summary"!important;
+    gap:12px;min-width:0
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-inspector{
+    position:relative!important;inset:auto!important;
+    width:100%!important;height:auto!important;min-height:0!important;
+    overflow:visible!important;max-height:none!important;padding:14px!important
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-athlete-top{
+    grid-template-columns:112px minmax(0,1fr);
+    min-height:136px;margin:0 0 12px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-athlete-photo{
+    height:136px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-athlete-name{
+    font-size:24px;overflow-wrap:anywhere
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-metrics{
+    gap:6px;margin-bottom:12px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-metric{
+    min-height:63px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-metric strong{
+    font-size:19px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-status{
+    font-size:11px;min-height:42px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-fact{
+    font-size:11px;min-height:28px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-fact strong{
+    font-size:11px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-inspector-note{
+    font-size:11px;line-height:1.55
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-history-actions{
+    gap:9px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-history-actions button{
+    min-height:43px;font-size:11px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-roster-card{
+    grid-area:roster;width:100%!important;
+    height:350px!important;min-height:350px;max-height:none!important;padding:9px 6px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-roster-head{
+    grid-template-columns:minmax(0,1fr) repeat(4,minmax(37px,1fr))!important;
+    min-height:37px;font-size:10px;padding:0 6px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-player{
+    grid-template-columns:33px minmax(0,1fr) repeat(4,minmax(37px,1fr))!important;
+    min-height:52px;height:52px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-player-stat{
+    font-size:11px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-analytics{
+    grid-area:analytics;display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    grid-template-rows:minmax(245px,auto) minmax(170px,auto) minmax(245px,auto) minmax(176px,auto)!important;
+    gap:12px;min-width:0;height:auto!important;min-height:0!important
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-analytics-card{
+    width:100%;min-height:0;padding:13px 11px!important;overflow:visible!important
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-analytics-card h3{
+    font-size:13px;line-height:1.4
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-plot{
+    min-height:189px;height:calc(100% - 33px)
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-rates>div{
+    min-height:27px;padding:6px 2px;font-size:11px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-rates>div strong{
+    font-size:15px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-averages>div{
+    min-height:29px;font-size:11px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-summary{
+    grid-area:summary;display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    gap:10px;min-height:0
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-summary-card{
+    padding:13px;min-height:120px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-summary-card h3{
+    font-size:13px
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv3-summary-card .hzv3-pace-cols strong{
+    font-size:15px
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  #simulations-pane[data-hzm-view="players"] #hzv3,
+  #simulations-pane[data-hzm-view="players"] #hzv3 *{
+    transition:none!important;animation:none!important
+  }
+}
+
+/* Final detail pass: chart help is a real dialog trigger, not a decorative
+   character. Long translated titles wrap without pushing help off-screen. */
+#hzv3 #hzv3-hist-title,
+#hzv3 #hzv3-trend-title{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:6px;min-width:0
+}
+#hzv3 .hzv4-chart-title-text{
+  min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;line-height:1.33
+}
+#hzv3 #hzv3-hist-title button.hzm-help-trigger,
+#hzv3 #hzv3-trend-title button.hzm-help-trigger{
+  flex:0 0 18px;width:18px;height:18px;margin:0;
+  display:grid;place-items:center;align-self:flex-start;
+  border-radius:50%;border:1px solid rgba(137,204,246,.47);
+  color:#c8e7ff;background:rgba(60,92,145,.23);
+  font-size:12px;line-height:1;cursor:help
+}
+#hzv3 #hzv3-hist-title button.hzm-help-trigger:hover,
+#hzv3 #hzv3-trend-title button.hzm-help-trigger:hover{
+  color:#fbfaff;border-color:#43e9fb;box-shadow:0 0 9px rgba(32,225,253,.25)
+}
+@media(min-width:768px){
+  #simulations-pane[data-hzm-view="players"] #hzv3 .hzv3-athlete-name{
+    font-size:16px;line-height:1.12;letter-spacing:-.25px
+  }
+}
+@media(max-width:767px){
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] .hzv4-chart-title-text{
+    white-space:normal;overflow:visible;text-overflow:clip;line-height:1.4
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="players"] #hzv3-trend-title{
+    max-width:145px
+  }
+}
