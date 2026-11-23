@@ -2,7 +2,8 @@
 
 Independent of V7.2/V7.4/V7.5. ESPN's injury feed is not an official NBA
 starting-lineup confirmation. Unknown status never means confirmed available.
-For future matches, no projection is shown without a fresh injury report.
+For future matches, unknown participation must be labeled conditional, never
+misrepresented as confirmed availability.
 """
 from __future__ import annotations
 
@@ -82,14 +83,16 @@ def suppress_player_forecasts(players: list[dict], watch: dict | None,
     """Return safe projections and excluded identities without changing math.
 
     Finished matches retain their historical output and must not receive
-    *current* injury decisions retrospectively. If the feed is unavailable
-    before a future game, hold all upcoming player predictions.
+    *current* injury decisions retrospectively. For missing reports keep only
+    conditional future forecasts, but never publish explicit OUT or doubtful
+    projections that were matched to the selected player.
     """
     if not future:
         return players, []
-    if not report_is_current(watch):
-        return [], [{"name": p.get("name", ""), "team": p.get("team", ""),
-                     "status": "Brak aktualnego raportu"} for p in players]
+    # An unavailable provider is NOT permission to declare players healthy.
+    # A verified historical-based model output can still be useful as
+    # "if the athlete plays", with this uncertainty in every server response.
+    # Explicitly classified OUT and high-risk athletes stay suppressed.
     visible, excluded = [], []
     for player in players:
         status = str(player.get("availability") or "Niezweryfikowany")
