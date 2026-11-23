@@ -222,3 +222,35 @@
     width:100%!important;height:auto!important;min-height:140px!important;overflow:visible!important;
   }
 }
+
+
+/* Explicit mobile grid placement: inherited desktop selectors otherwise
+   assign automatic columns and collapse the chart to a sliver. */
+@media(max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+  html:has(#app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"]),
+  body:has(#app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"]){
+    overflow-x:hidden!important;overflow-y:auto!important;height:auto!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-visual{
+    grid-template-columns:minmax(0,1fr)!important;
+    grid-template-rows:230px auto!important;
+    align-items:stretch!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] #hzm-plot,
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-visual>.hzm-probability-panel{
+    grid-column:1 / -1!important;min-width:0!important;max-width:100%!important;
+    width:100%!important;justify-self:stretch!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-tabs{
+    flex:none!important;align-self:stretch!important;
+    height:39px!important;min-height:39px!important;max-height:39px!important;
+    grid-template-rows:39px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-tabs>button{
+    height:39px!important;min-height:39px!important;max-height:39px!important;
+    align-self:stretch!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="results"] .hzm-chart-card>header{
+    flex:0 0 auto!important;max-height:none!important;
+  }
+}
