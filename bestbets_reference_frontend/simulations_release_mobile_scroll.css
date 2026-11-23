@@ -26,3 +26,37 @@
   z-index:1101!important;
   pointer-events:auto!important;
 }
+
+
+/* On 320px screens the V7.4 label previously retained its intrinsic
+   no-wrap width, forcing the model chevron 23px outside the phone viewport.
+   Keep the actual control within its grid column and expose the complete
+   option descriptions in a right-aligned dropdown instead. */
+@media (max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape) {
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-model-choice,
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-model-dropdown,
+  #app-shell.hz-mobile-intelligence #simulations-pane #hzm-model-trigger {
+    min-width:0!important;
+    max-width:100%!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane #hzm-model-trigger {
+    overflow:hidden!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane #hzm-model-current {
+    flex:1 1 auto!important;
+    display:block!important;
+    min-width:0!important;
+    overflow:hidden!important;
+    white-space:nowrap!important;
+    text-overflow:ellipsis!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane .hzm-model-chevron {
+    flex:0 0 28px!important;
+  }
+  #app-shell.hz-mobile-intelligence #simulations-pane #hzm-model-options:not([hidden]) {
+    right:0!important;
+    left:auto!important;
+    width:min(249px,calc(100vw - 24px))!important;
+    max-width:calc(100vw - 24px)!important;
+  }
+}
