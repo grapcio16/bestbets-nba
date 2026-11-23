@@ -242,6 +242,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="scenario_builder_premium_v2.css">
 <link rel="stylesheet" href="player_simulations_premium_v4.css">
 <link rel="stylesheet" href="results_distributions_premium_v2.css">
+<link rel="stylesheet" href="backtest_premium_v2.css">
 </head>
 <body>
 <!-- Original, reusable HOOPZARO icons: one visual language on desktop and mobile. -->
@@ -1497,7 +1498,7 @@ function resize(){
   // All active Premium module views use native-width phone UI.
   // All other existing Premium modules keep their current viewport behavior.
   const mobileIntelligence=mobileLayout && state.page==="simulations" &&
-    ["intelligence","comparison","scenario","players","results"].includes($("simulations-pane")?.dataset.hzmView);
+    ["intelligence","comparison","scenario","players","results","backtest"].includes($("simulations-pane")?.dataset.hzmView);
   shell.classList.toggle("hz-mobile-intelligence",mobileIntelligence);
   shell.classList.toggle("hz-mobile-centre",mobileHome);
   shell.classList.toggle("hz-mobile-schedule",mobileSchedule);
