@@ -1,0 +1,54 @@
+name: Hoopzaro Premium Player Simulations V4 QA
+
+on:
+  pull_request:
+    branches: [main, feature/premium-scenario-builder-v2-visual]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  players-v4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Chromium and app requirements
+        run: |
+          python -m pip install -r requirements.txt 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - name: Verify premium UI isolation and player rights
+        run: |
+          node --check bestbets_reference_frontend/player_simulations_v3.js
+          node --check bestbets_reference_frontend/simulations.js
+          python -m py_compile test_player_simulations_neon_browser.py test_player_simulations_visual_data.py
+          python - <<'PY'
+          from pathlib import Path
+          base=Path('bestbets_reference_frontend')
+          html=(base/'index.html').read_text(encoding='utf-8')
+          css=(base/'player_simulations_premium_v4.css').read_text(encoding='utf-8')
+          js=(base/'player_simulations_v3.js').read_text(encoding='utf-8')
+          assert 'href="player_simulations_premium_v4.css"' in html
+          assert 'hzv4-eyebrow' in html
+          assert 'id="hzv3-model-context"' in html
+          assert '["intelligence","comparison","scenario","players"].includes' in html
+          assert '#simulations-pane[data-hzm-view="players"]' in css
+          assert 'document.createTextNode(label' in js
+          assert 'a.espncdn.com/i/headshots/' not in js
+          assert "record?.scenario_distribution" in (base/'simulations.js').read_text(encoding='utf-8')
+          print("Model and historical analysis remain separate. No external player photos.")
+          PY
+      - name: Pre-tipoff verified history and season coverage tests
+        run: python -m unittest test_player_simulations_visual_data.py
+      - name: Chromium desktop/mobility, data integrity, controls and Premium gate
+        run: python test_player_simulations_neon_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hoopzaro-player-premium-v4-chromium-views
+          path: test-results/hoopzaro-player-v4/*.png
+          if-no-files-found: ignore
