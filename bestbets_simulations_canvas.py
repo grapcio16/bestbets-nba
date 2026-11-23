@@ -401,6 +401,12 @@ def _fresh_selected_injury_feed():
     return injuries(refresh=True)
 
 
+@st.cache_data(ttl=150, max_entries=30, show_spinner=False)
+def _fresh_selected_team_injuries(team: str):
+    from simulation_injury_sources import _team_fetch
+    return _team_fetch(team)
+
+
 @st.cache_data(ttl=60, max_entries=90, show_spinner=False)
 def _selected_injury_watch(day: str, game_id: str) -> dict:
     """Read ESPN injury entries for the exact upcoming matchup, independent of
@@ -424,7 +430,11 @@ def _selected_injury_watch(day: str, game_id: str) -> dict:
         return {"fresh": False, "valid_until": None, "rows": [],
                 "reason": "Mecz nie jest już przed rozpoczęciem."}
     try:
-        raw, meta = _fresh_selected_injury_feed()
+        from simulation_injury_sources import selected_matchup_availability
+        raw, meta = selected_matchup_availability(
+            str(fixture["away"]), str(fixture["home"]),
+            league_fetch=_fresh_selected_injury_feed,
+            team_fetch=_fresh_selected_team_injuries)
         report, match_meta = matchup_injuries(
             raw, str(fixture["home"]), str(fixture["away"]), meta)
         fetched = pd.to_datetime((meta or {}).get("timestamp"),
@@ -432,10 +442,12 @@ def _selected_injury_watch(day: str, game_id: str) -> dict:
         fresh = bool(pd.notna(fetched) and fetched <= now
                      and (now - fetched).total_seconds() <= 90 * 60
                      and not (meta or {}).get("stale")
-                     and match_meta.get("available"))
+                     and (meta or {}).get("available") is True)
         if not fresh:
             return {"fresh": False, "valid_until": None, "rows": [],
-                    "reason": "Brak aktualnego odczytu ESPN. Nie potwierdzono statusów."}
+                    "source": str(meta.get("source") or "ESPN"),
+                    "reason": ("Brak aktualnego odczytu ESPN. Prognozy będą "
+                               "warunkowe, bez potwierdzenia występu.")}
         grouped = {}
         for row in report.to_dict("records"):
             code = str(row.get("Drużyna") or "")
@@ -458,16 +470,24 @@ def _selected_injury_watch(day: str, game_id: str) -> dict:
                          "espn_id": next(iter(item["espn_ids"]))
                              if len(item["espn_ids"]) == 1 else ""})
         rows.sort(key=lambda x: (x["team"], x["name"]))
+        partial = bool(meta.get("partial"))
         return {"fresh": True,
                 "checked_at": fetched.isoformat(),
                 "valid_until": (fetched + pd.Timedelta(minutes=90)).isoformat(),
-                "rows": rows[:80], "reason": ""}
+                "source": str(meta.get("source") or "ESPN"),
+                "coverage_teams": list(meta.get("coverage_teams") or []),
+                "partial": partial,
+                "rows": rows[:80], "reason": (
+                    "Odczyt tylko części drużyn. Występy pozostałych niepotwierdzone."
+                    if partial else "")}
     except (OSError, RuntimeError, ValueError, KeyError, TypeError) as exc:
         import logging
         logging.getLogger(__name__).warning(
             "Selected ESPN injuries unavailable: %s", type(exc).__name__)
         return {"fresh": False, "valid_until": None, "rows": [],
-                "reason": "Nie udało się odczytać ESPN. Brak potwierdzonych statusów."}
+                "source": "ESPN",
+                "reason": ("Nie udało się odczytać ESPN. "
+                           "Projekcje warunkowe — statusy niepotwierdzone.")}
 
 
 @st.cache_data(ttl=60, max_entries=50, show_spinner=False)
@@ -485,17 +505,13 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
     if pd.isna(tipoff) or (match.get("state") == "scheduled" and
                             tipoff <= pd.Timestamp.now(tz="UTC")):
         return {"error": "Nieaktualny termin spotkania.", "players": []}
-    # Verify the current report BEFORE computing new player numbers.
+    # Availability is supplemental evidence, not a mandatory ESPN uptime
+    # dependency for displaying verified historical-based projections.
+    # When unavailable, every forecast is conditional on the athlete playing.
     future = match.get("state") == "scheduled"
     injury_watch = (_selected_injury_watch(day, game_id)
                     if future else {"fresh": False, "rows": [],
                                     "reason": "Mecz zakończony."})
-    if future and not report_is_current(injury_watch):
-        return {"players": [], "minute_roster": [],
-                "injury_watch": injury_watch, "excluded_players": [],
-                "pregame": True,
-                "error": ("Wstrzymano prognozy zawodników: brak aktualnego "
-                          "raportu kontuzji ESPN. Odśwież Injury Watch.")}
 
     season = _season_at(tipoff)
     historical, _ = _history_for_simulations(season)
@@ -529,7 +545,7 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
         historical, historical_logs, tipoff,
         (str(match["away"]), str(match["home"]))
     )
-    # Injury Watch was validated before running the player projector.
+    # Rosters do not prove everyone is cleared to play.
     roster, verified_roster_teams, roster_warning = _minute_roster_for_fixture(
         str(match["away"]), str(match["home"]))
     if table is None or table.empty:
@@ -662,8 +678,14 @@ def _game_players(day: str, game_id: str, model_id: str = "research_form_v74"):
         str(item["name"]).casefold()))
     return {"players": players, "minute_roster": minute_roster,
             "pregame": future, "excluded_players": excluded_players,
-            "availability_policy": ("OUT / niepewny występ bez prognozy"
-                                    if future else "Mecz historyczny"),
+            "availability_conditional": bool(
+                future and not report_is_current(injury_watch)),
+            "availability_source": str(injury_watch.get("source") or "ESPN")[:55],
+            "availability_policy": (
+                "Bez aktualnych statusów: prognozy warunkowe (jeśli zawodnik wystąpi)"
+                if future and not report_is_current(injury_watch)
+                else "OUT / niepewny występ bez prognozy"
+                if future else "Mecz historyczny"),
             "minute_roster_warning": roster_warning,
             "home": str(match["home"]),
             "model_id": model_id, "error": "",
@@ -695,8 +717,10 @@ def simulation_for_entitled_user(day: str, game_id: str, players: bool = False,
             # A cached report can expire AFTER its original calculation.
             # Never release yesterday's 'safe' forecast from the server.
             if pack.get("pregame") and not report_is_current(pack.get("injury_watch")):
-                return {**pack, "players": [], "minute_roster": [],
-                        "error": "Wstrzymano prognozy: raport ESPN utracił ważność."}
+                return {**pack, "availability_conditional": True,
+                        "availability_policy": (
+                            "Brak aktualnego raportu: prognozy warunkowe, "
+                            "nie potwierdzenie występu zawodników.")}
             return pack
         return _game_simulation(day, game_id, model_id)
     except (ValueError, TypeError, KeyError, RuntimeError) as exc:
@@ -820,8 +844,9 @@ def player_minutes_scenario_for_entitled_user(
         player_pack = _game_players(day, game_id, model_id)
         if not isinstance(player_pack, dict) or player_pack.get("error"):
             return {"error": "Zweryfikowane projekcje zawodników są niedostępne."}
-        if not report_is_current(player_pack.get("injury_watch")):
-            return {"error": "Wstrzymano analizę minut: raport kontuzji ESPN jest nieaktualny."}
+        # A missing feed cannot confirm participation. Historical-minute
+        # sensitivity remains a hypothetical exercise, not a verified lineup.
+        # Explicit OUT/risk statuses remain blocked below.
         choices = [p for p in player_pack.get("players", [])
                    if p.get("name") == player_name.strip() and p.get("team") == team]
         if len(choices) != 1:
