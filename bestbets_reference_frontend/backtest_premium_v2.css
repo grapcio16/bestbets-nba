@@ -133,3 +133,17 @@
 @media(prefers-reduced-motion:reduce){
   #simulations-pane[data-hzm-view="backtest"] #hzm-backtest-run{transition:none!important}
 }
+
+
+/* The app's global html/body overflow-x:hidden creates a nested scroll
+   container on mobile Chromium/WebKit. The content then has full height but
+   window.scrollY remains zero, so lower backtest rows are unreachable.
+   Clip horizontal decoration without establishing that scroll container.
+   Scope to this backtest view only; leave other pages untouched. */
+@media(max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+  html:has(#app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"]),
+  body:has(#app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="backtest"]){
+    height:auto!important;min-height:100%!important;
+    overflow-x:clip!important;overflow-y:visible!important;
+  }
+}
