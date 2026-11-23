@@ -473,8 +473,7 @@ def _selected_injury_watch(day: str, game_id: str) -> dict:
                 "source": ("NBA oficjalny + ESPN" if primary_usable
                            else "NBA oficjalny"),
                 "coverage_teams": all_teams,
-                "partial": bool(meta.get("partial")) and
-                    len(all_teams) < 2,
+                "partial": len(all_teams) < 2,
             }
         report, match_meta = matchup_injuries(
             raw, str(fixture["home"]), str(fixture["away"]), meta)
