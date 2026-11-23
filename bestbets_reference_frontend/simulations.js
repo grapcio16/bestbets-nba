@@ -1068,15 +1068,11 @@ function playerInitials(item){
    .map(name=>name[0]).join("").toUpperCase().slice(0,3);
 }
 function playerAvatar(item,large=false){
- const id=String(item?.espn_id||"");
+ // Keep the retired/legacy roster copyright-safe too: the hidden old view
+ // must not make unintended ESPN headshot network requests in parallel.
  const initials=playerInitials(item);
- // ESPN ID comes from the same verified historical boxscore as the name and
- // team; unverified identities use the typographic portrait fallback.
- const image=/^\d{1,12}$/.test(id)
-    ?'<img src="https://a.espncdn.com/i/headshots/nba/players/full/'+id+
-      '.png" alt="" loading="lazy" referrerpolicy="no-referrer">':"";
  return '<span class="hzm-player-avatar'+(large?' large':'')+'" aria-hidden="true">'+
-   '<span class="hzm-avatar-fallback">'+esc(initials||"NBA")+'</span>'+image+'</span>';
+   '<span class="hzm-avatar-fallback">'+esc(initials||"NBA")+'</span></span>';
 }
 function playerMetric(item,market){
  const a=safeProjection(item?.pts),b=safeProjection(item?.reb),c=safeProjection(item?.ast);
