@@ -72,7 +72,7 @@ def check_visitor_gate(page, data):
         assert page.locator(panel).is_visible(), view
         if view == "results":
             assert page.locator("#hzm-plot svg").count() == 0
-            assert "Premium" in page.locator("#hzm-plot").inner_text()
+            assert "Symulacje wymagają uwierzytelnienia" in page.locator("#hzm-plot").inner_text()
         elif view == "players":
             assert page.locator("#hzv3-roster .hzv3-player").count() == 0
             assert "QA Test Player" not in page.locator("#hzv3-inspector").inner_text()
