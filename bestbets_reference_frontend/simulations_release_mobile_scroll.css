@@ -1,0 +1,16 @@
+/* HOOPZARO Simulation Lab — final phone integration scroll correction.
+   The global html/body overflow-x:hidden forms a separate scroll container
+   in Chromium/WebKit and prevents window scrolling on tall Premium screens.
+   Use overflow-x:clip (not hidden) when a native-width Simulation Lab view
+   is active, without changing desktop, Home, Schedule or the research Flow.
+   This file is loaded AFTER individual module styles.
+*/
+@media (max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape) {
+  html:has(#app-shell.hz-mobile-intelligence #simulations-pane:not([hidden])),
+  body:has(#app-shell.hz-mobile-intelligence #simulations-pane:not([hidden])) {
+    height:auto!important;
+    min-height:100%!important;
+    overflow-x:clip!important;
+    overflow-y:visible!important;
+  }
+}
