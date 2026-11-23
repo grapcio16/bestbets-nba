@@ -121,6 +121,9 @@ def main():
                 assert m["row"]["width"] >= 310, m
                 assert m["scroll"] <= m["viewport"] + 2, m
                 assert page.locator(".hzm-backtest-metrics-head").is_hidden(), m
+                assert page.locator(".hzm-simulation-count").is_hidden()
+                assert page.locator("#hzm-insights").is_hidden()
+
                 metric = page.locator(".hzm-backtest-model b").first
                 assert metric.evaluate(
                     "el => getComputedStyle(el,'::before').content"
