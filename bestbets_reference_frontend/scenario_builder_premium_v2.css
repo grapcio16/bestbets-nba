@@ -1,0 +1,409 @@
+/* HOOPZARO Premium / Scenario Lab V2
+   Reference: second approved six-screen mock. Purely visual.
+   Baseline/scenario values, distributions, and conclusions are always
+   sourced from existing model/what-if responses, never illustrations. */
+#simulations-pane #hzm-scenario-panel[hidden]{display:none!important}
+#simulations-pane[data-hzm-view="scenario"] .hzm-hero{display:none!important}
+#simulations-pane[data-hzm-view="scenario"] .hzm-header{
+ height:49px;min-height:49px;align-items:center;gap:7px;padding:0 1px 4px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-title{gap:8px}
+#simulations-pane[data-hzm-view="scenario"] .hzm-title h1{
+ font-size:20px;line-height:26px;letter-spacing:-.7px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-lab-subtitle{display:none}
+#simulations-pane[data-hzm-view="scenario"] .hzm-premium{
+ height:29px;margin-top:0;padding:0 8px;font-size:10px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-match-picker{
+ margin-top:0;min-width:96px;height:31px;flex-basis:125px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-model-choice{flex-basis:174px}
+#simulations-pane[data-hzm-view="scenario"] .hzm-model-dropdown{width:174px}
+#simulations-pane[data-hzm-view="scenario"] .hzm-day-control{margin-top:0}
+#simulations-pane[data-hzm-view="scenario"] .hzm-simulation-count{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ min-width:69px;height:34px;margin-top:0;padding:2px 5px;
+ border:1px solid rgba(65,148,193,.57);border-radius:8px;
+ background:linear-gradient(115deg,#092640,#131d46);box-sizing:border-box
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-simulation-count>small{
+ display:block;white-space:nowrap;font-size:7px;letter-spacing:.15px;line-height:11px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-simulation-count>strong{
+ display:block;white-space:nowrap;font-size:13px;line-height:17px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-lab-nav{
+ min-height:36px;margin-bottom:6px;padding:3px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-lab-nav button{height:28px}
+#simulations-pane[data-hzm-view="scenario"] .hzm-content{
+ height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-panel.hzm-scenario-premium-v2{
+ display:grid!important;grid-template-columns:minmax(0,1.03fr) minmax(0,1.39fr) minmax(0,1.01fr)!important;
+ gap:10px!important;align-items:stretch!important;width:100%!important;
+ padding:0 0 14px!important;height:auto!important;min-height:0!important;
+ overflow:visible!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-v2-heading{
+ grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;
+ gap:12px;min-width:0;padding:12px 17px 11px;
+ border:1px solid transparent;border-radius:13px;
+ background:
+ radial-gradient(ellipse 32% 160% at 100% 0%,rgba(163,73,246,.23),transparent 80%) padding-box,
+ linear-gradient(120deg,#071d3a,#13163a) padding-box,
+ linear-gradient(90deg,#24dff3,#9b66e7 80%,#d47af7) border-box;
+ box-shadow:0 0 17px rgba(64,58,189,.15),inset 0 1px rgba(168,224,255,.14)
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-v2-heading-copy{min-width:0}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-v2-heading-copy small{
+ display:block;font-size:9px;line-height:1.3;letter-spacing:1.6px;
+ font-weight:950;color:#59eefa;text-shadow:0 0 11px rgba(39,222,247,.33)
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-v2-heading h2{
+ margin:3px 0 4px;font-size:23px;line-height:1.15;font-weight:950;
+ color:#f7faff;letter-spacing:-.6px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-v2-heading h2 span{
+ color:#cbb4ff;text-shadow:0 0 10px rgba(182,92,237,.2)
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-v2-heading p{
+ max-width:710px;margin:0;font-size:10px;line-height:1.45;color:#a8c6e0
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-v2-experimental{
+ display:inline-flex;align-items:center;justify-content:center;gap:8px;
+ flex:0 0 auto;padding:8px 10px;min-height:30px;
+ border:1px solid rgba(192,91,235,.73);border-radius:8px;
+ background:linear-gradient(105deg,rgba(80,30,110,.68),rgba(24,17,58,.89));
+ box-shadow:0 0 14px rgba(163,64,223,.16),inset 0 1px rgba(232,170,255,.12);
+ color:#e6b3ff;font-size:9px;letter-spacing:.35px;font-weight:950;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-v2-experimental>span{
+ font-size:15px;line-height:1
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-card{
+ height:auto!important;min-height:525px!important;max-height:none!important;
+ overflow:visible!important;
+ padding:13px 12px!important;border-radius:13px!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-control{
+ border-color:#a45cec!important;
+ box-shadow:inset 0 1px rgba(228,172,255,.23),
+ 0 0 21px rgba(168,69,246,.17),0 12px 27px rgba(0,8,31,.22)!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-output{
+ border-color:#2ce6f8!important;
+ box-shadow:inset 0 1px rgba(125,233,255,.22),
+ 0 0 18px rgba(14,215,249,.16),0 12px 24px rgba(0,8,31,.23)!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insights{
+ border-color:#bd63fa!important;
+ box-shadow:inset 0 1px rgba(231,170,255,.21),
+ 0 0 20px rgba(182,86,255,.2),0 12px 24px rgba(0,8,31,.2)!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-card-head{
+ height:auto!important;min-height:34px!important;
+ padding:0 0 9px!important;margin:0 0 10px!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-card-head>strong{
+ font-size:14px!important;white-space:normal!important;
+ line-height:1.25!important;letter-spacing:-.22px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-head-icon{
+ font-size:20px!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-lead{
+ font-size:10px!important;line-height:1.55!important;margin-bottom:9px!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-editor{
+ display:flex;flex-direction:column;gap:10px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor{
+ padding:10px 9px;border-radius:10px;
+ border:1px solid rgba(52,126,184,.34);
+ background:linear-gradient(120deg,rgba(8,41,73,.7),rgba(29,31,78,.56));
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-team-sliders{
+ display:flex;flex-direction:column;gap:10px;
+ border:0!important;padding:0!important;margin:0!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor>label{
+ display:flex;align-items:center;gap:8px;font-size:11px!important;line-height:1.3;
+ font-weight:850;color:#e5f3ff
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor>label strong{
+ margin-left:auto;font-size:11px;color:#5de6fc
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor-icon{
+ flex:0 0 22px;width:22px;height:22px;
+ display:inline-grid;place-items:center;font-size:14px;
+ border-radius:6px;border:1px solid rgba(39,206,244,.47);
+ background:rgba(13,118,169,.18);color:#5ae9fb;
+ box-shadow:0 0 10px rgba(48,203,236,.12)
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-slider-line{
+ gap:9px;margin-top:8px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-slider-line output{
+ flex:0 0 52px;min-width:52px;min-height:31px;
+ display:grid;place-items:center;
+ padding:5px 2px!important;
+ border-radius:8px!important;border:1px solid #258db4!important;
+ background:rgba(4,73,103,.44)!important;
+ color:#61f0ff!important;font-size:12px!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor:has(#hzm-scenario-off-home) output{
+ border-color:#985ad6!important;background:rgba(92,43,136,.32)!important;color:#efb7ff!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-slider-line input[type=range]{
+ min-height:28px;cursor:pointer
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-ticks{
+ margin:2px 0 0!important;font-size:8px!important;line-height:1.25
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-minute-link{
+ margin:0;padding:7px 8px;border-radius:9px;
+ background:rgba(21,46,89,.44);border:1px solid rgba(88,103,178,.39)
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-minute-link button{
+ min-height:28px;font-size:9px!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-presets{
+ margin-top:11px;border-top:1px solid rgba(91,120,171,.35);padding-top:9px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-preset-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-preset-grid button{
+ min-height:53px;padding:8px 5px!important;border-radius:9px!important;
+ border-color:#2b9fc8!important;
+ background:linear-gradient(125deg,rgba(4,74,100,.66),rgba(11,32,69,.87))!important;
+ box-shadow:inset 0 1px rgba(122,222,255,.1),0 0 12px rgba(0,191,234,.075)
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-preset-grid button:nth-child(even){
+ border-color:#ac63e4!important;
+ background:linear-gradient(125deg,rgba(74,30,110,.66),rgba(33,23,69,.94))!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-preset-grid button.is-active{
+ border-color:#4aeaff!important;
+ box-shadow:0 0 15px rgba(25,205,241,.28)!important
+}
+#simulations-pane[data-hzm-view="scenario"] #hzm-scenario-run{
+ width:100%;min-height:39px!important;height:auto!important;flex:0 0 auto;
+ margin:12px 0 7px!important;border-color:#45edff!important;border-radius:9px!important;
+ font-size:12px!important;
+ box-shadow:0 0 16px rgba(18,225,248,.26),inset 0 1px rgba(235,248,255,.28)!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-disclaimer{
+ margin:0!important;font-size:9px!important;line-height:1.45!important;
+ color:#aabbd4!important;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-compare{gap:8px}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-compare>div{
+ min-height:80px;padding:9px!important;border-radius:10px!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-compare strong{
+ font-size:24px!important;line-height:29px!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-compare small{
+ font-size:10px!important;line-height:1.3!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-delta{
+ margin:9px 0!important;font-size:10px!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-table-head{
+ min-height:28px;padding:6px 5px;font-size:8px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-table-row{
+ min-height:31px;padding:6px 6px;font-size:10px!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-table-row b,
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-table-row strong{
+ font-size:10px!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-table-row>label:first-child,
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-table-row>span:first-child{
+ white-space:normal;overflow-wrap:anywhere
+}
+#simulations-pane[data-hzm-view="scenario"] #hzm-scenario-ou-line{
+ height:23px;min-width:45px;max-width:53px;width:53px;font-size:10px;
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-curve-wrap{
+ flex:1 1 auto;min-height:165px;
+ padding:9px 7px 8px;margin:9px 0 7px;
+ border-color:rgba(32,203,245,.72);
+ background:linear-gradient(125deg,rgba(6,40,70,.72),rgba(8,20,49,.87));
+ box-shadow:inset 0 1px rgba(133,225,255,.11)
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-curve-viewport{
+ display:block;width:100%;min-height:153px;height:153px;flex:1 1 auto
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-chart-title strong{font-size:11px}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-chart-title>span{
+ white-space:normal;text-align:right;font-size:9px
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-curve-legend{font-size:9px}
+#simulations-pane[data-hzm-view="scenario"] #hzm-scenario-status{
+ font-size:10px!important;line-height:1.45!important;margin:7px 0 3px!important
+}
+#simulations-pane[data-hzm-view="scenario"] #hzm-scenario-context{
+ font-size:9px!important;line-height:1.4!important
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insight-list{
+ display:flex;flex-direction:column;gap:8px;
+ flex:1 1 auto;overflow:visible!important;min-height:0
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insight{
+ min-height:104px;flex:1 1 auto;padding:11px 8px;gap:9px;
+ border-color:rgba(87,130,189,.67);
+ background:linear-gradient(140deg,rgba(19,37,76,.92),rgba(21,28,65,.88));
+ box-shadow:inset 0 1px rgba(146,224,255,.12)
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insight:nth-child(2){
+ border-color:rgba(157,90,214,.62)
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insight:nth-child(3){
+ border-color:rgba(43,175,213,.65)
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insight:nth-child(4){
+ border-color:rgba(188,156,72,.55)
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insight p{
+ font-size:10px;line-height:1.45
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insight>div>strong{
+ font-size:11px;line-height:1.25
+}
+#simulations-pane[data-hzm-view="scenario"] .hzm-minute-panel{
+ margin-top:2px!important
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+ #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-card:hover{
+  box-shadow:0 0 25px rgba(49,171,245,.17),inset 0 1px rgba(204,236,255,.25)!important
+ }
+}
+@media(max-width:1090px){
+ #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-panel.hzm-scenario-premium-v2{
+  grid-template-columns:minmax(0,1fr) minmax(0,1.12fr)!important
+ }
+ #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insights{
+  grid-column:1/-1
+ }
+ #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insight-list{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr))
+ }
+}
+@media(max-width:767px), (min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-panel.hzm-scenario-premium-v2{
+  grid-template-columns:minmax(0,1fr)!important;gap:12px!important
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-v2-heading{
+  flex-direction:column;align-items:flex-start;gap:9px;padding:15px 13px
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-v2-heading h2{
+  font-size:24px
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-v2-heading p{
+  font-size:11px;line-height:1.5
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-v2-experimental{
+  font-size:10px
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-card{
+  grid-column:1/-1;height:auto!important;min-height:0!important;max-height:none!important;
+  padding:16px 13px!important
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-card-head{
+  min-height:37px!important
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-card-head>strong{
+  font-size:16px!important
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-lead{
+  font-size:11px!important
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor{
+  padding:11px
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-factor>label{
+  font-size:12px!important
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-slider-line input[type=range]{
+  min-height:36px
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-slider-line output{
+  min-height:34px;font-size:13px!important
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-preset-grid button{
+  min-height:58px;padding:9px 6px!important;font-size:11px
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] #hzm-scenario-run{
+  min-height:44px!important;font-size:13px!important
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-disclaimer{
+  font-size:10px!important
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-compare>div{
+  min-height:86px
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-table-head,
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-table-row{
+  grid-template-columns:minmax(0,1.27fr) repeat(3,minmax(0,.72fr));
+  gap:5px;padding:8px 5px
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-table-head{
+  font-size:8px
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-table-row{
+  font-size:10px
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-curve-viewport{
+  min-height:175px;height:175px
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insights{
+  grid-column:1/-1
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insight-list{
+  display:flex;flex-direction:column
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insight{
+  min-height:88px;padding:11px 9px
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-insight p{
+  font-size:11px!important
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-minute-panel{
+  grid-column:1/-1;
+  display:flex!important;flex-direction:column;gap:11px!important;
+  padding:15px 12px!important
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-minute-head,
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-minute-controls,
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-minute-compare{
+  display:flex!important;flex-direction:column;align-items:stretch;
+  width:100%;min-width:0
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-minute-head strong{
+  font-size:15px!important
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-minute-note,
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-minute-status{
+  font-size:10px!important;line-height:1.5!important
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-minute-table-head,
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-minute-table-row{
+  grid-template-columns:minmax(0,1.25fr) repeat(5,minmax(0,.58fr));gap:2px;
+  font-size:9px;min-width:0
+ }
+ #app-shell.hz-mobile-intelligence #simulations-pane[data-hzm-view="scenario"] .hzm-minute-pra-change{
+  min-height:52px
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-card,
+ #simulations-pane[data-hzm-view="scenario"] #hzm-scenario-run{
+  transition:none!important;animation:none!important
+ }
+ #simulations-pane[data-hzm-view="scenario"] .hzm-scenario-line{animation:none!important}
+}
