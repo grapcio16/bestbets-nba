@@ -190,7 +190,7 @@ def run():
                     assert page.locator("#hzm-score").inner_text() == "115 : 116"
                     assert page.locator("#hzm-plot svg").count() == 1
                 elif view == "players":
-                    assert "QA Test Player" in page.locator("#hzv3-roster").inner_text()
+                    assert page.locator('#hzv3-roster .hzv3-player[aria-label^="QA Test Player ·"]').count() == 1
                 elif view == "scenario":
                     assert "WHAT-IF" in page.locator("#hzm-scenario-panel").inner_text()
                 elif view == "intelligence":
