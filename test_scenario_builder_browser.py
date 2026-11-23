@@ -137,7 +137,27 @@ def main():
         assert page.locator("#hzm-scenario-status").is_visible()
         # The app owns a scrolling #work container on desktop. Reset it after
         # clicking the Run button: screenshots must show the real first fold.
-        page.locator("#work").evaluate("el=>el.scrollTop=0")
+        page.evaluate("""() => {
+          if(document.activeElement?.blur)document.activeElement.blur();
+          for(const sel of ['#work','#simulations-pane','.hzm-content','.hzm-analysis']){
+            const el=document.querySelector(sel);if(el)el.scrollTop=0;
+          }
+          window.scrollTo(0,0);
+          document.body.scrollTop=0;
+          document.documentElement.scrollTop=0;
+        }""")
+        page.wait_for_timeout(100)
+        desktop_top=page.evaluate("""() => ({
+          work:document.querySelector('#work').scrollTop,
+          pane:document.querySelector('#simulations-pane').scrollTop,
+          content:document.querySelector('.hzm-content').scrollTop,
+          window:window.scrollY,
+          titleY:document.querySelector('.hzm-scenario-v2-heading').getBoundingClientRect().top,
+          leftY:document.querySelector('.hzm-scenario-control').getBoundingClientRect().top,
+          active:document.activeElement?.id||''
+        })""")
+        print("DESKTOP TOP FOLD:",desktop_top,flush=True)
+        assert 0<=desktop_top["titleY"]<300,desktop_top
         page.screenshot(path=str(OUT / "scenario-v2-desktop-first-fold.png"))
         page.locator("#hzm-scenario-insight-risk").scroll_into_view_if_needed()
         page.screenshot(path=str(OUT / "scenario-v2-desktop-scrolled.png"))
