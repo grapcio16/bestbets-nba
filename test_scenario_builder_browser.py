@@ -135,8 +135,13 @@ def main():
         assert "80%" in page.locator("#hzm-scenario-insight-risk").inner_text()
         assert "what-if" in page.locator("#hzm-scenario-insight-total").inner_text()
         assert page.locator("#hzm-scenario-status").is_visible()
-        page.locator("#hzm-scenario-panel").screenshot(path=str(OUT / "scenario-v2-desktop-whatif.png"))
-        page.screenshot(path=str(OUT / "scenario-v2-desktop-page.png"),full_page=True)
+        # The app owns a scrolling #work container on desktop. Reset it after
+        # clicking the Run button: screenshots must show the real first fold.
+        page.locator("#work").evaluate("el=>el.scrollTop=0")
+        page.screenshot(path=str(OUT / "scenario-v2-desktop-first-fold.png"))
+        page.locator("#hzm-scenario-insight-risk").scroll_into_view_if_needed()
+        page.screenshot(path=str(OUT / "scenario-v2-desktop-scrolled.png"))
+        page.locator("#work").evaluate("el=>el.scrollTop=0")
 
 
         # Independent team adjustments must invalidate previous cached results
@@ -231,10 +236,23 @@ def main():
         assert mobile["overflow"]<=2 and mobile["fontSize"]>=10,mobile
         assert mobile["bodyHeight"]>mobile["winHeight"]+450,mobile
         page.locator("#hzm-scenario-insight-risk").scroll_into_view_if_needed()
-        assert page.locator("#hzm-scenario-insight-risk").is_visible()
+        visible = page.locator("#hzm-scenario-insight-risk").evaluate("""el=>{
+          const r=el.getBoundingClientRect();
+          return {top:r.top,bottom:r.bottom,windowHeight:window.innerHeight,
+           htmlScroll:document.documentElement.scrollTop,
+           bodyScroll:document.body.scrollTop,
+           panelScroll:document.querySelector('#simulations-pane').scrollTop,
+           rectWidth:r.width};
+        }""")
+        print("MOBILE RISK SCROLLED INTO VIEW:",visible,flush=True)
+        assert visible["top"]>=-2 and visible["top"]<visible["windowHeight"]-70,visible
+        assert visible["rectWidth"]>190,visible
+        page.screenshot(path=str(OUT / "scenario-v2-mobile-scrolled.png"))
         page.evaluate("window.scrollTo(0,0);document.body.scrollTop=0")
-        page.screenshot(path=str(OUT / "scenario-v2-mobile.png"),full_page=True)
-        page.locator("#hzm-scenario-panel").screenshot(path=str(OUT / "scenario-v2-mobile-panel.png"))
+        page.screenshot(path=str(OUT / "scenario-v2-mobile-first-fold.png"))
+        # Full-page snapshots can have blank padding when body and html are
+        # independently scrollable; viewport snapshots above are authoritative.
+
         page.locator("#hzm-lab-tab-results").click()
         assert not page.locator("#app-shell").evaluate(
             "el=>el.classList.contains('hz-mobile-intelligence')")
