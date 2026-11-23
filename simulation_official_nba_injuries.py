@@ -189,8 +189,9 @@ def selected_official_injury_rows(away: str, home: str, tipoff, *,
                        "source": "NBA oficjalny raport",
                        "timestamp": stamp.isoformat(),
                        "coverage_teams": sorted(set(frame["team"]))}
-    except (OSError, RuntimeError, ValueError, TypeError, KeyError,
-            requests.RequestException, ImportError) as exc:
+    except Exception as exc:
+        # Third-party PDF parsers may raise their own exception subclasses.
+        # A malformed NBA document must NEVER take down paid projections.
         import logging
         logging.getLogger(__name__).warning(
             "Official NBA injury source unavailable: %s", type(exc).__name__)
