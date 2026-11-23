@@ -23,11 +23,11 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Syntax and medical status gate
         run: |
-          python -m py_compile simulation_player_availability_guard.py bestbets_simulations_canvas.py bestbets_custom_screen.py availability_context.py test_premium_player_availability_guard.py test_premium_player_availability_browser.py
+          python -m py_compile simulation_player_availability_guard.py simulation_injury_sources.py simulation_official_nba_injuries.py bestbets_simulations_canvas.py bestbets_custom_screen.py availability_context.py test_premium_player_availability_guard.py test_premium_player_availability_browser.py test_simulation_injury_sources.py test_simulation_official_nba_injuries.py
           node --check bestbets_reference_frontend/simulations.js
           node --check bestbets_reference_frontend/player_simulations_v3.js
-      - name: All-model injury/roster unit regression
-        run: python -m unittest -v test_premium_player_availability_guard.py test_player_simulations_visual_data.py
+      - name: Official NBA PDF, ESPN fallback and injury/roster unit regression
+        run: python -m unittest -v test_simulation_official_nba_injuries.py test_simulation_injury_sources.py test_premium_player_availability_guard.py test_player_simulations_visual_data.py
       - name: UI injury gate desktop and iPhone — all models
         run: python test_premium_player_availability_browser.py
       - name: Existing Player Simulations regression
