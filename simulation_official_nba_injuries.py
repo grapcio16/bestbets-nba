@@ -56,7 +56,7 @@ def latest_report_url(html: str, *, now=None):
         age = (moment - stamp).total_seconds()
         # The NBA updates roughly every fifteen minutes. An older PDF can
         # contain outdated medical decisions. Do not trust it after 2h.
-        if age < 0 or age > 120 * 60:
+        if age < 0 or age > 90 * 60:
             continue
         if best is None or stamp > best[0]:
             best = (stamp, url)
