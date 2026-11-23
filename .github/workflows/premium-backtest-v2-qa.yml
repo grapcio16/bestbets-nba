@@ -1,0 +1,50 @@
+name: Hoopzaro Premium Backtest V2 QA
+
+on:
+  pull_request:
+    branches:
+      - main
+      - feature/premium-results-distributions-v2-polish
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  premium-backtest-v2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Chromium and app requirements
+        run: |
+          python -m pip install -r requirements.txt 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - name: Validate strict scope and test syntax
+        run: |
+          node --check bestbets_reference_frontend/simulations.js
+          python -m py_compile test_premium_backtest_v2_browser.py test_results_distributions_premium_browser.py
+          python - <<'PY'
+          from pathlib import Path
+          base = Path('bestbets_reference_frontend')
+          html = (base / 'index.html').read_text(encoding='utf-8')
+          css = (base / 'backtest_premium_v2.css').read_text(encoding='utf-8')
+          assert html.count('href="backtest_premium_v2.css"') == 1
+          assert '["intelligence","comparison","scenario","players","results","backtest"]' in html
+          assert '#simulations-pane[data-hzm-view="backtest"]' in css
+          assert 'b:nth-of-type(4)::before{content:"BRIER"}' in css
+          assert '<span>Brak wiarygodnego archiwum kursów — wynik niedostępny.</span>' in html
+          assert 'id="hzm-lab-tab-flow"' in html
+          print('Model V2 layout added, offline ROI disclaimer remains intact.')
+          PY
+      - name: Chromium 6-tab backtest evidence and mobile regression
+        run: python test_premium_backtest_v2_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hoopzaro-premium-backtest-v2-chromium
+          path: test-results/backtest-premium-v2/*.png
+          if-no-files-found: ignore
