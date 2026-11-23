@@ -293,6 +293,9 @@ def main():
             assert "Premium" in page.locator("#hzv3-roster").inner_text()
             if width<500:
                 page.locator("#hzm-lab-tab-results").click()
+                assert page.locator("#app-shell").evaluate(
+                  "el=>el.classList.contains('hz-mobile-intelligence')")
+                page.locator('#hz-mobile-nav [data-page="home"]').click()
                 assert not page.locator("#app-shell").evaluate(
                   "el=>el.classList.contains('hz-mobile-intelligence')")
             assert not errors, (width, height, errors)
