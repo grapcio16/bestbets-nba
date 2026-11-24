@@ -17,6 +17,11 @@ CREATE TABLE IF NOT EXISTS hoopzaro_v8_boxscores (
 );
 CREATE INDEX IF NOT EXISTS hz_v8_boxscores_by_date
  ON hoopzaro_v8_boxscores(start_utc);
+CREATE TABLE IF NOT EXISTS hoopzaro_v8_ingest_failures (
+ game_id TEXT PRIMARY KEY, season TEXT NOT NULL, reason TEXT NOT NULL,
+ last_attempt TIMESTAMPTZ NOT NULL DEFAULT now(),
+ attempts INTEGER NOT NULL DEFAULT 1
+);
 CREATE TABLE IF NOT EXISTS hoopzaro_v8_shadow_forecasts (
  game_id TEXT NOT NULL,
  model_id TEXT NOT NULL,
@@ -55,8 +60,13 @@ def initialize(url):
 def ids(url, season):
     with _connect(url) as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT game_id FROM hoopzaro_v8_boxscores WHERE season=%s",
-                        (season,))
+            # An invalid/OT boxscore must not occupy the same top-24
+            # collector slots every 4 hours. Retry after a cooling period.
+            cur.execute(
+                """SELECT game_id FROM hoopzaro_v8_boxscores WHERE season=%s
+                   UNION SELECT game_id FROM hoopzaro_v8_ingest_failures
+                   WHERE season=%s AND last_attempt > now()-interval '12 hours'""",
+                (season, season))
             return {str(row[0]) for row in cur.fetchall()}
 
 
@@ -64,6 +74,26 @@ COLUMNS = ("game_id", "season", "start_utc", "away", "home",
            "away_score", "home_score", "away_poss", "home_poss",
            "away_fga", "home_fga", "away_fta", "home_fta",
            "away_oreb", "home_oreb", "away_tov", "home_tov", "source")
+
+
+def record_ingest_failures(url, season, errors):
+    """Retriable rejection metadata, no raw restricted ESPN payload stored."""
+    with _connect(url) as conn:
+        with conn.cursor() as cur:
+            for error in errors:
+                code = str(error.get("game_id") or "")
+                reason = str(error.get("error_type") or "Unknown")[:80]
+                if not code.isdigit() or len(code) > 20:
+                    continue
+                cur.execute(
+                    """INSERT INTO hoopzaro_v8_ingest_failures
+                       (game_id,season,reason) VALUES (%s,%s,%s)
+                       ON CONFLICT(game_id) DO UPDATE SET
+                        season=EXCLUDED.season,
+                        reason=EXCLUDED.reason,
+                        last_attempt=now(),
+                        attempts=hoopzaro_v8_ingest_failures.attempts+1""",
+                    (code, season, reason))
 
 
 def store_boxes(url, rows):
