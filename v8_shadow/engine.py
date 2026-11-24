@@ -125,8 +125,12 @@ def _feature_row(game: dict, past: list[dict]):
     kickoff = _time(game["start_utc"])
     home_rest = (kickoff - home["last"]).total_seconds() / 86400 - 1
     away_rest = (kickoff - away["last"]).total_seconds() / 86400 - 1
-    if min(home_rest, away_rest) < -0.001:
-        raise ValueError("history leakage: game before an earlier game")
+    # Rest is full days *between* game starts, minus the game day.
+    # A real back-to-back can begin <24h after the previous tipoff and has
+    # zero days off; that is not chronology leakage. Only a previous game
+    # with a strictly LATER start time signals leakage.
+    if min(home_rest, away_rest) < -1.001:
+        raise ValueError("history leakage: previous game starts in future")
     rest = lambda n: float(min(max(n, 0.0), 5.0))
     def venue_shift(p, key):
         if p[key] is None:
