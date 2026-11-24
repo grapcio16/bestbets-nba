@@ -84,12 +84,13 @@ claims. No backtest uses data from after each historical prediction timestamp.
 - Draft PR holds changes until unit + real schema smoke are reviewed.
 - `.github/workflows/v8-shadow-collector.yml` installs research dependencies,
   connects only through existing GitHub Actions secret `TRACKER_DATABASE_URL`,
-  ingests max 18 missing final game boxscores per run and freezes eligible
+  ingests max 24 missing final game boxscores per run and freezes eligible
   future predictions with sufficient historical evidence.
 - Stored raw evidence is **per-game numeric summary**, not full ESPN JSON or
   protected user information. The archive is only accessible in Neon.
 - Missing provider availability must result in less training evidence,
   **never** in fabricated PACE or ORtg/DefRtg.
+- Historical source rejections are isolated from valid evidence; invalid IDs are retried only after a 12-hour cooldown. Never silently fabricate values.
 - Historical season backfill is intentionally bounded. Current season
   sufficient coverage may take multiple collection cycles. No promises of
   next-day predictive quality before checking actual stored sample sizes.
