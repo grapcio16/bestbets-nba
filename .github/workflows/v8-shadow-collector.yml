@@ -1,6 +1,11 @@
 name: HOOPZARO V8 shadow — isolated pregame research
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'v8_shadow/**'
+      - '.github/workflows/v8-shadow-collector.yml'
   schedule:
     - cron: '17 4,10,16,22 * * *'
   workflow_dispatch:
@@ -18,7 +23,7 @@ jobs:
     timeout-minutes: 12
     env:
       TRACKER_DATABASE_URL: ${{ secrets.TRACKER_DATABASE_URL }}
-      HOOPZARO_V8_BOX_FETCH_LIMIT: '18'
+      HOOPZARO_V8_BOX_FETCH_LIMIT: '24'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
