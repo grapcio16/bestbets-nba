@@ -45,3 +45,22 @@ def read_snapshot(url, season):
     except Exception:
         # Never return connection strings, database exceptions or provider payloads.
         return {"status": "unavailable"}
+
+
+def read_scorecard(url, season):
+    """Reuse the prospective evaluator without recalculating or settling games."""
+    if not url:
+        return {"status": "setup_required"}
+    try:
+        from psycopg.conninfo import make_conninfo
+        from v8_shadow.evaluation import read_report
+        bounded_url = make_conninfo(url, connect_timeout=5,
+            options="-c statement_timeout=5000 -c default_transaction_read_only=on")
+        report = read_report(bounded_url, season)
+        # Only aggregate scorecard fields are needed by the admin screen.
+        return {key: report[key] for key in (
+            "status", "season", "model_metrics", "common_game_comparisons",
+            "v8_archived_by_version", "v8_valid_settled_by_version",
+            "sample_disclaimer") if key in report}
+    except Exception:
+        return {"status": "unavailable"}
