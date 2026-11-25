@@ -17,15 +17,24 @@ def render():
         st.error("Access denied.")
         st.stop()
         return
-    from admin_data_intelligence import read_snapshot
+    from admin_data_intelligence import read_snapshot, read_scorecard
     from tracker_storage import tracker_database_url
 
     @st.cache_data(ttl=120, show_spinner=False)
     def snapshot(season):
         return read_snapshot(tracker_database_url(), season)
 
+    @st.cache_data(ttl=300, show_spinner=False)
+    def scorecard(season):
+        return read_scorecard(tracker_database_url(), season)
+
     st.markdown("""<style>
-    .stApp { background: #080d1c; color: #edf0ff; }
+    .stApp { background: radial-gradient(ellipse at 80% 0%, #21143c 0%, #080d1c 45%); color: #edf0ff; }
+    [data-testid="stMainBlockContainer"] { max-width: 1440px; padding-top: 2rem; }
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h1 { color: #c4b5fd; letter-spacing: .08em; }
+    [data-testid="stMetric"] { box-shadow: 0 0 18px #8b5cf618; }
+    [data-testid="stDataFrame"] { border-radius: 10px; overflow: hidden; }
+    @media(max-width: 700px) { [data-testid="stMainBlockContainer"] { padding: 1.2rem; } }
     [data-testid="stMetric"] { border: 1px solid #343052; border-radius: 14px;
         padding: 16px; background: #11192e; }
     [data-testid="stMetricValue"] { color: #b69aff; }
@@ -35,8 +44,13 @@ def render():
     st.sidebar.caption("CONTROL CENTER · ADMIN")
     section = st.sidebar.radio("Navigation", SECTIONS)
     st.sidebar.markdown("[Return to Hoopzaro](?)")
+    st.caption("HOOPZARO / CONTROL CENTER / " + section.upper())
     st.title(section)
-    st.caption("Internal administration · Read-only preview")
+    st.caption("Internal administration · Read-only preview · NBA 2026–27")
+    if st.sidebar.button("Refresh telemetry"):
+        snapshot.clear()
+        scorecard.clear()
+    st.divider()
     if section in ("Overview", "Data Center", "AI Engines", "Tracker"):
         data = snapshot("2026-27")
         worker = data.get("worker") or {}
@@ -60,6 +74,38 @@ def render():
             else:
                 st.info("No verified archive summary available.")
             st.caption("Archive counts are not accuracy metrics or proof of live source availability.")
+        if section in ("AI Engines", "Tracker"):
+            report = scorecard("2026-27")
+            st.subheader("Prospective model performance")
+            if report.get("status") in ("unavailable", "setup_required"):
+                st.warning("Verified scorecard unavailable.")
+            elif report.get("status") == "waiting_for_settled_games":
+                st.info("Waiting for valid settled V8 forecasts. No V8 accuracy claims.")
+            rows = report.get("common_game_comparisons") or []
+            if rows:
+                st.caption("Each pair uses identical verified final games and frozen pregame forecasts. Different pairs can have different samples.")
+                for comparison in rows:
+                    with st.expander(f'{comparison["left"]} vs {comparison["right"]} · {comparison["same_game_n"]} games'):
+                        if comparison.get("historical_training_sample_differs"):
+                            st.warning("Training sample sizes differ; effects of model changes cannot be isolated.")
+                        metrics = []
+                        for side in ("left", "right"):
+                            m = comparison[side + "_metrics"]
+                            metrics.append({
+                                "Model": comparison[side],
+                                "Games": m.get("n"),
+                                "Team MAE": m.get("team_points_mae"),
+                                "Total MAE": m.get("total_points_mae"),
+                                "Winner %": m.get("winner_hit_pct"),
+                                "Brier": m.get("brier"),
+                                "Scenario MAE": m.get("scenario_team_points_mae"),
+                                "Total interval coverage %": m.get("total_80pct_interval_coverage"),
+                                "Intervals checked": m.get("total_intervals_checked"),
+                            })
+                        st.dataframe(metrics, hide_index=True, use_container_width=True)
+            else:
+                st.info("No verified common-game comparisons available.")
+            st.caption("Research only. Small samples do not establish superiority. Lower MAE and Brier are better.")
         return
     pending = {
         "Users": "Accounts, roles and subscription access",
