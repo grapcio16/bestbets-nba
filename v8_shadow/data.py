@@ -185,6 +185,31 @@ def fetch_espn_summary(game, get=None):
     return parse_espn_summary(response.json(), game)
 
 
+def categorize_rejection(exc):
+    """Safe provider diagnosis, without persisting arbitrary exception texts."""
+    if isinstance(exc, requests.RequestException) or isinstance(
+        exc, (OSError, ConnectionError, TimeoutError)):
+        return "transport_unavailable"
+    if isinstance(exc, ValueError):
+        msg = str(exc).lower()
+        if "overtime" in msg:
+            return "overtime_unmodeled"
+        if ("required" in msg or "team boxscore" in msg or
+            "team statistics" in msg or "missing" in msg):
+            return "required_box_stats_missing"
+        if "score mismatch" in msg:
+            return "score_mismatch"
+        if ("team id mismatch" in msg or "both team" in msg or
+            "duplicate boxscore team" in msg):
+            return "team_evidence_mismatch"
+        if "possession" in msg:
+            return "invalid_possession_estimate"
+        if "final" in msg or "not completed" in msg:
+            return "unverified_final"
+        return "invalid_provider_schema"
+    return "provider_failure"
+
+
 def collect_team_boxes(finals, existing_ids=(), limit=16, fetch=None):
     """Safely bounded incremental collector. Network errors never mutate data."""
     if fetch is None:
@@ -216,8 +241,13 @@ def collect_team_boxes(finals, existing_ids=(), limit=16, fetch=None):
                 successful.append(box)
             except Exception as exc:
                 errors.append({"game_id": str(game["game_id"]),
-                               "error_type": type(exc).__name__})
+                               "reason_code": categorize_rejection(exc)})
+    reason_counts = {}
+    for failure in errors:
+        key = failure["reason_code"]
+        reason_counts[key] = reason_counts.get(key, 0) + 1
     return successful, {
+        "rejection_categories": reason_counts,
         "checked": len(selected), "accepted": len(successful),
         "rejected": len(errors),
         "rejections": errors[:20],
