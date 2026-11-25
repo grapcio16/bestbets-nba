@@ -5,6 +5,7 @@ A real research evaluation requires fetched observed boxscore history and
 prospectively frozen pregame game IDs in Neon.
 """
 import unittest
+from unittest.mock import patch
 from datetime import timedelta
 
 import numpy as np
@@ -82,6 +83,45 @@ class EngineTest(unittest.TestCase):
             home_score=180, away_score=65)
         contaminated = predict_v8(self.history+[future], self.match, self.time,n=1000)
         self.assertEqual(clean, contaminated)
+
+    def test_ongoing_match_result_cannot_leak_into_current_forecast(self):
+        # One game began an hour ago. It may already appear in a later
+        # completed dataset but was NOT yet final at this prediction instant.
+        clean = predict_v8(self.history, self.match, self.time, n=1000)
+        early = dict(self.history[-1])
+        early.update(
+            game_id="401999996",
+            start_utc=(self.time - pd.Timedelta(hours=1)).isoformat(),
+            home_score=175, away_score=68,
+        )
+        contaminated = predict_v8(self.history + [early], self.match,
+                                  self.time, n=1000)
+        self.assertEqual(clean, contaminated)
+
+    def test_adjacent_tipoffs_share_only_completed_prior_scores(self):
+        # Physical games need time to finish; earlier kickoff alone does
+        # not make a final score available to the subsequent tipoff.
+        start = pd.Timestamp("2026-11-25T00:00:00Z")
+        rows = [
+            {"game_id": str(401900000+i),
+             "start_utc": (start+pd.Timedelta(minutes=offset)).isoformat(),
+             "home_score": 111+i, "away_score": 105+i}
+            for i,offset in enumerate((0, 30, 180, 300))
+        ]
+        seen = {}
+        def remember(game, past):
+            seen[game["game_id"]] = [p["game_id"] for p in past]
+            return {"x": np.array([float(len(past))])}
+        with patch("v8_shadow.engine._feature_row", side_effect=remember):
+            features, labels = _examples(
+                rows, start + pd.Timedelta(hours=12))
+        self.assertEqual(len(features), 4)
+        self.assertEqual(len(labels), 4)
+        self.assertEqual(seen[rows[0]["game_id"]], [])
+        self.assertEqual(seen[rows[1]["game_id"]], [])
+        self.assertEqual(seen[rows[2]["game_id"]], [])
+        self.assertEqual(seen[rows[3]["game_id"]],
+                         [rows[0]["game_id"], rows[1]["game_id"]])
 
     def test_invalid_scores_no_guessed_box_stats(self):
         corrupted = list(self.history)
