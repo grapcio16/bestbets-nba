@@ -1,4 +1,4 @@
-"""HOOPZARO V8 Shadow v0.1 — independent, evidence-only possession model.
+"""HOOPZARO V8 Shadow v0.2 — independent, evidence-only possession model.
 
 This module intentionally imports NOTHING from V7 simulation engines. It uses
 only numpy/pandas, real past final box scores, and chronological training.
@@ -24,7 +24,7 @@ from math import isfinite
 import numpy as np
 import pandas as pd
 
-VERSION = "v8_possessions_shadow_v01"
+VERSION = "v8_possessions_shadow_v02"
 MIN_TEAM_GAMES = 5
 MIN_TRAIN = 40
 MIN_HOLDOUT = 16
@@ -269,6 +269,45 @@ def _scenario(draws, width=5):
     return [int(selected[0]), int(selected[1])], float(counts[chosen] / len(draws))
 
 
+def _resolve_overtime_draws(regulation, mean_score, rng):
+    """Convert tied 48-minute research draws into plausible final NBA scores.
+
+    A regulation tie cannot be an NBA FINAL. For each tied trajectory,
+    sample 5-minute overtime scoring with team-specific pregame PPP proxy
+    and a shared pace factor. This is a transparent approximation awaiting
+    empirical OT calibration; it is NOT a claim of exact overtime accuracy.
+    The two regulation scores are never overwritten or reweighted.
+    """
+    final = np.array(regulation, dtype=int, copy=True)
+    tied = final[:, 0] == final[:, 1]
+    initial_ties = int(np.count_nonzero(tied))
+    periods = np.zeros(len(final), dtype=int)
+    if not initial_ties:
+        return final, initial_ties, periods
+    expected = np.asarray(mean_score, dtype=float)
+    if expected.shape != (2,) or np.any(~np.isfinite(expected)):
+        raise ValueError("invalid overtime scoring expectation")
+    # Expected 5-minute points are derived from the same game model,
+    # not from a new or unverified external player dataset.
+    ot_lambda = np.maximum(expected, 1) * (5.0 / 48.0)
+    for _ in range(12):
+        idx = np.flatnonzero(tied)
+        if not len(idx):
+            break
+        pace_factor = rng.lognormal(mean=-0.5 * 0.12**2,
+                                    sigma=0.12, size=len(idx))
+        rates = np.clip(pace_factor[:, None] * ot_lambda[None, :], 0.05, 40)
+        final[idx] += rng.poisson(rates)
+        periods[idx] += 1
+        tied = final[:, 0] == final[:, 1]
+    if np.any(tied):
+        # Fail closed instead of inventing a fictional final outcome.
+        raise ValueError("unable to resolve overtime draws safely")
+    if np.any(final < regulation):
+        raise ValueError("overtime subtracted points")
+    return final, initial_ties, periods
+
+
 def predict_v8(games, scheduled_game: dict, asof, n=5000):
     """Return frozen pregame V8 forecast or explicit insufficiency diagnostic.
 
@@ -317,9 +356,13 @@ def predict_v8(games, scheduled_game: dict, asof, n=5000):
     # A 60–180 range bounds physically implausible bootstrap tail estimates;
     # it is not used to shrink the expected pregame score.
     draws = np.clip(draws, 60, 180)
-    selected, mass = _scenario(draws)
-    home, away = draws[:, 0], draws[:, 1]
-    home_wins = float(np.mean(home > away) + 0.5 * np.mean(home == away))
+    final_draws, regulation_ties, overtime_periods = _resolve_overtime_draws(
+        draws, mean_score, rng)
+    selected, mass = _scenario(final_draws)
+    if selected[0] == selected[1]:
+        raise ValueError("a final NBA game cannot end in a draw")
+    home, away = final_draws[:, 0], final_draws[:, 1]
+    home_wins = float(np.mean(home > away))
     def quantiles(values):
         return [round(float(z), 1) for z in np.quantile(values, [.1, .5, .9])]
     return {
@@ -332,9 +375,15 @@ def predict_v8(games, scheduled_game: dict, asof, n=5000):
         "scenario_home": selected[0], "scenario_away": selected[1],
         "scenario_bin_size_pts": 5,
         "scenario_bin_probability_pct": round(mass * 100, 2),
-        "mean_home": round(float(mean_score[0]), 2),
-        "mean_away": round(float(mean_score[1]), 2),
-        "mean_total": round(float(mean_score.sum()), 2),
+        "mean_home": round(float(np.mean(home)), 2),
+        "mean_away": round(float(np.mean(away)), 2),
+        "mean_total": round(float(np.mean(home + away)), 2),
+        "regulation_mean_home": round(float(mean_score[0]), 2),
+        "regulation_mean_away": round(float(mean_score[1]), 2),
+        "overtime_probability_pct": round(100 * regulation_ties / n, 2),
+        "overtime_trajectory_count": regulation_ties,
+        "overtime_max_periods_simulated": int(np.max(overtime_periods)),
+        "final_scores_include_simulated_overtime": True,
         "home_win_probability_pct": round(home_wins * 100, 2),
         "away_win_probability_pct": round((1 - home_wins) * 100, 2),
         "home_p10_p50_p90": quantiles(home),
@@ -352,6 +401,7 @@ def predict_v8(games, scheduled_game: dict, asof, n=5000):
         "source": "Observed past NBA final boxscores; possession estimator",
         "uncertainty": ("Official lineups/injuries and betting odds are NOT "
                         "included; scenario is a distribution mode, not an "
-                        "exact-score certainty."),
+                        "exact-score certainty. Five-minute overtime scoring "
+                        "is an uncalibrated research approximation."),
         "n": int(n),
     }
