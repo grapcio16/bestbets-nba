@@ -22,7 +22,7 @@ jobs:
       - name: Compile V8 independently of V7
         run: python -m compileall -q v8_shadow test_v8_shadow_engine.py test_v8_shadow_data.py
       - name: V8 no-fabricated-stats / chronology / joint-score regression
-        run: python -m unittest -v test_v8_shadow_engine test_v8_shadow_data
+        run: python -m unittest -v test_v8_shadow_engine test_v8_shadow_data test_v8_shadow_pipeline
       - name: Read-only one-game live ESPN schema diagnostic
         continue-on-error: true
         run: python -m v8_shadow.smoke
