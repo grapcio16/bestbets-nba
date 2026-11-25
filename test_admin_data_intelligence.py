@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timezone, timedelta
-from admin_data_intelligence import classify_worker, read_snapshot
+from admin_data_intelligence import classify_worker, read_snapshot, read_scorecard
 
 class DataIntelligenceTest(unittest.TestCase):
     def test_worker_status(self):
@@ -14,6 +14,7 @@ class DataIntelligenceTest(unittest.TestCase):
 
     def test_missing_database(self):
         self.assertEqual(read_snapshot("", "2026-27"), {"status":"setup_required"})
+        self.assertEqual(read_scorecard("", "2026-27"), {"status":"setup_required"})
 
 if __name__ == "__main__":
     unittest.main()
