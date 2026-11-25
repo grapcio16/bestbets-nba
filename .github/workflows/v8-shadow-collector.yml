@@ -23,7 +23,7 @@ jobs:
     timeout-minutes: 12
     env:
       TRACKER_DATABASE_URL: ${{ secrets.TRACKER_DATABASE_URL }}
-      HOOPZARO_V8_BOX_FETCH_LIMIT: '24'
+      HOOPZARO_V8_BOX_FETCH_LIMIT: '36'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
