@@ -1,0 +1,65 @@
+name: V8 Shadow — daily prospective model scorecard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'v8_shadow/evaluation.py'
+      - '.github/workflows/v8-shadow-evaluation.yml'
+  schedule:
+    - cron: '37 13 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scorecard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TRACKER_DATABASE_URL: ${{ secrets.TRACKER_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Require persistent pregame Tracker
+        run: |
+          if [ -z "$TRACKER_DATABASE_URL" ]; then
+            echo "::error::Missing TRACKER_DATABASE_URL for V8 comparison."
+            exit 1
+          fi
+      - name: Install read-only evaluation dependencies
+        run: python -m pip install -q 'pandas>=2.2,<3' 'numpy>=1.26,<3' 'psycopg[binary]>=3.2,<4'
+      - name: Unit tests for common-game comparisons and no hindsight
+        run: python -m unittest -v test_v8_shadow_evaluation
+      - name: Read-only V8.1, V8.2, V7 prospective archive analysis
+        run: python -m v8_shadow.evaluation | tee v8-shadow-scorecard.json
+      - name: Publish summary of matched games
+        run: |
+          python - <<'PY'
+          import json, os
+          report = json.load(open('v8-shadow-scorecard.json',encoding='utf-8'))
+          lines = ['## HOOPZARO V8 Shadow — Prospective evaluation',
+                   '', 'Season: ' + str(report['season']),
+                   'Status: ' + report['status'], '',
+                   '| Model | Settled pregame games | MAE teams | MAE total | Winner % |',
+                   '|---|---:|---:|---:|---:|']
+          for model, data in report.get('model_metrics',{}).items():
+              lines.append('| ' + model + ' | ' + str(data['n']) +
+                           ' | ' + str(data['team_points_mae']) +
+                           ' | ' + str(data['total_points_mae']) +
+                           ' | ' + str(data['winner_hit_pct']) + ' |')
+          lines.append('')
+          lines.append('Common-game comparisons: ' +
+                       str(len(report.get('common_game_comparisons',[]))))
+          lines.append('Research only. No live odds/ROI data or accuracy claims on small samples.')
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a',encoding='utf-8') as fd:
+              fd.write('\n'.join(lines)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hoopzaro-v8-research-scorecard
+          path: v8-shadow-scorecard.json
+          retention-days: 14
