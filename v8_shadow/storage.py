@@ -22,6 +22,22 @@ CREATE TABLE IF NOT EXISTS hoopzaro_v8_ingest_failures (
  last_attempt TIMESTAMPTZ NOT NULL DEFAULT now(),
  attempts INTEGER NOT NULL DEFAULT 1
 );
+CREATE TABLE IF NOT EXISTS hoopzaro_v8_worker_runs (
+ run_id BIGSERIAL PRIMARY KEY,
+ run_utc TIMESTAMPTZ NOT NULL DEFAULT now(),
+ season TEXT NOT NULL,
+ observed_games INTEGER NOT NULL CHECK(observed_games >= 0),
+ trainable_examples INTEGER NOT NULL CHECK(trainable_examples >= 0),
+ minimum_examples INTEGER NOT NULL,
+ eligible_upcoming INTEGER NOT NULL CHECK(eligible_upcoming >= 0),
+ calculated_forecasts INTEGER NOT NULL CHECK(calculated_forecasts >= 0),
+ newly_archived_forecasts INTEGER NOT NULL CHECK(newly_archived_forecasts >= 0),
+ newly_ingested_boxscores INTEGER NOT NULL CHECK(newly_ingested_boxscores >= 0),
+ rejected_boxscores INTEGER NOT NULL CHECK(rejected_boxscores >= 0),
+ readiness TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS hz_v8_worker_runs_recent
+ ON hoopzaro_v8_worker_runs(run_utc DESC);
 CREATE TABLE IF NOT EXISTS hoopzaro_v8_shadow_forecasts (
  game_id TEXT NOT NULL,
  model_id TEXT NOT NULL,
@@ -65,7 +81,9 @@ def ids(url, season):
             cur.execute(
                 """SELECT game_id FROM hoopzaro_v8_boxscores WHERE season=%s
                    UNION SELECT game_id FROM hoopzaro_v8_ingest_failures
-                   WHERE season=%s AND last_attempt > now()-interval '12 hours'""",
+                   WHERE season=%s
+                     AND (reason='overtime_unmodeled'
+                       OR last_attempt > now()-interval '12 hours')""",
                 (season, season))
             return {str(row[0]) for row in cur.fetchall()}
 
@@ -82,7 +100,10 @@ def record_ingest_failures(url, season, errors):
         with conn.cursor() as cur:
             for error in errors:
                 code = str(error.get("game_id") or "")
-                reason = str(error.get("error_type") or "Unknown")[:80]
+                # Store a stable, non-sensitive diagnostic category. Never
+                # persist raw provider payloads, exception strings or secrets.
+                reason = str(error.get("reason_code") or
+                             error.get("error_type") or "unknown")[:80]
                 if not code.isdigit() or len(code) > 20:
                     continue
                 cur.execute(
@@ -175,3 +196,25 @@ def settle_forecasts(url, final_games):
                     (actual_away, actual_home, str(item["game_id"])))
                 settled += cur.rowcount
     return {"finals_seen": checked, "newly_settled": settled}
+
+
+def record_worker_run(url, season, readiness, *, upcoming_checked,
+                      calculated, saved, boxes_added, boxes_rejected):
+    """Store aggregate V8-only research readiness/health; no source payloads."""
+    values = (season, int(readiness["observed_final_games"]),
+              int(readiness["trainable_chronological_examples"]),
+              int(readiness["minimum_examples"]), int(upcoming_checked),
+              int(calculated), int(saved), int(boxes_added),
+              int(boxes_rejected), str(readiness["readiness_reason"]))
+    if min(values[1:9]) < 0:
+        raise ValueError("negative shadow metric")
+    with _connect(url) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """INSERT INTO hoopzaro_v8_worker_runs(
+                     season,observed_games,trainable_examples,minimum_examples,
+                     eligible_upcoming,calculated_forecasts,
+                     newly_archived_forecasts,newly_ingested_boxscores,
+                     rejected_boxscores,readiness)
+                   VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                values)

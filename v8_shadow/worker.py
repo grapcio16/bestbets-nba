@@ -14,9 +14,10 @@ import pandas as pd
 
 from v8_shadow.data import collect_team_boxes
 from v8_shadow.engine import VERSION, predict_v8
+from v8_shadow.readiness import audit_evidence
 from v8_shadow.storage import (
-    initialize, ids, read_boxes, record_ingest_failures, save_forecasts,
-    settle_forecasts, store_boxes
+    initialize, ids, read_boxes, record_ingest_failures, record_worker_run,
+    save_forecasts, settle_forecasts, store_boxes
 )
 
 
@@ -71,9 +72,12 @@ def run():
     # forecasts just because the fetch originally began before kickoff.
     clock = pd.Timestamp.now(tz="UTC")
     selected = eligible_upcoming(schedule, clock)
+    readiness = audit_evidence(evidence, clock)
     forecast = []
     skipped = {}
-    for event in selected:
+    if not readiness['ready_for_eligible_matchups']:
+        skipped['chronological_history_incomplete'] = len(selected)
+    for event in (selected if readiness['ready_for_eligible_matchups'] else []):
         game = {"game_id": str(event["game_id"]),
                 "start_utc": event["start_utc"],
                 "home": str(event["home"]), "away": str(event["away"])}
