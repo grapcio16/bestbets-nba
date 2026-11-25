@@ -28,6 +28,10 @@ VERSION = "v8_possessions_shadow_v01"
 MIN_TEAM_GAMES = 5
 MIN_TRAIN = 40
 MIN_HOLDOUT = 16
+# No historical final-result timestamp is archived by the current provider.
+# Treat a game as safely known only four hours after its recorded tipoff.
+# Conservative for regulation games; overtime is excluded from V8 evidence.
+FINAL_RESULT_DELAY = pd.Timedelta(hours=4)
 FEATURES = (
     "home_off_above_league", "away_def_above_league",
     "away_off_above_league", "home_def_above_league",
@@ -174,18 +178,35 @@ def _prepare_history(games):
 
 
 def _examples(games, cutoff):
-    past = []
+    """Construct genuine pregame features with a conservative results delay.
+
+    Previously, the final score of a 19:00 game could enter features for a
+    19:30 game, even though the 19:00 game was still being played. That is
+    target leakage, not forecasting skill. Only games whose tipoff was at
+    least FINAL_RESULT_DELAY earlier can inform another game's features.
+    """
     xs, ys = [], []
-    ordered = [g for g in games if _time(g["start_utc"]) < cutoff]
-    # Simultaneous tipoffs share the same cutoff: no same-tipoff leakage.
-    for stamp, group in pd.DataFrame(ordered).groupby("start_utc", sort=True) if ordered else []:
-        rows = group.to_dict("records")
-        for g in rows:
-            example = _feature_row(g, past)
+    ordered = sorted(
+        (g for g in games
+         if _time(g["start_utc"]) + FINAL_RESULT_DELAY <= cutoff),
+        key=lambda row: _time(row["start_utc"]),
+    )
+    if not ordered:
+        return np.asarray(xs, dtype=float), np.asarray(ys, dtype=float)
+
+    known, completed_index = [], 0
+    for stamp, group in pd.DataFrame(ordered).groupby("start_utc", sort=True):
+        forecast_time = _time(stamp)
+        while (completed_index < len(ordered) and
+               _time(ordered[completed_index]["start_utc"]) +
+               FINAL_RESULT_DELAY <= forecast_time):
+            known.append(ordered[completed_index])
+            completed_index += 1
+        for g in group.to_dict("records"):
+            example = _feature_row(g, known)
             if example is not None:
                 xs.append(example["x"])
                 ys.append([float(g["home_score"]), float(g["away_score"])])
-        past.extend(rows)
     return np.asarray(xs, dtype=float), np.asarray(ys, dtype=float)
 
 
@@ -263,9 +284,12 @@ def predict_v8(games, scheduled_game: dict, asof, n=5000):
     if scheduled_game.get("home") == scheduled_game.get("away"):
         raise ValueError("same team scheduled twice")
     history = _prepare_history(games)
-    # The upper boundary is the time of publication, not the scheduled
-    # kickoff: match data added after the forecast must never enter training.
-    past = [g for g in history if _time(g["start_utc"]) < cutoff]
+    # Provider archives no reliable completion timestamp. A game whose tipoff
+    # precedes this forecast by just 30–90 minutes may still be LIVE; its
+    # final points could not have been known. Enforce the same conservative
+    # four-hour availability rule in training and current-match features.
+    past = [g for g in history
+            if _time(g["start_utc"]) + FINAL_RESULT_DELAY <= cutoff]
     x, y = _examples(past, cutoff)
     if len(x) < MIN_TRAIN + MIN_HOLDOUT:
         return {"status": "insufficient_evidence", "model_id": VERSION,
