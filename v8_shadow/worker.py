@@ -14,6 +14,7 @@ import pandas as pd
 
 from v8_shadow.data import collect_team_boxes
 from v8_shadow.engine import VERSION, predict_v8
+from v8_shadow.readiness import audit_evidence
 from v8_shadow.storage import (
     initialize, ids, read_boxes, record_ingest_failures, save_forecasts,
     settle_forecasts, store_boxes
