@@ -13,6 +13,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-from bestbets_custom_screen import main
-
-main()
+if st.query_params.get("control_center") == "1":
+    from admin_control_center import render
+    render()
+else:
+    from bestbets_custom_screen import main
+    main()
