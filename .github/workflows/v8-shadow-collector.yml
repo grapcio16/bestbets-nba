@@ -38,4 +38,4 @@ jobs:
       - name: Install research-only worker dependencies
         run: python -m pip install -q 'pandas>=2.2,<3' 'numpy>=1.26,<3' 'requests>=2.31,<3' 'psycopg[binary]>=3.2,<4'
       - name: Archive verified possessions and freeze out-of-time V8 forecasts
-        run: python -m v8_shadow.worker
+        run: python -m v8_shadow.monitored_worker
