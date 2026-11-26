@@ -12,21 +12,24 @@ class PilotTests(unittest.TestCase):
                     self.assertEqual(enabled(),role=="admin")
     def test_customer_flag_and_session_consent(self):
         from types import SimpleNamespace
-        env={"HOOPZARO_USAGE_ENABLED":"true","HOOPZARO_USAGE_CUSTOMER_ENABLED":"true","HOOPZARO_USAGE_DATABASE_URL":"test"}
+        env={"HOOPZARO_USAGE_ENABLED":"true","HOOPZARO_USAGE_CUSTOMER_ENABLED":"true","HOOPZARO_USAGE_DATABASE_URL":"test",
+             "HOOPZARO_USAGE_CONSENT_READY":"true","HOOPZARO_USAGE_NOTICE_VERSION":CONSENT_VERSION,
+             "HOOPZARO_USAGE_NOTICE_URL":"https://hoopzaro.com/privacy"}
         state={}
-        with patch.dict("os.environ",env,clear=True),patch.dict("sys.modules",{"streamlit":SimpleNamespace(session_state=state)}),patch("access_control.current_role",return_value="free"):
+        with patch.dict("os.environ",env,clear=True),patch.dict("sys.modules",{"streamlit":SimpleNamespace(session_state=state)}),patch("access_control.current_role",return_value="free"),patch("access_control.current_principal",return_value="issuer|subject"),patch("usage_analytics_pilot.cursor") as cursor:
             self.assertFalse(enabled())
             self.assertFalse(set_consent(state,"true"))
             self.assertTrue(set_consent(state,True))
-            self.assertEqual(state["hz_usage_consent"],CONSENT_VERSION)
+            self.assertEqual(state["hz_consent_grant"].notice_version,CONSENT_VERSION)
             self.assertTrue(enabled())
-            state["hz_usage_session"]="old"
+            self.assertEqual(state["hz_usage_session"],state["hz_consent_grant"].session_id)
             state["hz_usage_pending"]={"games"}
             self.assertTrue(set_consent(state,False))
             self.assertFalse(enabled())
             self.assertNotIn("hz_usage_session",state)
             self.assertNotIn("hz_usage_pending",state)
-            self.assertNotIn("hz_usage_consent",state)
+            self.assertNotIn("hz_consent_grant",state)
+            self.assertEqual(cursor.call_count,2)
     def test_role_and_idle_gap_bound(self):
         state={"hz_usage_session":"old","hz_usage_role":"free","hz_usage_last":100}
         with patch("usage_analytics_pilot.enabled",return_value=True),patch("access_control.current_role",return_value="premium"),patch.dict("os.environ",{"HOOPZARO_USAGE_DATABASE_URL":"test"}),patch("usage_analytics_pilot.cursor") as cursor,patch("usage_analytics_pilot.time.monotonic",side_effect=[500,1000]):

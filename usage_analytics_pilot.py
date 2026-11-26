@@ -9,7 +9,8 @@ from contextlib import contextmanager
 PAGES=frozenset(("home","props","games","simulations","players","teams","settings"))
 FEATURES=frozenset(("simulation","player_simulation","scenario","minutes","props","backtest"))
 
-CONSENT_VERSION="2026-11-26-v1"
+from usage_consent_receipts import NOTICE_VERSION as CONSENT_VERSION, Grant, notice_url, create_receipt, close_receipt
+
 ROLES=frozenset(("admin","free","premium","guest"))
 
 def _flag(name):
@@ -17,34 +18,98 @@ def _flag(name):
 
 def audience_available():
     return (_flag("HOOPZARO_USAGE_ENABLED") and _flag("HOOPZARO_USAGE_CUSTOMER_ENABLED")
-            and bool(os.environ.get("HOOPZARO_USAGE_DATABASE_URL","").strip()))
+            and bool(os.environ.get("HOOPZARO_USAGE_DATABASE_URL","").strip())
+            and bool(notice_url()))
+
+def _valid_grant(state, role, principal):
+    grant=state.get("hz_consent_grant")
+    return (isinstance(grant,Grant) and grant.notice_version==CONSENT_VERSION and grant.notice_url==notice_url()
+            and grant.role==role and grant.principal==principal
+            and time.monotonic()<grant.deadline)
 
 def enabled():
-    from access_control import current_role
+    from access_control import current_role, current_principal
     if not _flag("HOOPZARO_USAGE_ENABLED") or not os.environ.get("HOOPZARO_USAGE_DATABASE_URL","").strip():
         return False
     role=current_role()
     if role=="admin" and _flag("HOOPZARO_USAGE_ADMIN_PILOT"):
         return True
-    if role not in ROLES or not audience_available():
+    if role not in ("guest","free","premium") or not audience_available():
         return False
     import streamlit as st
-    return st.session_state.get("hz_usage_consent")==CONSENT_VERSION
+    return _valid_grant(st.session_state,role,current_principal())
 
-def set_consent(state, accepted):
-    # Optional, per-session consent; never use a client-supplied role or identifier.
+def _clear_collection(state):
+    for key in ("hz_usage_consent","hz_usage_session","hz_usage_last","hz_account_last","hz_usage_role","hz_account_role","hz_usage_pending"):
+        state.pop(key,None)
+
+def retry_close(state):
+    pending=state.get("hz_consent_pending_close")
+    if not pending:
+        return True
+    now=time.monotonic()
+    if now<state.get("hz_consent_retry_after",0):
+        return False
+    try:
+        close_receipt(cursor,os.environ["HOOPZARO_USAGE_DATABASE_URL"],*pending)
+        state.pop("hz_consent_pending_close",None)
+        state.pop("hz_consent_retry_after",None)
+        state["hz_consent_status"]="off"
+        return True
+    except Exception:
+        state["hz_consent_retry_after"]=now+30
+        state["hz_consent_status"]="withdrawal_pending"
+        return False
+
+def end_consent(state,reason):
+    # Stop collection before attempting any I/O, including DB failure.
+    grant=state.pop("hz_consent_grant",None)
+    _clear_collection(state)
+    if isinstance(grant,Grant):
+        state["hz_consent_pending_close"]=(grant.session_id,grant.account_receipt_id,reason)
+        state.pop("hz_consent_retry_after",None)
+    state["hz_consent_status"]="off"
+    if not retry_close(state):
+        state["hz_consent_status"]="withdrawal_pending"
+    return True
+
+def refresh_consent(state,principal,role):
+    retry_close(state)
+    grant=state.get("hz_consent_grant")
+    if not isinstance(grant,Grant):
+        return
+    if grant.principal!=principal or grant.role!=role:
+        end_consent(state,"identity_changed")
+    elif time.monotonic()>=grant.deadline:
+        end_consent(state,"expired")
+    elif not audience_available() or grant.notice_url!=notice_url() or grant.notice_version!=CONSENT_VERSION:
+        end_consent(state,"disabled")
+
+def set_consent(state, accepted, principal=None):
+    from access_control import current_role, current_principal
     if type(accepted) is not bool:
         return False
-    if accepted and not audience_available():
+    role=current_role()
+    principal=current_principal() if principal is None else principal
+    if not accepted:
+        return end_consent(state,"withdrawn")
+    refresh_consent(state,principal,role)
+    if _valid_grant(state,role,principal):
         return False
-    if accepted == (state.get("hz_usage_consent")==CONSENT_VERSION):
-        return False
-    if accepted:
-        state["hz_usage_consent"]=CONSENT_VERSION
-    else:
-        state.pop("hz_usage_consent",None)
-    for key in ("hz_usage_session","hz_usage_last","hz_account_last","hz_usage_role","hz_account_role","hz_usage_pending"):
-        state.pop(key,None)
+    if not audience_available() or state.get("hz_consent_pending_close") or role not in ("guest","free","premium"):
+        state["hz_consent_status"]="unavailable" if not state.get("hz_consent_pending_close") else "withdrawal_pending"
+        return True
+    try:
+        grant=create_receipt(cursor,os.environ["HOOPZARO_USAGE_DATABASE_URL"],role,principal)
+    except Exception:
+        _clear_collection(state)
+        state["hz_consent_status"]="unavailable"
+        return True
+    _clear_collection(state)
+    state["hz_consent_grant"]=grant
+    state["hz_usage_session"]=grant.session_id
+    state["hz_usage_role"]=role
+    state["hz_consent_status"]="on"
     return True
 
 @contextmanager
@@ -111,6 +176,10 @@ def observe_account(state,principal):
     state["hz_account_last"]=now
     state["hz_account_role"]=role
     account=hmac.new(secret,principal.encode(),hashlib.sha256).hexdigest()
+    if role!="admin":
+        grant=state.get("hz_consent_grant")
+        if not isinstance(grant,Grant) or grant.account_id!=account or not grant.account_receipt_id:
+            return
     try:
         with cursor(url) as cur:
             cur.execute("""INSERT INTO hoopzaro_accounts(account_id,last_observed_role)
@@ -131,6 +200,9 @@ def measured(feature,fn,*args,**kwargs):
         return result
     finally:
         try:
+            if not enabled():
+                # Do not persist telemetry after the grant expires during a long call.
+                raise RuntimeError("Telemetry disabled")
             ms=min(600000,max(0,int((time.monotonic()-start)*1000)))
             with cursor(os.environ["HOOPZARO_USAGE_DATABASE_URL"]) as cur:
                 cur.execute("""INSERT INTO hz_feature_daily(day,feature,outcome,total_ms)

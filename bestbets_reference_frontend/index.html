@@ -470,7 +470,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
         <button type="button" id="hz-account-login" hidden>Zaloguj się</button>
         <button type="button" id="hz-account-logout" hidden>Wyloguj się</button>
       </div>
-      <div id="hz-usage-privacy" hidden style="margin-top:18px;padding-top:15px;border-top:1px solid #264b73"><strong style="font-size:16px">Opcjonalna analityka użytkowania</strong><p style="font-size:13px;line-height:1.5">Pomóż nam ulepszać Hoopzaro. Po wyrażeniu zgody zapisujemy pseudonimowy identyfikator konta (jeśli jesteś zalogowany), rolę, sesje, odwiedzane zakładki oraz zagregowane wywołania funkcji i czasy działania. Nie zapisujemy treści zapytań, e-maila ani adresu IP w tej analityce. Sesje: 30 dni; nieaktywne konta i agregaty funkcji: do 90 dni, z wyjątkami dla danych niezbędnych do obsługi konta. Zgoda jest dobrowolna, dotyczy bieżącej sesji i nie zmienia dostępu do aplikacji. Możesz ją wycofać tutaj.</p><div class="hz-account-actions"><button type="button" id="hz-usage-allow">Zezwól na analitykę</button><button type="button" id="hz-usage-deny">Nie zezwalaj / wycofaj</button></div><small id="hz-usage-status" aria-live="polite"></small></div>
+      <div id="hz-usage-privacy" hidden style="margin-top:18px;padding-top:15px;border-top:1px solid #264b73"><strong style="font-size:16px">Opcjonalna analityka użytkowania</strong><p style="font-size:13px;line-height:1.5">Pomóż nam ulepszać Hoopzaro. Po wyrażeniu zgody zapisujemy pseudonimowy identyfikator konta (jeśli jesteś zalogowany), rolę, sesje, odwiedzane zakładki oraz zagregowane wywołania funkcji i czasy działania. Nie zapisujemy treści zapytań, e-maila ani adresu IP w tej analityce. Sesje: 30 dni; nieaktywne konta i agregaty funkcji: do 90 dni, z wyjątkami dla danych niezbędnych do obsługi konta. Zgoda jest dobrowolna, dotyczy bieżącej sesji (maksymalnie 24 godziny) i nie zmienia dostępu do aplikacji. Zapisujemy również minimalny dowód zgody oraz jej wycofania. Możesz ją wycofać tutaj.</p><p><a id="hz-usage-notice" target="_blank" rel="noopener noreferrer" style="color:#65d8ff" hidden>Polityka prywatności</a></p><div class="hz-account-actions"><button type="button" id="hz-usage-allow">Zezwól na analitykę</button><button type="button" id="hz-usage-deny">Nie zezwalaj / wycofaj</button></div><small id="hz-usage-status" aria-live="polite"></small></div>
       <small id="hz-account-note">Dostęp Premium wymaga zatwierdzonej subskrypcji. Administrator ma bezpłatny dostęp.</small>
     </div>
   </section>
@@ -1890,8 +1890,11 @@ function renderAccount(){
   const privacy=$("hz-usage-privacy");
   privacy.hidden=!state.payload.usage_consent_available;
   const granted=state.payload.usage_consent_granted===true;
-  $("hz-usage-allow").disabled=granted;
-  $("hz-usage-status").textContent=granted?"Analityka włączona dla tej sesji.":"Analityka wyłączona.";
+  const notice=$("hz-usage-notice"), noticeUrl=state.payload.usage_notice_url||"";
+  notice.hidden=!noticeUrl;notice.href=noticeUrl||"#";
+  const status=state.payload.usage_consent_status;
+  $("hz-usage-allow").disabled=granted||status==="withdrawal_pending"||!noticeUrl;
+  $("hz-usage-status").textContent=granted?"Analityka włączona dla tej sesji.":status==="unavailable"?"Nie udało się zapisać zgody. Analityka pozostaje wyłączona.":status==="withdrawal_pending"?"Analityka wyłączona. Zapis wycofania oczekuje na ponowną próbę.":"Analityka wyłączona.";
 }
 function sendAuth(action){
   notify("streamlit:setComponentValue",{dataType:"json",value:{
@@ -2201,7 +2204,7 @@ if(window.HoopzaroSimulations){
 function sendUsageConsent(accepted){
   if(!state.payload.usage_consent_available)return;
   if(!accepted){state.payload.usage_enabled=false;state.payload.usage_consent_granted=false;}
-  notify("streamlit:setComponentValue",{dataType:"json",value:{type:"usage_consent",accepted:accepted,id:String(Date.now())+"-consent-"+Math.random().toString(36).slice(2)}});
+  notify("streamlit:setComponentValue",{dataType:"json",value:{type:"usage_consent",accepted:accepted,notice_version:state.payload.usage_notice_version,consent_epoch:state.payload.auth?.session_epoch,id:String(Date.now())+"-consent-"+Math.random().toString(36).slice(2)}});
 }
 $("hz-usage-allow").addEventListener("click",()=>sendUsageConsent(true));
 $("hz-usage-deny").addEventListener("click",()=>sendUsageConsent(false));
