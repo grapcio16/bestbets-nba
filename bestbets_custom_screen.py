@@ -597,6 +597,9 @@ def main() -> None:
     st.session_state["bb10_last_event"] = event_id
     if event.get("type") == "usage_consent":
         if not is_admin and set_consent(st.session_state,event.get("accepted")):
+            if event.get("accepted") is True:
+                observe(st.session_state,"settings")
+                observe_account(st.session_state,principal)
             st.rerun()
         return
     if pilot_enabled():
