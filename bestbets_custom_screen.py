@@ -491,7 +491,7 @@ def main() -> None:
     from usage_analytics_pilot import enabled as pilot_enabled, observe, observe_account, measured, audience_available, set_consent
     principal = current_principal()
     if st.session_state.get("bb10_premium_principal") != principal:
-        for telemetry_key in ("hz_usage_session","hz_usage_last","hz_account_last","hz_usage_consent","hz_usage_role"):
+        for telemetry_key in ("hz_usage_session","hz_usage_last","hz_account_last","hz_usage_consent","hz_usage_role","hz_account_role"):
             st.session_state.pop(telemetry_key,None)
         # Player Props is paid output too. It must not survive logout or a
         # switch between two accounts that both happen to have Premium.
