@@ -15,7 +15,12 @@ TRACKER_CSS = """<style>
 .st-key-hz_tracker_scope [data-testid="stRadio"] label:has(input:checked){background:#36345b;border-color:#a28beb}
 .st-key-hz_tracker_scope [data-testid="stRadio"] label p{font-size:16px;font-weight:650}
 .st-key-hz_tracker_scope [data-testid="stWidgetLabel"] p{font-size:15px;font-weight:600;color:#c8d4e8}
-.st-key-hz_tracker_scope [data-baseweb="select"]>div,.st-key-hz_tracker_scope [data-baseweb="input"]{background:#172339;border-color:#34435e;border-radius:9px;min-height:43px}
+.st-key-hz_tracker_scope [data-baseweb="select"]>div,.st-key-hz_tracker_scope [data-baseweb="input"]{background:#172339!important;border-color:#455778!important;border-radius:9px;min-height:46px;color:#eaf1ff!important}
+.st-key-hz_tracker_scope [data-baseweb="input"] input,.st-key-hz_tracker_scope [data-baseweb="base-input"]{background:#172339!important;color:#eaf1ff!important;font-size:16px!important}
+.st-key-hz_tracker_scope [data-baseweb="select"] [role="combobox"]{color:#eaf1ff!important;font-size:16px!important}
+.st-key-hz_tracker_scope [data-testid="stDateInput"] button{background:#172339!important;color:#c9d6f0!important}
+.st-key-hz_tracker_scope .hz-data-table .hz-hit{color:#8be0bd;font-weight:700}
+.st-key-hz_tracker_scope .hz-data-table .hz-miss{color:#ffb0b5;font-weight:700}
 .st-key-hz_tracker_scope [data-testid="stHeading"] h3{margin-top:.7rem}
 .st-key-hz_tracker_scope [data-testid="stVegaLiteChart"]{padding:12px}
 .st-key-hz_tracker_scope .hz-data-table td{padding:12px 15px}
@@ -83,6 +88,7 @@ def status_table(rows):
     for key,label in STATE_NAMES.items():
         markup=markup.replace(f"<td>{escape(label)}</td>",
             f'<td><span class="hz-status hz-status-{key}">{escape(label)}</span></td>')
+    markup=markup.replace("<td>Tak</td>", '<td><span class="hz-hit">✓ Tak</span></td>').replace("<td>Nie</td>", '<td><span class="hz-miss">✕ Nie</span></td>')
     return markup
 
 def render_detail(st,row,kind,stat,now):
