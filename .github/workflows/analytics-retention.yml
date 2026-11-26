@@ -1,0 +1,25 @@
+name: Analytics retention
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: hoopzaro-analytics-retention
+  cancel-in-progress: false
+jobs:
+  retention:
+    if: vars.HOOPZARO_RETENTION_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      HOOPZARO_RETENTION_DATABASE_URL: ${{ secrets.HOOPZARO_RETENTION_DATABASE_URL }}
+      HOOPZARO_RETENTION_APPLY: ${{ vars.HOOPZARO_RETENTION_APPLY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'psycopg[binary]>=3.2,<4'
+      - run: python analytics_retention.py
