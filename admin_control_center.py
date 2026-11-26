@@ -72,17 +72,23 @@ def render(*, dedicated=False):
     @media(max-width: 700px) { [data-testid="stMainBlockContainer"] { padding: 1.2rem; } }
     [data-testid="stMetric"] { border: 1px solid #343052; border-radius: 14px;
         padding: 16px; background: #11192e; }
-    [data-testid="stMetricValue"] { color: #b69aff; }
+    [data-testid="stMetricValue"] { color: #b69aff; font-variant-numeric:tabular-nums; }
+    [data-testid="stMetric"] { min-height:116px; border-top:2px solid #7956dc; background:linear-gradient(145deg,#172039,#111527); }
+    [data-testid="stSidebar"] { border-right:1px solid #3b315d; }
+    [data-testid="stMainBlockContainer"] [data-testid="stHeading"] { letter-spacing:-.025em; }
+    [data-testid="stSidebar"] [data-testid="stButton"] button { width:100%; border-color:#544681; color:#e8e7ff; }
+    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] { color:#dce4fb; }
     [data-testid="stSidebar"] { background: #101528; }
     </style>""", unsafe_allow_html=True)
     st.sidebar.title("HOOPZARO")
     st.sidebar.caption("CONTROL CENTER · ADMIN")
+    st.sidebar.caption("Application analytics & operations")
     section = st.sidebar.radio("Navigation", SECTIONS)
     if not dedicated:
         st.sidebar.markdown("[Return to Hoopzaro](?)")
     st.caption("HOOPZARO / CONTROL CENTER / " + section.upper())
     st.title(section)
-    st.caption("Internal administration · NBA 2026–27 · production controls locked")
+    st.caption("Application analytics · NBA 2026–27 · private administration")
     if st.sidebar.button("Refresh telemetry"):
         snapshot.clear()
         scorecard.clear()
@@ -124,7 +130,12 @@ def render(*, dedicated=False):
         cols[0].metric("Actual revenue", "Not connected")
         cols[1].metric("Active paid subscriptions", "Not connected")
         st.caption("Live billing is not connected; test subscriptions are separate.")
+        if available and rows and all("last_observed_role" in r for r in rows):
+            st.subheader("Observed account composition")
+            st.bar_chart([{"Role":r["last_observed_role"], "Accounts":r["observed_accounts"]} for r in rows], x="Role", y="Accounts")
+            st.caption("Last observed access role; not a count of paying customers.")
         st.divider()
+        st.subheader("Data & engine health")
     if section in ("Overview", "Data Center", "AI Engines", "Tracker"):
         data = snapshot("2026-27")
         worker = data.get("worker") or {}
