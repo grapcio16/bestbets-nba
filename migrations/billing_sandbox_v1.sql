@@ -22,7 +22,11 @@ CREATE TABLE public.hz_sandbox_webhook_events (
   received_at timestamptz NOT NULL DEFAULT now()
 );
 REVOKE ALL ON public.hz_sandbox_checkout,public.hz_sandbox_webhook_events FROM PUBLIC;
--- Grant app role SELECT, INSERT on checkout, UPDATE only checkout_id/customer_id/subscription_id.
--- Grant webhook role INSERT on event table (and SELECT(event_id) for ON CONFLICT if required).
--- No shared application analytics writer, no privileges to delete or modify account keys.
+-- Pre-create dedicated restricted LOGIN roles without broad inherited grants.
+REVOKE ALL ON public.hz_sandbox_checkout,public.hz_sandbox_webhook_events
+  FROM hz_billing_sandbox_app,hz_billing_sandbox_webhook;
+GRANT SELECT,INSERT ON public.hz_sandbox_checkout TO hz_billing_sandbox_app;
+GRANT UPDATE(checkout_id,customer_id,subscription_id) ON public.hz_sandbox_checkout TO hz_billing_sandbox_app;
+GRANT INSERT ON public.hz_sandbox_webhook_events TO hz_billing_sandbox_webhook;
+GRANT SELECT(event_id) ON public.hz_sandbox_webhook_events TO hz_billing_sandbox_webhook;
 COMMIT;
