@@ -189,39 +189,15 @@ def render(*, dedicated=False):
         st.markdown("Próbki aktywności sesji, nie unikalne osoby ani dokładne odsłony.")
 
     if section == "Overview":
-        registry = accounts()
-        rows = registry.get("accounts", [])
-        available = registry.get("status") == "ok"
-        def account_value(key):
-            return sum(r[key] for r in rows) if available and all(key in r for r in rows) else "Brak danych"
-        account_help = "Zalogowane konta zaobserwowane przez aplikację; bez anonimowych wizyt."
-        st.subheader("Użytkownicy i przychody")
-        kpis([
-            ("Zaobserwowane konta", account_value("observed_accounts"), account_help),
-            ("Aktywni · 24 godz.", account_value("seen_last_24_hours"), account_help),
-            ("Aktywni · 7 dni", account_value("seen_last_7_days"), account_help),
-            ("Aktywni · 30 dni", account_value("seen_last_30_days"), account_help),
-            ("Nowe konta · 7 dni", account_value("first_seen_last_7_days"), account_help),
-            ("Darmowe analizy · dziś (UTC)", registry["quota"][0]["reservations_today"] if available else "Brak danych"),
-            ("Płatne subskrypcje", "Nie podłączono"),
-            ("Rzeczywiste przychody", "Nie podłączono"),
-        ], 4)
-        if not available:
-            health("Rejestr kont", "Nie podłączono" if registry.get("status") == "setup_required" else "Niedostępny")
-        if available and rows and all("last_observed_role" in r for r in rows):
-            st.subheader("Konta według uprawnień")
-            st.bar_chart([{"Rola":localized(r["last_observed_role"]), "Konta":r["observed_accounts"]} for r in rows], x="Rola", y="Konta")
-            st.markdown("Role kont, nie płatne subskrypcje.")
-        st.subheader("Ruch w aplikacji")
-        usage_charts(usage_cards())
-        st.divider()
-        st.subheader("Dane i silniki AI")
-    if section in ("Overview", "Data Center", "AI Engines"):
+        from admin_overview import render_overview
+        render_overview(accounts(), usage(), snapshot("2026-27"), select_section)
+        return
+    if section in ("Data Center", "AI Engines"):
         data = snapshot("2026-27")
         worker = data.get("worker") or {}
         models = data.get("models") or []
         health("Silnik V8", localized(data.get("status", "unavailable")), "ok" if data.get("status") == "recent_evidence" else "warn")
-        if section in ("Overview", "Data Center"):
+        if section == "Data Center":
             kpis([(name, worker.get(field, "Brak danych")) for name, field in zip(
                 ("Zebrane mecze", "Próbki treningowe", "Odrzucone statystyki meczowe"),
                 ("observed_games", "trainable_examples", "rejected_boxscores"))])
@@ -245,12 +221,6 @@ def render(*, dedicated=False):
                 if injury.get("published_utc"):
                     st.write("Publikacja (UTC): " + injury["published_utc"])
                 st.markdown("Status publikacji nie potwierdza kompletności raportu.")
-        if section == "Overview":
-            st.subheader("Archiwum V8")
-            if models:
-                table(models, hide_index=True, use_container_width=True)
-            else:
-                st.info("Brak zweryfikowanego archiwum.")
         if section == "AI Engines":
             from admin_dashboard_ui import model_name, number, bars_markup
             report = scorecard("2026-27")
@@ -304,20 +274,6 @@ def render(*, dedicated=False):
                     if any(p.get("historical_training_sample_differs") for p in pairs):
                         st.warning("Modele trenowano na różnych próbach. Nie można przypisać różnic wyłącznie zmianom algorytmu.")
                 st.info("Wyniki badawcze. Mała próba nie wystarcza do potwierdzenia przewagi modelu.")
-        if section == "Overview":
-            detail = tracker_metrics("2026-27")
-            st.subheader("Tracker · zawodnicy i kwarty")
-            if detail.get("status") == "ok":
-                player_rows = detail.get("players", [])
-                quarter_rows = detail.get("quarters", [])
-                kpis([("Rozliczone prognozy zawodników", sum(row["settled"] for row in player_rows)),
-                      ("Rozliczone prognozy kwart", sum(row["settled"] for row in quarter_rows))], 2)
-                if detail.get("last_run"):
-                    st.write("**Ostatnie rozliczenie V7**")
-                    table(detail["last_run"], hide_index=True, use_container_width=True)
-            else:
-                st.info("Archiwum prognoz zawodników i kwart niedostępne.")
-                diagnostic(detail)
         return
     if section == "Performance":
         st.subheader("Funkcje aplikacji · ostatnie 7 dni")
@@ -457,7 +413,7 @@ def render(*, dedicated=False):
         st.markdown("Wynik przed podatkami, zwrotami i odpływem klientów, o ile nie uwzględniono ich w kosztach.")
         return
     if section == "Settings":
-        st.write("Wersja panelu: 2026-11-26-r8")
+        st.write("Wersja panelu: 2026-11-26-r9")
         from admin_settings import settings_snapshot, validate_draft
         config = settings_snapshot()
         if config.get("status") != "ok":
