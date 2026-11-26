@@ -87,3 +87,23 @@ def refund_failed_props(url, reservation):
         return deleted
     except Exception:
         return False
+
+
+def account_database_url():
+    return os.environ.get("HOOPZARO_ACCOUNT_DATABASE_URL","").strip()
+
+def registry_enabled():
+    return (os.environ.get("HOOPZARO_ACCOUNT_REGISTRY_ENABLED","").strip().lower()=="true"
+            and bool(account_database_url())
+            and len(os.environ.get("HOOPZARO_ACCOUNT_HMAC_KEY","").encode("utf-8"))>=32)
+
+def free_props_enabled():
+    return registry_enabled() and os.environ.get("HOOPZARO_FREE_PROPS_ENABLED","").strip().lower()=="true"
+
+def utc_quota_day():
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).date().isoformat()
+
+def can_show_free_result(role, enabled, reserved_day, today):
+    # A cached Premium result never acquires Free access on downgrade.
+    return role=="free" and enabled and bool(reserved_day) and reserved_day==today
