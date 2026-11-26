@@ -1,0 +1,4 @@
+# Detect updates to imported Python modules even if filesystem events are missed.
+[server]
+runOnSave = true
+fileWatcherType = "poll"
