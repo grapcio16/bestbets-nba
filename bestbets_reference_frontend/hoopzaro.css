@@ -599,7 +599,8 @@ button.avg-box:disabled{opacity:.75;cursor:default}
 
 /* Account card appears only on the formerly empty Settings page. No change
    to the approved homepage, Props, schedule or simulation canvas geometry. */
-#blank-pane.hz-account-page{padding:30px 26px 20px;text-align:left}
+#blank-pane.hz-account-page{padding:30px 26px 20px;text-align:left;height:auto;min-height:400px}
+#blank-pane.hz-account-page .hz-account-actions{flex-wrap:wrap}
 #blank-pane.hz-account-page h2{margin:0 0 12px;color:#f0f5ff}
 .hz-account{border:1px solid #4064ae;border-radius:17px;padding:22px 25px;
   background:radial-gradient(ellipse at 80% 0,rgba(149,64,234,.28),transparent 65%),

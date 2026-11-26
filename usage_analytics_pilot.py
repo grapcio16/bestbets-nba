@@ -43,7 +43,7 @@ def set_consent(state, accepted):
         state["hz_usage_consent"]=CONSENT_VERSION
     else:
         state.pop("hz_usage_consent",None)
-    for key in ("hz_usage_session","hz_usage_last","hz_account_last","hz_usage_role","hz_account_role"):
+    for key in ("hz_usage_session","hz_usage_last","hz_account_last","hz_usage_role","hz_account_role","hz_usage_pending"):
         state.pop(key,None)
     return True
 
@@ -55,8 +55,13 @@ def cursor(url):
         cur.execute("SET LOCAL lock_timeout = '700ms'")
         yield cur
 
-def observe(state,page):
-    if not enabled() or not isinstance(page,str) or page not in PAGES:
+def observe(state,page,visited=None):
+    if not enabled():
+        return
+    pages={page} if isinstance(page,str) and page in PAGES else set()
+    if isinstance(visited,list):
+        pages.update(p for p in visited[:len(PAGES)] if isinstance(p,str) and p in PAGES)
+    if not pages:
         return
     from access_control import current_role
     role=current_role()
@@ -66,7 +71,10 @@ def observe(state,page):
     if state.get("hz_usage_role")!=role:
         state.pop("hz_usage_session",None)
         state.pop("hz_usage_last",None)
+        state.pop("hz_usage_pending",None)
         state["hz_usage_role"]=role
+    pending=state.setdefault("hz_usage_pending",set())
+    pending.update(pages)
     last=state.get("hz_usage_last")
     if last is not None and now-last<30:
         return
@@ -79,8 +87,9 @@ def observe(state,page):
                 ON CONFLICT(session_id) DO UPDATE SET last_seen=now(),
                 observed_seconds=hz_usage_sessions.observed_seconds+%s""",(sid,role,seconds))
             cur.execute("""INSERT INTO hz_usage_daily(day,session_id,page)
-                VALUES ((now() AT TIME ZONE 'UTC')::date,%s,%s)
-                ON CONFLICT(day,session_id,page) DO UPDATE SET samples=hz_usage_daily.samples+1""",(sid,page))
+                SELECT (now() AT TIME ZONE 'UTC')::date,%s,unnest(%s::text[])
+                ON CONFLICT(day,session_id,page) DO UPDATE SET samples=hz_usage_daily.samples+1""",(sid,sorted(pending)))
+        pending.clear()
     except Exception:
         pass
 
