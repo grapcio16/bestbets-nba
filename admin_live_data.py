@@ -19,8 +19,13 @@ def _read(url, queries):
                     cur.execute(sql,params)
                     result[name]=[dict(row) for row in cur.fetchall()]
         return result
-    except Exception:
-        return {"status":"unavailable"}
+    except Exception as exc:
+        # Only a sanitized category / SQLSTATE; never log the exception text.
+        import re
+        state = getattr(exc, "sqlstate", None)
+        code = state if isinstance(state, str) and re.fullmatch(r"[A-Z0-9]{5}", state) else (
+            "connection" if type(exc).__name__ == "OperationalError" else "processing")
+        return {"status": "unavailable", "diagnostic": code}
 
 def tracker_summary(url,season):
     return _read(url,[
