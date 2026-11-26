@@ -38,6 +38,32 @@ class PilotTests(unittest.TestCase):
         with patch("usage_analytics_pilot.enabled",return_value=True),patch("access_control.current_role",return_value="guest"),patch.dict("os.environ",{"HOOPZARO_ACCOUNT_REGISTRY_ENABLED":"true","HOOPZARO_ACCOUNT_HMAC_KEY":"x"*32,"HOOPZARO_ACCOUNT_DATABASE_URL":"test"}),patch("usage_analytics_pilot.cursor") as cursor:
             observe_account({},"issuer|subject")
             cursor.assert_not_called()
+    def test_retention_dry_run_and_database_guard(self):
+        from analytics_retention import run
+        conn=Mock()
+        cur=conn.cursor.return_value.__enter__.return_value
+        cur.fetchone.side_effect=[("hoopzaro_analytics",),(0,),(1,),(2,),(3,)]
+        self.assertEqual(run(conn),{"page_samples":0,"sessions":1,"feature_aggregates":2,"inactive_accounts":3})
+        statements=[call.args[0] for call in cur.execute.call_args_list]
+        self.assertFalse(any(s.startswith("DELETE") for s in statements))
+        self.assertIn("NOT EXISTS",statements[-1])
+        cur.reset_mock()
+        cur.fetchone.side_effect=[("neondb",)]
+        with self.assertRaises(RuntimeError):
+            run(conn,apply=True)
+        self.assertEqual(cur.execute.call_count,1)
+    def test_retention_only_expected_tables_and_excludes_quota(self):
+        from analytics_retention import run
+        conn=Mock()
+        cur=conn.cursor.return_value.__enter__.return_value
+        cur.fetchone.return_value=("hoopzaro_analytics",)
+        cur.rowcount=0
+        run(conn,apply=True)
+        deletes=[call.args[0] for call in cur.execute.call_args_list if call.args[0].startswith("DELETE")]
+        self.assertEqual(len(deletes),4)
+        self.assertTrue(all(" WHERE " in sql for sql in deletes))
+        self.assertFalse(any(sql.startswith("DELETE FROM public.hoopzaro_props_daily") for sql in deletes))
+        self.assertIn("NOT EXISTS",deletes[-1])
     def test_disabled_preserves_results(self):
         with patch("usage_analytics_pilot.enabled",return_value=False),patch("usage_analytics_pilot.cursor") as cursor:
             observe({},"home")
