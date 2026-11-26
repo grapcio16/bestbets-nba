@@ -199,8 +199,43 @@ def render():
         st.caption("Latest 100 events; no raw identities, secrets or arbitrary metadata. No event producers enabled yet.")
         st.info("Login anomaly monitoring, backup verification and incident response are not connected. Absence of alerts is not proof of safety.")
         return
+    if section == "Revenue":
+        from admin_revenue import revenue_snapshot, project_revenue
+        revenue = revenue_snapshot()
+        if revenue.get("status") != "ok":
+            st.error("Access denied.")
+            return
+        st.subheader("Stripe · payment configuration")
+        st.write("Checkout configuration:", revenue["checkout_mode"])
+        st.write("Fulfillment readiness declared:", revenue["fulfillment_declared_ready"])
+        st.caption("Configuration only. No Stripe API verification, live payment or subscription reconciliation.")
+        cols = st.columns(2)
+        cols[0].metric("Actual revenue", "Not connected")
+        cols[1].metric("Active paid subscriptions", "Not connected")
+        st.divider()
+        st.subheader("Revenue Simulator · USD")
+        st.caption("Hypothetical scenario, not actual revenue. Assumes one successful monthly payment per subscriber.")
+        cols = st.columns(2)
+        n = cols[0].number_input("Paying subscribers", min_value=0, max_value=10000000, value=100, step=1)
+        price = cols[1].number_input("Monthly price (USD)", min_value=0.0, max_value=100000.0, value=9.99, step=0.01)
+        cols = st.columns(2)
+        fixed = cols[0].number_input("Fixed monthly costs (USD)", min_value=0.0, max_value=100000000.0, value=100.0)
+        variable = cols[1].number_input("Variable monthly cost per subscriber (USD)", min_value=0.0, max_value=100000.0, value=0.0)
+        cols = st.columns(2)
+        pct = cols[0].number_input("Payment fee (%)", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
+        fee = cols[1].number_input("Fixed fee per payment (USD)", min_value=0.0, max_value=100000.0, value=0.0, step=0.01)
+        p = project_revenue(n, price, fixed, pct, fee, variable)
+        cols = st.columns(3)
+        cols[0].metric("Monthly gross", f'${p["monthly_gross"]:,.2f}')
+        cols[1].metric("Annualized gross", f'${p["annualized_gross"]:,.2f}')
+        cols[2].metric("Monthly operating result", f'${p["monthly_operating_result"]:,.2f}')
+        st.metric("Break-even subscribers", p["break_even_subscribers"] if p["break_even_subscribers"] is not None else "No positive contribution")
+        st.dataframe([{"Monthly payment fees": float(p["monthly_payment_fees"]),
+                       "Monthly fixed costs": float(p["monthly_fixed_cost"]),
+                       "Monthly variable costs": float(p["monthly_variable_cost"])}], hide_index=True, use_container_width=True)
+        st.caption("Defaults are illustrative and editable. No taxes, refunds, churn or currency conversion unless explicitly modeled in costs. Not accounting profit.")
+        return
     pending = {
-        "Revenue": "Stripe, recurring revenue and operating costs",
         "Settings": "Controlled configuration and feature flags",
     }
     st.info(pending[section] + " — not connected yet.")
