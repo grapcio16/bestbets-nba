@@ -99,3 +99,22 @@ def stripe_test_summary(get=None):
         return {"status":"page_limit_reached"}
     except Exception:
         return {"status":"unavailable"}
+
+
+def official_injury_freshness(get=None, now=None):
+    """Verify the report index publication time, not the actual PDF contents."""
+    try:
+        from simulation_official_nba_injuries import REPORT_PAGE, latest_report_url
+        if get is None:
+            import requests
+            get=requests.get
+        response=get(REPORT_PAGE,timeout=(3,5),allow_redirects=False)
+        if response.status_code!=200:
+            return {"status":"unavailable"}
+        latest=latest_report_url(response.text,now=now)
+        if latest is None:
+            return {"status":"no_recent_report"}
+        stamp,_=latest
+        return {"status":"recent_report_link","published_utc":stamp.isoformat()}
+    except Exception:
+        return {"status":"unavailable"}
