@@ -171,9 +171,36 @@ def render():
         st.warning("Current Player Props server gate requires Premium. One daily free analysis is not implemented in this gate.")
         st.info("Account directory, Stripe entitlement reconciliation, durable quota and audit trail require separate implementation. No role mutations enabled.")
         return
+    if section == "Security":
+        from admin_security import security_snapshot, read_recent_events
+        security = security_snapshot()
+        if security.get("status") != "ok":
+            st.error("Access denied.")
+            return
+        st.subheader("Identity & access diagnostics")
+        cols = st.columns(2)
+        cols[0].metric("Admin identifier entries", security["admin_identifier_entries"])
+        cols[1].metric("Overlapping identifiers", security["overlap_entries"])
+        st.caption("Identifier entries are not unique people. OIDC configuration is not a live login test.")
+        st.write("OIDC configuration:", "Configured" if security["oidc_configured"] else "Missing")
+        st.write("Audit database configuration:", "Configured" if security["audit_storage_configured"] else "Missing")
+        st.write("Audit HMAC key length:", "Configured" if security["audit_key_configured"] else "Missing or short")
+        if security["overlap_entries"]:
+            st.warning("Admin and Premium allowlists overlap. Review intended access; admin role takes precedence.")
+        st.subheader("Administrative audit")
+        audit = read_recent_events()
+        if audit.get("status") == "ok":
+            if audit["events"]:
+                st.dataframe(audit["events"], hide_index=True, use_container_width=True)
+            else:
+                st.info("No recorded events in this audit store.")
+        else:
+            st.info("Audit records unavailable or not configured.")
+        st.caption("Latest 100 events; no raw identities, secrets or arbitrary metadata. No event producers enabled yet.")
+        st.info("Login anomaly monitoring, backup verification and incident response are not connected. Absence of alerts is not proof of safety.")
+        return
     pending = {
         "Revenue": "Stripe, recurring revenue and operating costs",
-        "Security": "Audit events, authentication and incident monitoring",
         "Settings": "Controlled configuration and feature flags",
     }
     st.info(pending[section] + " — not connected yet.")
