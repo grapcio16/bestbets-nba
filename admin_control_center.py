@@ -9,7 +9,7 @@ SECTIONS = (
 def authorized(role: str) -> bool:
     return role == "admin"
 
-def render():
+def render(*, dedicated=False):
     import streamlit as st
     from access_control import current_role
     # Never rely on URL, browser state or premium entitlement for authorization.
@@ -78,7 +78,8 @@ def render():
     st.sidebar.title("HOOPZARO")
     st.sidebar.caption("CONTROL CENTER · ADMIN")
     section = st.sidebar.radio("Navigation", SECTIONS)
-    st.sidebar.markdown("[Return to Hoopzaro](?)")
+    if not dedicated:
+        st.sidebar.markdown("[Return to Hoopzaro](?)")
     st.caption("HOOPZARO / CONTROL CENTER / " + section.upper())
     st.title(section)
     st.caption("Internal administration · NBA 2026–27 · production controls locked")
@@ -93,7 +94,30 @@ def render():
         injury_index.clear()
         if audit_enabled() and not record_admin_event("refresh_telemetry", "success"):
             st.warning("Telemetry cache cleared; audit record could not be saved.")
+    if dedicated and st.sidebar.button("Sign out"):
+        st.logout()
+        st.stop()
+        return
     st.divider()
+    if section == "Overview":
+        st.subheader("Application usage")
+        registry = accounts()
+        cols = st.columns(3)
+        if registry.get("status") == "ok":
+            rows = registry.get("accounts", [])
+            cols[0].metric("Observed accounts", sum(r["observed_accounts"] for r in rows))
+            cols[1].metric("Seen last 30 days", sum(r["seen_last_30_days"] for r in rows))
+            cols[2].metric("Free Props reservations today (UTC)", registry["quota"][0]["reservations_today"])
+        else:
+            for col, label in zip(cols, ("Observed accounts", "Seen last 30 days", "Free Props reservations today (UTC)")):
+                col.metric(label, "Unavailable")
+            st.info("Account registry not connected or unavailable.")
+        st.caption("Observed signed-in accounts only. Anonymous visits and live concurrent users are not measured.")
+        cols = st.columns(2)
+        cols[0].metric("Actual revenue", "Not connected")
+        cols[1].metric("Active paid subscriptions", "Not connected")
+        st.caption("Live billing is not connected; test subscriptions are separate.")
+        st.divider()
     if section in ("Overview", "Data Center", "AI Engines", "Tracker"):
         data = snapshot("2026-27")
         worker = data.get("worker") or {}
