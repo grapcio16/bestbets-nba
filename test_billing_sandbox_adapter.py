@@ -50,7 +50,7 @@ class API:
         return test_object(self.session if id=="cs_test_fixture" else self.objects[id],id)
     def request(self,path,params,idempotency):
         self.requests.append((path,params,idempotency))
-        return {**self.session,"status":"open","url":"https://checkout.stripe.com/c/pay/cs_test_fixture#fixture"}
+        return {**self.session,"status":"open","currency":"usd","amount_total":999,"url":"https://checkout.stripe.com/c/pay/cs_test_fixture#fixture"}
 class AdapterTests(unittest.TestCase):
     def setUp(self): self.api=API()
     def evidence(self):
