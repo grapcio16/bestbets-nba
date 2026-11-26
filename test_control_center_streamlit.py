@@ -100,6 +100,35 @@ class ControlCenterSmokeTest(unittest.TestCase):
                     self.assertEqual(app.title[0].value,"HOOPZARO | Control Center")
                     self.assertEqual(app.button[0].label,"Sign in" if role=="guest" else "Sign out")
 
+    def test_standalone_entrypoint_and_explicit_deployment_mode(self):
+        for entry in ("control_center_app.py", "app.py"):
+            with self.subTest(entry=entry), ExitStack() as stack:
+                stack.enter_context(patch.dict("os.environ", {"HOOPZARO_DEPLOYMENT_MODE":"control_center"}))
+                stack.enter_context(patch("access_control._secret_section",return_value={}))
+                stack.enter_context(patch("access_control.current_role",return_value="guest"))
+                stack.enter_context(patch("access_control.auth_configured",return_value=True))
+                render = stack.enter_context(patch("admin_control_center.render"))
+                public = ModuleType("bestbets_custom_screen")
+                public.main = Mock()
+                stack.enter_context(patch.dict("sys.modules", {"bestbets_custom_screen":public}))
+                app = AppTest.from_file(entry,default_timeout=15).run()
+                self.assertFalse(app.exception)
+                self.assertEqual(app.title[0].value,"HOOPZARO | Control Center")
+                public.main.assert_not_called()
+                render.assert_not_called()
+
+    def test_hostname_routes_to_private_login_without_granting_access(self):
+        with ExitStack() as stack:
+            stack.enter_context(patch("access_control._secret_section",return_value={}))
+            stack.enter_context(patch("access_control.current_role",return_value="guest"))
+            stack.enter_context(patch("access_control.auth_configured",return_value=True))
+            stack.enter_context(patch("streamlit.context",Mock(url="https://hoopzaro-control-center.streamlit.app/")))
+            render = stack.enter_context(patch("admin_control_center.render"))
+            app = AppTest.from_file("app.py",default_timeout=15).run()
+            self.assertFalse(app.exception)
+            self.assertEqual(app.title[0].value,"HOOPZARO | Control Center")
+            render.assert_not_called()
+
     def test_public_deployment_default_unchanged(self):
         public = ModuleType("bestbets_custom_screen")
         public.main = Mock()
