@@ -195,6 +195,19 @@ def evaluate_records(v8_rows, v7_rows):
         for right in v7_models:
             b = {k[1]: r for k, r in v7.items() if k[0] == right}
             compare(left, right, a, b, "V8 versus V7 matched-game comparison")
+    # One cohort across all participating models, not an assumption that
+    # equally sized pairwise samples contain the same games.
+    by_model = {model: {r["game_id"]: r for r in records}
+                for model, records in groups.items()}
+    common_ids = sorted(set.intersection(*(set(rows) for rows in by_model.values()))) if by_model else []
+    names = sorted(by_model)
+    compatible_ids = [gid for gid in common_ids if all(
+        _compatible(by_model[names[0]][gid], by_model[name][gid]) for name in names[1:])]
+    scorecard["shared_cohort"] = {
+        "n": len(compatible_ids),
+        "metrics": {name: _metrics([by_model[name][gid] for gid in compatible_ids])
+                    for name in names} if compatible_ids and len(names) >= 2 else {},
+    }
     return scorecard
 
 
