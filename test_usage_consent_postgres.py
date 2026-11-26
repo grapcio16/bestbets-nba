@@ -4,7 +4,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 from contextlib import contextmanager
-import psycopg
+if os.environ.get("HOOPZARO_CI_DISPOSABLE_PG")=="true":
+    import psycopg
 from usage_consent_receipts import create_receipt,close_receipt,NOTICE_VERSION
 
 OWNER="postgresql://postgres:fixture@127.0.0.1:5432/hoopzaro_analytics"
