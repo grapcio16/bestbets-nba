@@ -59,5 +59,10 @@ def read_scorecard(url, season):
             "status", "season", "model_metrics", "common_game_comparisons",
             "v8_archived_by_version", "v8_valid_settled_by_version",
             "sample_disclaimer") if key in report}
-    except Exception:
-        return {"status": "unavailable"}
+    except Exception as exc:
+        # Only a sanitized category / SQLSTATE; never log the exception text.
+        import re
+        state = getattr(exc, "sqlstate", None)
+        code = state if isinstance(state, str) and re.fullmatch(r"[A-Z0-9]{5}", state) else (
+            "connection" if type(exc).__name__ == "OperationalError" else "processing")
+        return {"status": "unavailable", "diagnostic": code}
