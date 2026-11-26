@@ -77,17 +77,19 @@ class ControlCenterSmokeTest(unittest.TestCase):
                     if section=="Revenue":
                         self.assertTrue(any('hz-kpi-label">Przychód miesięczny</div><div><div class="hz-kpi-value">$999.00</div>' in m.value for m in app.markdown))
                     if section=="Tracker":
-                        self.assertTrue(any("BOS – NYK" in m.value and "hz-status-settled" in m.value for m in app.markdown))
+                        self.assertTrue(any("hz-match-score" in m.value and "115 : 101" in m.value for m in app.markdown))
+                        self.assertTrue(any("hz-status-settled" in m.value for m in app.markdown))
                         self.assertFalse(any("Wspólna próba:" in m.value for m in app.markdown))
-                        app.radio(key="hz_tracker_kind").set_value("players").run()
+                        app.button(key="hz_tracker_tab_players").click().run()
                         self.assertFalse(app.exception)
                         self.assertTrue(any("Test Player" in m.value for m in app.markdown))
-                        app.radio(key="hz_tracker_kind").set_value("quarters").run()
+                        app.button(key="hz_tracker_tab_quarters").click().run()
                         self.assertFalse(app.exception)
-                        self.assertTrue(any("BOS – NYK · Q1" in m.value for m in app.markdown))
-                        app.text_input(key="hz_tracker_search").set_value("zzzz").run()
+                        self.assertTrue(any("Q1" in m.value and "hz-status-settled" in m.value for m in app.markdown))
+                        day=app.date_input(key="hz_tracker_day").value
+                        app.button(key="hz_tracker_prev").click().run()
                         self.assertFalse(app.exception)
-                        self.assertTrue(any("Brak prognoz spełniających" in i.value for i in app.info))
+                        self.assertEqual(app.date_input(key="hz_tracker_day").value,day-timedelta(days=1))
                     if section=="Overview":
                         self.assertTrue(any('hz-kpi-label">Aktywni · 24 godz.</div><div><div class="hz-kpi-value">1</div>' in m.value for m in app.markdown))
                     if section=="Users":
@@ -123,6 +125,17 @@ class ControlCenterSmokeTest(unittest.TestCase):
         self.assertEqual(report["shared_cohort"]["n"],0)
         self.assertEqual(report["shared_cohort"]["metrics"],{})
         self.assertEqual(len(report["common_game_comparisons"]),3)
+
+    def test_tracker_consensus_and_safe_hero(self):
+        from admin_tracker_view import consensus, match_hero, compact_rows
+        row=fixture_tracker_history()["rows"][0]
+        self.assertEqual(consensus([row],"games"),((115.0,101.0),"settled"))
+        self.assertEqual(consensus([row,{**row,"actual_home":99}],"games"),(None,"conflict"))
+        self.assertEqual(consensus([{**row,"settled":None}],"games"),(None,"waiting"))
+        self.assertIn("&lt;script&gt;",match_hero("<script>","NYK",(115,101),"settled"))
+        result=compact_rows([row],"games","PTS",datetime.now(timezone.utc))[0]
+        self.assertEqual(result["Trafienie"],"Tak")
+        self.assertEqual(result["Błąd na drużynę"],"4,50")
 
     def test_all_non_admin_roles(self):
         for role in ("guest","free","premium"):
