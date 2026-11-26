@@ -488,8 +488,9 @@ def main() -> None:
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
     # Streamlit sessions can survive a login/logout round trip. Never send a
     # previous account's cached paid results to a different authenticated user.
-    from usage_analytics_pilot import enabled as pilot_enabled, observe, observe_account, measured, audience_available, set_consent
+    from usage_analytics_pilot import enabled as pilot_enabled, observe, observe_account, measured, audience_available, set_consent, refresh_consent, end_consent, notice_url, CONSENT_VERSION
     principal = current_principal()
+    refresh_consent(st.session_state,principal,current_role())
     if st.session_state.get("bb10_premium_principal") != principal:
         for telemetry_key in ("hz_usage_session","hz_usage_last","hz_account_last","hz_usage_consent","hz_usage_role","hz_account_role","hz_usage_pending"):
             st.session_state.pop(telemetry_key,None)
@@ -554,6 +555,9 @@ def main() -> None:
         "usage_enabled": pilot_enabled(),
         "usage_consent_available": audience_available() and not is_admin,
         "usage_consent_granted": pilot_enabled() and not is_admin,
+        "usage_consent_status": st.session_state.get("hz_consent_status","off") if not is_admin else "off",
+        "usage_notice_url": notice_url() if audience_available() else "",
+        "usage_notice_version": CONSENT_VERSION if audience_available() else "",
         "auth": {**auth_context(), "session_epoch": st.session_state.get("bb10_identity_epoch", 0)},
         "premium_checkout_url": premium_checkout_url(),
         "player": st.session_state["bb10_payload"].get("player") if has_premium else None,
@@ -596,8 +600,13 @@ def main() -> None:
         return
     st.session_state["bb10_last_event"] = event_id
     if event.get("type") == "usage_consent":
-        if not is_admin and set_consent(st.session_state,event.get("accepted")):
-            if event.get("accepted") is True:
+        accepted=event.get("accepted")
+        if accepted is True and (event.get("notice_version")!=CONSENT_VERSION or
+                type(event.get("consent_epoch")) is not int or
+                event.get("consent_epoch")!=st.session_state.get("bb10_identity_epoch",0)):
+            return
+        if not is_admin and set_consent(st.session_state,accepted,principal):
+            if accepted is True and pilot_enabled():
                 observe(st.session_state,"settings")
                 observe_account(st.session_state,principal)
             st.rerun()
@@ -608,11 +617,15 @@ def main() -> None:
         return
     if event.get("type") == "auth_login":
         if auth_configured():
+            if not is_admin:
+                end_consent(st.session_state,"identity_changed")
             provider = login_provider()
             st.login(provider) if provider else st.login()
         return
     if event.get("type") == "auth_logout":
         if auth_configured() and bool(getattr(st.user, "is_logged_in", False)):
+            if not is_admin:
+                end_consent(st.session_state,"logout")
             st.logout()
         return
     if event.get("type") == "admin_report":
