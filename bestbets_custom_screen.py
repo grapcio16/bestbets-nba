@@ -488,8 +488,11 @@ def main() -> None:
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
     # Streamlit sessions can survive a login/logout round trip. Never send a
     # previous account's cached paid results to a different authenticated user.
+    from usage_analytics_pilot import enabled as pilot_enabled, observe, observe_account, measured
     principal = current_principal()
     if st.session_state.get("bb10_premium_principal") != principal:
+        for telemetry_key in ("hz_usage_session","hz_usage_last","hz_account_last"):
+            st.session_state.pop(telemetry_key,None)
         # Player Props is paid output too. It must not survive logout or a
         # switch between two accounts that both happen to have Premium.
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
@@ -539,11 +542,16 @@ def main() -> None:
         }
     has_premium = premium_entitled()
     is_admin = current_role() == "admin"
+    if pilot_enabled():
+        if not st.session_state.get("hz_usage_session"):
+            observe(st.session_state,"home")
+        observe_account(st.session_state,principal)
     if not has_premium and st.session_state["bb10_payload"].get("player") is not None:
         # Also discard paid output if an unchanged account loses entitlement.
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
     payload = {
         "brand": _cached_brand(),
+        "usage_enabled": pilot_enabled(),
         "auth": {**auth_context(), "session_epoch": st.session_state.get("bb10_identity_epoch", 0)},
         "premium_checkout_url": premium_checkout_url(),
         "player": st.session_state["bb10_payload"].get("player") if has_premium else None,
@@ -585,6 +593,10 @@ def main() -> None:
     if not event_id or event_id == st.session_state.get("bb10_last_event"):
         return
     st.session_state["bb10_last_event"] = event_id
+    if pilot_enabled():
+        observe(st.session_state,event.get("usage_page"))
+    if event.get("type") == "usage_sample":
+        return
     if event.get("type") == "auth_login":
         if auth_configured():
             provider = login_provider()
@@ -750,7 +762,7 @@ def main() -> None:
         # and source history are chosen by the server, never by event payload.
         if not premium_entitled():
             return
-        st.session_state["bb10_premium_backtest"] = backtest_for_entitled_user()
+        st.session_state["bb10_premium_backtest"] = measured("backtest", backtest_for_entitled_user)
         st.rerun()
         return
     if event.get("type") in ("premium_sim_flow_save", "premium_sim_flow_export"):
@@ -844,7 +856,7 @@ def main() -> None:
                 or not re.fullmatch(r"[A-Z]{3}", team)
                 or type(delta) is not int or not -5 <= delta <= 5):
             return
-        result = player_minutes_scenario_for_entitled_user(
+        result = measured("minutes", player_minutes_scenario_for_entitled_user,
             day, game_id, model_id, name, team, delta)
         st.session_state["bb10_premium_minute_scenario"] = {
             "date": day, "game_id": game_id, "model_id": model_id,
@@ -867,7 +879,7 @@ def main() -> None:
                 or any(type(v) is not int or not -5 <= v <= 5
                        for v in (pct, away_pct, home_pct))):
             return
-        result = scenario_for_entitled_user(
+        result = measured("scenario", scenario_for_entitled_user,
             day, game_id, model_id, pct,
             off_away_pct=away_pct, off_home_pct=home_pct)
         st.session_state["bb10_premium_scenario"] = {
@@ -935,7 +947,7 @@ def main() -> None:
                     from bestbets_simulations_canvas import _minute_roster_for_fixture
                     _minute_roster_for_fixture.clear(
                         str(selected["away"]), str(selected["home"]))
-        result = simulation_for_entitled_user(
+        result = measured("player_simulation" if event.get("type")=="premium_sim_players" else "simulation", simulation_for_entitled_user,
             day, game_id, players=is_players, model_id=model_id)
         key = "bb10_premium_players" if is_players else "bb10_premium_game"
         st.session_state[key] = {"date": day, "game_id": game_id,
@@ -1098,7 +1110,7 @@ def main() -> None:
         st.session_state["bb10_payload"] = {"player": None, "error": "Wpisz zdarzenie do wyszukania."}
     else:
         try:
-            athlete = _research(query)
+            athlete = measured("props", _research, query)
             st.session_state["bb10_payload"] = {"player": athlete, "error": ""}
         except (ValueError, KeyError, RuntimeError, TypeError, IndexError) as exc:
             st.session_state["bb10_payload"] = {"player": None, "error": str(exc)[:280]}
