@@ -39,9 +39,13 @@ class ControlCenterSmokeTest(unittest.TestCase):
                 "admin_source_monitor.source_snapshot":[{"source":"fixture","status":"schema_ok","elapsed_ms":42}],
                 "admin_performance.database_probe":{"status":"ok","connect_ms":20,"query_ms":2,"total_ms":25,"checked_utc":"2026-11-25T04:00:00+00:00"},
                 "admin_security.read_recent_events":{"status":"setup_required"},
+                "admin_live_data.tracker_summary":{"status":"ok","players":[{"settled":12}],"quarters":[{"settled":8}],"last_run":[]},
+                "admin_live_data.account_summary":{"status":"ok","accounts":[{"observed_accounts":4,"seen_last_30_days":2}],"quota":[{"reservations_today":1}]},
+                "admin_live_data.stripe_test_summary":{"status":"ok","subscription_counts":{"active":2}},
+                "admin_live_data.official_injury_freshness":{"status":"no_recent_report"},
                 "admin_revenue.revenue_snapshot":{"status":"ok","checkout_mode":"test","fulfillment_declared_ready":False},
             }
-            stack.enter_context(patch.dict("os.environ",{},clear=False))
+            stack.enter_context(patch.dict("os.environ",{},clear=True))
             for name,value in fixtures.items():
                 stack.enter_context(patch(name,return_value=value))
             app=self.app().run()
@@ -54,6 +58,10 @@ class ControlCenterSmokeTest(unittest.TestCase):
                         self.assertTrue(app.expander)
                     if section=="Revenue":
                         self.assertEqual(next(m.value for m in app.metric if m.label=="Monthly gross"),"$999.00")
+                    if section=="Tracker":
+                        self.assertEqual(next(m.value for m in app.metric if m.label=="Settled player forecasts"),"12")
+                    if section=="Users":
+                        self.assertEqual(next(m.value for m in app.metric if m.label=="Observed accounts"),"4")
                     if section=="Performance":
                         self.assertEqual(next(m.value for m in app.metric if m.label=="Connect"),"20.0 ms")
             app.sidebar.button[0].click().run()
