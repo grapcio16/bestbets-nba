@@ -102,7 +102,7 @@ def page_chart(report):
     maximum=max(1,max(n for _,n in rows))
     return '<div class="hz-over-panel">'+''.join(f'<div class="hz-over-rank"><span>{escape(label)}</span><div class="hz-over-meter"><span style="width:{100*n/maximum:.3f}%"></span></div><strong>{n}</strong></div>' for label,n in rows)+'</div>'
 
-def render_overview(registry, usage, snapshot, select_section):
+def render_overview(registry, usage, snapshot, select_section, stripe=None, payments=None):
     import streamlit as st
     from access_control import current_role
     if current_role()!="admin":
@@ -139,8 +139,17 @@ def render_overview(registry, usage, snapshot, select_section):
         st.divider()
         a,b=st.columns(2)
         with a:
-            st.subheader("Przychody")
-            st.markdown(grid_markup([("Płatne subskrypcje","Nie podłączono"),("Rzeczywiste przychody","Nie podłączono")],2),unsafe_allow_html=True)
+            from admin_stripe_payments import money_label
+            st.subheader("Stripe · środowisko testowe")
+            stripe=stripe or {}
+            payments=payments or {}
+            active=stripe.get("subscription_counts",{}).get("active",0) if stripe.get("status")=="ok" else "Brak danych"
+            currencies=payments.get("currencies",{}) if payments.get("status")=="ok" else {}
+            payment_count=sum(v["successful"] for v in currencies.values()) if payments.get("status")=="ok" else "Brak danych"
+            st.markdown(grid_markup([("Aktywne subskrypcje testowe",active),("Udane płatności testowe · 30 dni",payment_count)],2),unsafe_allow_html=True)
+            for currency, totals in sorted(currencies.items()):
+                st.markdown(health_markup("Pobrano testowo · 30 dni",money_label(totals["captured_minor"],currency),"ok"),unsafe_allow_html=True)
+            st.write("Dane całego środowiska testowego. Rzeczywiste przychody nie są podłączone.")
             st.button("Przejdź do przychodów",key="hz_over_revenue",on_click=select_section,args=("Revenue",),use_container_width=True)
         with b:
             st.subheader("Stan techniczny")
