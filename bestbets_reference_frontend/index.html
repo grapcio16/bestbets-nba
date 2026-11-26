@@ -1486,9 +1486,23 @@ function closePremiumPaywall(){
   if(!$("hzt-modal-backdrop").hidden)$("hzt-modal-close").focus();
   else $("query").focus();
 }
+let hzUsageLastMessage=0;
 function notify(type,extra){
+  if(type==="streamlit:setComponentValue" && extra && extra.value && state.payload?.usage_enabled){
+    extra={...extra,value:{...extra.value,usage_page:state.page}};
+    hzUsageLastMessage=Date.now();
+  }
   window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},extra||{}),"*");
 }
+// Low-frequency visible-tab samples, not exact page views or dwell time.
+// Piggyback on ordinary feature events; avoid an extra message during searches.
+setInterval(function(){
+  if(!state.payload?.usage_enabled || document.visibilityState!=="visible" || state.loading ||
+     state.page==="admin" || Date.now()-hzUsageLastMessage<90000)return;
+  notify("streamlit:setComponentValue",{dataType:"json",value:{
+    type:"usage_sample",id:String(Date.now())+"-usage"
+  }});
+},30000);
 function resize(){
   // Keep the approved 1231px-wide design; isolate vertical scrolling in #work.
   const viewportWidth=Math.max(320,document.documentElement.clientWidth||window.innerWidth||1231);
