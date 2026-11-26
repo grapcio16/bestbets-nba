@@ -1267,7 +1267,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <div class="hzt-pagination"><span id="hzt-team-summary">30 zespołów · ★ maks. 2 ulubione</span><span id="hzt-team-message" role="status"></span><div><button type="button" id="hzt-prev" aria-label="Poprzednie drużyny">‹</button><span id="hzt-page">1 / 5</span><button type="button" id="hzt-next" aria-label="Następne drużyny">›</button></div></div>
   </section>
   <section id="hz-admin-pane" class="hz-admin-pane" hidden aria-label="Administrator: skuteczność modeli">
-    <div class="hz-admin-head"><div><span class="hz-admin-kicker">HOOPZARO · TYLKO ADMINISTRATOR</span><h1>Model <em>Performance</em></h1><p>Ocena prognoz zapisanych przed meczem. Wyniki wyłącznie po oficjalnym zakończeniu spotkań.</p></div><button type="button" id="hz-admin-refresh">↻ Odśwież</button></div>
+    <div class="hz-admin-head"><div><span class="hz-admin-kicker">HOOPZARO · TYLKO ADMINISTRATOR</span><h1>Model <em>Performance</em></h1><p>Ocena prognoz zapisanych przed meczem. Wyniki wyłącznie po oficjalnym zakończeniu spotkań.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" id="hz-admin-control-center">Control Center ↗</button><button type="button" id="hz-admin-refresh">↻ Odśwież</button></div></div>
     <div id="hz-admin-dashboard" class="hz-admin-dashboard" aria-live="polite"><div class="hz-admin-empty">Otwórz raport, aby pobrać dane z PostgreSQL…</div></div>
   </section>
 </div>
@@ -1459,6 +1459,7 @@ function premiumRequired(){
   const role=state.payload.auth?.role||"guest";
   return role!=="admin"&&role!=="premium";
 }
+function freePropsEnabled(){return state.payload.auth?.role==="free"&&state.payload.free_props_enabled===true;}
 function showPremiumPaywall(){
   if(!premiumRequired())return;
   state.paywallOpen=true;
@@ -1739,9 +1740,10 @@ function renderPlayer(){
     :state.venue==="AWAY"?"Brak potwierdzonych występów wyjazdowych dla wybranego rynku."
     :"Brak występów dla tego rynku i linii.";
   const premiumError=String(state.payload.error||"").startsWith("Player Props wymaga konta Premium");
+  const quotaError=String(state.payload.error||"").startsWith("Dzienny limit Free wykorzystany.");
   text("notice",premiumError?"":state.payload.error||"");
   $("notice").style.display=state.payload.error&&!premiumError?"block":"none";
-  if(premiumError&&premiumRequired()&&state.paywallServerErrorSeen!==state.payload.error){
+  if((premiumError||quotaError)&&premiumRequired()&&state.paywallServerErrorSeen!==state.payload.error){
     state.paywallServerErrorSeen=state.payload.error;
     showPremiumPaywall();
   }
@@ -1782,7 +1784,7 @@ function render(){
   const propsHelp=$("props-heading")?.querySelector("p");
   if(propsHelp)propsHelp.textContent=role==="admin"||role==="premium"
     ?"Player prop analysis, stats & context"
-    :"Analizy wymagają Premium · dostęp po zalogowaniu w Ustawieniach";
+    :freePropsEnabled()?"FREE · jedna analiza dziennie · reset 00:00 UTC":"Analizy wymagają Premium · dostęp po zalogowaniu w Ustawieniach";
   root.classList.toggle("bb-home-active",home);
   $("props-pane").style.display=active?"block":"none";
   const schedule=state.page==="games";
@@ -1873,7 +1875,7 @@ function search(query){
   // Top search from the free homepage opens the existing Props analysis.
   if(state.page==="home")state.page="props";
   state.query=query;$("query").value=query;
-  if(premiumRequired()){
+  if(premiumRequired()&&!freePropsEnabled()){
     state.payload.error="";state.loading=false;
     render();showPremiumPaywall();return;
   }
@@ -2197,6 +2199,7 @@ document.addEventListener("pointerdown",function(e){
 });
 document.addEventListener("keydown",function(e){if(e.key==="Escape")closeMobileMore()});
 $("hz-admin-refresh").addEventListener("click",requestAdminReport);
+$("hz-admin-control-center").addEventListener("click",function(){if(state.payload.auth?.role==="admin")sendAuth("admin_control_center");});
 $("hz-premium").addEventListener("click",function(){
   const role=state.payload.auth?.role||"guest";
   if(role!=="admin"&&role!=="premium"){showPremiumPaywall();return}
