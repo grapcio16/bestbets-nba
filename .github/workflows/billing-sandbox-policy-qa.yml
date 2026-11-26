@@ -1,0 +1,20 @@
+name: Billing sandbox policy QA
+on:
+  pull_request:
+    paths:
+      - 'billing_sandbox_policy.py'
+      - 'test_billing_sandbox_policy.py'
+      - '.github/workflows/billing-sandbox-policy-qa.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m py_compile billing_sandbox_policy.py
+      - run: python -m unittest -v test_billing_sandbox_policy
