@@ -119,6 +119,11 @@ def render(*, dedicated=False):
     if not dedicated:
         st.sidebar.markdown("[Powrót do Hoopzaro](?)")
     st.title(SECTION_LABELS[section])
+    def diagnostic(report):
+        code = report.get("diagnostic")
+        if code:
+            st.write("Kod diagnostyczny:", code)
+
     def kpis(items, columns=3):
         st.markdown(grid_markup(items, columns), unsafe_allow_html=True)
     def health(label, value, kind="warn"):
@@ -235,6 +240,7 @@ def render(*, dedicated=False):
             st.subheader("Skuteczność prognoz przedmeczowych")
             if report.get("status") in ("unavailable", "setup_required"):
                 st.warning("Brak zweryfikowanej oceny modeli.")
+                diagnostic(report)
             elif report.get("status") == "waiting_for_settled_games":
                 st.info("Oczekiwanie na rozliczone prognozy V8.")
             rows = report.get("common_game_comparisons") or []
@@ -281,6 +287,7 @@ def render(*, dedicated=False):
                     st.markdown("Własna próba każdego modelu — nie porównanie wspólnych meczów.")
             else:
                 st.info("Archiwum prognoz zawodników i kwart niedostępne.")
+                diagnostic(detail)
         return
     if section == "Performance":
         st.subheader("Funkcje aplikacji · ostatnie 7 dni")
@@ -420,6 +427,7 @@ def render(*, dedicated=False):
         st.markdown("Wynik przed podatkami, zwrotami i odpływem klientów, o ile nie uwzględniono ich w kosztach.")
         return
     if section == "Settings":
+        st.write("Wersja panelu: 2026-11-26-r5")
         from admin_settings import settings_snapshot, validate_draft
         config = settings_snapshot()
         if config.get("status") != "ok":
