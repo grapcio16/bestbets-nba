@@ -1,6 +1,7 @@
 """Tracker: daily settlement workflow, distinct from AI model evaluation."""
 from datetime import datetime, timedelta, timezone
-from admin_tracker_history import TZ, KINDS, STATS, classify, summarize, values, error_value
+from html import escape
+from admin_tracker_history import TZ, KINDS, STATS, classify, summarize, values, error_value, finite
 from admin_dashboard_ui import grid_markup, table_markup, health_markup, model_name, number
 
 STAT_NAMES = {"PTS":"Punkty (PTS)","REB":"Zbiórki (REB)","AST":"Asysty (AST)",
@@ -20,6 +21,11 @@ TRACKER_CSS = """<style>
 .st-key-hz_tracker_scope .hz-data-table td{padding:12px 15px}
 .st-key-hz_tracker_scope .hz-data-table td:last-child{font-weight:650}
 .st-key-hz_tracker_scope .hz-kpi{min-height:105px}
+.st-key-hz_tracker_scope .hz-status{display:inline-block;padding:5px 9px;border-radius:6px;font-size:14px;line-height:1.3;border:1px solid transparent}
+.st-key-hz_tracker_scope .hz-status-settled{color:#8be0bd;background:#1c3c37;border-color:#356351}
+.st-key-hz_tracker_scope .hz-status-waiting{color:#edc789;background:#3b3328;border-color:#675337}
+.st-key-hz_tracker_scope .hz-status-upcoming{color:#acc4ff;background:#26395b;border-color:#415d89}
+.st-key-hz_tracker_scope .hz-status-excluded{color:#ffb0b5;background:#442c3a;border-color:#69404c}
 </style>"""
 
 def date_label(value):
@@ -53,6 +59,41 @@ def history_table(rows,kind,stat,now):
         data["Status"]=STATE_NAMES[state]
         out.append(data)
     return out
+
+def status_table(rows):
+    # All dynamic cells remain escaped by the shared table helper. Replace
+    # only exact static status cells, never inject provider-supplied markup.
+    markup=table_markup(rows)
+    for key,label in STATE_NAMES.items():
+        markup=markup.replace(f"<td>{escape(label)}</td>",
+            f'<td><span class="hz-status hz-status-{key}">{escape(label)}</span></td>')
+    return markup
+
+def render_detail(st,row,kind,stat,now):
+    state=classify(row,kind,stat,now)
+    pred,actual=values(row,kind,stat)
+    st.markdown(health_markup(subject(row,kind),STATE_NAMES[state],
+        "ok" if state=="settled" else "bad" if state=="excluded" else "warn"),unsafe_allow_html=True)
+    st.write(f"Model {model_name(row['model_id'])} · {date_label(row.get('start_utc'))}")
+    if kind=="players":
+        kpis=[("Prognoza · "+stat,number(pred[0],1)),
+              ("Rzeczywisty wynik",number(actual[0],1) if state=="settled" else "Brak danych"),
+              ("Różnica (wynik − prognoza)",number(float(actual[0])-float(pred[0]),2) if state=="settled" else "Brak danych")]
+        st.markdown(grid_markup(kpis,3),unsafe_allow_html=True)
+    else:
+        rows=[]
+        for i,team in enumerate((row.get("away"),row.get("home"))):
+            rows.append({"Drużyna":team, "Prognoza":number(pred[i],1),
+                "Wynik":number(actual[i],0) if state=="settled" else "—",
+                "Różnica (wynik − prognoza)":number(float(actual[i])-float(pred[i]),2) if state=="settled" else "—"})
+        st.markdown(table_markup(rows),unsafe_allow_html=True)
+        if kind=="games" and all(finite(row.get(k)) for k in ("scenario_away","scenario_home")):
+            st.markdown(grid_markup([("Scenariusz V8",score_pair((row["scenario_away"],row["scenario_home"]),0)),
+                ("Błąd scenariusza",number((abs(float(actual[0])-row["scenario_away"])+abs(float(actual[1])-row["scenario_home"]))/2)
+                    if state=="settled" else "Brak danych")],2),unsafe_allow_html=True)
+        if finite(row.get("home_win_pct")):
+            st.write("Prognozowane prawdopodobieństwo wygranej gospodarzy:", number(row["home_win_pct"],1)+"%")
+    st.write("Zapis prognozy:",date_label(row.get("issued")),"· Rozliczenie:",date_label(row.get("settled")))
 
 def render_tracker(load_history, load_summary):
     import streamlit as st
@@ -125,7 +166,13 @@ def render_tracker(load_history, load_summary):
                               key="hz_tracker_page_"+str(pages))
             offset=(page-1)*PAGE_SIZE
             st.write(f"Pozycje {offset+1}–{min(offset+PAGE_SIZE,len(filtered))} z {len(filtered)}")
-            st.markdown(table_markup(history_table(filtered[offset:offset+PAGE_SIZE],kind,stat,now)),unsafe_allow_html=True)
+            shown=filtered[offset:offset+PAGE_SIZE]
+            st.markdown(status_table(history_table(shown,kind,stat,now)),unsafe_allow_html=True)
+            with st.expander("Szczegóły wybranej prognozy"):
+                index=st.selectbox("Wybierz prognozę z tej strony",list(range(len(shown))),
+                    format_func=lambda i:f'{subject(shown[i],kind)} · {model_name(shown[i]["model_id"])} · {date_label(shown[i]["start_utc"])}',
+                    key="hz_tracker_detail_"+kind+"_"+str(len(shown)))
+                render_detail(st,shown[index],kind,stat,now)
         with st.expander("Ostatnia aktualizacja Trackera i zasady rozliczeń"):
             latest=load_summary(season)
             runs=latest.get("last_run",[])
