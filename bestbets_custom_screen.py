@@ -488,10 +488,10 @@ def main() -> None:
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
     # Streamlit sessions can survive a login/logout round trip. Never send a
     # previous account's cached paid results to a different authenticated user.
-    from usage_analytics_pilot import enabled as pilot_enabled, observe, observe_account, measured
+    from usage_analytics_pilot import enabled as pilot_enabled, observe, observe_account, measured, audience_available, set_consent
     principal = current_principal()
     if st.session_state.get("bb10_premium_principal") != principal:
-        for telemetry_key in ("hz_usage_session","hz_usage_last","hz_account_last"):
+        for telemetry_key in ("hz_usage_session","hz_usage_last","hz_account_last","hz_usage_consent","hz_usage_role","hz_account_role"):
             st.session_state.pop(telemetry_key,None)
         # Player Props is paid output too. It must not survive logout or a
         # switch between two accounts that both happen to have Premium.
@@ -552,6 +552,8 @@ def main() -> None:
     payload = {
         "brand": _cached_brand(),
         "usage_enabled": pilot_enabled(),
+        "usage_consent_available": audience_available() and not is_admin,
+        "usage_consent_granted": pilot_enabled() and not is_admin,
         "auth": {**auth_context(), "session_epoch": st.session_state.get("bb10_identity_epoch", 0)},
         "premium_checkout_url": premium_checkout_url(),
         "player": st.session_state["bb10_payload"].get("player") if has_premium else None,
@@ -593,6 +595,13 @@ def main() -> None:
     if not event_id or event_id == st.session_state.get("bb10_last_event"):
         return
     st.session_state["bb10_last_event"] = event_id
+    if event.get("type") == "usage_consent":
+        if not is_admin and set_consent(st.session_state,event.get("accepted")):
+            if event.get("accepted") is True:
+                observe(st.session_state,"settings")
+                observe_account(st.session_state,principal)
+            st.rerun()
+        return
     if pilot_enabled():
         observe(st.session_state,event.get("usage_page"))
     if event.get("type") == "usage_sample":

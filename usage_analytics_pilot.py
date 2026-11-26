@@ -1,4 +1,4 @@
-"""Opt-in admin-only telemetry pilot; no changes to customer access or UI."""
+"""Opt-in telemetry; admin pilot or explicit session consent. No entitlements."""
 import os
 import hmac
 import hashlib
@@ -9,12 +9,43 @@ from contextlib import contextmanager
 PAGES=frozenset(("home","props","games","simulations","players","teams","settings"))
 FEATURES=frozenset(("simulation","player_simulation","scenario","minutes","props","backtest"))
 
+CONSENT_VERSION="2026-11-26-v1"
+ROLES=frozenset(("admin","free","premium","guest"))
+
+def _flag(name):
+    return os.environ.get(name,"").strip().lower()=="true"
+
+def audience_available():
+    return (_flag("HOOPZARO_USAGE_ENABLED") and _flag("HOOPZARO_USAGE_CUSTOMER_ENABLED")
+            and bool(os.environ.get("HOOPZARO_USAGE_DATABASE_URL","").strip()))
+
 def enabled():
     from access_control import current_role
-    return (os.environ.get("HOOPZARO_USAGE_ENABLED","").lower()=="true"
-            and os.environ.get("HOOPZARO_USAGE_ADMIN_PILOT","").lower()=="true"
-            and bool(os.environ.get("HOOPZARO_USAGE_DATABASE_URL","").strip())
-            and current_role()=="admin")
+    if not _flag("HOOPZARO_USAGE_ENABLED") or not os.environ.get("HOOPZARO_USAGE_DATABASE_URL","").strip():
+        return False
+    role=current_role()
+    if role=="admin" and _flag("HOOPZARO_USAGE_ADMIN_PILOT"):
+        return True
+    if role not in ROLES or not audience_available():
+        return False
+    import streamlit as st
+    return st.session_state.get("hz_usage_consent")==CONSENT_VERSION
+
+def set_consent(state, accepted):
+    # Optional, per-session consent; never use a client-supplied role or identifier.
+    if type(accepted) is not bool:
+        return False
+    if accepted and not audience_available():
+        return False
+    if accepted == (state.get("hz_usage_consent")==CONSENT_VERSION):
+        return False
+    if accepted:
+        state["hz_usage_consent"]=CONSENT_VERSION
+    else:
+        state.pop("hz_usage_consent",None)
+    for key in ("hz_usage_session","hz_usage_last","hz_account_last","hz_usage_role","hz_account_role"):
+        state.pop(key,None)
+    return True
 
 @contextmanager
 def cursor(url):
@@ -27,18 +58,26 @@ def cursor(url):
 def observe(state,page):
     if not enabled() or not isinstance(page,str) or page not in PAGES:
         return
+    from access_control import current_role
+    role=current_role()
+    if role not in ROLES:
+        return
     now=time.monotonic()
+    if state.get("hz_usage_role")!=role:
+        state.pop("hz_usage_session",None)
+        state.pop("hz_usage_last",None)
+        state["hz_usage_role"]=role
     last=state.get("hz_usage_last")
     if last is not None and now-last<30:
         return
     state["hz_usage_last"]=now
     sid=state.setdefault("hz_usage_session",str(uuid4()))
-    seconds=min(90,max(0,int(now-last))) if last is not None else 0
+    seconds=min(90,max(0,int(now-last))) if last is not None and 0<=now-last<=120 else 0
     try:
         with cursor(os.environ["HOOPZARO_USAGE_DATABASE_URL"]) as cur:
-            cur.execute("""INSERT INTO hz_usage_sessions(session_id,role) VALUES (%s,'admin')
+            cur.execute("""INSERT INTO hz_usage_sessions(session_id,role) VALUES (%s,%s)
                 ON CONFLICT(session_id) DO UPDATE SET last_seen=now(),
-                observed_seconds=hz_usage_sessions.observed_seconds+%s""",(sid,seconds))
+                observed_seconds=hz_usage_sessions.observed_seconds+%s""",(sid,role,seconds))
             cur.execute("""INSERT INTO hz_usage_daily(day,session_id,page)
                 VALUES ((now() AT TIME ZONE 'UTC')::date,%s,%s)
                 ON CONFLICT(day,session_id,page) DO UPDATE SET samples=hz_usage_daily.samples+1""",(sid,page))
@@ -48,21 +87,26 @@ def observe(state,page):
 def observe_account(state,principal):
     if not enabled() or os.environ.get("HOOPZARO_ACCOUNT_REGISTRY_ENABLED","").lower()!="true":
         return
+    from access_control import current_role
+    role=current_role()
+    if role not in ("admin","free","premium"):
+        return
     secret=os.environ.get("HOOPZARO_ACCOUNT_HMAC_KEY","").encode()
     url=os.environ.get("HOOPZARO_ACCOUNT_DATABASE_URL","").strip()
     if len(secret)<32 or not url or not isinstance(principal,str) or not principal or principal=="guest":
         return
     now=time.monotonic()
-    last=state.get("hz_account_last")
+    last=state.get("hz_account_last") if state.get("hz_account_role")==role else None
     if last is not None and now-last<1800:
         return
     state["hz_account_last"]=now
+    state["hz_account_role"]=role
     account=hmac.new(secret,principal.encode(),hashlib.sha256).hexdigest()
     try:
         with cursor(url) as cur:
             cur.execute("""INSERT INTO hoopzaro_accounts(account_id,last_observed_role)
-                VALUES (%s,'admin') ON CONFLICT(account_id) DO UPDATE SET
-                last_seen_at=now(),last_observed_role='admin'""",(account,))
+                VALUES (%s,%s) ON CONFLICT(account_id) DO UPDATE SET
+                last_seen_at=now(),last_observed_role=EXCLUDED.last_observed_role""",(account,role))
     except Exception:
         pass
 

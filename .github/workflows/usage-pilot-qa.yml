@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'usage_analytics_pilot.py'
+      - 'analytics_retention.py'
+      - '.github/workflows/analytics-retention.yml'
       - 'test_usage_analytics_pilot.py'
       - 'bestbets_custom_screen.py'
       - 'bestbets_reference_frontend/index.html'
@@ -17,5 +19,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m py_compile usage_analytics_pilot.py bestbets_custom_screen.py
+      - run: python -m py_compile usage_analytics_pilot.py analytics_retention.py bestbets_custom_screen.py
       - run: python -m unittest -v test_usage_analytics_pilot

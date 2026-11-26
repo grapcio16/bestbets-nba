@@ -1,6 +1,6 @@
 import unittest
-from unittest.mock import patch, Mock
-from usage_analytics_pilot import enabled, observe, observe_account, measured
+from unittest.mock import patch, Mock, MagicMock
+from usage_analytics_pilot import enabled, observe, observe_account, measured, set_consent, CONSENT_VERSION
 
 class PilotTests(unittest.TestCase):
     def test_admin_only_and_disabled_by_default(self):
@@ -10,6 +10,60 @@ class PilotTests(unittest.TestCase):
             for role in ("guest","free","premium","admin"):
                 with patch("access_control.current_role",return_value=role):
                     self.assertEqual(enabled(),role=="admin")
+    def test_customer_flag_and_session_consent(self):
+        from types import SimpleNamespace
+        env={"HOOPZARO_USAGE_ENABLED":"true","HOOPZARO_USAGE_CUSTOMER_ENABLED":"true","HOOPZARO_USAGE_DATABASE_URL":"test"}
+        state={}
+        with patch.dict("os.environ",env,clear=True),patch.dict("sys.modules",{"streamlit":SimpleNamespace(session_state=state)}),patch("access_control.current_role",return_value="free"):
+            self.assertFalse(enabled())
+            self.assertFalse(set_consent(state,"true"))
+            self.assertTrue(set_consent(state,True))
+            self.assertEqual(state["hz_usage_consent"],CONSENT_VERSION)
+            self.assertTrue(enabled())
+            state["hz_usage_session"]="old"
+            self.assertTrue(set_consent(state,False))
+            self.assertFalse(enabled())
+            self.assertNotIn("hz_usage_session",state)
+            self.assertNotIn("hz_usage_consent",state)
+    def test_role_and_idle_gap_bound(self):
+        state={"hz_usage_session":"old","hz_usage_role":"free","hz_usage_last":100}
+        with patch("usage_analytics_pilot.enabled",return_value=True),patch("access_control.current_role",return_value="premium"),patch.dict("os.environ",{"HOOPZARO_USAGE_DATABASE_URL":"test"}),patch("usage_analytics_pilot.cursor") as cursor,patch("usage_analytics_pilot.time.monotonic",side_effect=[500,1000]):
+            observe(state,"home")
+            self.assertNotEqual(state["hz_usage_session"],"old")
+            execute=cursor.return_value.__enter__.return_value.execute
+            self.assertEqual(execute.call_args_list[0].args[1][1:],("premium",0))
+            observe(state,"props")
+            self.assertEqual(execute.call_args_list[2].args[1][1:],("premium",0))
+    def test_guest_account_not_written(self):
+        with patch("usage_analytics_pilot.enabled",return_value=True),patch("access_control.current_role",return_value="guest"),patch.dict("os.environ",{"HOOPZARO_ACCOUNT_REGISTRY_ENABLED":"true","HOOPZARO_ACCOUNT_HMAC_KEY":"x"*32,"HOOPZARO_ACCOUNT_DATABASE_URL":"test"}),patch("usage_analytics_pilot.cursor") as cursor:
+            observe_account({},"issuer|subject")
+            cursor.assert_not_called()
+    def test_retention_dry_run_and_database_guard(self):
+        from analytics_retention import run
+        conn=MagicMock()
+        cur=conn.cursor.return_value.__enter__.return_value
+        cur.fetchone.side_effect=[("hoopzaro_analytics",),(0,),(1,),(2,),(3,)]
+        self.assertEqual(run(conn),{"page_samples":0,"sessions":1,"feature_aggregates":2,"inactive_accounts":3})
+        statements=[call.args[0] for call in cur.execute.call_args_list]
+        self.assertFalse(any(s.startswith("DELETE") for s in statements))
+        self.assertIn("NOT EXISTS",statements[-1])
+        cur.reset_mock()
+        cur.fetchone.side_effect=[("neondb",)]
+        with self.assertRaises(RuntimeError):
+            run(conn,apply=True)
+        self.assertEqual(cur.execute.call_count,1)
+    def test_retention_only_expected_tables_and_excludes_quota(self):
+        from analytics_retention import run
+        conn=MagicMock()
+        cur=conn.cursor.return_value.__enter__.return_value
+        cur.fetchone.return_value=("hoopzaro_analytics",)
+        cur.rowcount=0
+        run(conn,apply=True)
+        deletes=[call.args[0] for call in cur.execute.call_args_list if call.args[0].startswith("DELETE")]
+        self.assertEqual(len(deletes),4)
+        self.assertTrue(all(" WHERE " in sql for sql in deletes))
+        self.assertFalse(any(sql.startswith("DELETE FROM public.hoopzaro_props_daily") for sql in deletes))
+        self.assertIn("NOT EXISTS",deletes[-1])
     def test_disabled_preserves_results(self):
         with patch("usage_analytics_pilot.enabled",return_value=False),patch("usage_analytics_pilot.cursor") as cursor:
             observe({},"home")
@@ -18,7 +72,7 @@ class PilotTests(unittest.TestCase):
             cursor.assert_not_called()
     def test_allowed_page_and_throttle(self):
         state={}
-        with patch("usage_analytics_pilot.enabled",return_value=True),patch.dict("os.environ",{"HOOPZARO_USAGE_DATABASE_URL":"test"}),patch("usage_analytics_pilot.cursor") as cursor,patch("usage_analytics_pilot.time.monotonic",side_effect=[100,101]):
+        with patch("usage_analytics_pilot.enabled",return_value=True),patch("access_control.current_role",return_value="admin"),patch.dict("os.environ",{"HOOPZARO_USAGE_DATABASE_URL":"test"}),patch("usage_analytics_pilot.cursor") as cursor,patch("usage_analytics_pilot.time.monotonic",side_effect=[100,101]):
             observe(state,"invalid")
             observe(state,"home")
             observe(state,"home")
