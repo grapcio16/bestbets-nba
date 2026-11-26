@@ -23,7 +23,7 @@ def audience_available():
 
 def _valid_grant(state, role, principal):
     grant=state.get("hz_consent_grant")
-    return (isinstance(grant,Grant) and grant.notice_version==CONSENT_VERSION
+    return (isinstance(grant,Grant) and grant.notice_version==CONSENT_VERSION and grant.notice_url==notice_url()
             and grant.role==role and grant.principal==principal
             and time.monotonic()<grant.deadline)
 
@@ -82,7 +82,7 @@ def refresh_consent(state,principal,role):
         end_consent(state,"identity_changed")
     elif time.monotonic()>=grant.deadline:
         end_consent(state,"expired")
-    elif not audience_available():
+    elif not audience_available() or grant.notice_url!=notice_url() or grant.notice_version!=CONSENT_VERSION:
         end_consent(state,"disabled")
 
 def set_consent(state, accepted, principal=None):
@@ -200,6 +200,9 @@ def measured(feature,fn,*args,**kwargs):
         return result
     finally:
         try:
+            if not enabled():
+                # Do not persist telemetry after the grant expires during a long call.
+                raise RuntimeError("Telemetry disabled")
             ms=min(600000,max(0,int((time.monotonic()-start)*1000)))
             with cursor(os.environ["HOOPZARO_USAGE_DATABASE_URL"]) as cur:
                 cur.execute("""INSERT INTO hz_feature_daily(day,feature,outcome,total_ms)
