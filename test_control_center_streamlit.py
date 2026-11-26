@@ -10,6 +10,7 @@ from types import ModuleType
 from streamlit.testing.v1 import AppTest
 from v8_shadow.evaluation import evaluate_records
 from admin_control_center import SECTIONS, SECTION_LABELS
+from admin_dashboard_ui import grid_markup, metric_markup, health_markup
 
 def fixture_report():
     base = {"game_id":"12345","issued_at":"2026-11-24T17:00:00Z",
@@ -52,24 +53,33 @@ class ControlCenterSmokeTest(unittest.TestCase):
             app=self.app().run()
             for section in SECTIONS:
                 with self.subTest(section=section):
-                    app.sidebar.radio[0].set_value(section).run()
+                    next(b for b in app.sidebar.button if b.key=="hz_nav_"+section).click().run()
                     self.assertFalse(app.exception)
                     self.assertEqual(app.title[0].value,SECTION_LABELS[section])
                     self.assertFalse(app.caption)
                     if section in ("AI Engines","Tracker"):
                         self.assertTrue(app.expander)
                     if section=="Revenue":
-                        self.assertEqual(next(m.value for m in app.metric if m.label=="Przychód miesięczny"),"$999.00")
+                        self.assertTrue(any('hz-kpi-label">Przychód miesięczny</div><div><div class="hz-kpi-value">$999.00</div>' in m.value for m in app.markdown))
                     if section=="Tracker":
-                        self.assertEqual(next(m.value for m in app.metric if m.label=="Rozliczone prognozy zawodników"),"12")
+                        self.assertTrue(any('hz-kpi-label">Rozliczone prognozy zawodników</div><div><div class="hz-kpi-value">12</div>' in m.value for m in app.markdown))
                     if section=="Overview":
-                        self.assertEqual(next(m.value for m in app.metric if m.label=="Aktywni · 24 godz."),"1")
+                        self.assertTrue(any('hz-kpi-label">Aktywni · 24 godz.</div><div><div class="hz-kpi-value">1</div>' in m.value for m in app.markdown))
                     if section=="Users":
-                        self.assertEqual(next(m.value for m in app.metric if m.label=="Zaobserwowane konta"),"4")
+                        self.assertTrue(any('hz-kpi-label">Zaobserwowane konta</div><div><div class="hz-kpi-value">4</div>' in m.value for m in app.markdown))
                     if section=="Performance":
-                        self.assertEqual(next(m.value for m in app.metric if m.label=="Połączenie"),"20.0 ms")
-            app.sidebar.button[0].click().run()
+                        self.assertTrue(any('hz-kpi-label">Połączenie</div><div><div class="hz-kpi-value">20.0 ms</div>' in m.value for m in app.markdown))
+            next(b for b in app.sidebar.button if b.label=="Odśwież dane").click().run()
             self.assertFalse(app.exception)
+
+    def test_dashboard_markup_escaping_and_missing_values(self):
+        markup = grid_markup([("Konta", 0), ("<script>", "Brak danych", '"onclick="bad')], 4)
+        self.assertIn('hz-kpi-value">0</div>', markup)
+        self.assertIn('hz-kpi-value">—</div>', markup)
+        self.assertNotIn("<script>", markup)
+        self.assertIn("&quot;onclick=&quot;bad", markup)
+        self.assertIn("is-empty", markup)
+        self.assertIn("&lt;script&gt;", health_markup("<script>", "OK", "ok"))
 
     def test_all_non_admin_roles(self):
         for role in ("guest","free","premium"):
@@ -77,7 +87,7 @@ class ControlCenterSmokeTest(unittest.TestCase):
                 app=self.app().run()
                 self.assertFalse(app.exception)
                 self.assertEqual(app.error[0].value,"Brak dostępu.")
-                self.assertFalse(app.sidebar.radio)
+                self.assertFalse(app.sidebar.button)
                 read.assert_not_called()
 
     def test_dedicated_deployment_never_loads_public_frontend(self):
