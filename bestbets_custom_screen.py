@@ -490,10 +490,13 @@ def main() -> None:
     # previous account's cached paid results to a different authenticated user.
     from account_registry import (account_database_url, registry_enabled, free_props_enabled,
         utc_quota_day, can_show_free_result, observe_current_account, reserve_free_props, refund_failed_props)
+    from usage_analytics import enabled as usage_enabled, observe as observe_usage, measured
     principal = current_principal()
     if st.session_state.get("bb10_premium_principal") != principal:
         st.session_state.pop("bb10_free_props_day", None)
         st.session_state.pop("bb10_account_observed_at", None)
+        for telemetry_key in ("hz_usage_session", "hz_usage_last", "hz_usage_page"):
+            st.session_state.pop(telemetry_key, None)
         # Player Props is paid output too. It must not survive logout or a
         # switch between two accounts that both happen to have Premium.
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
@@ -544,6 +547,8 @@ def main() -> None:
     has_premium = premium_entitled()
     role = current_role()
     is_admin = role == "admin"
+    if usage_enabled() and not st.session_state.get("hz_usage_session"):
+        observe_usage(st.session_state, "home", role)
     free_enabled = free_props_enabled()
     today_utc = utc_quota_day()
     if role != st.session_state.get("bb10_props_role"):
@@ -566,6 +571,7 @@ def main() -> None:
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
     payload = {
         "brand": _cached_brand(),
+        "usage_enabled": usage_enabled(),
         "auth": {**auth_context(), "session_epoch": st.session_state.get("bb10_identity_epoch", 0)},
         "premium_checkout_url": premium_checkout_url(),
         "player": st.session_state["bb10_payload"].get("player") if (has_premium or free_result) else None,
@@ -608,6 +614,11 @@ def main() -> None:
     if not event_id or event_id == st.session_state.get("bb10_last_event"):
         return
     st.session_state["bb10_last_event"] = event_id
+    page = event.get("usage_page")
+    if isinstance(page, str):
+        observe_usage(st.session_state, page, role)
+    if event.get("type") == "usage_sample":
+        return
     if event.get("type") == "auth_login":
         if auth_configured():
             provider = login_provider()
@@ -778,7 +789,7 @@ def main() -> None:
         # and source history are chosen by the server, never by event payload.
         if not premium_entitled():
             return
-        st.session_state["bb10_premium_backtest"] = backtest_for_entitled_user()
+        st.session_state["bb10_premium_backtest"] = measured("backtest", backtest_for_entitled_user)
         st.rerun()
         return
     if event.get("type") in ("premium_sim_flow_save", "premium_sim_flow_export"):
@@ -872,7 +883,7 @@ def main() -> None:
                 or not re.fullmatch(r"[A-Z]{3}", team)
                 or type(delta) is not int or not -5 <= delta <= 5):
             return
-        result = player_minutes_scenario_for_entitled_user(
+        result = measured("minutes", player_minutes_scenario_for_entitled_user,
             day, game_id, model_id, name, team, delta)
         st.session_state["bb10_premium_minute_scenario"] = {
             "date": day, "game_id": game_id, "model_id": model_id,
@@ -895,7 +906,7 @@ def main() -> None:
                 or any(type(v) is not int or not -5 <= v <= 5
                        for v in (pct, away_pct, home_pct))):
             return
-        result = scenario_for_entitled_user(
+        result = measured("scenario", scenario_for_entitled_user,
             day, game_id, model_id, pct,
             off_away_pct=away_pct, off_home_pct=home_pct)
         st.session_state["bb10_premium_scenario"] = {
@@ -963,7 +974,7 @@ def main() -> None:
                     from bestbets_simulations_canvas import _minute_roster_for_fixture
                     _minute_roster_for_fixture.clear(
                         str(selected["away"]), str(selected["home"]))
-        result = simulation_for_entitled_user(
+        result = measured("player_simulation" if is_players else "simulation", simulation_for_entitled_user,
             day, game_id, players=is_players, model_id=model_id)
         key = "bb10_premium_players" if is_players else "bb10_premium_game"
         st.session_state[key] = {"date": day, "game_id": game_id,
@@ -1136,7 +1147,7 @@ def main() -> None:
             st.rerun()
             return
     try:
-        athlete = _research(query)
+        athlete = measured("props", _research, query)
         if reservation is not None:
             st.session_state["bb10_free_props_day"] = reservation["day"].isoformat()
         else:
