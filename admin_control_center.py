@@ -93,44 +93,27 @@ def render(*, dedicated=False):
     def injury_index():
         return official_injury_freshness()
 
-    st.markdown("""<style>
-    .stApp {background:radial-gradient(ellipse at 94% 0%,#241644 0%,#0a1224 38%,#080d19 75%);color:#eaf1ff;}
-    [data-testid="stHeader"]{background:rgba(8,13,25,.94);}
-    [data-testid="stMainBlockContainer"]{max-width:1780px;padding:4.6rem 2.8rem 3rem;}
-    [data-testid="stSidebar"]{background:linear-gradient(180deg,#121c34,#0c1224);border-right:1px solid #344363;min-width:255px;}
-    [data-testid="stSidebar"] [data-testid="stSidebarContent"]{padding:1rem .5rem;}
-    [data-testid="stSidebar"] h1{font-size:27px!important;color:#c1a8ff!important;letter-spacing:.075em;margin-bottom:0;}
-    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p{color:#c0cce5;font-size:14px;}
-    [data-testid="stSidebar"] [role="radiogroup"]{gap:5px;}
-    [data-testid="stSidebar"] [data-testid="stRadio"] label{width:100%;padding:12px 14px;border:1px solid transparent;border-radius:10px;cursor:pointer;transition:background .15s;}
-    [data-testid="stSidebar"] [data-testid="stRadio"] label p{font-size:16px;font-weight:600;color:#e3ecff;}
-    [data-testid="stSidebar"] [data-testid="stRadio"] label:hover{background:#20304c;}
-    [data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked){background:linear-gradient(90deg,#2a2454,#182a48);border-color:#6e55c4;box-shadow:inset 3px 0 #a58aff,0 0 15px #7758e521;}
-    [data-testid="stSidebar"] [data-testid="stRadio"] label:focus-within{outline:2px solid #c4a5ff;outline-offset:2px;}
-    [data-testid="stSidebar"] [data-testid="stRadio"] label>div:first-child{position:absolute;opacity:0;pointer-events:none;}
-    [data-testid="stMainBlockContainer"] h1{font-size:42px;font-weight:750;letter-spacing:-.035em;color:#f2f5ff;}
-    [data-testid="stMainBlockContainer"] h2,[data-testid="stMainBlockContainer"] h3{font-weight:650;color:#eef4ff;letter-spacing:-.018em;}
-    [data-testid="stMainBlockContainer"] h3{font-size:23px;}
-    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] p{color:#c9d6ee;font-size:15px;line-height:1.5;}
-    [data-testid="stMetric"]{border:1px solid #394664;border-top:2px solid #9876ff;border-radius:17px;padding:20px 22px;min-height:138px;background:linear-gradient(145deg,#192840,#121a30);box-shadow:0 10px 30px #0004,0 0 17px #7955e316;}
-    [data-testid="stMetricLabel"] p{color:#b7c5e1!important;font-size:15px!important;font-weight:600;white-space:normal;}
-    [data-testid="stMetricValue"]{color:#d5c8ff;font-size:clamp(23px,2.05vw,36px);font-weight:750;font-variant-numeric:tabular-nums;letter-spacing:-.035em;}
-    [data-testid="stMetricValue"]>div{white-space:normal;overflow-wrap:anywhere;}
-    [data-testid="stDataFrame"],[data-testid="stExpander"],[data-testid="stVegaLiteChart"],[data-testid="stForm"]{border:1px solid #34435f;border-radius:14px;overflow:hidden;background:#111a2d;}
-    [data-testid="stAlert"]{border:1px solid #344b72;border-radius:12px;}
-    [data-testid="stButton"] button,[data-testid="stFormSubmitButton"] button{border:1px solid #7259be;border-radius:10px;background:#222846;color:#f1edff;font-weight:600;min-height:42px;}
-    [data-testid="stButton"] button:hover{background:#3b2c70;border-color:#b29bff;}
-    [data-testid="stSidebar"] [data-testid="stButton"] button{width:100%;}
-    [data-testid="stMainBlockContainer"] hr{border-color:#34415a;margin:1.4rem 0;}
-    @media(max-width:1100px){[data-testid="stMainBlockContainer"]{padding:4rem 1.5rem 2rem;}}
-    @media(max-width:700px){[data-testid="stMainBlockContainer"]{padding:4rem 1rem 2rem;}[data-testid="stMetric"]{min-height:100px;padding:14px;}[data-testid="stMainBlockContainer"] h1{font-size:31px;}[data-testid="stSidebar"]{min-width:0;}}
-    </style>""", unsafe_allow_html=True)
-    st.sidebar.title("HOOPZARO")
-    st.sidebar.markdown("**CENTRUM STEROWANIA · ADMIN**")
-    section = st.sidebar.radio("Menu", SECTIONS, format_func=SECTION_LABELS.__getitem__, label_visibility="collapsed")
+    from admin_dashboard_ui import CSS, BRAND, metric_markup, grid_markup, health_markup
+    st.markdown(CSS, unsafe_allow_html=True)
+    st.sidebar.markdown(BRAND, unsafe_allow_html=True)
+    nav_key = "hz_admin_section"
+    if st.session_state.get(nav_key) not in SECTIONS:
+        st.session_state[nav_key] = "Overview"
+    section = st.session_state[nav_key]
+    def select_section(value):
+        st.session_state[nav_key] = value
+    for item in SECTIONS:
+        st.sidebar.button(SECTION_LABELS[item], key="hz_nav_" + item,
+                          type="primary" if section == item else "secondary",
+                          use_container_width=True, on_click=select_section, args=(item,))
+    st.sidebar.divider()
     if not dedicated:
         st.sidebar.markdown("[Powrót do Hoopzaro](?)")
     st.title(SECTION_LABELS[section])
+    def kpis(items, columns=3):
+        st.markdown(grid_markup(items, columns), unsafe_allow_html=True)
+    def health(label, value, kind="warn"):
+        st.markdown(health_markup(label, value, kind), unsafe_allow_html=True)
     if st.sidebar.button("Odśwież dane"):
         snapshot.clear()
         scorecard.clear()
@@ -147,30 +130,27 @@ def render(*, dedicated=False):
         st.stop()
         return
     if section == "Overview":
-        st.subheader("Użytkownicy i aktywność")
         registry = accounts()
-        fields = (("Zaobserwowane konta", "observed_accounts"),
-                  ("Aktywni · 24 godz.", "seen_last_24_hours"),
-                  ("Aktywni · 7 dni", "seen_last_7_days"),
-                  ("Aktywni · 30 dni", "seen_last_30_days"),
-                  ("Nowe konta · 7 dni", "first_seen_last_7_days"))
         rows = registry.get("accounts", [])
         available = registry.get("status") == "ok"
-        cols = st.columns(3)
-        for i, (label, key) in enumerate(fields):
-            if i == 3:
-                cols = st.columns(3)
-            value = sum(r[key] for r in rows) if available and all(key in r for r in rows) else "Brak danych"
-            cols[i % 3].metric(label, value, help="Liczba zalogowanych kont zaobserwowanych przez aplikację, w tym ADMIN. Nie obejmuje anonimowych wizyt ani pomiaru użytkowników online.")
-        cols[2].metric("Darmowe analizy · dziś (UTC)",
-                       registry["quota"][0]["reservations_today"] if available else "Brak danych")
+        def account_value(key):
+            return sum(r[key] for r in rows) if available and all(key in r for r in rows) else "Brak danych"
+        account_help = "Zalogowane konta zaobserwowane przez aplikację; bez anonimowych wizyt."
+        st.subheader("Użytkownicy i przychody")
+        kpis([
+            ("Zaobserwowane konta", account_value("observed_accounts"), account_help),
+            ("Aktywni · 24 godz.", account_value("seen_last_24_hours"), account_help),
+            ("Aktywni · 7 dni", account_value("seen_last_7_days"), account_help),
+            ("Aktywni · 30 dni", account_value("seen_last_30_days"), account_help),
+            ("Nowe konta · 7 dni", account_value("first_seen_last_7_days"), account_help),
+            ("Darmowe analizy · dziś (UTC)", registry["quota"][0]["reservations_today"] if available else "Brak danych"),
+            ("Płatne subskrypcje", "Nie podłączono"),
+            ("Rzeczywiste przychody", "Nie podłączono"),
+        ], 4)
         if not available:
-            st.info("Rejestr kont nie jest podłączony lub jest niedostępny.")
-        cols = st.columns(2)
-        cols[0].metric("Rzeczywiste przychody", "Nie podłączono")
-        cols[1].metric("Aktywne płatne subskrypcje", "Nie podłączono")
+            health("Rejestr kont", "Nie podłączono" if registry.get("status") == "setup_required" else "Niedostępny")
         if available and rows and all("last_observed_role" in r for r in rows):
-            st.subheader("Podział kont według uprawnień")
+            st.subheader("Konta według uprawnień")
             st.bar_chart([{"Rola":localized(r["last_observed_role"]), "Konta":r["observed_accounts"]} for r in rows], x="Rola", y="Konta")
             st.markdown("Role kont, nie płatne subskrypcje.")
         st.divider()
@@ -179,12 +159,11 @@ def render(*, dedicated=False):
         data = snapshot("2026-27")
         worker = data.get("worker") or {}
         models = data.get("models") or []
-        st.write("Status silnika V8:", localized(data.get("status", "unavailable")))
+        health("Silnik V8", localized(data.get("status", "unavailable")), "ok" if data.get("status") == "recent_evidence" else "warn")
         if section in ("Overview", "Data Center"):
-            cols = st.columns(3)
-            for col, name, field in zip(cols, ("Zebrane mecze", "Próbki treningowe", "Odrzucone statystyki meczowe"),
-                                      ("observed_games", "trainable_examples", "rejected_boxscores")):
-                col.metric(name, worker.get(field, "Brak danych"))
+            kpis([(name, worker.get(field, "Brak danych")) for name, field in zip(
+                ("Zebrane mecze", "Próbki treningowe", "Odrzucone statystyki meczowe"),
+                ("observed_games", "trainable_examples", "rejected_boxscores"))])
             if worker.get("run_utc"):
                 st.write("Ostatnia praca silnika (UTC): " + worker["run_utc"])
             if section == "Data Center":
@@ -249,9 +228,8 @@ def render(*, dedicated=False):
             if detail.get("status") == "ok":
                 player_rows = detail.get("players", [])
                 quarter_rows = detail.get("quarters", [])
-                cols = st.columns(2)
-                cols[0].metric("Rozliczone prognozy zawodników", sum(row["settled"] for row in player_rows))
-                cols[1].metric("Rozliczone prognozy kwart", sum(row["settled"] for row in quarter_rows))
+                kpis([("Rozliczone prognozy zawodników", sum(row["settled"] for row in player_rows)),
+                      ("Rozliczone prognozy kwart", sum(row["settled"] for row in quarter_rows))], 2)
                 if detail.get("last_run"):
                     st.write("**Ostatnie rozliczenie V7**")
                     table(detail["last_run"], hide_index=True, use_container_width=True)
@@ -267,11 +245,9 @@ def render(*, dedicated=False):
     if section == "Performance":
         st.subheader("Neon · połączenie z bazą")
         db = database_health()
-        cols = st.columns(3)
-        for col, label, key in zip(cols, ("Połączenie", "Zapytanie", "Łącznie"),
-                                   ("connect_ms", "query_ms", "total_ms")):
-            value = db.get(key)
-            col.metric(label, f"{value:.1f} ms" if value is not None else "Brak danych")
+        kpis([(label, f'{db[key]:.1f} ms' if db.get(key) is not None else "Brak danych")
+              for label, key in zip(("Połączenie", "Zapytanie", "Łącznie"),
+                                    ("connect_ms", "query_ms", "total_ms"))])
         if db["status"] != "ok":
             st.warning("Nie udało się sprawdzić bazy danych.")
         st.write("Sprawdzono (UTC): " + db["checked_utc"])
@@ -303,10 +279,9 @@ def render(*, dedicated=False):
         registry = accounts()
         if registry.get("status") == "ok":
             rows = registry["accounts"]
-            cols = st.columns(3)
-            cols[0].metric("Zaobserwowane konta", sum(r["observed_accounts"] for r in rows), help="Konta zaobserwowane przez aplikację, nie rejestr Google ani płatności.")
-            cols[1].metric("Aktywni · 30 dni", sum(r["seen_last_30_days"] for r in rows))
-            cols[2].metric("Darmowe analizy · dziś (UTC)", registry["quota"][0]["reservations_today"])
+            kpis([("Zaobserwowane konta", sum(r["observed_accounts"] for r in rows), "Konta zaobserwowane przez aplikację, nie rejestr Google ani płatności."),
+                  ("Aktywni · 30 dni", sum(r["seen_last_30_days"] for r in rows)),
+                  ("Darmowe analizy · dziś (UTC)", registry["quota"][0]["reservations_today"])])
             table(rows, hide_index=True, use_container_width=True)
         else:
             st.info("Rejestr kont niedostępny.")
@@ -318,9 +293,8 @@ def render(*, dedicated=False):
             st.error("Brak dostępu.")
             return
         st.subheader("Diagnostyka dostępu")
-        cols = st.columns(2)
-        cols[0].metric("Identyfikatory ADMIN", security["admin_identifier_entries"])
-        cols[1].metric("Powielone identyfikatory", security["overlap_entries"])
+        kpis([("Identyfikatory ADMIN", security["admin_identifier_entries"]),
+              ("Powielone identyfikatory", security["overlap_entries"])], 2)
         st.markdown("Identyfikatory nie oznaczają unikalnych osób.")
         st.write("Logowanie OIDC:", "Skonfigurowano" if security["oidc_configured"] else "Brak")
         st.write("Baza audytu:", "Skonfigurowano" if security["audit_storage_configured"] else "Brak")
@@ -354,9 +328,8 @@ def render(*, dedicated=False):
         st.write("Tryb płatności:", localized(revenue["checkout_mode"]))
         st.write("Zadeklarowana gotowość obsługi subskrypcji:", localized(revenue["fulfillment_declared_ready"]))
         st.markdown("Konfiguracja nie potwierdza rzeczywistych płatności.")
-        cols = st.columns(2)
-        cols[0].metric("Rzeczywiste przychody", "Nie podłączono")
-        cols[1].metric("Aktywne płatne subskrypcje", "Nie podłączono")
+        kpis([("Rzeczywiste przychody", "Nie podłączono"),
+              ("Aktywne płatne subskrypcje", "Nie podłączono")], 2)
         st.subheader("Stripe · subskrypcje testowe")
         stripe = stripe_test()
         if stripe.get("status") == "ok":
@@ -381,11 +354,10 @@ def render(*, dedicated=False):
         pct = cols[0].number_input("Prowizja (%)", min_value=0.0, max_value=100.0, value=0.0, step=0.1)
         fee = cols[1].number_input("Opłata za płatność (USD)", min_value=0.0, max_value=100000.0, value=0.0, step=0.01)
         p = project_revenue(n, price, fixed, pct, fee, variable)
-        cols = st.columns(3)
-        cols[0].metric("Przychód miesięczny", f'${p["monthly_gross"]:,.2f}')
-        cols[1].metric("Przychód roczny (ekstrapolacja)", f'${p["annualized_gross"]:,.2f}')
-        cols[2].metric("Miesięczny wynik operacyjny", f'${p["monthly_operating_result"]:,.2f}')
-        st.metric("Próg rentowności · subskrybenci", p["break_even_subscribers"] if p["break_even_subscribers"] is not None else "Brak dodatniej marży")
+        kpis([("Przychód miesięczny", f'${p["monthly_gross"]:,.2f}'),
+              ("Przychód roczny (ekstrapolacja)", f'${p["annualized_gross"]:,.2f}'),
+              ("Miesięczny wynik operacyjny", f'${p["monthly_operating_result"]:,.2f}'),
+              ("Próg rentowności · subskrybenci", p["break_even_subscribers"] if p["break_even_subscribers"] is not None else "Brak dodatniej marży")], 4)
         table([{"Miesięczne prowizje": float(p["monthly_payment_fees"]),
                        "Miesięczne koszty stałe": float(p["monthly_fixed_cost"]),
                        "Miesięczne koszty zmienne": float(p["monthly_variable_cost"])}], hide_index=True, use_container_width=True)
