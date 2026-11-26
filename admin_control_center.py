@@ -19,6 +19,7 @@ def render():
         return
     from admin_data_intelligence import read_snapshot, read_scorecard
     from tracker_storage import tracker_database_url
+    from admin_source_monitor import source_snapshot
 
     @st.cache_data(ttl=120, show_spinner=False)
     def snapshot(season):
@@ -27,6 +28,10 @@ def render():
     @st.cache_data(ttl=300, show_spinner=False)
     def scorecard(season):
         return read_scorecard(tracker_database_url(), season)
+
+    @st.cache_data(ttl=300, show_spinner=False)
+    def sources():
+        return source_snapshot()
 
     st.markdown("""<style>
     .stApp { background: radial-gradient(ellipse at 80% 0%, #21143c 0%, #080d1c 45%); color: #edf0ff; }
@@ -50,6 +55,7 @@ def render():
     if st.sidebar.button("Refresh telemetry"):
         snapshot.clear()
         scorecard.clear()
+        sources.clear()
     st.divider()
     if section in ("Overview", "Data Center", "AI Engines", "Tracker"):
         data = snapshot("2026-27")
@@ -66,7 +72,16 @@ def render():
             if section == "Data Center":
                 st.write("Minimum training examples:", worker.get("minimum_examples", "Unavailable"))
                 st.write("Newly ingested boxscores:", worker.get("newly_ingested_boxscores", "Unavailable"))
-                st.info("NBA/ESPN live latency, injuries and player completeness are not connected yet.")
+                st.subheader("Source availability · point-in-time")
+                st.caption("Direct endpoint checks, not end-to-end production health. Cached for 5 minutes.")
+                results = sources()
+                st.dataframe(results, hide_index=True, use_container_width=True)
+                issues = [r["source"] for r in results if r["status"] not in ("schema_ok", "empty_response")]
+                if issues:
+                    st.warning("Source checks requiring review: " + ", ".join(issues))
+                if any(r["status"] == "empty_response" for r in results):
+                    st.info("An empty list may be legitimate; it does not prove full coverage or healthy rosters.")
+                st.caption("checked_utc records retrieval time, not report publication. Latency includes parsing. Official injury publication freshness, player completeness and rosters remain unverified.")
         if section in ("Overview", "AI Engines", "Tracker"):
             st.subheader("V8 archive")
             if models:
