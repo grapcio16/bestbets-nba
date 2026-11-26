@@ -1,4 +1,4 @@
-"""Private, read-only Hoopzaro Control Center."""
+"""Private Hoopzaro Control Center; opt-in audit only, no production setting mutations."""
 from __future__ import annotations
 
 SECTIONS = (
@@ -21,7 +21,9 @@ def render():
     from tracker_storage import tracker_database_url
     from admin_source_monitor import source_snapshot
     from admin_performance import database_probe, summarize_sources
-    from admin_live_data import tracker_summary, account_summary, stripe_test_summary
+    from admin_live_data import tracker_summary, account_summary, stripe_test_summary, official_injury_freshness
+    from admin_security import audit_enabled, record_admin_event
+    from account_registry import registry_enabled, free_props_enabled
 
     @st.cache_data(ttl=120, show_spinner=False)
     def snapshot(season):
@@ -51,11 +53,21 @@ def render():
     def stripe_test():
         return stripe_test_summary()
 
+    @st.cache_data(ttl=300, show_spinner=False)
+    def injury_index():
+        return official_injury_freshness()
+
     st.markdown("""<style>
     .stApp { background: radial-gradient(ellipse at 80% 0%, #21143c 0%, #080d1c 45%); color: #edf0ff; }
     [data-testid="stMainBlockContainer"] { max-width: 1440px; padding-top: 2rem; }
     [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h1 { color: #c4b5fd; letter-spacing: .08em; }
     [data-testid="stMetric"] { box-shadow: 0 0 18px #8b5cf618; }
+    [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] p { color:#aebbd7 !important; }
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] label { color:#e8e7ff; }
+    [data-testid="stSidebar"] [data-testid="stRadio"] label { padding:6px 4px; border-radius:8px; }
+    [data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked) { background:#33245d; }
+    [data-testid="stMainBlockContainer"] h1,[data-testid="stMainBlockContainer"] h2,[data-testid="stMainBlockContainer"] h3 { color:#eef0ff; }
+    [data-testid="stMainBlockContainer"] [data-testid="stCaptionContainer"] { color:#a6b1cc; }
     [data-testid="stDataFrame"] { border-radius: 10px; overflow: hidden; }
     @media(max-width: 700px) { [data-testid="stMainBlockContainer"] { padding: 1.2rem; } }
     [data-testid="stMetric"] { border: 1px solid #343052; border-radius: 14px;
@@ -69,7 +81,7 @@ def render():
     st.sidebar.markdown("[Return to Hoopzaro](?)")
     st.caption("HOOPZARO / CONTROL CENTER / " + section.upper())
     st.title(section)
-    st.caption("Internal administration · Read-only preview · NBA 2026–27")
+    st.caption("Internal administration · NBA 2026–27 · production controls locked")
     if st.sidebar.button("Refresh telemetry"):
         snapshot.clear()
         scorecard.clear()
@@ -78,6 +90,9 @@ def render():
         tracker_metrics.clear()
         accounts.clear()
         stripe_test.clear()
+        injury_index.clear()
+        if audit_enabled() and not record_admin_event("refresh_telemetry", "success"):
+            st.warning("Telemetry cache cleared; audit record could not be saved.")
     st.divider()
     if section in ("Overview", "Data Center", "AI Engines", "Tracker"):
         data = snapshot("2026-27")
@@ -103,7 +118,13 @@ def render():
                     st.warning("Source checks requiring review: " + ", ".join(issues))
                 if any(r["status"] == "empty_response" for r in results):
                     st.info("An empty list may be legitimate; it does not prove full coverage or healthy rosters.")
-                st.caption("checked_utc records retrieval time, not report publication. Latency includes parsing. Official injury publication freshness, player completeness and rosters remain unverified.")
+                st.caption("checked_utc records retrieval time, not report publication. Latency includes parsing.")
+                st.subheader("Official NBA injury report · publication index")
+                injury = injury_index()
+                st.write("Report index:", injury.get("status", "unavailable"))
+                if injury.get("published_utc"):
+                    st.caption("Publication UTC: " + injury["published_utc"])
+                st.caption("A recent link is not proof of PDF availability, player completeness or roster accuracy.")
         if section in ("Overview", "AI Engines", "Tracker"):
             st.subheader("V8 archive")
             if models:
@@ -198,13 +219,9 @@ def render():
         st.caption("Configuration only; this does not verify the identity provider is online.")
         st.dataframe(access["allowlist_counts"], hide_index=True, use_container_width=True)
         st.caption("Counts are unique configured identifiers per type, not people or paying subscribers. Admin takes precedence over Premium.")
-        cols = st.columns(2)
-        for col, label in zip(cols, ("Registered accounts", "Active accounts")):
-            col.metric(label, "Not tracked")
-        cols = st.columns(2)
-        cols[0].metric("Paying subscribers", "Not verified")
-        cols[1].metric("Daily free Props usage", "Not tracked")
-        st.warning("Current Player Props server gate requires Premium. One daily free analysis is not implemented in this gate.")
+        st.write("Account observation:", "Enabled" if registry_enabled() else "Disabled")
+        st.write("Daily Free Props:", "Enabled" if free_props_enabled() else "Disabled")
+        st.caption("UTC reset; database reservations are enforced server-side only after explicit enablement. Paying subscribers are not verified.")
         st.subheader("Account registry · durable observations")
         registry = accounts()
         if registry.get("status") == "ok":
@@ -244,7 +261,13 @@ def render():
                 st.info("No recorded events in this audit store.")
         else:
             st.info("Audit records unavailable or not configured.")
-        st.caption("Latest 100 events; no raw identities, secrets or arbitrary metadata. No event producers enabled yet.")
+        st.caption("Latest 100 events; no raw identities, secrets or arbitrary metadata.")
+        st.write("Audit recording:", "Enabled" if security.get("audit_recording_enabled") else "Disabled")
+        if audit_enabled() and st.button("Record access review"):
+            if record_admin_event("review_access", "success"):
+                st.success("Review recorded.")
+            else:
+                st.warning("Audit event could not be saved.")
         st.info("Login anomaly monitoring, backup verification and incident response are not connected. Absence of alerts is not proof of safety.")
         return
     if section == "Revenue":
@@ -263,7 +286,11 @@ def render():
         st.subheader("Stripe · restricted test subscription summary")
         stripe = stripe_test()
         if stripe.get("status") == "ok":
-            st.dataframe([{"Status": k, "Test subscriptions": v} for k,v in sorted(stripe["subscription_counts"].items())], hide_index=True, use_container_width=True)
+            counts = stripe["subscription_counts"]
+            if counts:
+                st.dataframe([{"Status": k, "Test subscriptions": v} for k,v in sorted(counts.items())], hide_index=True, use_container_width=True)
+            else:
+                st.info("No subscriptions returned in test mode.")
             st.caption("Test-mode records only. No revenue or Premium entitlement is inferred.")
         else:
             st.info("Stripe test summary: " + stripe.get("status","unavailable"))
@@ -303,6 +330,9 @@ def render():
             st.write(label + ":", "Configured" if config[key] else "Missing")
         st.write("Checkout mode:", config["checkout_mode"])
         st.write("Fulfillment readiness declared:", config["fulfillment_declared_ready"])
+        st.write("Account registry:", "Enabled" if registry_enabled() else "Disabled")
+        st.write("Free Props:", "Enabled" if free_props_enabled() else "Disabled")
+        st.write("Audit recording:", "Enabled" if audit_enabled() else "Disabled")
         st.divider()
         st.subheader("Change preview")
         st.warning("Preview only. No changes are saved or applied to the public app.")
