@@ -488,8 +488,12 @@ def main() -> None:
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
     # Streamlit sessions can survive a login/logout round trip. Never send a
     # previous account's cached paid results to a different authenticated user.
+    from account_registry import (account_database_url, registry_enabled, free_props_enabled,
+        utc_quota_day, can_show_free_result, observe_current_account, reserve_free_props, refund_failed_props)
     principal = current_principal()
     if st.session_state.get("bb10_premium_principal") != principal:
+        st.session_state.pop("bb10_free_props_day", None)
+        st.session_state.pop("bb10_account_observed_at", None)
         # Player Props is paid output too. It must not survive logout or a
         # switch between two accounts that both happen to have Premium.
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
@@ -538,15 +542,34 @@ def main() -> None:
             "calendar_requested_day": st.session_state.get("bb10_centre_requested_day"),
         }
     has_premium = premium_entitled()
-    is_admin = current_role() == "admin"
-    if not has_premium and st.session_state["bb10_payload"].get("player") is not None:
+    role = current_role()
+    is_admin = role == "admin"
+    free_enabled = free_props_enabled()
+    today_utc = utc_quota_day()
+    if role != st.session_state.get("bb10_props_role"):
+        st.session_state["bb10_payload"] = {"player": None, "error": ""}
+        st.session_state.pop("bb10_free_props_day", None)
+        st.session_state["bb10_props_role"] = role
+    if registry_enabled() and role in ("free","premium","admin"):
+        last = st.session_state.get("bb10_account_observed_at", 0)
+        if not last or time.monotonic()-last >= 1800:
+            # Observations are optional, never an entitlement source.
+            st.session_state["bb10_account_observed_at"] = time.monotonic()
+            try:
+                observe_current_account(account_database_url())
+            except Exception:
+                pass
+    free_result = can_show_free_result(role,free_enabled,
+        st.session_state.get("bb10_free_props_day"),today_utc)
+    if not (has_premium or free_result) and st.session_state["bb10_payload"].get("player") is not None:
         # Also discard paid output if an unchanged account loses entitlement.
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
     payload = {
         "brand": _cached_brand(),
         "auth": {**auth_context(), "session_epoch": st.session_state.get("bb10_identity_epoch", 0)},
         "premium_checkout_url": premium_checkout_url(),
-        "player": st.session_state["bb10_payload"].get("player") if has_premium else None,
+        "player": st.session_state["bb10_payload"].get("player") if (has_premium or free_result) else None,
+        "free_props_enabled": bool(free_enabled and role == "free"),
         "error": st.session_state["bb10_payload"].get("error", ""),
         "home": home_data,
         "player_catalog": st.session_state.get("bb10_player_catalog"),
@@ -593,6 +616,11 @@ def main() -> None:
     if event.get("type") == "auth_logout":
         if auth_configured() and bool(getattr(st.user, "is_logged_in", False)):
             st.logout()
+        return
+    if event.get("type") == "admin_control_center":
+        if current_role() == "admin":
+            st.query_params["control_center"] = "1"
+            st.rerun()
         return
     if event.get("type") == "admin_report":
         # Never infer access from event payload or the browser's visible role.
@@ -1082,9 +1110,10 @@ def main() -> None:
         return
     if event.get("type") != "search":
         return
-    # Player Props is a paid research tool. Keep the protection on the server;
-    # browser-only hiding can be bypassed by sending a component event.
-    if not premium_entitled():
+    # The browser never authorizes a quota reservation or a paid analysis.
+    paid = premium_entitled()
+    free = current_role() == "free" and free_props_enabled()
+    if not paid and not free:
         st.session_state["bb10_payload"] = {
             "player": None,
             "error": "Player Props wymaga konta Premium. Zaloguj się w Ustawieniach.",
@@ -1092,14 +1121,31 @@ def main() -> None:
         st.rerun()
         return
     query = _plain(event.get("query"))
-    if len(query) > 280:
-        st.session_state["bb10_payload"] = {"player": None, "error": "Zapytanie jest za długie."}
-    elif not query:
-        st.session_state["bb10_payload"] = {"player": None, "error": "Wpisz zdarzenie do wyszukania."}
-    else:
-        try:
-            athlete = _research(query)
-            st.session_state["bb10_payload"] = {"player": athlete, "error": ""}
-        except (ValueError, KeyError, RuntimeError, TypeError, IndexError) as exc:
-            st.session_state["bb10_payload"] = {"player": None, "error": str(exc)[:280]}
+    if len(query) > 280 or not query:
+        st.session_state["bb10_payload"] = {"player": None, "error": "Zapytanie jest za długie." if query else "Wpisz zdarzenie do wyszukania."}
+        st.rerun()
+        return
+    reservation = None
+    if not paid:
+        reservation = reserve_free_props(account_database_url())
+        if reservation.get("status") != "reserved":
+            message = ("Dzienny limit Free wykorzystany. Kolejna analiza od 00:00 UTC."
+                       if reservation.get("status") == "limit_reached"
+                       else "Darmowa analiza chwilowo niedostępna. Spróbuj ponownie.")
+            st.session_state["bb10_payload"]["error"] = message
+            st.rerun()
+            return
+    try:
+        athlete = _research(query)
+        if reservation is not None:
+            st.session_state["bb10_free_props_day"] = reservation["day"].isoformat()
+        else:
+            st.session_state.pop("bb10_free_props_day", None)
+        st.session_state["bb10_payload"] = {"player": athlete, "error": ""}
+    except Exception as exc:
+        if reservation is not None:
+            refund_failed_props(account_database_url(), reservation)
+        import logging
+        logging.getLogger(__name__).warning("Props analysis unavailable: %s", type(exc).__name__)
+        st.session_state["bb10_payload"] = {"player": None, "error": "Nie udało się przeprowadzić analizy. Sprawdź zapytanie lub spróbuj ponownie."}
     st.rerun()
