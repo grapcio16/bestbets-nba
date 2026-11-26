@@ -316,30 +316,67 @@ def render(*, dedicated=False):
         st.info("Pomiar czasu renderowania i zużycia zasobów nie jest podłączony.")
         return
     if section == "Users":
-        st.subheader("Ruch i popularność zakładek")
-        usage_charts(usage_cards())
-        from admin_user_management import access_snapshot
-        access = access_snapshot()
-        if access.get("status") != "ok":
-            st.error("Brak dostępu.")
-            return
-        st.subheader("Konta i uprawnienia")
-        st.write("Logowanie OIDC:", "Skonfigurowano" if access["oidc_configured"] else "Nie skonfigurowano")
-        table(access["allowlist_counts"], hide_index=True, use_container_width=True)
-        st.markdown("Identyfikatory konfiguracji, nie liczba osób.")
-        st.write("Rejestracja aktywności:", "Włączona" if registry_enabled() else "Wyłączona")
-        st.write("Limit darmowych analiz:", "Włączona" if free_props_enabled() else "Wyłączona")
-        st.markdown("Limit resetuje się o północy UTC, jeśli został włączony.")
-        st.subheader("Rejestr kont i aktywność")
+        from admin_dashboard_ui import table_markup, bars_markup, number
+        report = usage()
         registry = accounts()
-        if registry.get("status") == "ok":
-            rows = registry["accounts"]
-            kpis([("Zaobserwowane konta", sum(r["observed_accounts"] for r in rows), "Konta zaobserwowane przez aplikację, nie rejestr Google ani płatności."),
-                  ("Aktywni · 30 dni", sum(r["seen_last_30_days"] for r in rows)),
-                  ("Darmowe analizy · dziś (UTC)", registry["quota"][0]["reservations_today"])])
-            table(rows, hide_index=True, use_container_width=True)
+        usage_ok = report.get("status") == "ok"
+        registry_ok = registry.get("status") == "ok"
+        session = (report.get("sessions") or [{}])[0]
+        rows = registry.get("accounts", [])
+        roles = {"guest":"GOŚĆ","free":"FREE","premium":"PREMIUM","admin":"ADMIN"}
+        def account_count(field):
+            return sum(int(r.get(field,0)) for r in rows) if registry_ok else "Brak danych"
+        avg = session.get("avg_observed_seconds") if usage_ok else None
+        st.markdown("**Analityka zaobserwowanej aktywności** · dane pilota ADMIN i dobrowolnych sesji, jeśli rozszerzenie zostanie uruchomione. Nie jest to pełna lista rejestracji ani osób online.")
+        kpis([("Zaobserwowane konta",account_count("observed_accounts")),
+              ("Aktywne konta · 24 godz.",account_count("seen_last_24_hours")),
+              ("Pierwsza obserwacja · 7 dni",account_count("first_seen_last_7_days")),
+              ("Średni zaobserwowany czas · 7 dni",number(float(avg)/60,1)+" min" if avg is not None else "Brak danych")],4)
+        st.subheader("Konta według ostatniej zaobserwowanej roli")
+        if registry_ok:
+            by_role = {r.get("last_observed_role"):r for r in rows}
+            table([{"Rola":roles[role],"Konta":by_role.get(role,{}).get("observed_accounts",0),
+                    "Aktywne · 24 godz.":by_role.get(role,{}).get("seen_last_24_hours",0),
+                    "Aktywne · 7 dni":by_role.get(role,{}).get("seen_last_7_days",0),
+                    "Aktywne · 30 dni":by_role.get(role,{}).get("seen_last_30_days",0)}
+                   for role in ("free","premium","admin")],hide_index=True,use_container_width=True)
+            st.markdown("Rola pochodzi z aplikacji, nie z potwierdzenia płatności. Pierwsza obserwacja konta może nastąpić po jego rejestracji.")
+            if registry.get("new_accounts_daily"):
+                st.subheader("Pierwsze obserwacje kont · 30 dni")
+                st.bar_chart([{"Dzień":str(r["day"]),"Konta":int(r["accounts"])} for r in registry["new_accounts_daily"]],x="Dzień",y="Konta")
         else:
             st.info("Rejestr kont niedostępny.")
+        st.subheader("Sesje według roli")
+        if usage_ok:
+            by_role = {r["role"]:r for r in report.get("sessions_by_role",[])}
+            table([{"Rola":roles[role],"Ostatnie 3 min":by_role.get(role,{}).get("recent_sessions",0),
+                    "Aktywne · 24 godz.":by_role.get(role,{}).get("active_sessions_24h",0),
+                    "Aktywne · 7 dni":by_role.get(role,{}).get("active_sessions_7d",0),
+                    "Średni obserwowany czas (s)":by_role.get(role,{}).get("avg_observed_seconds") if role in by_role else "—"}
+                   for role in ("guest","free","premium","admin")],hide_index=True,use_container_width=True)
+            st.markdown("Czas jest oszacowaniem na podstawie próbek; sesje nie oznaczają unikalnych osób. Brak zgody oznacza brak danych.")
+        else:
+            st.info("Dane sesji niedostępne.")
+        st.subheader("Ruch i popularność zakładek")
+        usage_charts(usage_cards())
+        st.subheader("Wykorzystanie funkcji · ostatnie 7 dni")
+        if usage_ok and report.get("features"):
+            from admin_overview import feature_rows
+            st.markdown(table_markup(feature_rows(report)),unsafe_allow_html=True)
+        else:
+            st.info("Brak danych funkcji." if not usage_ok else "Brak zarejestrowanych wywołań.")
+        with st.expander("Prywatność, retencja i konfiguracja"):
+            st.write("Klienci: dobrowolna analityka bieżącej sesji. Rejestr zawiera wyłącznie pseudonimy HMAC, role i daty obserwacji. Sesje nie są połączone z identyfikatorami kont.")
+            st.write("Proponowana retencja: 30 dni sesji i próbek, 90 dni agregatów funkcji i nieaktywnych kont bez zależności od limitu. Status zadania retencji należy sprawdzić w GitHub Actions; sam panel nie potwierdza jego uruchomienia.")
+            st.write("Konfiguracja publicznej instancji może różnić się od konfiguracji Control Center.")
+            from admin_user_management import access_snapshot
+            access = access_snapshot()
+            if access.get("status") == "ok":
+                st.write("Logowanie OIDC:", "Skonfigurowano" if access["oidc_configured"] else "Nie skonfigurowano")
+                table(access["allowlist_counts"],hide_index=True,use_container_width=True)
+                st.write("Limit darmowych analiz: stan konfiguracji tej instancji.", "Włączony" if free_props_enabled() else "Wyłączony")
+            if registry_ok and registry.get("quota"):
+                st.write("Rezerwacje darmowych analiz dziś (UTC):",registry["quota"][0]["reservations_today"])
         return
     if section == "Security":
         from admin_security import security_snapshot, read_recent_events
@@ -440,7 +477,7 @@ def render(*, dedicated=False):
         st.markdown("Wynik przed podatkami, zwrotami i odpływem klientów, o ile nie uwzględniono ich w kosztach.")
         return
     if section == "Settings":
-        st.write("Wersja panelu: 2026-11-26-r10")
+        st.write("Wersja panelu: 2026-11-26-r11")
         from admin_settings import settings_snapshot, validate_draft
         config = settings_snapshot()
         if config.get("status") != "ok":
