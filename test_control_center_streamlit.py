@@ -4,6 +4,7 @@ No external requests, credentials, or production database connection.
 This tests the widget tree, not visual pixel fidelity or real OIDC login.
 """
 import unittest
+from datetime import datetime, timezone, timedelta
 from contextlib import ExitStack
 from unittest.mock import patch, Mock
 from types import ModuleType
@@ -11,6 +12,17 @@ from streamlit.testing.v1 import AppTest
 from v8_shadow.evaluation import evaluate_records
 from admin_control_center import SECTIONS, SECTION_LABELS
 from admin_dashboard_ui import grid_markup, metric_markup, health_markup, table_markup, bars_markup, model_name
+
+def fixture_tracker_history():
+    now = datetime.now(timezone.utc)
+    start = now - timedelta(days=1)
+    return {"status":"ok","rows":[{"game_id":"12345","model_id":"auto_context_full_v75",
+        "start_utc":start,"issued":start-timedelta(hours=2),"settled":start+timedelta(hours=3),
+        "away":"BOS","home":"NYK","pred_away":110.0,"pred_home":105.0,
+        "actual_away":115,"actual_home":101,"home_win_pct":40.0,
+        "player_id":"1","player_name":"Test Player","team":"BOS","pts_pred":20.0,"pts_actual":24.0,
+        "quarter":1}]}
+
 
 def fixture_report():
     base = {"game_id":"12345","issued_at":"2026-11-24T17:00:00Z",
@@ -42,6 +54,7 @@ class ControlCenterSmokeTest(unittest.TestCase):
                 "admin_performance.database_probe":{"status":"ok","connect_ms":20,"query_ms":2,"total_ms":25,"checked_utc":"2026-11-25T04:00:00+00:00"},
                 "admin_security.read_recent_events":{"status":"setup_required"},
                 "admin_live_data.tracker_summary":{"status":"ok","players":[{"model_id":"auto_player_form_v74","settled":12,"pts_mae":4.8}],"quarters":[{"model_id":"auto_q_v72_shadow_v1","settled":8,"team_points_mae":5.1}],"last_run":[]},
+                "admin_tracker_history.read_history":fixture_tracker_history(),
                 "admin_live_data.account_summary":{"status":"ok","accounts":[{"observed_accounts":4,"seen_last_24_hours":1,"seen_last_7_days":2,"seen_last_30_days":2,"first_seen_last_7_days":1}],"quota":[{"reservations_today":1}]},
                 "admin_live_data.stripe_test_summary":{"status":"ok","subscription_counts":{"active":2}},
                 "admin_live_data.official_injury_freshness":{"status":"no_recent_report"},
@@ -57,14 +70,24 @@ class ControlCenterSmokeTest(unittest.TestCase):
                     self.assertFalse(app.exception)
                     self.assertEqual(app.title[0].value,SECTION_LABELS[section])
                     self.assertFalse(app.caption)
-                    if section in ("AI Engines","Tracker"):
+                    if section == "AI Engines":
                         self.assertEqual(len(app.expander),1)
                         self.assertTrue(any("hz-bar-panel" in m.value for m in app.markdown))
                         self.assertTrue(any("Wspólna próba: 1 meczów" in m.value for m in app.markdown))
                     if section=="Revenue":
                         self.assertTrue(any('hz-kpi-label">Przychód miesięczny</div><div><div class="hz-kpi-value">$999.00</div>' in m.value for m in app.markdown))
                     if section=="Tracker":
-                        self.assertTrue(any('hz-kpi-label">Rozliczone prognozy zawodników</div><div><div class="hz-kpi-value">12</div>' in m.value for m in app.markdown))
+                        self.assertTrue(any("BOS – NYK" in m.value and "hz-status-settled" in m.value for m in app.markdown))
+                        self.assertFalse(any("Wspólna próba:" in m.value for m in app.markdown))
+                        app.radio(key="hz_tracker_kind").set_value("players").run()
+                        self.assertFalse(app.exception)
+                        self.assertTrue(any("Test Player" in m.value for m in app.markdown))
+                        app.radio(key="hz_tracker_kind").set_value("quarters").run()
+                        self.assertFalse(app.exception)
+                        self.assertTrue(any("BOS – NYK · Q1" in m.value for m in app.markdown))
+                        app.text_input(key="hz_tracker_search").set_value("zzzz").run()
+                        self.assertFalse(app.exception)
+                        self.assertTrue(any("Brak prognoz spełniających" in i.value for i in app.info))
                     if section=="Overview":
                         self.assertTrue(any('hz-kpi-label">Aktywni · 24 godz.</div><div><div class="hz-kpi-value">1</div>' in m.value for m in app.markdown))
                     if section=="Users":
