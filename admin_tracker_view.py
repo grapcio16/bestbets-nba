@@ -26,6 +26,22 @@ TRACKER_CSS = """<style>
 .st-key-hz_tracker_scope .hz-status-waiting{color:#edc789;background:#3b3328;border-color:#675337}
 .st-key-hz_tracker_scope .hz-status-upcoming{color:#acc4ff;background:#26395b;border-color:#415d89}
 .st-key-hz_tracker_scope .hz-status-excluded{color:#ffb0b5;background:#442c3a;border-color:#69404c}
+
+.st-key-hz_tracker_scope .hz-match-hero{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:22px;background:linear-gradient(115deg,#1c2b45,#252d4a 50%,#1b2a40);border:1px solid #4b5d83;border-radius:16px;padding:23px 28px;margin:6px 0 10px;text-align:center}
+.st-key-hz_tracker_scope .hz-match-team{font-size:29px;font-weight:750;color:#eff4ff;letter-spacing:.02em}
+.st-key-hz_tracker_scope .hz-match-role{font-size:15px;color:#b5c6e1;margin-bottom:5px}
+.st-key-hz_tracker_scope .hz-match-score{font-size:clamp(27px,3.4vw,48px);font-weight:800;color:#f5f7ff;line-height:1.1;font-variant-numeric:tabular-nums}
+.st-key-hz_tracker_scope .hz-match-state{font-size:14px;color:#8be0bd;margin-top:8px}
+.st-key-hz_tracker_scope .hz-match-state.pending{color:#edc789}
+.st-key-hz_tracker_scope .hz-step-title{font-size:17px;font-weight:700;color:#eaf1ff;margin:7px 0 3px}
+.st-key-hz_tracker_scope [data-testid="stButton"] button{min-height:46px;font-size:16px}
+.st-key-hz_tracker_scope [data-testid="stButton"] button[kind="primary"]{background:#413b70;border-color:#ac98f2}
+.st-key-hz_tracker_scope [data-testid="stButton"] button p{font-size:16px!important}
+.st-key-hz_tracker_scope [data-testid="stWidgetLabel"] p{font-size:16px!important}
+.st-key-hz_tracker_scope .hz-data-table th{font-size:15px}
+.st-key-hz_tracker_scope .hz-data-table td{font-size:17px;padding:15px}
+.st-key-hz_tracker_scope .hz-actual{color:#8be0bd;font-weight:750}
+@media(max-width:700px){.st-key-hz_tracker_scope .hz-match-hero{padding:16px 10px;gap:8px}.st-key-hz_tracker_scope .hz-match-team{font-size:20px}.st-key-hz_tracker_scope .hz-data-table td{font-size:14px}}
 </style>"""
 
 def date_label(value):
@@ -95,6 +111,54 @@ def render_detail(st,row,kind,stat,now):
             st.write("Prognozowane prawdopodobieństwo wygranej gospodarzy:", number(row["home_win_pct"],1)+"%")
     st.write("Zapis prognozy:",date_label(row.get("issued")),"· Rozliczenie:",date_label(row.get("settled")))
 
+def consensus(rows,kind,stat="PTS",now=None):
+    """Only show a common actual if eligible archived observations agree."""
+    actuals={tuple(float(v) for v in values(r,kind,stat)[1])
+             for r in rows if classify(r,kind,stat,now)=="settled"}
+    if len(actuals)==1:
+        return next(iter(actuals)),"settled"
+    return None,"conflict" if actuals else "waiting"
+
+def match_hero(away,home,actual,state):
+    score=score_pair(actual,0) if actual else "— : —"
+    label={"settled":"WYNIK RZECZYWISTY","conflict":"ROZBIEŻNE WYNIKI W ARCHIWUM",
+           "waiting":"OCZEKIWANIE NA ROZLICZENIE","upcoming":"MECZ NADCHODZĄCY"}[state]
+    css="" if state=="settled" else " pending"
+    return (f'<div class="hz-match-hero"><div><div class="hz-match-role">GOŚCIE</div><div class="hz-match-team">{escape(str(away))}</div></div>'
+            f'<div><div class="hz-match-score">{escape(score)}</div><div class="hz-match-state{css}">{label}</div></div>'
+            f'<div><div class="hz-match-role">GOSPODARZE</div><div class="hz-match-team">{escape(str(home))}</div></div></div>')
+
+def compact_rows(rows,kind,stat,now):
+    out=[]
+    for r in sorted(rows,key=lambda r:(r.get("quarter") or 0,model_name(r["model_id"]))):
+        state=classify(r,kind,stat,now)
+        p,a=values(r,kind,stat)
+        item={"Model":model_name(r["model_id"])}
+        if kind=="quarters":
+            item["Kwarta"]=f'Q{r["quarter"]}'
+        if kind=="players":
+            item["Prognoza"]=number(p[0],1)
+            item["Wynik"]=number(a[0],1) if state=="settled" else "—"
+            item["Różnica (wynik − prognoza)"]=number(float(a[0])-float(p[0]),1) if state=="settled" else "—"
+        else:
+            item["Prognoza (średnia)" if kind=="games" else "Prognoza"]=score_pair(p)
+            if kind=="games":
+                item["Scenariusz V8"]=score_pair((r.get("scenario_away"),r.get("scenario_home")),0)
+            item["Wynik"]=score_pair(a,0) if state=="settled" else "—"
+            item["Błąd na drużynę"]=number(error_value(r,kind,stat)) if state=="settled" else "—"
+            if kind=="games":
+                prob=r.get("home_win_pct")
+                item["Typ zwycięzcy"]="—"
+                if finite(prob) and 0<=float(prob)<=100 and float(prob)!=50:
+                    home=float(prob)>50
+                    item["Typ zwycięzcy"]=r.get("home") if home else r.get("away")
+                    if state=="settled":
+                        item["Trafienie"]="Tak" if home==(float(a[1])>float(a[0])) else "Nie"
+                item.setdefault("Trafienie","—")
+        item["Status"]=STATE_NAMES[state]
+        out.append(item)
+    return out
+
 def render_tracker(load_history, load_summary):
     import streamlit as st
     from access_control import current_role
@@ -106,85 +170,99 @@ def render_tracker(load_history, load_summary):
     season="2026-27"
     with st.container(key="hz_tracker_scope"):
         st.markdown(TRACKER_CSS,unsafe_allow_html=True)
-        st.markdown("Historia prognoz · wynik przewidywany, rzeczywisty i błąd")
-        kind=st.radio("Rodzaj prognozy",list(KINDS),format_func=KINDS.__getitem__,horizontal=True,
-                      label_visibility="collapsed",key="hz_tracker_kind")
-        left,right=st.columns([2,1])
-        with left:
-            period=st.date_input("Zakres dat meczów (czas polski)",value=(today-timedelta(days=6),today),
-                                 key="hz_tracker_period",format="DD.MM.YYYY")
-        with right:
-            stat=st.selectbox("Statystyka",list(STAT_NAMES),format_func=STAT_NAMES.__getitem__,key="hz_tracker_stat") if kind=="players" else "PTS"
-            if kind!="players":
-                st.markdown(health_markup("Zakres danych","Archiwum przedmeczowe","ok"),unsafe_allow_html=True)
-        if len(period)!=2:
-            st.info("Wybierz początek i koniec zakresu.")
+        st.markdown("**1. Wybierz dzień · 2. Wybierz mecz · 3. Sprawdź prognozy**")
+        date_key="hz_tracker_day"
+        if date_key not in st.session_state:
+            st.session_state[date_key]=today
+        def shift(delta):
+            st.session_state[date_key]+=timedelta(days=delta)
+        def reset_day():
+            st.session_state[date_key]=today
+        a,b,c,d=st.columns([1,3,1,1])
+        a.button("‹ Wcześniej",key="hz_tracker_prev",on_click=shift,args=(-1,),use_container_width=True)
+        day=b.date_input("Dzień meczu (czas polski)",key=date_key,format="DD.MM.YYYY",label_visibility="collapsed")
+        c.button("Później ›",key="hz_tracker_next",on_click=shift,args=(1,),use_container_width=True)
+        d.button("Dzisiaj",key="hz_tracker_today",on_click=reset_day,use_container_width=True)
+        games=load_history(season,"games",day,day)
+        if games.get("status")!="ok":
+            st.warning("Nie udało się odczytać archiwum meczów.")
+            if games.get("diagnostic"):
+                st.write("Kod diagnostyczny:",games["diagnostic"])
             return
-        start,end=period
-        if (end-start).days>30:
-            st.warning("Wybierz maksymalnie 31 dni.")
+        all_games=games.get("rows",[])
+        if not all_games:
+            st.info("Tego dnia nie ma zapisanych prognoz meczowych. Wybierz inną datę.")
             return
-        result=load_history(season,kind,start,end)
-        if result.get("status")!="ok":
-            message={"too_many":"Za dużo prognoz w zakresie. Wybierz krótszy okres.",
-                     "setup_required":"Baza Trackera nie jest podłączona.",
-                     "invalid_range":"Nieprawidłowy zakres dat."}.get(result.get("status"),"Nie udało się pobrać archiwum.")
-            st.warning(message)
-            if result.get("diagnostic"):
-                st.write("Kod diagnostyczny:",result["diagnostic"])
-            return
-        records=result.get("rows",[])
-        models=sorted({r["model_id"] for r in records},key=model_name)
-        a,b,c=st.columns([1,1,2])
-        with a:
-            model=st.selectbox("Model",[""]+models,format_func=lambda m:model_name(m) if m else "Wszystkie modele",key="hz_tracker_model_"+kind)
-        with b:
-            status=st.selectbox("Status",["","settled","waiting","upcoming","excluded"],
-                                format_func=lambda s:STATE_NAMES[s] if s else "Wszystkie statusy",key="hz_tracker_status")
-        with c:
-            query=st.text_input("Szukaj zawodnika lub drużyny" if kind=="players" else "Szukaj drużyny",key="hz_tracker_search",placeholder="np. BOS").strip().casefold()
-        filtered=[r for r in records if (not model or r["model_id"]==model) and
-                  (not query or query in subject(r,kind).casefold()) and
-                  (not status or classify(r,kind,stat,now)==status)]
-        summary=summarize(filtered,kind,stat,now)
-        st.markdown(grid_markup([("Wszystkie prognozy",summary["total"]),
-             ("Rozliczone prognozy",summary["settled"]),
-             ("Do rozliczenia",summary["waiting"]),
-             ("Nadchodzące",summary["upcoming"]),
-             ("Wykluczone",summary["excluded"]),
-             ("Średni błąd",number(summary["mae"]) if summary["mae"] is not None else "Brak danych",
-              "Średni bezwzględny błąd wybranej statystyki lub średni błąd punktów obu drużyn.")],3),unsafe_allow_html=True)
-        if summary["daily"]:
-            st.subheader("Błąd prognoz według daty")
-            st.line_chart(summary["daily"],x="Data",y="Średni błąd",height=210,color="#a99af5")
-        st.subheader("Historia rozliczeń")
-        if not filtered:
-            st.info("Brak prognoz spełniających wybrane filtry.")
+        grouped={}
+        for row in all_games:
+            grouped.setdefault(row["game_id"],[]).append(row)
+        ids=sorted(grouped,key=lambda gid:(grouped[gid][0]["start_utc"],gid))
+        st.markdown(f'<div class="hz-step-title">Mecze · {len(ids)}</div>',unsafe_allow_html=True)
+        def game_label(gid):
+            rows=grouped[gid]
+            first=rows[0]
+            actual,state=consensus(rows,"games",now=now)
+            result=score_pair(actual,0) if actual else "brak wyniku"
+            return f'{first["start_utc"].astimezone(TZ):%H:%M}  ·  {subject(first,"games")}  ·  {result}'
+        gid=st.selectbox("Wybierz mecz",ids,format_func=game_label,key="hz_tracker_match",label_visibility="collapsed")
+        selected=grouped[gid]
+        first=selected[0]
+        actual,state=consensus(selected,"games",now=now)
+        if state=="waiting" and first["start_utc"]>now:
+            state="upcoming"
+        st.markdown(match_hero(first["away"],first["home"],actual,state),unsafe_allow_html=True)
+        if state=="conflict":
+            st.warning("Modele mają różne zapisane wyniki rzeczywiste. Nie można potwierdzić wspólnego wyniku.")
+        kind_key="hz_tracker_kind"
+        if st.session_state.get(kind_key) not in KINDS:
+            st.session_state[kind_key]="games"
+        kind=st.session_state[kind_key]
+        def change_kind(k):
+            st.session_state[kind_key]=k
+        for col,(key,label) in zip(st.columns(3),KINDS.items()):
+            col.button({"games":"Wynik meczu","players":"Zawodnicy","quarters":"Kwarty"}[key],
+                key="hz_tracker_tab_"+key,type="primary" if kind==key else "secondary",
+                use_container_width=True,on_click=change_kind,args=(key,))
+        stat="PTS"
+        if kind=="games":
+            rows=selected
+            st.subheader("Jak prognozowały poszczególne modele?")
+            st.markdown("Błąd na drużynę: średnia różnica bezwzględna punktów gości i gospodarzy. Typ zwycięzcy wynika z prawdopodobieństwa wygranej.")
         else:
-            pages=(len(filtered)+PAGE_SIZE-1)//PAGE_SIZE
-            page=st.selectbox("Strona wyników",list(range(1,pages+1)),format_func=lambda i:f"{i} / {pages}",
-                              key="hz_tracker_page_"+str(pages))
-            offset=(page-1)*PAGE_SIZE
-            st.write(f"Pozycje {offset+1}–{min(offset+PAGE_SIZE,len(filtered))} z {len(filtered)}")
-            shown=filtered[offset:offset+PAGE_SIZE]
-            st.markdown(status_table(history_table(shown,kind,stat,now)),unsafe_allow_html=True)
-            with st.expander("Szczegóły wybranej prognozy"):
-                index=st.selectbox("Wybierz prognozę z tej strony",list(range(len(shown))),
-                    format_func=lambda i:f'{subject(shown[i],kind)} · {model_name(shown[i]["model_id"])} · {date_label(shown[i]["start_utc"])}',
-                    key="hz_tracker_detail_"+kind+"_"+str(len(shown)))
-                render_detail(st,shown[index],kind,stat,now)
-        with st.expander("Ostatnia aktualizacja Trackera i zasady rozliczeń"):
-            latest=load_summary(season)
-            runs=latest.get("last_run",[])
-            if runs:
-                r=runs[0]
-                st.markdown(health_markup("Ostatnie uruchomienie V7",date_label(r.get("finished_at_utc")),"ok" if r.get("player_status")=="ok" else "warn"),unsafe_allow_html=True)
-                st.markdown(grid_markup([("Nowe prognozy drużyn",r.get("team_new")),
-                    ("Rozliczenia drużyn",r.get("team_settled")),
-                    ("Nowe prognozy zawodników",r.get("player_new")),
-                    ("Rozliczenia zawodników",r.get("player_settled"))],4),unsafe_allow_html=True)
+            result=load_history(season,kind,day,day)
+            if result.get("status")!="ok":
+                st.warning("Nie udało się odczytać prognoz dla tej zakładki.")
+                return
+            rows=[r for r in result.get("rows",[]) if r["game_id"]==gid]
+            if not rows:
+                st.info("Brak zapisanych prognoz tego rodzaju dla wybranego meczu.")
+                return
+            if kind=="players":
+                players={r["player_id"]:subject(r,kind) for r in rows}
+                a,b=st.columns([2,1])
+                pid=a.selectbox("Zawodnik",sorted(players,key=lambda p:(players[p],p)),format_func=players.__getitem__,key="hz_tracker_player")
+                stat=b.selectbox("Statystyka",list(STAT_NAMES),format_func=STAT_NAMES.__getitem__,key="hz_tracker_stat")
+                rows=[r for r in rows if r["player_id"]==pid]
+                actual_player,player_state=consensus(rows,kind,stat,now)
+                st.subheader(players[pid])
+                st.markdown(grid_markup([("Rzeczywisty wynik · "+stat,number(actual_player[0],1) if actual_player else "Brak danych"),
+                    ("Zapisane prognozy",len(rows))],2),unsafe_allow_html=True)
+                if player_state=="conflict":
+                    st.warning("Różne wyniki rzeczywiste w archiwum modeli.")
             else:
-                st.info("Brak danych o ostatnim uruchomieniu Trackera.")
-            st.write("Każdy wiersz to osobna zapisana prognoza modelu, nie unikalny mecz. Wyniki są odczytywane z archiwum, bez ponownego generowania.")
-            st.write("Rozliczone prognozy mają poprawne dane i zapis przed rozpoczęciem meczu (dla meczów co najmniej 15 minut wcześniej). Brak rozliczenia po starcie to oczekiwanie; nie oznacza automatycznie błędu.")
-            st.write("Wyniki drużyn są w kolejności goście : gospodarze. Scenariusz V8 jest osobny od średniej, a błąd meczu dotyczy średniej. Porównanie skuteczności modeli znajduje się w zakładce Silniki AI.")
+                opts=sorted({r["quarter"] for r in rows})
+                quarter=st.selectbox("Kwarta",opts,format_func=lambda q:f"Q{q}",key="hz_tracker_quarter")
+                rows=[r for r in rows if r["quarter"]==quarter]
+                qa,qs=consensus(rows,kind,stat,now)
+                st.subheader(f"Kwarta {quarter}")
+                st.markdown(match_hero(first["away"],first["home"],qa,qs),unsafe_allow_html=True)
+        st.markdown(status_table(compact_rows(rows,kind,stat,now)),unsafe_allow_html=True)
+        with st.expander("Szczegóły zapisu prognozy"):
+            idx=st.selectbox("Model",range(len(rows)),format_func=lambda i:model_name(rows[i]["model_id"]),key="hz_tracker_detail_model")
+            render_detail(st,rows[idx],kind,stat,now)
+        with st.expander("Ostatnie rozliczenie Trackera i zasady"):
+            runs=load_summary(season).get("last_run",[])
+            if runs:
+                st.write("Ostatnie uruchomienie V7:",date_label(runs[0].get("finished_at_utc")))
+            st.write("Wszystkie wyniki pochodzą z archiwum. Prognozy meczowe muszą być zapisane co najmniej 15 minut przed startem; zawodników i kwart przed startem. Brak rozliczenia nie oznacza automatycznie błędu.")
+            st.write("Porównanie średniej skuteczności wielu meczów znajduje się w zakładce Silniki AI.")
