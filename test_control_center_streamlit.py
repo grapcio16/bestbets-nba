@@ -56,6 +56,7 @@ class ControlCenterSmokeTest(unittest.TestCase):
                 "admin_live_data.tracker_summary":{"status":"ok","players":[{"model_id":"auto_player_form_v74","settled":12,"pts_mae":4.8}],"quarters":[{"model_id":"auto_q_v72_shadow_v1","settled":8,"team_points_mae":5.1}],"last_run":[]},
                 "admin_tracker_history.read_history":fixture_tracker_history(),
                 "admin_live_data.account_summary":{"status":"ok","accounts":[{"observed_accounts":4,"seen_last_24_hours":1,"seen_last_7_days":2,"seen_last_30_days":2,"first_seen_last_7_days":1}],"quota":[{"reservations_today":1}]},
+                "admin_live_data.usage_summary":{"status":"ok","sessions":[{"recent_sessions":2,"new_sessions_24h":2,"active_sessions_24h":2,"active_sessions_7d":2}],"daily":[{"day":datetime.now(timezone.utc).date(),"sessions":2}],"pages":[{"page":"home","sessions":2}],"features":[{"feature":"props","calls":4,"failures":0,"avg_ms":1200}]},
                 "admin_live_data.stripe_test_summary":{"status":"ok","subscription_counts":{"active":2}},
                 "admin_live_data.official_injury_freshness":{"status":"no_recent_report"},
                 "admin_revenue.revenue_snapshot":{"status":"ok","checkout_mode":"test","fulfillment_declared_ready":False},
@@ -91,13 +92,33 @@ class ControlCenterSmokeTest(unittest.TestCase):
                         self.assertFalse(app.exception)
                         self.assertEqual(app.date_input(key="hz_tracker_day").value,day-timedelta(days=1))
                     if section=="Overview":
-                        self.assertTrue(any('hz-kpi-label">Aktywni · 24 godz.</div><div><div class="hz-kpi-value">1</div>' in m.value for m in app.markdown))
+                        self.assertTrue(any('hz-kpi-label">Aktywne konta · 24 godz.</div><div><div class="hz-kpi-value">1</div>' in m.value for m in app.markdown))
+                        self.assertTrue(any("PILOT ADMIN" in m.value for m in app.markdown))
+                        self.assertTrue(any("hz-over-fill" in m.value and "sesji" in m.value for m in app.markdown))
+                        self.assertTrue(any("Player Props" in m.value and "1,20" in m.value for m in app.markdown))
+                        self.assertFalse(any("Archiwum V8" in m.value for m in app.markdown))
+                        app.radio(key="hz_over_period").set_value(30).run()
+                        self.assertFalse(app.exception)
+                        app.button(key="hz_over_users").click().run()
+                        self.assertFalse(app.exception)
+                        self.assertEqual(app.title[0].value,"Użytkownicy")
                     if section=="Users":
                         self.assertTrue(any('hz-kpi-label">Zaobserwowane konta</div><div><div class="hz-kpi-value">4</div>' in m.value for m in app.markdown))
                     if section=="Performance":
                         self.assertTrue(any('hz-kpi-label">Połączenie</div><div><div class="hz-kpi-value">20.0 ms</div>' in m.value for m in app.markdown))
             next(b for b in app.sidebar.button if b.label=="Odśwież dane").click().run()
             self.assertFalse(app.exception)
+
+    def test_overview_missing_vs_zero_and_escaped_labels(self):
+        from admin_overview import aggregate, daily_chart, page_chart
+        from datetime import date
+        data=aggregate({"status":"ok","accounts":[]},{"status":"ok","sessions":[{"recent_sessions":0}],"features":[]})
+        self.assertEqual(data,{"accounts":0,"active_accounts":0,"sessions":0,"calls":0,"failures":0})
+        self.assertTrue(all(v is None for v in aggregate({"status":"unavailable"},{"status":"unavailable"}).values()))
+        chart=daily_chart({"status":"ok","daily":[{"day":"2026-11-20","sessions":3},{"day":"2026-11-01","sessions":50}]},7,date(2026,11,26))
+        self.assertIn("20.11",chart)
+        self.assertNotIn("01.11",chart)
+        self.assertIn("&lt;script&gt;",page_chart({"status":"ok","pages":[{"page":"<script>","sessions":1}]}))
 
     def test_dashboard_markup_escaping_and_missing_values(self):
         markup = grid_markup([("Konta", 0), ("<script>", "Brak danych", '"onclick="bad')], 4)
