@@ -97,12 +97,11 @@ def create_checkout(api,attempt_id,price_id,product_id,return_url):
     params={"mode":"subscription","line_items[0][price]":price_id,"line_items[0][quantity]":"1",
             "payment_method_types[0]":"card","client_reference_id":attempt_id,
             "success_url":return_url,"cancel_url":return_url,
-            "allow_promotion_codes":"false","automatic_tax[enabled]":"false",
-            "adaptive_pricing[enabled]":"false"}
+            "allow_promotion_codes":"false","automatic_tax[enabled]":"false"}
     s=api.request("/v1/checkout/sessions",params,idempotency="hz-sandbox-"+attempt_id)
     sid=ident(s.get("id"),"cs_test_")
     validate_session(s,sid,attempt_id)
-    require(s.get("status")=="open")
+    require(s.get("status")=="open" and s.get("currency")==CURRENCY and s.get("amount_total")==PRICE)
     return sid,checkout_url(s.get("url"),sid)
 
 def validate_session(s,sid,attempt_id):
