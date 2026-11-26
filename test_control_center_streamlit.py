@@ -55,8 +55,8 @@ class ControlCenterSmokeTest(unittest.TestCase):
                 "admin_security.read_recent_events":{"status":"setup_required"},
                 "admin_live_data.tracker_summary":{"status":"ok","players":[{"model_id":"auto_player_form_v74","settled":12,"pts_mae":4.8}],"quarters":[{"model_id":"auto_q_v72_shadow_v1","settled":8,"team_points_mae":5.1}],"last_run":[]},
                 "admin_tracker_history.read_history":fixture_tracker_history(),
-                "admin_live_data.account_summary":{"status":"ok","accounts":[{"observed_accounts":4,"seen_last_24_hours":1,"seen_last_7_days":2,"seen_last_30_days":2,"first_seen_last_7_days":1}],"quota":[{"reservations_today":1}]},
-                "admin_live_data.usage_summary":{"status":"ok","sessions":[{"recent_sessions":2,"new_sessions_24h":2,"active_sessions_24h":2,"active_sessions_7d":2}],"daily":[{"day":datetime.now(timezone.utc).date(),"sessions":2}],"pages":[{"page":"home","sessions":2}],"features":[{"feature":"props","calls":4,"failures":0,"avg_ms":1200}]},
+                "admin_live_data.account_summary":{"status":"ok","accounts":[{"last_observed_role":"free","observed_accounts":4,"seen_last_24_hours":1,"seen_last_7_days":2,"seen_last_30_days":2,"first_seen_last_7_days":1}],"quota":[{"reservations_today":1}]},
+                "admin_live_data.usage_summary":{"status":"ok","sessions":[{"recent_sessions":2,"new_sessions_24h":2,"active_sessions_24h":2,"active_sessions_7d":2,"avg_observed_seconds":90}],"sessions_by_role":[{"role":"free","recent_sessions":1,"active_sessions_24h":1,"active_sessions_7d":1,"avg_observed_seconds":90}],"daily":[{"day":datetime.now(timezone.utc).date(),"sessions":2}],"pages":[{"page":"home","sessions":2}],"features":[{"feature":"props","calls":4,"failures":0,"avg_ms":1200}]},
                 "admin_live_data.stripe_test_summary":{"status":"ok","subscription_counts":{"active":2}},
                 "admin_stripe_payments.stripe_payment_summary":{"status":"ok","mode":"test","currencies":{"usd":{"captured_minor":999,"refunded_minor":0,"successful":1,"failed":0,"other":0}}},
                 "admin_live_data.official_injury_freshness":{"status":"no_recent_report"},
@@ -96,7 +96,7 @@ class ControlCenterSmokeTest(unittest.TestCase):
                         self.assertEqual(app.date_input(key="hz_tracker_day").value,day-timedelta(days=1))
                     if section=="Overview":
                         self.assertTrue(any('hz-kpi-label">Aktywne konta · 24 godz.</div><div><div class="hz-kpi-value">1</div>' in m.value for m in app.markdown))
-                        self.assertTrue(any("PILOT ADMIN" in m.value for m in app.markdown))
+                        self.assertTrue(any("ANALITYKA OPT-IN" in m.value for m in app.markdown))
                         self.assertTrue(any("Udane płatności testowe" in m.value for m in app.markdown))
                         self.assertTrue(any("hz-over-fill" in m.value and "sesji" in m.value for m in app.markdown))
                         self.assertTrue(any("Player Props" in m.value and "1,20" in m.value for m in app.markdown))
@@ -107,6 +107,8 @@ class ControlCenterSmokeTest(unittest.TestCase):
                         self.assertFalse(app.exception)
                         self.assertEqual(app.title[0].value,"Użytkownicy")
                     if section=="Users":
+                        self.assertTrue(any("Średni zaobserwowany czas" in m.value and "1,5 min" in m.value for m in app.markdown))
+                        self.assertTrue(any("FREE" in m.value and "PREMIUM" in m.value and "ADMIN" in m.value for m in app.markdown))
                         self.assertTrue(any('hz-kpi-label">Zaobserwowane konta</div><div><div class="hz-kpi-value">4</div>' in m.value for m in app.markdown))
                     if section=="Performance":
                         self.assertTrue(any('hz-kpi-label">Połączenie</div><div><div class="hz-kpi-value">20.0 ms</div>' in m.value for m in app.markdown))
