@@ -54,7 +54,7 @@ def render(*, dedicated=False):
     from tracker_storage import tracker_database_url
     from admin_source_monitor import source_snapshot
     from admin_performance import database_probe, summarize_sources
-    from admin_live_data import tracker_summary, account_summary, stripe_test_summary, official_injury_freshness
+    from admin_live_data import tracker_summary, account_summary, stripe_test_summary, official_injury_freshness, usage_summary
     from admin_security import audit_enabled, record_admin_event
     from account_registry import registry_enabled, free_props_enabled
 
@@ -84,6 +84,10 @@ def render(*, dedicated=False):
     @st.cache_data(ttl=300, show_spinner=False)
     def accounts():
         return account_summary()
+
+    @st.cache_data(ttl=60, show_spinner=False)
+    def usage():
+        return usage_summary()
 
     @st.cache_data(ttl=300, show_spinner=False)
     def stripe_test():
@@ -126,6 +130,7 @@ def render(*, dedicated=False):
         database_health.clear()
         tracker_metrics.clear()
         accounts.clear()
+        usage.clear()
         stripe_test.clear()
         injury_index.clear()
         if audit_enabled() and not record_admin_event("refresh_telemetry", "success"):
@@ -134,6 +139,34 @@ def render(*, dedicated=False):
         st.logout()
         st.stop()
         return
+    def usage_cards():
+        report = usage()
+        row = (report.get("sessions") or [{}])[0]
+        value = lambda key: row.get(key, "Brak danych")
+        kpis([("Sesje · ostatnie 3 min", value("recent_sessions"), "Sesje z niedawnym sygnałem aktywności; nie liczba osób online."),
+              ("Nowe sesje · 24 godz.", value("new_sessions_24h")),
+              ("Aktywne sesje · 24 godz.", value("active_sessions_24h")),
+              ("Aktywne sesje · 7 dni", value("active_sessions_7d"))], 4)
+        if report.get("status") != "ok":
+            health("Monitoring sesji", localized(report.get("status", "unavailable")))
+        return report
+
+    def usage_charts(report):
+        if report.get("status") != "ok":
+            return
+        pages = {"home":"Centrum","props":"Player Props","games":"Terminarz",
+                 "simulations":"Symulacje","players":"Zawodnicy","teams":"Drużyny","settings":"Ustawienia"}
+        if report.get("daily"):
+            st.subheader("Aktywne sesje · 30 dni")
+            st.line_chart([{"Data":r["day"],"Sesje":r["sessions"]} for r in report["daily"]], x="Data", y="Sesje")
+        if report.get("pages"):
+            st.subheader("Popularność zakładek · 7 dni")
+            st.bar_chart([{"Zakładka":pages.get(r["page"],r["page"]), "Sesje":r["sessions"]}
+                          for r in report["pages"]], x="Zakładka", y="Sesje")
+        if not report.get("daily") and not report.get("pages"):
+            st.info("Brak zarejestrowanych sesji w ostatnich 30 dniach.")
+        st.markdown("Próbki aktywności sesji, nie unikalne osoby ani dokładne odsłony.")
+
     if section == "Overview":
         registry = accounts()
         rows = registry.get("accounts", [])
@@ -158,6 +191,8 @@ def render(*, dedicated=False):
             st.subheader("Konta według uprawnień")
             st.bar_chart([{"Rola":localized(r["last_observed_role"]), "Konta":r["observed_accounts"]} for r in rows], x="Rola", y="Konta")
             st.markdown("Role kont, nie płatne subskrypcje.")
+        st.subheader("Ruch w aplikacji")
+        usage_charts(usage_cards())
         st.divider()
         st.subheader("Dane i silniki AI")
     if section in ("Overview", "Data Center", "AI Engines", "Tracker"):
@@ -248,6 +283,20 @@ def render(*, dedicated=False):
                 st.info("Archiwum prognoz zawodników i kwart niedostępne.")
         return
     if section == "Performance":
+        st.subheader("Funkcje aplikacji · ostatnie 7 dni")
+        report = usage()
+        if report.get("status") == "ok":
+            labels = {"simulation":"Symulacje meczów","player_simulation":"Symulacje zawodników",
+                      "scenario":"Scenariusze","minutes":"Minuty zawodników","props":"Player Props","backtest":"Backtest"}
+            features = report.get("features", [])
+            if features:
+                table([{"Funkcja":labels.get(r["feature"],r["feature"]), "Wywołania":r["calls"],
+                        "Błędy":r["failures"], "Średni czas (ms)":r["avg_ms"]} for r in features], hide_index=True, use_container_width=True)
+                st.bar_chart([{"Funkcja":labels.get(r["feature"],r["feature"]), "Wywołania":r["calls"]} for r in features], x="Funkcja", y="Wywołania")
+            else:
+                st.info("Brak zapisanych wywołań funkcji.")
+        else:
+            health("Monitoring funkcji", localized(report.get("status","unavailable")))
         st.subheader("Neon · połączenie z bazą")
         db = database_health()
         kpis([(label, f'{db[key]:.1f} ms' if db.get(key) is not None else "Brak danych")
@@ -265,9 +314,11 @@ def render(*, dedicated=False):
         else:
             st.info("Brak pomiarów czasu odpowiedzi.")
         table(results, hide_index=True, use_container_width=True)
-        st.info("Pomiar czasu renderowania, zasobów i historii zapytań nie jest podłączony.")
+        st.info("Pomiar czasu renderowania i zużycia zasobów nie jest podłączony.")
         return
     if section == "Users":
+        st.subheader("Ruch i popularność zakładek")
+        usage_charts(usage_cards())
         from admin_user_management import access_snapshot
         access = access_snapshot()
         if access.get("status") != "ok":
