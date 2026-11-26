@@ -59,7 +59,13 @@ def render(*, dedicated=False):
     from account_registry import registry_enabled, free_props_enabled
 
     def table(rows, **kwargs):
-        st.dataframe([{COLUMN_LABELS.get(k,k): localized(v) for k,v in dict(row).items()} for row in rows], **kwargs)
+        from admin_dashboard_ui import table_markup, model_name
+        data = [{COLUMN_LABELS.get(k,k): model_name(v) if k in ("model_id", "Model") else localized(v)
+                 for k,v in dict(row).items()} for row in rows]
+        if data:
+            st.markdown(table_markup(data), unsafe_allow_html=True)
+        else:
+            st.info("Brak rekordów.")
 
     @st.cache_data(ttl=120, show_spinner=False)
     def snapshot(season):
@@ -229,45 +235,65 @@ def render(*, dedicated=False):
                 if injury.get("published_utc"):
                     st.write("Publikacja (UTC): " + injury["published_utc"])
                 st.markdown("Status publikacji nie potwierdza kompletności raportu.")
-        if section in ("Overview", "AI Engines", "Tracker"):
+        if section == "Overview":
             st.subheader("Archiwum V8")
             if models:
                 table(models, hide_index=True, use_container_width=True)
             else:
                 st.info("Brak zweryfikowanego archiwum.")
         if section in ("AI Engines", "Tracker"):
+            from admin_dashboard_ui import model_name, number, bars_markup
             report = scorecard("2026-27")
-            st.subheader("Skuteczność prognoz przedmeczowych")
+            st.subheader("Porównanie skuteczności modeli")
             if report.get("status") in ("unavailable", "setup_required"):
-                st.warning("Brak zweryfikowanej oceny modeli.")
+                st.warning("Nie udało się odczytać wyników modeli.")
                 diagnostic(report)
-            elif report.get("status") == "waiting_for_settled_games":
-                st.info("Oczekiwanie na rozliczone prognozy V8.")
-            rows = report.get("common_game_comparisons") or []
-            if rows:
-                st.markdown("Porównania na tych samych meczach w obrębie pary modeli.")
-                for comparison in rows:
-                    with st.expander(f'{comparison["left"]} / {comparison["right"]} · {comparison["same_game_n"]} meczów'):
-                        if comparison.get("historical_training_sample_differs"):
-                            st.warning("Różne próbki treningowe — nie można wyizolować wpływu zmian modelu.")
-                        metrics = []
-                        for side in ("left", "right"):
-                            m = comparison[side + "_metrics"]
-                            metrics.append({
-                                "Model": comparison[side],
-                                "Mecze": m.get("n"),
-                                "MAE drużyn": m.get("team_points_mae"),
-                                "MAE sumy": m.get("total_points_mae"),
-                                "Trafność zwycięzcy (%)": m.get("winner_hit_pct"),
-                                "Brier": m.get("brier"),
-                                "MAE scenariusza": m.get("scenario_team_points_mae"),
-                                "Pokrycie przedziału (%)": m.get("total_80pct_interval_coverage"),
-                                "Sprawdzone przedziały": m.get("total_intervals_checked"),
-                            })
-                        table(metrics, hide_index=True, use_container_width=True)
             else:
-                st.info("Brak porównań na wspólnych meczach.")
-            st.markdown("Mała próba nie przesądza o przewadze modelu. Niższe MAE i Brier są lepsze.")
+                cohort = report.get("shared_cohort") or {}
+                metrics = cohort.get("metrics") or {}
+                pairs = report.get("common_game_comparisons") or []
+                if metrics:
+                    st.markdown(f'**Wspólna próba: {cohort["n"]} meczów** · wszystkie modele ocenione na tych samych wynikach.')
+                elif pairs:
+                    st.markdown("Wybierz parę modeli. Każda para jest oceniana na swoich wspólnych meczach.")
+                    pair = st.selectbox("Porównanie", range(len(pairs)),
+                        format_func=lambda i: f'{model_name(pairs[i]["left"])} i {model_name(pairs[i]["right"])} · {pairs[i]["same_game_n"]} meczów')
+                    p = pairs[pair]
+                    metrics = {p["left"]:p["left_metrics"], p["right"]:p["right_metrics"]}
+                if metrics:
+                    ordered = sorted(metrics, key=model_name)
+                    left, right = st.columns(2)
+                    with left:
+                        st.subheader("Błąd punktów drużyny")
+                        st.markdown("Im mniej, tym lepiej.")
+                        st.markdown(bars_markup([(model_name(k),metrics[k].get("team_points_mae")) for k in ordered], suffix=""), unsafe_allow_html=True)
+                    with right:
+                        st.subheader("Trafność zwycięzcy")
+                        st.markdown("Im więcej, tym lepiej.")
+                        st.markdown(bars_markup([(model_name(k),metrics[k].get("winner_hit_pct")) for k in ordered], maximum=100, suffix="%", digits=1), unsafe_allow_html=True)
+                    table([{"Model":model_name(k), "Mecze":metrics[k].get("n"),
+                        "Błąd drużyny (pkt)":number(metrics[k].get("team_points_mae")),
+                        "Błąd sumy (pkt)":number(metrics[k].get("total_points_mae")),
+                        "Trafność zwycięzcy":number(metrics[k].get("winner_hit_pct"),1)+"%" if metrics[k].get("winner_hit_pct") is not None else "—",
+                        "Brier":number(metrics[k].get("brier"),4)} for k in ordered])
+                else:
+                    st.info("Brak wspólnej próby rozliczonych meczów.")
+                with st.expander("Szczegóły i definicje"):
+                    st.write("MAE to średni bezwzględny błąd punktowy. Brier mierzy jakość prawdopodobieństwa zwycięstwa (niższy jest lepszy).")
+                    own = report.get("model_metrics") or {}
+                    if own:
+                        st.write("Pełne archiwum każdego modelu — różne próby, bez rankingu.")
+                        table([{"Model":model_name(k), "Mecze":m.get("n"),
+                                "Błąd drużyny (pkt)":number(m.get("team_points_mae")),
+                                "Błąd sumy (pkt)":number(m.get("total_points_mae")),
+                                "Trafność (%)":number(m.get("winner_hit_pct"),1),
+                                "Brier":number(m.get("brier"),4),
+                                "Błąd scenariusza (pkt)":number(m.get("scenario_team_points_mae")),
+                                "Pokrycie przedziału (%)":number(m.get("total_80pct_interval_coverage"),1)}
+                               for k,m in sorted(own.items(),key=lambda item:model_name(item[0])) if m])
+                    if any(p.get("historical_training_sample_differs") for p in pairs):
+                        st.warning("Modele trenowano na różnych próbach. Nie można przypisać różnic wyłącznie zmianom algorytmu.")
+                st.info("Wyniki badawcze. Mała próba nie wystarcza do potwierdzenia przewagi modelu.")
         if section in ("Overview", "Tracker"):
             detail = tracker_metrics("2026-27")
             st.subheader("Tracker · zawodnicy i kwarty")
@@ -280,11 +306,17 @@ def render(*, dedicated=False):
                     st.write("**Ostatnie rozliczenie V7**")
                     table(detail["last_run"], hide_index=True, use_container_width=True)
                 if section == "Tracker":
-                    st.write("Punkty, zbiórki i asysty zawodników")
-                    table(player_rows, hide_index=True, use_container_width=True)
-                    st.write("Archiwum kwart")
-                    table(quarter_rows, hide_index=True, use_container_width=True)
-                    st.markdown("Własna próba każdego modelu — nie porównanie wspólnych meczów.")
+                    from admin_dashboard_ui import model_name, number, bars_markup
+                    st.subheader("Prognozy zawodników")
+                    table([{"Model":model_name(r["model_id"]), "Rozliczone":r["settled"],
+                            "Błąd punktów":number(r.get("pts_mae")), "Błąd zbiórek":number(r.get("reb_mae")),
+                            "Błąd asyst":number(r.get("ast_mae"))} for r in player_rows])
+                    st.subheader("Prognozy kwart")
+                    if quarter_rows:
+                        st.markdown(bars_markup([(model_name(r["model_id"]),r.get("team_points_mae")) for r in quarter_rows]),unsafe_allow_html=True)
+                    table([{"Model":model_name(r["model_id"]), "Rozliczone":r["settled"],
+                            "Błąd punktów drużyny":number(r.get("team_points_mae"))} for r in quarter_rows])
+                    st.markdown("Błędy w punktach lub jednostkach danej statystyki. Próby modeli mogą się różnić.")
             else:
                 st.info("Archiwum prognoz zawodników i kwart niedostępne.")
                 diagnostic(detail)
@@ -427,7 +459,7 @@ def render(*, dedicated=False):
         st.markdown("Wynik przed podatkami, zwrotami i odpływem klientów, o ile nie uwzględniono ich w kosztach.")
         return
     if section == "Settings":
-        st.write("Wersja panelu: 2026-11-26-r5")
+        st.write("Wersja panelu: 2026-11-26-r6")
         from admin_settings import settings_snapshot, validate_draft
         config = settings_snapshot()
         if config.get("status") != "ok":
