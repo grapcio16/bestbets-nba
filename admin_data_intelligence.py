@@ -52,11 +52,8 @@ def read_scorecard(url, season):
     if not url:
         return {"status": "setup_required"}
     try:
-        from psycopg.conninfo import make_conninfo
         from v8_shadow.evaluation import read_report
-        bounded_url = make_conninfo(url, connect_timeout=5,
-            options="-c statement_timeout=5000 -c default_transaction_read_only=on")
-        report = read_report(bounded_url, season)
+        report = read_report(url, season)
         # Only aggregate scorecard fields are needed by the admin screen.
         return {key: report[key] for key in (
             "status", "season", "model_metrics", "common_game_comparisons",
