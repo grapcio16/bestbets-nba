@@ -144,7 +144,7 @@ def render():
         results = sources()
         ranked = summarize_sources(results)
         if ranked:
-            st.bar_chart({r["source"]: r["elapsed_ms"] for r in ranked})
+            st.bar_chart([{"Source": r["source"], "Milliseconds": r["elapsed_ms"]} for r in ranked], x="Source", y="Milliseconds")
             st.caption("Successful source checks only; elapsed time includes response parsing.")
         else:
             st.info("No successful source latency measurements.")
