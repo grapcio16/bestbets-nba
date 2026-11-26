@@ -12,11 +12,12 @@ def database_probe(url, connect=None, clock=monotonic):
     try:
         if connect is None:
             from psycopg import connect
-        with connect(url, connect_timeout=5,
-                     options="-c statement_timeout=3000 -c default_transaction_read_only=on") as conn:
+        with connect(url, connect_timeout=5) as conn:
             connected = clock()
             result["connect_ms"] = round((connected-start)*1000, 1)
             with conn.cursor() as cur:
+                cur.execute("SET TRANSACTION READ ONLY")
+                cur.execute("SET LOCAL statement_timeout = '3000ms'")
                 cur.execute("SELECT 1")
                 if cur.fetchone() != (1,):
                     raise ValueError("Unexpected probe response")
