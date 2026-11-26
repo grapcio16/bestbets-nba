@@ -1,8 +1,8 @@
 """Standalone administration entrypoint; never imports the customer UI."""
 import streamlit as st
-from access_control import current_role, auth_configured, login_provider
 
 def main():
+    from access_control import current_role, auth_configured, login_provider
     st.set_page_config(page_title="HOOPZARO | Control Center", page_icon="📊",
                        layout="wide", initial_sidebar_state="expanded")
     role = current_role()
