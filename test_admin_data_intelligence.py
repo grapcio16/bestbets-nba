@@ -8,7 +8,8 @@ class DataIntelligenceTest(unittest.TestCase):
         row = {"run_utc":now, "trainable_examples":100, "minimum_examples":80}
         self.assertEqual(classify_worker(row, now), "recent_evidence")
         self.assertEqual(classify_worker(None, now), "no_evidence")
-        self.assertEqual(classify_worker({**row,"run_utc":now-timedelta(hours=7)},now),"stale")
+        self.assertEqual(classify_worker({**row,"run_utc":now-timedelta(hours=7)},now),"recent_evidence")
+        self.assertEqual(classify_worker({**row,"run_utc":now-timedelta(hours=9)},now),"stale")
         self.assertEqual(classify_worker({**row,"run_utc":now+timedelta(hours=1)},now),"invalid_timestamp")
         self.assertEqual(classify_worker({**row,"trainable_examples":79},now),"insufficient_training")
 
