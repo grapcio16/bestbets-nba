@@ -47,9 +47,10 @@ def observe_current_account(url):
 def reserve_free_props(url):
     """Atomically admit at most one Free request per UTC day, across processes."""
     try:
-        account, role = _identity()
-        if role in ("premium","admin"):
+        from access_control import current_role
+        if current_role() in ("premium","admin"):
             return {"status":"unlimited"}
+        account, role = _identity()
         if role != "free" or not account:
             return {"status":"login_required"}
         reservation = uuid4()
