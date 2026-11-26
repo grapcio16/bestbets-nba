@@ -105,6 +105,11 @@ def render(*, dedicated=False):
         return stripe_test_summary()
 
     @st.cache_data(ttl=300, show_spinner=False)
+    def stripe_payments():
+        from admin_stripe_payments import stripe_payment_summary
+        return stripe_payment_summary()
+
+    @st.cache_data(ttl=300, show_spinner=False)
     def injury_index():
         return official_injury_freshness()
 
@@ -149,6 +154,7 @@ def render(*, dedicated=False):
         accounts.clear()
         usage.clear()
         stripe_test.clear()
+        stripe_payments.clear()
         injury_index.clear()
         if audit_enabled() and not record_admin_event("refresh_telemetry", "success"):
             st.warning("Dane odświeżone. Nie zapisano zdarzenia audytu.")
@@ -190,7 +196,7 @@ def render(*, dedicated=False):
 
     if section == "Overview":
         from admin_overview import render_overview
-        render_overview(accounts(), usage(), snapshot("2026-27"), select_section)
+        render_overview(accounts(), usage(), snapshot("2026-27"), select_section, stripe_test(), stripe_payments())
         return
     if section in ("Data Center", "AI Engines"):
         data = snapshot("2026-27")
@@ -373,23 +379,44 @@ def render(*, dedicated=False):
         if revenue.get("status") != "ok":
             st.error("Brak dostępu.")
             return
-        st.subheader("Stripe · konfiguracja płatności")
-        st.write("Tryb płatności:", localized(revenue["checkout_mode"]))
-        st.write("Zadeklarowana gotowość obsługi subskrypcji:", localized(revenue["fulfillment_declared_ready"]))
-        st.markdown("Konfiguracja nie potwierdza rzeczywistych płatności.")
-        kpis([("Rzeczywiste przychody", "Nie podłączono"),
-              ("Aktywne płatne subskrypcje", "Nie podłączono")], 2)
-        st.subheader("Stripe · subskrypcje testowe")
+        from admin_stripe_payments import payment_rows, money_label
+        st.markdown("**Środowisko testowe Stripe** · odczyt bez możliwości pobierania pieniędzy.")
         stripe = stripe_test()
-        if stripe.get("status") == "ok":
-            counts = stripe["subscription_counts"]
+        payments = stripe_payments()
+        counts = stripe.get("subscription_counts", {})
+        sub_ok = stripe.get("status") == "ok"
+        pay_ok = payments.get("status") == "ok"
+        currencies = payments.get("currencies", {}) if pay_ok else {}
+        kpis([("Aktywne subskrypcje testowe", counts.get("active",0) if sub_ok else "Brak danych"),
+              ("W okresie próbnym · test", counts.get("trialing",0) if sub_ok else "Brak danych"),
+              ("Udane płatności testowe · 30 dni", sum(v["successful"] for v in currencies.values()) if pay_ok else "Brak danych"),
+              ("Nieudane płatności testowe · 30 dni", sum(v["failed"] for v in currencies.values()) if pay_ok else "Brak danych")],4)
+        st.subheader("Płatności testowe · ostatnie 30 dni")
+        if pay_ok:
+            if currencies:
+                for currency, values in sorted(currencies.items()):
+                    kpis([("Pobrano testowo", money_label(values["captured_minor"],currency)),
+                          ("Zwroty zgłoszone przez Stripe", money_label(values["refunded_minor"],currency))],2)
+                table(payment_rows(payments), hide_index=True, use_container_width=True)
+            else:
+                st.info("Brak płatności testowych w tym okresie.")
+            st.markdown("Zakres: płatności utworzone w ostatnich 30 dniach. Zwroty dotyczą tych płatności, niezależnie od daty zwrotu. Kwoty przed prowizjami i rozliczeniem podatków.")
+        else:
+            st.info("Płatności testowe: " + localized(payments.get("status","unavailable")))
+        st.subheader("Subskrypcje testowe")
+        if sub_ok:
             if counts:
-                table([{"Status": k, "Subskrypcje testowe": v} for k,v in sorted(counts.items())], hide_index=True, use_container_width=True)
+                table([{"Status":k,"Subskrypcje":v} for k,v in sorted(counts.items())],hide_index=True,use_container_width=True)
             else:
                 st.info("Brak subskrypcji testowych.")
-            st.markdown("Wyłącznie dane testowe, bez rzeczywistych przychodów.")
         else:
-            st.info("Stripe test: " + localized(stripe.get("status","unavailable")))
+            st.info("Subskrypcje testowe: " + localized(stripe.get("status","unavailable")))
+        st.markdown("Dane obejmują całe podłączone środowisko Stripe, nie wyłącznie produkt Hoopzaro. Subskrypcje nie są liczbą unikalnych klientów.")
+        with st.expander("Konfiguracja i rzeczywiste płatności"):
+            st.write("Tryb linku płatności w tej instancji:",localized(revenue["checkout_mode"]))
+            st.write("Zadeklarowana gotowość obsługi subskrypcji:",localized(revenue["fulfillment_declared_ready"]))
+            st.write("Rzeczywiste przychody i płatne subskrypcje nie są podłączone. Klucz testowy nie nadaje dostępu Premium.")
+            st.write("Wymagany klucz ograniczony rk_test_ z uprawnieniami odczytu Subscriptions i Charges, bez zapisu.")
         st.divider()
         st.subheader("Symulator przychodów · USD")
         st.markdown("Symulacja, nie rzeczywiste wpływy.")
@@ -413,7 +440,7 @@ def render(*, dedicated=False):
         st.markdown("Wynik przed podatkami, zwrotami i odpływem klientów, o ile nie uwzględniono ich w kosztach.")
         return
     if section == "Settings":
-        st.write("Wersja panelu: 2026-11-26-r9")
+        st.write("Wersja panelu: 2026-11-26-r10")
         from admin_settings import settings_snapshot, validate_draft
         config = settings_snapshot()
         if config.get("status") != "ok":
