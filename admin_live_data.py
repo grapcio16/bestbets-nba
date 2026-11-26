@@ -79,6 +79,7 @@ def stripe_test_summary(get=None):
             import requests
             get=requests.get
         counts={}
+        seen=set()
         cursor=None
         for _ in range(5):
             params={"limit":100,"status":"all"}
@@ -93,8 +94,11 @@ def stripe_test_summary(get=None):
             if not isinstance(data,list) or type(payload.get("has_more")) is not bool:
                 return {"status":"unavailable"}
             for row in data:
-                if row.get("livemode") is not False or not isinstance(row.get("id"),str):
+                ident=row.get("id")
+                if (row.get("livemode") is not False or not isinstance(ident,str)
+                        or not ident.startswith("sub_") or ident in seen):
                     return {"status":"unavailable"}
+                seen.add(ident)
                 status=row.get("status")
                 if status not in {"active","trialing","past_due","canceled","unpaid","incomplete","incomplete_expired","paused"}:
                     return {"status":"unavailable"}
