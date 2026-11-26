@@ -15,7 +15,8 @@ class PerformanceTest(unittest.TestCase):
         self.assertEqual(result["connect_ms"], 100.0)
         self.assertEqual(result["query_ms"], 20.0)
         self.assertEqual(result["total_ms"], 130.0)
-        cursor.execute.assert_called_once_with("SELECT 1")
+        self.assertEqual([item.args[0] for item in cursor.execute.call_args_list], [
+            "SET TRANSACTION READ ONLY", "SET LOCAL statement_timeout = '3000ms'", "SELECT 1"])
         self.assertIn("default_transaction_read_only=on", connect.call_args.kwargs["options"])
 
     def test_failure_sanitized(self):
