@@ -50,6 +50,31 @@ CSS = """
 .hz-kpi-icon svg{width:17px;height:17px;display:block;}
 .hz-health{background:linear-gradient(90deg,#1c293c,#151f30);}
 [data-testid="stSidebar"] [data-testid="stButton"] button:focus-visible{outline:2px solid #b5a0f7;outline-offset:2px;}
+
+/* Shared modern operations UI */
+[data-testid="stMainBlockContainer"]{max-width:1800px;padding-left:1.8rem;padding-right:1.8rem;}
+[data-testid="stSidebar"] [data-testid="stButton"] button{justify-content:flex-start!important;min-height:48px;}
+[data-testid="stSidebar"] [data-testid="stButton"] button>div{justify-content:flex-start!important;}
+[data-testid="stMainBlockContainer"] h1{font-size:38px!important;}
+.hz-kpi{min-height:112px;}
+.hz-kpi-label{font-size:16px!important;}
+.hz-kpi-value{font-size:34px!important;}
+.hz-table-wrap{overflow-x:auto;border:1px solid #34435e;border-radius:13px;background:#151f30;margin:4px 0 12px;}
+.hz-data-table{width:100%;border-collapse:collapse;white-space:nowrap;text-align:left;font-variant-numeric:tabular-nums;}
+.hz-data-table th{background:#202d44;padding:13px 16px;color:#bccbe0;font-size:14px;font-weight:650;border-bottom:1px solid #364761;}
+.hz-data-table td{padding:14px 16px;font-size:16px;color:#e6eefb;border-bottom:1px solid #2a374c;}
+.hz-data-table tr:last-child td{border-bottom:0;}
+.hz-data-table tbody tr:nth-child(even){background:#1a2639;}
+.hz-data-table tbody tr:hover{background:#23324b;}
+.hz-data-table td:first-child{font-weight:650;}
+.hz-bar-panel{padding:19px 20px;background:#151f30;border:1px solid #34435e;border-radius:13px;}
+.hz-bar-row{display:grid;grid-template-columns:minmax(55px,90px) minmax(80px,1fr) 72px;align-items:center;gap:12px;margin:13px 0;font-size:16px;color:#e6eefb;}
+.hz-bar-track{height:12px;background:#29384f;border-radius:8px;overflow:hidden;}
+.hz-bar-fill{height:100%;border-radius:8px;background:#8daaff;}
+.hz-bar-fill.shadow{background:#b5a0f7;}
+.hz-bar-num{text-align:right;font-weight:650;font-variant-numeric:tabular-nums;}
+.hz-bar-axis{display:flex;justify-content:space-between;color:#aab9d0;font-size:13px;margin:6px 72px 0 102px;}
+@media(max-width:650px){[data-testid="stMainBlockContainer"]{padding-left:.8rem;padding-right:.8rem;}.hz-bar-row{grid-template-columns:52px minmax(50px,1fr) 60px;gap:8px;}.hz-bar-panel{padding:12px;}.hz-data-table td{font-size:14px;padding:10px 12px;}}
 </style>
 """
 
@@ -102,3 +127,54 @@ def health_markup(label, status, kind="warn"):
     kind = kind if kind in ("ok","bad") else "warn"
     return (f'<div class="hz-health is-{kind}"><span class="hz-dot" aria-hidden="true"></span>'
             f'<strong>{escape(str(label))}</strong><span>{escape(str(status))}</span></div>')
+
+
+MODEL_NAMES = {
+    "auto_legacy_v72":"V7.2", "auto_research_form_v74":"V7.4",
+    "auto_context_full_v75":"V7.5", "auto_shadow_home_v76":"V7.6",
+    "v8_possessions_shadow_v01":"V8.1", "v8_possessions_shadow_v02":"V8.2",
+    "auto_player_form_v74":"V7.4", "auto_player_minutes_v76":"V7.6",
+    "auto_q_v72_shadow_v1":"V7.2", "auto_q_v74_shadow_v1":"V7.4",
+    "auto_q_v75_shadow_v1":"V7.5", "auto_q_v76_shadow_v1":"V7.6",
+}
+
+def model_name(value):
+    return MODEL_NAMES.get(str(value), str(value))
+
+def number(value, digits=2):
+    import math
+    try:
+        v = float(value)
+        return f"{v:,.{digits}f}".replace(",", " ").replace(".", ",") if math.isfinite(v) else "—"
+    except (ValueError, TypeError, OverflowError):
+        return "—"
+
+def table_markup(rows):
+    rows = list(rows)
+    if not rows:
+        return ""
+    keys = list(dict.fromkeys(k for row in rows for k in row))
+    header = "".join("<th scope='col'>"+escape(str(k))+"</th>" for k in keys)
+    def cell(value):
+        return escape(str(value)) if value is not None else "—"
+    body = "".join("<tr>"+"".join("<td>"+cell(row.get(k))+"</td>" for k in keys)+"</tr>" for row in rows)
+    return '<div class="hz-table-wrap"><table class="hz-data-table"><thead><tr>'+header+'</tr></thead><tbody>'+body+'</tbody></table></div>'
+
+def bars_markup(rows, *, maximum=None, suffix="", digits=2):
+    import math
+    valid = []
+    for name, value in rows:
+        try:
+            v = float(value)
+            if math.isfinite(v) and v >= 0:
+                valid.append((str(name), v))
+        except (TypeError, ValueError, OverflowError):
+            continue
+    if not valid:
+        return ""
+    scale = max(float(maximum or 0), max(v for _,v in valid), .001)
+    parts = []
+    for name, v in valid:
+        color = " shadow" if name.startswith("V8") else ""
+        parts.append(f'<div class="hz-bar-row"><strong>{escape(name)}</strong><div class="hz-bar-track"><div class="hz-bar-fill{color}" style="width:{100*v/scale:.4f}%"></div></div><div class="hz-bar-num">{number(v,digits)}{escape(suffix)}</div></div>')
+    return '<div class="hz-bar-panel">'+''.join(parts)+f'<div class="hz-bar-axis"><span>0</span><span>{number(scale,digits)}{escape(suffix)}</span></div></div>'
