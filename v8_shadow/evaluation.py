@@ -203,8 +203,10 @@ def read_report(database_url, season):
     if not database_url:
         raise RuntimeError("TRACKER_DATABASE_URL required")
     import psycopg
-    with psycopg.connect(database_url) as conn:
+    with psycopg.connect(database_url, connect_timeout=5) as conn:
         with conn.cursor() as cur:
+            cur.execute("SET TRANSACTION READ ONLY")
+            cur.execute("SET LOCAL statement_timeout = '5000ms'")
             cur.execute(
                 """SELECT game_id,model_id,issued_at,start_utc,home,away,
                           actual_home,actual_away,settled_at,scenario_home,
