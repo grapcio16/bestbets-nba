@@ -5,7 +5,8 @@ This tests the widget tree, not visual pixel fidelity or real OIDC login.
 """
 import unittest
 from contextlib import ExitStack
-from unittest.mock import patch
+from unittest.mock import patch, Mock
+from types import ModuleType
 from streamlit.testing.v1 import AppTest
 from v8_shadow.evaluation import evaluate_records
 from admin_control_center import SECTIONS
@@ -40,7 +41,7 @@ class ControlCenterSmokeTest(unittest.TestCase):
                 "admin_performance.database_probe":{"status":"ok","connect_ms":20,"query_ms":2,"total_ms":25,"checked_utc":"2026-11-25T04:00:00+00:00"},
                 "admin_security.read_recent_events":{"status":"setup_required"},
                 "admin_live_data.tracker_summary":{"status":"ok","players":[{"settled":12}],"quarters":[{"settled":8}],"last_run":[]},
-                "admin_live_data.account_summary":{"status":"ok","accounts":[{"observed_accounts":4,"seen_last_30_days":2}],"quota":[{"reservations_today":1}]},
+                "admin_live_data.account_summary":{"status":"ok","accounts":[{"observed_accounts":4,"seen_last_24_hours":1,"seen_last_7_days":2,"seen_last_30_days":2,"first_seen_last_7_days":1}],"quota":[{"reservations_today":1}]},
                 "admin_live_data.stripe_test_summary":{"status":"ok","subscription_counts":{"active":2}},
                 "admin_live_data.official_injury_freshness":{"status":"no_recent_report"},
                 "admin_revenue.revenue_snapshot":{"status":"ok","checkout_mode":"test","fulfillment_declared_ready":False},
@@ -60,6 +61,8 @@ class ControlCenterSmokeTest(unittest.TestCase):
                         self.assertEqual(next(m.value for m in app.metric if m.label=="Monthly gross"),"$999.00")
                     if section=="Tracker":
                         self.assertEqual(next(m.value for m in app.metric if m.label=="Settled player forecasts"),"12")
+                    if section=="Overview":
+                        self.assertEqual(next(m.value for m in app.metric if m.label=="Active last 24 hours"),"1")
                     if section=="Users":
                         self.assertEqual(next(m.value for m in app.metric if m.label=="Observed accounts"),"4")
                     if section=="Performance":
@@ -75,6 +78,38 @@ class ControlCenterSmokeTest(unittest.TestCase):
                 self.assertEqual(app.error[0].value,"Access denied.")
                 self.assertFalse(app.sidebar.radio)
                 read.assert_not_called()
+
+    def test_dedicated_deployment_never_loads_public_frontend(self):
+        public = ModuleType("bestbets_custom_screen")
+        public.main = Mock()
+        settings = {"redirect_uri":"https://hoopzaro-control-center.streamlit.app/oauth2callback"}
+        for role in ("guest", "free", "premium", "admin"):
+            with self.subTest(role=role), ExitStack() as stack:
+                stack.enter_context(patch.dict("sys.modules", {"bestbets_custom_screen":public}))
+                stack.enter_context(patch("access_control._secret_section",return_value=settings))
+                stack.enter_context(patch("access_control.current_role",return_value=role))
+                stack.enter_context(patch("access_control.auth_configured",return_value=True))
+                render = stack.enter_context(patch("admin_control_center.render"))
+                app = AppTest.from_file("app.py",default_timeout=15).run()
+                self.assertFalse(app.exception)
+                public.main.assert_not_called()
+                if role == "admin":
+                    render.assert_called_once_with(dedicated=True)
+                else:
+                    render.assert_not_called()
+                    self.assertEqual(app.title[0].value,"HOOPZARO | Control Center")
+                    self.assertEqual(app.button[0].label,"Sign in" if role=="guest" else "Sign out")
+
+    def test_public_deployment_default_unchanged(self):
+        public = ModuleType("bestbets_custom_screen")
+        public.main = Mock()
+        with patch.dict("sys.modules",{"bestbets_custom_screen":public}), patch(
+            "access_control._secret_section",return_value={"redirect_uri":"https://hoopzaro.streamlit.app/oauth2callback"}
+        ), patch("admin_control_center.render") as render:
+            app = AppTest.from_file("app.py",default_timeout=15).run()
+            self.assertFalse(app.exception)
+            public.main.assert_called_once()
+            render.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()
