@@ -6,6 +6,8 @@ on:
       - 'analytics_retention.py'
       - '.github/workflows/analytics-retention.yml'
       - 'test_usage_analytics_pilot.py'
+      - 'test_usage_page_batching.js'
+      - 'bestbets_reference_frontend/hoopzaro.css'
       - 'bestbets_custom_screen.py'
       - 'bestbets_reference_frontend/index.html'
       - '.github/workflows/usage-pilot-qa.yml'
@@ -21,3 +23,4 @@ jobs:
           python-version: '3.11'
       - run: python -m py_compile usage_analytics_pilot.py analytics_retention.py bestbets_custom_screen.py
       - run: python -m unittest -v test_usage_analytics_pilot
+      - run: node test_usage_page_batching.js
