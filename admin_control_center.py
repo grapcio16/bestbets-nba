@@ -20,6 +20,7 @@ def render():
     from admin_data_intelligence import read_snapshot, read_scorecard
     from tracker_storage import tracker_database_url
     from admin_source_monitor import source_snapshot
+    from admin_performance import database_probe, summarize_sources
 
     @st.cache_data(ttl=120, show_spinner=False)
     def snapshot(season):
@@ -32,6 +33,10 @@ def render():
     @st.cache_data(ttl=300, show_spinner=False)
     def sources():
         return source_snapshot()
+
+    @st.cache_data(ttl=300, show_spinner=False)
+    def database_health():
+        return database_probe(tracker_database_url())
 
     st.markdown("""<style>
     .stApp { background: radial-gradient(ellipse at 80% 0%, #21143c 0%, #080d1c 45%); color: #edf0ff; }
@@ -56,6 +61,7 @@ def render():
         snapshot.clear()
         scorecard.clear()
         sources.clear()
+        database_health.clear()
     st.divider()
     if section in ("Overview", "Data Center", "AI Engines", "Tracker"):
         data = snapshot("2026-27")
@@ -122,10 +128,32 @@ def render():
                 st.info("No verified common-game comparisons available.")
             st.caption("Research only. Small samples do not establish superiority. Lower MAE and Brier are better.")
         return
+    if section == "Performance":
+        st.subheader("Neon · database connectivity")
+        db = database_health()
+        st.caption("Read-only SELECT 1. Cached for 5 minutes.")
+        cols = st.columns(3)
+        for col, label, key in zip(cols, ("Connect", "Query + cursor", "Total"),
+                                   ("connect_ms", "query_ms", "total_ms")):
+            value = db.get(key)
+            col.metric(label, f"{value:.1f} ms" if value is not None else "Unavailable")
+        if db["status"] != "ok":
+            st.warning("Database check did not complete successfully.")
+        st.caption("Checked UTC: " + db["checked_utc"])
+        st.subheader("Source latency")
+        results = sources()
+        ranked = summarize_sources(results)
+        if ranked:
+            st.bar_chart({r["source"]: r["elapsed_ms"] for r in ranked})
+            st.caption("Successful source checks only; elapsed time includes response parsing.")
+        else:
+            st.info("No successful source latency measurements.")
+        st.dataframe(results, hide_index=True, use_container_width=True)
+        st.info("Public page rendering time, production request history, resource usage and latency percentiles are not instrumented yet.")
+        return
     pending = {
         "Users": "Accounts, roles and subscription access",
         "Revenue": "Stripe, recurring revenue and operating costs",
-        "Performance": "API latency, page load and database timing",
         "Security": "Audit events, authentication and incident monitoring",
         "Settings": "Controlled configuration and feature flags",
     }
