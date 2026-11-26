@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, MagicMock
 from usage_analytics_pilot import enabled, observe, observe_account, measured, set_consent, CONSENT_VERSION
 
 class PilotTests(unittest.TestCase):
@@ -40,7 +40,7 @@ class PilotTests(unittest.TestCase):
             cursor.assert_not_called()
     def test_retention_dry_run_and_database_guard(self):
         from analytics_retention import run
-        conn=Mock()
+        conn=MagicMock()
         cur=conn.cursor.return_value.__enter__.return_value
         cur.fetchone.side_effect=[("hoopzaro_analytics",),(0,),(1,),(2,),(3,)]
         self.assertEqual(run(conn),{"page_samples":0,"sessions":1,"feature_aggregates":2,"inactive_accounts":3})
@@ -54,7 +54,7 @@ class PilotTests(unittest.TestCase):
         self.assertEqual(cur.execute.call_count,1)
     def test_retention_only_expected_tables_and_excludes_quota(self):
         from analytics_retention import run
-        conn=Mock()
+        conn=MagicMock()
         cur=conn.cursor.return_value.__enter__.return_value
         cur.fetchone.return_value=("hoopzaro_analytics",)
         cur.rowcount=0
