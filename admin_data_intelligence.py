@@ -1,7 +1,7 @@
 """Read-only, bounded admin telemetry for Hoopzaro. No public payload."""
 from datetime import datetime, timezone
 
-def classify_worker(row, now=None, stale_hours=6):
+def classify_worker(row, now=None, stale_hours=8):
     if row is None:
         return "no_evidence"
     now = now or datetime.now(timezone.utc)
