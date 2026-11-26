@@ -9,6 +9,8 @@ on:
       - 'admin_user_management.py'
       - 'admin_security.py'
       - 'admin_revenue.py'
+      - 'admin_settings.py'
+      - 'test_admin_settings.py'
       - 'test_admin_revenue.py'
       - 'test_admin_security.py'
       - 'test_admin_user_management.py'
@@ -30,5 +32,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m compileall -q admin_control_center.py admin_data_intelligence.py admin_source_monitor.py admin_performance.py admin_user_management.py admin_security.py admin_revenue.py app.py
-      - run: python -m unittest -v test_admin_control_center test_admin_data_intelligence test_admin_source_monitor test_admin_performance test_admin_user_management test_admin_security test_admin_revenue
+      - run: python -m compileall -q admin_control_center.py admin_data_intelligence.py admin_source_monitor.py admin_performance.py admin_user_management.py admin_security.py admin_revenue.py admin_settings.py app.py
+      - run: python -m unittest -v test_admin_control_center test_admin_data_intelligence test_admin_source_monitor test_admin_performance test_admin_user_management test_admin_security test_admin_revenue test_admin_settings
