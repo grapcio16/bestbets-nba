@@ -10,9 +10,10 @@ def _read(url, queries):
     try:
         import psycopg
         from psycopg.rows import dict_row
-        with psycopg.connect(url, connect_timeout=5, row_factory=dict_row,
-                options="-c statement_timeout=5000 -c default_transaction_read_only=on") as conn:
+        with psycopg.connect(url, connect_timeout=5, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
+                cur.execute("SET TRANSACTION READ ONLY")
+                cur.execute("SET LOCAL statement_timeout = '5000ms'")
                 result={"status":"ok"}
                 for name,sql,params in queries:
                     cur.execute(sql,params)
