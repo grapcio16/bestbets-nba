@@ -65,7 +65,7 @@ class ControlCenterSmokeTest(unittest.TestCase):
                     if section=="Overview":
                         self.assertEqual(next(m.value for m in app.metric if m.label=="Aktywni · 24 godz."),"1")
                     if section=="Users":
-                        self.assertEqual(next(m.value for m in app.metric if m.label=="Zarejestrowane w systemie konta"),"4")
+                        self.assertEqual(next(m.value for m in app.metric if m.label=="Zaobserwowane konta"),"4")
                     if section=="Performance":
                         self.assertEqual(next(m.value for m in app.metric if m.label=="Połączenie"),"20.0 ms")
             app.sidebar.button[0].click().run()
