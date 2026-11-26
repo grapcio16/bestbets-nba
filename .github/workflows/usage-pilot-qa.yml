@@ -3,6 +3,10 @@ on:
   pull_request:
     paths:
       - 'usage_analytics_pilot.py'
+      - 'usage_consent_receipts.py'
+      - 'test_usage_consent_receipts.py'
+      - 'test_usage_consent_postgres.py'
+      - 'migrations/20261126_consent_receipts.sql'
       - 'analytics_retention.py'
       - '.github/workflows/analytics-retention.yml'
       - 'test_usage_analytics_pilot.py'
@@ -21,6 +25,32 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m py_compile usage_analytics_pilot.py analytics_retention.py bestbets_custom_screen.py
-      - run: python -m unittest -v test_usage_analytics_pilot
+      - run: python -m py_compile usage_analytics_pilot.py usage_consent_receipts.py analytics_retention.py bestbets_custom_screen.py
+      - run: python -m unittest -v test_usage_analytics_pilot test_usage_consent_receipts
       - run: node test_usage_page_batching.js
+  receipt-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: fixture
+          POSTGRES_DB: hoopzaro_analytics
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      HOOPZARO_CI_DISPOSABLE_PG: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'psycopg[binary]>=3.2,<4'
+      - run: python -m unittest -v test_usage_consent_postgres
