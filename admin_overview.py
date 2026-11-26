@@ -111,7 +111,7 @@ def render_overview(registry, usage, snapshot, select_section, stripe=None, paym
     stats=aggregate(registry,usage)
     with st.container(key="hz_overview"):
         st.markdown(CSS,unsafe_allow_html=True)
-        st.markdown('<div class="hz-over-banner"><div><strong>Aktywność Hoopzaro</strong><span>Rzeczywiste pomiary z aktualnego pilota monitoringu</span></div><span class="hz-over-pill">PILOT ADMIN</span></div>',unsafe_allow_html=True)
+        st.markdown('<div class="hz-over-banner"><div><strong>Aktywność Hoopzaro</strong><span>Rzeczywiste pomiary z dostępnej telemetrii</span></div><span class="hz-over-pill">ANALITYKA OPT-IN</span></div>',unsafe_allow_html=True)
         st.markdown(grid_markup([
             ("Zaobserwowane konta",display(stats["accounts"])),
             ("Aktywne konta · 24 godz.",display(stats["active_accounts"])),
@@ -160,4 +160,4 @@ def render_overview(registry, usage, snapshot, select_section, stripe=None, paym
             st.markdown(health_markup("Silnik V8",v8,"ok" if status=="recent_evidence" else "warn"),unsafe_allow_html=True)
             st.button("Przejdź do centrum danych",key="hz_over_data",on_click=select_section,args=("Data Center",),use_container_width=True)
         with st.expander("Zakres pomiarów"):
-            st.write("Pilotaż obejmuje aktywność administratora. Sesje nie są unikalnymi osobami ani dokładnymi odsłonami. Wywołania obejmują pomiary po stronie serwera, nie czas renderowania. Zarejestrowany brak błędów nie potwierdza bezawaryjności całej aplikacji. Okres siedmiu dni obejmuje bieżący dzień UTC i sześć wcześniejszych dni.")
+            st.write("Dane obejmują pilotaż administratora oraz dobrowolną analitykę klientów, jeśli ją uruchomiono. Brak zgody oznacza brak danych. Sesje nie są unikalnymi osobami ani dokładnymi odsłonami. Wywołania obejmują pomiary po stronie serwera, nie czas renderowania. Zarejestrowany brak błędów nie potwierdza bezawaryjności całej aplikacji. Okres siedmiu dni obejmuje bieżący dzień UTC i sześć wcześniejszych dni.")
