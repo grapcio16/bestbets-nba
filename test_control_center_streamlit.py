@@ -9,7 +9,7 @@ from unittest.mock import patch, Mock
 from types import ModuleType
 from streamlit.testing.v1 import AppTest
 from v8_shadow.evaluation import evaluate_records
-from admin_control_center import SECTIONS
+from admin_control_center import SECTIONS, SECTION_LABELS
 
 def fixture_report():
     base = {"game_id":"12345","issued_at":"2026-11-24T17:00:00Z",
@@ -54,19 +54,20 @@ class ControlCenterSmokeTest(unittest.TestCase):
                 with self.subTest(section=section):
                     app.sidebar.radio[0].set_value(section).run()
                     self.assertFalse(app.exception)
-                    self.assertEqual(app.title[0].value,section)
+                    self.assertEqual(app.title[0].value,SECTION_LABELS[section])
+                    self.assertFalse(app.caption)
                     if section in ("AI Engines","Tracker"):
                         self.assertTrue(app.expander)
                     if section=="Revenue":
-                        self.assertEqual(next(m.value for m in app.metric if m.label=="Monthly gross"),"$999.00")
+                        self.assertEqual(next(m.value for m in app.metric if m.label=="Przychód miesięczny"),"$999.00")
                     if section=="Tracker":
-                        self.assertEqual(next(m.value for m in app.metric if m.label=="Settled player forecasts"),"12")
+                        self.assertEqual(next(m.value for m in app.metric if m.label=="Rozliczone prognozy zawodników"),"12")
                     if section=="Overview":
-                        self.assertEqual(next(m.value for m in app.metric if m.label=="Active last 24 hours"),"1")
+                        self.assertEqual(next(m.value for m in app.metric if m.label=="Aktywni · 24 godz."),"1")
                     if section=="Users":
-                        self.assertEqual(next(m.value for m in app.metric if m.label=="Observed accounts"),"4")
+                        self.assertEqual(next(m.value for m in app.metric if m.label=="Zarejestrowane w systemie konta"),"4")
                     if section=="Performance":
-                        self.assertEqual(next(m.value for m in app.metric if m.label=="Connect"),"20.0 ms")
+                        self.assertEqual(next(m.value for m in app.metric if m.label=="Połączenie"),"20.0 ms")
             app.sidebar.button[0].click().run()
             self.assertFalse(app.exception)
 
@@ -75,7 +76,7 @@ class ControlCenterSmokeTest(unittest.TestCase):
             with self.subTest(role=role), patch("access_control.current_role",return_value=role), patch("admin_data_intelligence.read_snapshot") as read:
                 app=self.app().run()
                 self.assertFalse(app.exception)
-                self.assertEqual(app.error[0].value,"Access denied.")
+                self.assertEqual(app.error[0].value,"Brak dostępu.")
                 self.assertFalse(app.sidebar.radio)
                 read.assert_not_called()
 
@@ -98,7 +99,7 @@ class ControlCenterSmokeTest(unittest.TestCase):
                 else:
                     render.assert_not_called()
                     self.assertEqual(app.title[0].value,"HOOPZARO | Control Center")
-                    self.assertEqual(app.button[0].label,"Sign in" if role=="guest" else "Sign out")
+                    self.assertEqual(app.button[0].label,"Zaloguj się" if role=="guest" else "Wyloguj się")
 
     def test_standalone_entrypoint_and_explicit_deployment_mode(self):
         for entry in ("control_center_app.py", "app.py"):
