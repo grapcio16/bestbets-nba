@@ -37,11 +37,13 @@ def set_consent(state, accepted):
         return False
     if accepted and not audience_available():
         return False
+    if accepted == (state.get("hz_usage_consent")==CONSENT_VERSION):
+        return False
     if accepted:
         state["hz_usage_consent"]=CONSENT_VERSION
     else:
         state.pop("hz_usage_consent",None)
-    for key in ("hz_usage_session","hz_usage_last","hz_account_last","hz_usage_role"):
+    for key in ("hz_usage_session","hz_usage_last","hz_account_last","hz_usage_role","hz_account_role"):
         state.pop(key,None)
     return True
 
@@ -94,10 +96,11 @@ def observe_account(state,principal):
     if len(secret)<32 or not url or not isinstance(principal,str) or not principal or principal=="guest":
         return
     now=time.monotonic()
-    last=state.get("hz_account_last")
+    last=state.get("hz_account_last") if state.get("hz_account_role")==role else None
     if last is not None and now-last<1800:
         return
     state["hz_account_last"]=now
+    state["hz_account_role"]=role
     account=hmac.new(secret,principal.encode(),hashlib.sha256).hexdigest()
     try:
         with cursor(url) as cur:
