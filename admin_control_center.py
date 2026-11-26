@@ -457,7 +457,7 @@ def render(*, dedicated=False):
         st.markdown("Wynik przed podatkami, zwrotami i odpływem klientów, o ile nie uwzględniono ich w kosztach.")
         return
     if section == "Settings":
-        st.write("Wersja panelu: 2026-11-26-r7")
+        st.write("Wersja panelu: 2026-11-26-r8")
         from admin_settings import settings_snapshot, validate_draft
         config = settings_snapshot()
         if config.get("status") != "ok":
