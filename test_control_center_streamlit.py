@@ -58,6 +58,7 @@ class ControlCenterSmokeTest(unittest.TestCase):
                 "admin_live_data.account_summary":{"status":"ok","accounts":[{"observed_accounts":4,"seen_last_24_hours":1,"seen_last_7_days":2,"seen_last_30_days":2,"first_seen_last_7_days":1}],"quota":[{"reservations_today":1}]},
                 "admin_live_data.usage_summary":{"status":"ok","sessions":[{"recent_sessions":2,"new_sessions_24h":2,"active_sessions_24h":2,"active_sessions_7d":2}],"daily":[{"day":datetime.now(timezone.utc).date(),"sessions":2}],"pages":[{"page":"home","sessions":2}],"features":[{"feature":"props","calls":4,"failures":0,"avg_ms":1200}]},
                 "admin_live_data.stripe_test_summary":{"status":"ok","subscription_counts":{"active":2}},
+                "admin_stripe_payments.stripe_payment_summary":{"status":"ok","mode":"test","currencies":{"usd":{"captured_minor":999,"refunded_minor":0,"successful":1,"failed":0,"other":0}}},
                 "admin_live_data.official_injury_freshness":{"status":"no_recent_report"},
                 "admin_revenue.revenue_snapshot":{"status":"ok","checkout_mode":"test","fulfillment_declared_ready":False},
             }
@@ -76,6 +77,8 @@ class ControlCenterSmokeTest(unittest.TestCase):
                         self.assertTrue(any("hz-bar-panel" in m.value for m in app.markdown))
                         self.assertTrue(any("Wspólna próba: 1 meczów" in m.value for m in app.markdown))
                     if section=="Revenue":
+                        self.assertTrue(any("Aktywne subskrypcje testowe" in m.value and "Udane płatności testowe" in m.value for m in app.markdown))
+                        self.assertTrue(any("9.99 USD" in m.value for m in app.markdown))
                         self.assertTrue(any('hz-kpi-label">Przychód miesięczny</div><div><div class="hz-kpi-value">$999.00</div>' in m.value for m in app.markdown))
                     if section=="Tracker":
                         self.assertTrue(any("hz-match-score" in m.value and "115 : 101" in m.value for m in app.markdown))
@@ -94,6 +97,7 @@ class ControlCenterSmokeTest(unittest.TestCase):
                     if section=="Overview":
                         self.assertTrue(any('hz-kpi-label">Aktywne konta · 24 godz.</div><div><div class="hz-kpi-value">1</div>' in m.value for m in app.markdown))
                         self.assertTrue(any("PILOT ADMIN" in m.value for m in app.markdown))
+                        self.assertTrue(any("Udane płatności testowe" in m.value for m in app.markdown))
                         self.assertTrue(any("hz-over-fill" in m.value and "sesji" in m.value for m in app.markdown))
                         self.assertTrue(any("Player Props" in m.value and "1,20" in m.value for m in app.markdown))
                         self.assertFalse(any("Archiwum V8" in m.value for m in app.markdown))
