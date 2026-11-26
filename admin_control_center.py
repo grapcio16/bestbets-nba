@@ -102,8 +102,13 @@ def render(*, dedicated=False):
     section = st.session_state[nav_key]
     def select_section(value):
         st.session_state[nav_key] = value
+    nav_icons = {"Overview":":material/dashboard:", "Data Center":":material/database:",
+                 "AI Engines":":material/memory:", "Tracker":":material/monitoring:",
+                 "Users":":material/group:", "Revenue":":material/payments:",
+                 "Performance":":material/speed:", "Security":":material/shield:",
+                 "Settings":":material/settings:"}
     for item in SECTIONS:
-        st.sidebar.button(SECTION_LABELS[item], key="hz_nav_" + item,
+        st.sidebar.button(SECTION_LABELS[item], key="hz_nav_" + item, icon=nav_icons[item],
                           type="primary" if section == item else "secondary",
                           use_container_width=True, on_click=select_section, args=(item,))
     st.sidebar.divider()
