@@ -47,7 +47,10 @@ def account_summary():
     url=os.environ.get("HOOPZARO_ACCOUNT_DATABASE_URL","").strip()
     return _read(url,[
         ("accounts","""SELECT last_observed_role,count(*) AS observed_accounts,
-            count(*) FILTER (WHERE last_seen_at >= now()-interval '30 days') AS seen_last_30_days
+            count(*) FILTER (WHERE last_seen_at >= now()-interval '24 hours') AS seen_last_24_hours,
+            count(*) FILTER (WHERE last_seen_at >= now()-interval '7 days') AS seen_last_7_days,
+            count(*) FILTER (WHERE last_seen_at >= now()-interval '30 days') AS seen_last_30_days,
+            count(*) FILTER (WHERE first_seen_at >= now()-interval '7 days') AS first_seen_last_7_days
             FROM hoopzaro_accounts GROUP BY last_observed_role ORDER BY last_observed_role""",()),
         ("quota","""SELECT count(*) AS reservations_today FROM hoopzaro_props_daily
             WHERE quota_day=(now() AT TIME ZONE 'UTC')::date""",())
