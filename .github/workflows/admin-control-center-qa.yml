@@ -11,6 +11,11 @@ on:
       - 'admin_revenue.py'
       - 'admin_settings.py'
       - 'admin_live_data.py'
+      - 'admin_overview.py'
+      - 'admin_stripe_payments.py'
+      - 'admin_dashboard_ui.py'
+      - 'admin_tracker_view.py'
+      - 'admin_tracker_history.py'
       - 'test_admin_live_data.py'
       - 'bestbets_custom_screen.py'
       - 'bestbets_reference_frontend/index.html'
@@ -46,7 +51,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m compileall -q admin_control_center.py admin_data_intelligence.py admin_source_monitor.py admin_performance.py admin_user_management.py admin_security.py admin_revenue.py admin_settings.py admin_live_data.py account_registry.py bestbets_custom_screen.py app.py
+      - run: python -m compileall -q admin_control_center.py admin_data_intelligence.py admin_source_monitor.py admin_performance.py admin_user_management.py admin_security.py admin_revenue.py admin_settings.py admin_live_data.py admin_stripe_payments.py admin_overview.py admin_dashboard_ui.py admin_tracker_view.py admin_tracker_history.py account_registry.py bestbets_custom_screen.py app.py
       - run: python -m unittest -v test_admin_control_center test_admin_data_intelligence test_admin_source_monitor test_admin_performance test_admin_user_management test_admin_security test_admin_revenue test_admin_settings test_admin_live_data
   integration:
     runs-on: ubuntu-latest
