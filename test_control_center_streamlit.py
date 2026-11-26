@@ -10,7 +10,7 @@ from types import ModuleType
 from streamlit.testing.v1 import AppTest
 from v8_shadow.evaluation import evaluate_records
 from admin_control_center import SECTIONS, SECTION_LABELS
-from admin_dashboard_ui import grid_markup, metric_markup, health_markup
+from admin_dashboard_ui import grid_markup, metric_markup, health_markup, table_markup, bars_markup, model_name
 
 def fixture_report():
     base = {"game_id":"12345","issued_at":"2026-11-24T17:00:00Z",
@@ -41,7 +41,7 @@ class ControlCenterSmokeTest(unittest.TestCase):
                 "admin_source_monitor.source_snapshot":[{"source":"fixture","status":"schema_ok","elapsed_ms":42}],
                 "admin_performance.database_probe":{"status":"ok","connect_ms":20,"query_ms":2,"total_ms":25,"checked_utc":"2026-11-25T04:00:00+00:00"},
                 "admin_security.read_recent_events":{"status":"setup_required"},
-                "admin_live_data.tracker_summary":{"status":"ok","players":[{"settled":12}],"quarters":[{"settled":8}],"last_run":[]},
+                "admin_live_data.tracker_summary":{"status":"ok","players":[{"model_id":"auto_player_form_v74","settled":12,"pts_mae":4.8}],"quarters":[{"model_id":"auto_q_v72_shadow_v1","settled":8,"team_points_mae":5.1}],"last_run":[]},
                 "admin_live_data.account_summary":{"status":"ok","accounts":[{"observed_accounts":4,"seen_last_24_hours":1,"seen_last_7_days":2,"seen_last_30_days":2,"first_seen_last_7_days":1}],"quota":[{"reservations_today":1}]},
                 "admin_live_data.stripe_test_summary":{"status":"ok","subscription_counts":{"active":2}},
                 "admin_live_data.official_injury_freshness":{"status":"no_recent_report"},
@@ -58,7 +58,9 @@ class ControlCenterSmokeTest(unittest.TestCase):
                     self.assertEqual(app.title[0].value,SECTION_LABELS[section])
                     self.assertFalse(app.caption)
                     if section in ("AI Engines","Tracker"):
-                        self.assertTrue(app.expander)
+                        self.assertEqual(len(app.expander),1)
+                        self.assertTrue(any("hz-bar-panel" in m.value for m in app.markdown))
+                        self.assertTrue(any("Wspólna próba: 1 meczów" in m.value for m in app.markdown))
                     if section=="Revenue":
                         self.assertTrue(any('hz-kpi-label">Przychód miesięczny</div><div><div class="hz-kpi-value">$999.00</div>' in m.value for m in app.markdown))
                     if section=="Tracker":
@@ -80,6 +82,24 @@ class ControlCenterSmokeTest(unittest.TestCase):
         self.assertIn("&quot;onclick=&quot;bad", markup)
         self.assertIn("is-empty", markup)
         self.assertIn("&lt;script&gt;", health_markup("<script>", "OK", "ok"))
+
+    def test_readable_tables_and_charts(self):
+        self.assertEqual(model_name("auto_context_full_v75"),"V7.5")
+        self.assertIn("&lt;script&gt;",table_markup([{"Model":"<script>"}]))
+        self.assertNotIn("<script>",bars_markup([("<script>",4.2)]))
+        self.assertIn("4,20",bars_markup([("V7.5",4.2)]))
+        self.assertEqual(bars_markup([("V7.5",None)]),"")
+
+    def test_common_sample_is_real_intersection(self):
+        base = {"issued_at":"2026-11-24T17:00:00Z","start_utc":"2026-11-25T00:00:00Z",
+                "settled_at":"2026-11-25T04:00:00Z","home":"BOS","away":"NYK",
+                "actual_home":113,"actual_away":105,"mean_home":111,"mean_away":107,"home_win_pct":65}
+        rows=[{**base,"model_id":model,"game_id":gid} for model,ids in
+              [("a",["1","2"]),("b",["1","3"]),("c",["2","3"])] for gid in ids]
+        report=evaluate_records(rows,[])
+        self.assertEqual(report["shared_cohort"]["n"],0)
+        self.assertEqual(report["shared_cohort"]["metrics"],{})
+        self.assertEqual(len(report["common_game_comparisons"]),3)
 
     def test_all_non_admin_roles(self):
         for role in ("guest","free","premium"):
