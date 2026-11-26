@@ -1502,7 +1502,7 @@ function hzQueuePage(){
 }
 function notify(type,extra){
   if(type==="streamlit:setComponentValue" && extra && extra.value && state.payload?.usage_enabled &&
-      document.visibilityState==="visible" && hzAllowedPages.has(state.page)){
+      document.visibilityState==="visible" && hzAllowedPages.has(state.page) && Date.now()-hzLastInteraction<=120000){
     hzQueuePage();
     extra={...extra,value:{...extra.value,usage_page:state.page,usage_pages:[...hzPendingPages]}};
     hzPendingPages.clear();
