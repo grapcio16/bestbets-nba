@@ -19,7 +19,7 @@ STATUS_LABELS = {"ok":"Poprawnie", "setup_required":"Wymaga konfiguracji", "unav
     "trialing":"Okres próbny", "past_due":"Zaległa", "canceled":"Anulowana", "unpaid":"Nieopłacona",
     "incomplete":"Niekompletna", "incomplete_expired":"Wygasła", "paused":"Wstrzymana",
     "page_limit_reached":"Przekroczono limit stron", "test_restricted_key_required":"Wymagany ograniczony klucz testowy",
-    "success":"Sukces", "failure":"Błąd", "subjects":"Identyfikatory OIDC", "emails":"Adresy e-mail",
+    "success":"Sukces", "failure":"Błąd", "subjects":"Identyfikatory OIDC", "emails":"Adresy e-mail", "admin":"ADMIN", "premium":"Premium", "free":"Free",
     "refresh_telemetry":"Odświeżenie danych", "review_access":"Przegląd uprawnień", "review_models":"Przegląd modeli",
     "ESPN scoreboard":"ESPN · wyniki", "NBA scoreboard":"NBA · wyniki", "ESPN injuries":"ESPN · kontuzje"}
 COLUMN_LABELS = {"model_id":"Model", "archived":"Zarchiwizowane", "settled":"Rozliczone",
@@ -106,6 +106,7 @@ def render(*, dedicated=False):
     [data-testid="stSidebar"] [data-testid="stRadio"] label p{font-size:16px;font-weight:600;color:#e3ecff;}
     [data-testid="stSidebar"] [data-testid="stRadio"] label:hover{background:#20304c;}
     [data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked){background:linear-gradient(90deg,#2a2454,#182a48);border-color:#6e55c4;box-shadow:inset 3px 0 #a58aff,0 0 15px #7758e521;}
+    [data-testid="stSidebar"] [data-testid="stRadio"] label:focus-within{outline:2px solid #c4a5ff;outline-offset:2px;}
     [data-testid="stSidebar"] [data-testid="stRadio"] label>div:first-child{position:absolute;opacity:0;pointer-events:none;}
     [data-testid="stMainBlockContainer"] h1{font-size:42px;font-weight:750;letter-spacing:-.035em;color:#f2f5ff;}
     [data-testid="stMainBlockContainer"] h2,[data-testid="stMainBlockContainer"] h3{font-weight:650;color:#eef4ff;letter-spacing:-.018em;}
@@ -145,11 +146,10 @@ def render(*, dedicated=False):
         st.logout()
         st.stop()
         return
-    st.divider()
     if section == "Overview":
         st.subheader("Użytkownicy i aktywność")
         registry = accounts()
-        fields = (("Zarejestrowane w systemie konta", "observed_accounts"),
+        fields = (("Zaobserwowane konta", "observed_accounts"),
                   ("Aktywni · 24 godz.", "seen_last_24_hours"),
                   ("Aktywni · 7 dni", "seen_last_7_days"),
                   ("Aktywni · 30 dni", "seen_last_30_days"),
@@ -161,18 +161,17 @@ def render(*, dedicated=False):
             if i == 3:
                 cols = st.columns(3)
             value = sum(r[key] for r in rows) if available and all(key in r for r in rows) else "Brak danych"
-            cols[i % 3].metric(label, value)
+            cols[i % 3].metric(label, value, help="Liczba zalogowanych kont zaobserwowanych przez aplikację, w tym ADMIN. Nie obejmuje anonimowych wizyt ani pomiaru użytkowników online.")
         cols[2].metric("Darmowe analizy · dziś (UTC)",
                        registry["quota"][0]["reservations_today"] if available else "Brak danych")
         if not available:
             st.info("Rejestr kont nie jest podłączony lub jest niedostępny.")
-        st.markdown("Aktywność zalogowanych kont (w tym ADMIN). Bez anonimowych wizyt i pomiaru online.")
         cols = st.columns(2)
         cols[0].metric("Rzeczywiste przychody", "Nie podłączono")
         cols[1].metric("Aktywne płatne subskrypcje", "Nie podłączono")
         if available and rows and all("last_observed_role" in r for r in rows):
             st.subheader("Podział kont według uprawnień")
-            st.bar_chart([{"Rola":r["last_observed_role"], "Konta":r["observed_accounts"]} for r in rows], x="Rola", y="Konta")
+            st.bar_chart([{"Rola":localized(r["last_observed_role"]), "Konta":r["observed_accounts"]} for r in rows], x="Rola", y="Konta")
             st.markdown("Role kont, nie płatne subskrypcje.")
         st.divider()
         st.subheader("Dane i silniki AI")
@@ -197,7 +196,7 @@ def render(*, dedicated=False):
                 table(results, hide_index=True, use_container_width=True)
                 issues = [r["source"] for r in results if r["status"] not in ("schema_ok", "empty_response")]
                 if issues:
-                    st.warning("Źródła wymagające sprawdzenia: " + ", ".join(issues))
+                    st.warning("Źródła wymagające sprawdzenia: " + ", ".join(localized(i) for i in issues))
                 if any(r["status"] == "empty_response" for r in results):
                     st.info("Pusta odpowiedź nie potwierdza kompletności danych.")
                 st.subheader("Oficjalny raport kontuzji NBA")
@@ -305,11 +304,10 @@ def render(*, dedicated=False):
         if registry.get("status") == "ok":
             rows = registry["accounts"]
             cols = st.columns(3)
-            cols[0].metric("Zarejestrowane w systemie konta", sum(r["observed_accounts"] for r in rows))
+            cols[0].metric("Zaobserwowane konta", sum(r["observed_accounts"] for r in rows), help="Konta zaobserwowane przez aplikację, nie rejestr Google ani płatności.")
             cols[1].metric("Aktywni · 30 dni", sum(r["seen_last_30_days"] for r in rows))
             cols[2].metric("Darmowe analizy · dziś (UTC)", registry["quota"][0]["reservations_today"])
             table(rows, hide_index=True, use_container_width=True)
-            st.markdown("Konta zaobserwowane przez aplikację, nie rejestr Google ani płatności.")
         else:
             st.info("Rejestr kont niedostępny.")
         return
