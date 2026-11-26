@@ -56,7 +56,7 @@ def read_scorecard(url, season):
         report = read_report(url, season)
         # Only aggregate scorecard fields are needed by the admin screen.
         return {key: report[key] for key in (
-            "status", "season", "model_metrics", "common_game_comparisons",
+            "status", "season", "model_metrics", "common_game_comparisons", "shared_cohort",
             "v8_archived_by_version", "v8_valid_settled_by_version",
             "sample_disclaimer") if key in report}
     except Exception as exc:
