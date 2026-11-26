@@ -4,6 +4,8 @@ on:
     paths:
       - 'admin_control_center.py'
       - 'admin_data_intelligence.py'
+      - 'admin_source_monitor.py'
+      - 'test_admin_source_monitor.py'
       - 'test_admin_control_center.py'
       - 'test_admin_data_intelligence.py'
       - 'app.py'
@@ -20,5 +22,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m compileall -q admin_control_center.py admin_data_intelligence.py app.py
-      - run: python -m unittest -v test_admin_control_center test_admin_data_intelligence
+      - run: python -m compileall -q admin_control_center.py admin_data_intelligence.py admin_source_monitor.py app.py
+      - run: python -m unittest -v test_admin_control_center test_admin_data_intelligence test_admin_source_monitor
