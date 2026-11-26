@@ -235,8 +235,38 @@ def render():
                        "Monthly variable costs": float(p["monthly_variable_cost"])}], hide_index=True, use_container_width=True)
         st.caption("Defaults are illustrative and editable. No taxes, refunds, churn or currency conversion unless explicitly modeled in costs. Not accounting profit.")
         return
-    pending = {
-        "Settings": "Controlled configuration and feature flags",
-    }
-    st.info(pending[section] + " — not connected yet.")
-    st.caption("No write actions enabled.")
+    if section == "Settings":
+        from admin_settings import settings_snapshot, validate_draft
+        config = settings_snapshot()
+        if config.get("status") != "ok":
+            st.error("Access denied.")
+            return
+        st.subheader("Deployment configuration")
+        st.caption("Read-only configuration indicators, not live service checks.")
+        for label, key in (("OIDC", "oidc_configured"), ("Tracker database", "tracker_url_configured"),
+                           ("Audit database", "audit_storage_configured"), ("Audit key length", "audit_key_configured")):
+            st.write(label + ":", "Configured" if config[key] else "Missing")
+        st.write("Checkout mode:", config["checkout_mode"])
+        st.write("Fulfillment readiness declared:", config["fulfillment_declared_ready"])
+        st.divider()
+        st.subheader("Change preview")
+        st.warning("Preview only. No changes are saved or applied to the public app.")
+        with st.form("control_center_settings_preview"):
+            maintenance = st.checkbox("Request maintenance mode", value=False)
+            enabled = st.checkbox("Enable announcement", value=False)
+            announcement = st.text_input("Announcement (plain text)", max_chars=300)
+            submitted = st.form_submit_button("Validate draft")
+        if submitted:
+            try:
+                draft = validate_draft({"maintenance_requested":maintenance,
+                    "announcement_enabled":enabled, "announcement_text":announcement})
+                st.success("Draft validated. No changes applied.")
+                st.write("Maintenance requested:", draft["maintenance_requested"])
+                st.write("Announcement enabled:", draft["announcement_enabled"])
+                if draft["announcement_enabled"]:
+                    st.text(draft["announcement_text"])
+            except ValueError as exc:
+                st.error(str(exc))
+        st.info("Feature activation, maintenance enforcement, payment changes, model selection and rollback are not connected.")
+        return
+
