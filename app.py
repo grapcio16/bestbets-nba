@@ -1,4 +1,8 @@
-"""Hoopzaro public entrypoint, with an isolated Control Center route."""
+"""Hoopzaro public entrypoint, with an isolated Control Center route.
+
+Control Center UI revision: 2026-11-26-r4 (custom KPI cards and icon navigation).
+Entrypoint revision tracks UI updates for deployment file watchers.
+"""
 import os
 from urllib.parse import urlsplit
 import streamlit as st
