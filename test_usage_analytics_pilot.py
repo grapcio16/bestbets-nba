@@ -57,18 +57,19 @@ class PilotTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             run(conn,apply=True)
         self.assertEqual(cur.execute.call_count,1)
-    def test_retention_only_expected_tables_and_excludes_quota(self):
+    def test_retention_apply_calls_fixed_function_only(self):
         from analytics_retention import run
         conn=MagicMock()
         cur=conn.cursor.return_value.__enter__.return_value
-        cur.fetchone.return_value=("hoopzaro_analytics",)
-        cur.rowcount=0
-        run(conn,apply=True)
-        deletes=[call.args[0] for call in cur.execute.call_args_list if call.args[0].startswith("DELETE")]
-        self.assertEqual(len(deletes),4)
-        self.assertTrue(all(" WHERE " in sql for sql in deletes))
-        self.assertFalse(any(sql.startswith("DELETE FROM public.hoopzaro_props_daily") for sql in deletes))
-        self.assertIn("NOT EXISTS",deletes[-1])
+        counts={"page_samples":1,"sessions":2,"feature_aggregates":3,"inactive_accounts":4}
+        cur.fetchone.side_effect=[("hoopzaro_analytics",),(counts,)]
+        self.assertEqual(run(conn,apply=True),counts)
+        statements=[call.args[0] for call in cur.execute.call_args_list]
+        self.assertEqual(statements[-1],"SELECT hz_retention.cleanup()")
+        self.assertFalse(any(s.startswith("DELETE") for s in statements))
+        cur.fetchone.side_effect=[("hoopzaro_analytics",),({"page_samples":5001},)]
+        with self.assertRaises(RuntimeError):
+            run(conn,apply=True)
     def test_disabled_preserves_results(self):
         with patch("usage_analytics_pilot.enabled",return_value=False),patch("usage_analytics_pilot.cursor") as cursor:
             observe({},"home")
