@@ -121,3 +121,29 @@ def official_injury_freshness(get=None, now=None):
         return {"status":"recent_report_link","published_utc":stamp.isoformat()}
     except Exception:
         return {"status":"unavailable"}
+
+
+def usage_summary():
+    """Admin-only aggregate telemetry; no session identifiers returned."""
+    from access_control import current_role
+    if current_role()!="admin":
+        return {"status":"denied"}
+    return _read(os.environ.get("HOOPZARO_USAGE_DATABASE_URL","").strip(),[
+        ("sessions","""SELECT count(*) FILTER (WHERE first_seen>=now()-interval '24 hours') AS new_sessions_24h,
+            count(*) FILTER (WHERE last_seen>=now()-interval '24 hours') AS active_sessions_24h,
+            count(*) FILTER (WHERE last_seen>=now()-interval '3 minutes') AS recent_sessions,
+            count(*) FILTER (WHERE last_seen>=now()-interval '7 days') AS active_sessions_7d,
+            round(avg(observed_seconds) FILTER (WHERE first_seen>=now()-interval '7 days')::numeric,0) AS avg_observed_seconds
+            FROM hz_usage_sessions""",()),
+        ("daily","""SELECT day, count(DISTINCT session_id) AS sessions
+            FROM hz_usage_daily WHERE day >= (now() AT TIME ZONE 'UTC')::date-29
+            GROUP BY day ORDER BY day""",()),
+        ("pages","""SELECT page, count(DISTINCT session_id) AS sessions, sum(samples) AS samples
+            FROM hz_usage_daily WHERE day >= (now() AT TIME ZONE 'UTC')::date-6
+            GROUP BY page ORDER BY sessions DESC,page""",()),
+        ("features","""SELECT feature, sum(calls) AS calls,
+            coalesce(sum(calls) FILTER(WHERE outcome='failure'),0) AS failures,
+            round(sum(total_ms)::numeric/nullif(sum(calls),0),1) AS avg_ms
+            FROM hz_feature_daily WHERE day >= (now() AT TIME ZONE 'UTC')::date-6
+            GROUP BY feature ORDER BY calls DESC,feature""",())
+    ])
