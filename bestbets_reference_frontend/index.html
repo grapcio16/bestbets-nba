@@ -1487,21 +1487,39 @@ function closePremiumPaywall(){
   else $("query").focus();
 }
 let hzPilotLastSample=Date.now();
+let hzLastInteraction=Date.now();
+const hzAllowedPages=new Set(["home","props","games","simulations","players","teams","settings"]);
+const hzPendingPages=new Set();
+let hzObservedPage=null;
+function hzQueuePage(){
+  if(!state.payload?.usage_enabled){
+    hzPendingPages.clear();hzObservedPage=null;return;
+  }
+  if(document.visibilityState!=="visible" || !hzAllowedPages.has(state.page))return;
+  if(hzObservedPage!==state.page){
+    hzPendingPages.add(state.page);hzObservedPage=state.page;
+  }
+}
 function notify(type,extra){
-  if(type==="streamlit:setComponentValue" && extra && extra.value && state.payload?.usage_enabled){
-    extra={...extra,value:{...extra.value,usage_page:state.page}};
+  if(type==="streamlit:setComponentValue" && extra && extra.value && state.payload?.usage_enabled &&
+      document.visibilityState==="visible" && hzAllowedPages.has(state.page)){
+    hzQueuePage();
+    extra={...extra,value:{...extra.value,usage_page:state.page,usage_pages:[...hzPendingPages]}};
+    hzPendingPages.clear();
     hzPilotLastSample=Date.now();
   }
   window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},extra||{}),"*");
 }
-// Server permits admin pilot or explicit consent; no passive samples for idle/hidden tabs.
-let hzLastInteraction=Date.now();
+// Sample only a visible, recently interacted-with tab. Batch short visits
+// rather than forcing a server rerun for each navigation click.
 for(const eventName of ["pointerdown","keydown","touchstart","wheel"]){
   document.addEventListener(eventName,()=>{hzLastInteraction=Date.now()},{passive:true});
 }
 setInterval(function(){
   if(!state.payload?.usage_enabled || document.visibilityState!=="visible" || state.loading ||
-     state.page==="admin" || Date.now()-hzLastInteraction>120000 || Date.now()-hzPilotLastSample<90000)return;
+     !hzAllowedPages.has(state.page) || Date.now()-hzLastInteraction>120000)return;
+  const interval=hzPendingPages.size?30000:90000;
+  if(Date.now()-hzPilotLastSample<interval)return;
   notify("streamlit:setComponentValue",{dataType:"json",value:{
     type:"usage_sample",id:String(Date.now())+"-usage"
   }});
@@ -1850,6 +1868,7 @@ function render(){
   if(teams&&window.HoopzaroTeams)window.HoopzaroTeams.render(state.payload.home||null,state.payload.premium_team_analytics||null,role);
   if(admin&&window.HoopzaroAdmin)window.HoopzaroAdmin.render(state.payload.admin_report||null,state.adminLoading);
   if(active)renderPlayer();
+  hzQueuePage();
   resize();
 }
 function renderAccount(){
@@ -2333,6 +2352,7 @@ window.addEventListener("message",function(event){
     ?"session:"+String(state.payload.auth.session_epoch)
     :String(state.payload.auth?.subject||state.payload.auth?.email||state.payload.auth?.role||"guest");
   if(state.playerIdentity!==currentIdentity){
+    hzPendingPages.clear();hzObservedPage=null;hzPilotLastSample=Date.now();
     if(state.playerIdentity!==""){
       state.query="";$('query').value="";
       state.lastIdentity="";state.paywallServerErrorSeen="";
