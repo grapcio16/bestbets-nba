@@ -21,6 +21,7 @@ def render():
     from tracker_storage import tracker_database_url
     from admin_source_monitor import source_snapshot
     from admin_performance import database_probe, summarize_sources
+    from admin_live_data import tracker_summary, account_summary, stripe_test_summary
 
     @st.cache_data(ttl=120, show_spinner=False)
     def snapshot(season):
@@ -37,6 +38,18 @@ def render():
     @st.cache_data(ttl=300, show_spinner=False)
     def database_health():
         return database_probe(tracker_database_url())
+
+    @st.cache_data(ttl=180, show_spinner=False)
+    def tracker_metrics(season):
+        return tracker_summary(tracker_database_url(), season)
+
+    @st.cache_data(ttl=300, show_spinner=False)
+    def accounts():
+        return account_summary()
+
+    @st.cache_data(ttl=300, show_spinner=False)
+    def stripe_test():
+        return stripe_test_summary()
 
     st.markdown("""<style>
     .stApp { background: radial-gradient(ellipse at 80% 0%, #21143c 0%, #080d1c 45%); color: #edf0ff; }
@@ -62,6 +75,9 @@ def render():
         scorecard.clear()
         sources.clear()
         database_health.clear()
+        tracker_metrics.clear()
+        accounts.clear()
+        stripe_test.clear()
     st.divider()
     if section in ("Overview", "Data Center", "AI Engines", "Tracker"):
         data = snapshot("2026-27")
@@ -127,6 +143,26 @@ def render():
             else:
                 st.info("No verified common-game comparisons available.")
             st.caption("Research only. Small samples do not establish superiority. Lower MAE and Brier are better.")
+        if section in ("Overview", "Tracker"):
+            detail = tracker_metrics("2026-27")
+            st.subheader("Tracker · players & quarters")
+            if detail.get("status") == "ok":
+                player_rows = detail.get("players", [])
+                quarter_rows = detail.get("quarters", [])
+                cols = st.columns(2)
+                cols[0].metric("Settled player forecasts", sum(row["settled"] for row in player_rows))
+                cols[1].metric("Settled quarter forecasts", sum(row["settled"] for row in quarter_rows))
+                if detail.get("last_run"):
+                    st.caption("Latest V7 tracker run")
+                    st.dataframe(detail["last_run"], hide_index=True, use_container_width=True)
+                if section == "Tracker":
+                    st.write("Player points, rebounds and assists")
+                    st.dataframe(player_rows, hide_index=True, use_container_width=True)
+                    st.write("Quarter archive")
+                    st.dataframe(quarter_rows, hide_index=True, use_container_width=True)
+                    st.caption("Metrics use each model's own archived sample; not a matched-game comparison.")
+            else:
+                st.info("Player / quarter tracker archive unavailable.")
         return
     if section == "Performance":
         st.subheader("Neon · database connectivity")
@@ -169,7 +205,19 @@ def render():
         cols[0].metric("Paying subscribers", "Not verified")
         cols[1].metric("Daily free Props usage", "Not tracked")
         st.warning("Current Player Props server gate requires Premium. One daily free analysis is not implemented in this gate.")
-        st.info("Account directory, Stripe entitlement reconciliation, durable quota and audit trail require separate implementation. No role mutations enabled.")
+        st.subheader("Account registry · durable observations")
+        registry = accounts()
+        if registry.get("status") == "ok":
+            rows = registry["accounts"]
+            cols = st.columns(3)
+            cols[0].metric("Observed accounts", sum(r["observed_accounts"] for r in rows))
+            cols[1].metric("Seen last 30 days", sum(r["seen_last_30_days"] for r in rows))
+            cols[2].metric("UTC quota reservations", registry["quota"][0]["reservations_today"])
+            st.dataframe(rows, hide_index=True, use_container_width=True)
+            st.caption("Observed identities, not identity-provider registrations or verified paying subscribers.")
+        else:
+            st.info("Dedicated account registry not configured or unavailable.")
+        st.caption("No role mutations enabled.")
         return
     if section == "Security":
         from admin_security import security_snapshot, read_recent_events
@@ -212,6 +260,13 @@ def render():
         cols = st.columns(2)
         cols[0].metric("Actual revenue", "Not connected")
         cols[1].metric("Active paid subscriptions", "Not connected")
+        st.subheader("Stripe · restricted test subscription summary")
+        stripe = stripe_test()
+        if stripe.get("status") == "ok":
+            st.dataframe([{"Status": k, "Test subscriptions": v} for k,v in sorted(stripe["subscription_counts"].items())], hide_index=True, use_container_width=True)
+            st.caption("Test-mode records only. No revenue or Premium entitlement is inferred.")
+        else:
+            st.info("Stripe test summary: " + stripe.get("status","unavailable"))
         st.divider()
         st.subheader("Revenue Simulator · USD")
         st.caption("Hypothetical scenario, not actual revenue. Assumes one successful monthly payment per subscriber.")
