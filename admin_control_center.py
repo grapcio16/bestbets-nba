@@ -151,8 +151,27 @@ def render():
         st.dataframe(results, hide_index=True, use_container_width=True)
         st.info("Public page rendering time, production request history, resource usage and latency percentiles are not instrumented yet.")
         return
+    if section == "Users":
+        from admin_user_management import access_snapshot
+        access = access_snapshot()
+        if access.get("status") != "ok":
+            st.error("Access denied.")
+            return
+        st.subheader("Identity & entitlement")
+        st.write("OIDC configuration:", "Configured" if access["oidc_configured"] else "Not configured")
+        st.caption("Configuration only; this does not verify the identity provider is online.")
+        st.dataframe(access["allowlist_counts"], hide_index=True, use_container_width=True)
+        st.caption("Counts are unique configured identifiers per type, not people or paying subscribers. Admin takes precedence over Premium.")
+        cols = st.columns(2)
+        for col, label in zip(cols, ("Registered accounts", "Active accounts")):
+            col.metric(label, "Not tracked")
+        cols = st.columns(2)
+        cols[0].metric("Paying subscribers", "Not verified")
+        cols[1].metric("Daily free Props usage", "Not tracked")
+        st.warning("Current Player Props server gate requires Premium. One daily free analysis is not implemented in this gate.")
+        st.info("Account directory, Stripe entitlement reconciliation, durable quota and audit trail require separate implementation. No role mutations enabled.")
+        return
     pending = {
-        "Users": "Accounts, roles and subscription access",
         "Revenue": "Stripe, recurring revenue and operating costs",
         "Security": "Audit events, authentication and incident monitoring",
         "Settings": "Controlled configuration and feature flags",
