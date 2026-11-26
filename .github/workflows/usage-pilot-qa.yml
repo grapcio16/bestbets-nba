@@ -1,0 +1,21 @@
+name: Usage analytics pilot QA
+on:
+  pull_request:
+    paths:
+      - 'usage_analytics_pilot.py'
+      - 'test_usage_analytics_pilot.py'
+      - 'bestbets_custom_screen.py'
+      - 'bestbets_reference_frontend/index.html'
+      - '.github/workflows/usage-pilot-qa.yml'
+permissions:
+  contents: read
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m py_compile usage_analytics_pilot.py bestbets_custom_screen.py
+      - run: python -m unittest -v test_usage_analytics_pilot
