@@ -21,6 +21,7 @@ def receive(raw,signature,secret,account_id,record):
     if not isinstance(secret,str) or not secret.startswith("whsec_"):
         return 503
     try:
+        ident(account_id,"acct_")
         event=stripe.Webhook.construct_event(raw,signature,secret,tolerance=300)
         if event.get("livemode") is not False or event.get("api_version")!=VERSION:
             return 400
