@@ -102,17 +102,24 @@ def render(*, dedicated=False):
     if section == "Overview":
         st.subheader("Application usage")
         registry = accounts()
+        fields = (("Observed accounts", "observed_accounts"),
+                  ("Active last 24 hours", "seen_last_24_hours"),
+                  ("Active last 7 days", "seen_last_7_days"),
+                  ("Active last 30 days", "seen_last_30_days"),
+                  ("First seen last 7 days", "first_seen_last_7_days"))
+        rows = registry.get("accounts", [])
+        available = registry.get("status") == "ok"
         cols = st.columns(3)
-        if registry.get("status") == "ok":
-            rows = registry.get("accounts", [])
-            cols[0].metric("Observed accounts", sum(r["observed_accounts"] for r in rows))
-            cols[1].metric("Seen last 30 days", sum(r["seen_last_30_days"] for r in rows))
-            cols[2].metric("Free Props reservations today (UTC)", registry["quota"][0]["reservations_today"])
-        else:
-            for col, label in zip(cols, ("Observed accounts", "Seen last 30 days", "Free Props reservations today (UTC)")):
-                col.metric(label, "Unavailable")
+        for i, (label, key) in enumerate(fields):
+            if i == 3:
+                cols = st.columns(3)
+            value = sum(r[key] for r in rows) if available and all(key in r for r in rows) else "Unavailable"
+            cols[i % 3].metric(label, value)
+        cols[2].metric("Free Props reservations today (UTC)",
+                       registry["quota"][0]["reservations_today"] if available else "Unavailable")
+        if not available:
             st.info("Account registry not connected or unavailable.")
-        st.caption("Observed signed-in accounts only. Anonymous visits and live concurrent users are not measured.")
+        st.caption("Observed signed-in accounts, including admins. Activity uses last recorded account observation; anonymous visits and live concurrent users are not measured.")
         cols = st.columns(2)
         cols[0].metric("Actual revenue", "Not connected")
         cols[1].metric("Active paid subscriptions", "Not connected")
