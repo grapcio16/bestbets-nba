@@ -58,6 +58,9 @@ def account_summary():
             count(*) FILTER (WHERE last_seen_at >= now()-interval '30 days') AS seen_last_30_days,
             count(*) FILTER (WHERE first_seen_at >= now()-interval '7 days') AS first_seen_last_7_days
             FROM hoopzaro_accounts GROUP BY last_observed_role ORDER BY last_observed_role""",()),
+        ("new_accounts_daily","""SELECT (first_seen_at AT TIME ZONE 'UTC')::date AS day, count(*) AS accounts
+            FROM hoopzaro_accounts WHERE first_seen_at >= date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC' - interval '29 days'
+            GROUP BY 1 ORDER BY 1""",()),
         ("quota","""SELECT count(*) AS reservations_today FROM hoopzaro_props_daily
             WHERE quota_day=(now() AT TIME ZONE 'UTC')::date""",())
     ])
@@ -145,6 +148,11 @@ def usage_summary():
             count(*) FILTER (WHERE last_seen>=now()-interval '7 days') AS active_sessions_7d,
             round(avg(observed_seconds) FILTER (WHERE first_seen>=now()-interval '7 days')::numeric,0) AS avg_observed_seconds
             FROM hz_usage_sessions""",()),
+        ("sessions_by_role","""SELECT role,count(*) FILTER (WHERE last_seen>=now()-interval '3 minutes') AS recent_sessions,
+            count(*) FILTER (WHERE last_seen>=now()-interval '24 hours') AS active_sessions_24h,
+            count(*) FILTER (WHERE last_seen>=now()-interval '7 days') AS active_sessions_7d,
+            round(avg(observed_seconds) FILTER (WHERE first_seen>=now()-interval '7 days')::numeric,0) AS avg_observed_seconds
+            FROM hz_usage_sessions WHERE last_seen>=now()-interval '7 days' GROUP BY role ORDER BY role""",()),
         ("daily","""SELECT day, count(DISTINCT session_id) AS sessions
             FROM hz_usage_daily WHERE day >= (now() AT TIME ZONE 'UTC')::date-29
             GROUP BY day ORDER BY day""",()),
