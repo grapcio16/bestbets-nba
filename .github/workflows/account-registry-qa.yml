@@ -1,0 +1,39 @@
+name: Account registry and quota QA
+on:
+  pull_request:
+    paths:
+      - 'account_registry.py'
+      - 'test_account_registry.py'
+      - 'migrations/001_accounts_props_quota.sql'
+      - '.github/workflows/account-registry-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_only_password
+          POSTGRES_DB: account_qa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      HOOPZARO_TEST_ACCOUNT_DB: postgresql://test_user:test_only_password@localhost:5432/account_qa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'psycopg[binary]>=3.2,<4'
+      - run: psql "$HOOPZARO_TEST_ACCOUNT_DB" -v ON_ERROR_STOP=1 -f migrations/001_accounts_props_quota.sql
+      - run: python -m unittest -v test_account_registry
