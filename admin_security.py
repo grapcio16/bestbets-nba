@@ -6,6 +6,11 @@ from admin_user_management import access_snapshot
 ACTIONS = frozenset(("refresh_telemetry", "review_access", "review_models"))
 OUTCOMES = frozenset(("success", "failure"))
 
+def audit_enabled():
+    return (os.environ.get("HOOPZARO_ADMIN_AUDIT_ENABLED","").strip().lower()=="true"
+            and bool(os.environ.get("HOOPZARO_AUDIT_DATABASE_URL","").strip())
+            and len(os.environ.get("HOOPZARO_AUDIT_HMAC_KEY","").encode("utf-8"))>=32)
+
 def security_snapshot():
     from access_control import current_role
     if current_role() != "admin":
@@ -17,12 +22,13 @@ def security_snapshot():
     return {"status": "ok", "oidc_configured": access["oidc_configured"],
             "admin_identifier_entries": sum(row["Admin entries"] for row in rows),
             "overlap_entries": sum(row["Overlapping entries"] for row in rows),
+            "audit_recording_enabled": audit_enabled(),
             "audit_storage_configured": bool(os.environ.get("HOOPZARO_AUDIT_DATABASE_URL", "").strip()),
             "audit_key_configured": len(os.environ.get("HOOPZARO_AUDIT_HMAC_KEY", "").encode("utf-8")) >= 32}
 
 def record_admin_event(action, outcome):
-    """Explicit trusted server calls only. Not wired to production yet."""
-    if action not in ACTIONS or outcome not in OUTCOMES:
+    """Explicit trusted server calls only, with opt-in storage."""
+    if action not in ACTIONS or outcome not in OUTCOMES or not audit_enabled():
         return False
     from access_control import current_role, current_principal
     if current_role() != "admin":
