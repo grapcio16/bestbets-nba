@@ -1,6 +1,6 @@
 """Hoopzaro public entrypoint, with an isolated Control Center route.
 
-Control Center UI revision: 2026-11-26-r9 (activity overview; automatic code refresh).
+Control Center UI revision: 2026-11-26-r10 (Stripe test billing; automatic code refresh).
 Entrypoint revision tracks UI updates for deployment file watchers.
 """
 import os
