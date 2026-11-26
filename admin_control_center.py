@@ -87,6 +87,11 @@ def render(*, dedicated=False):
     def tracker_metrics(season):
         return tracker_summary(tracker_database_url(), season)
 
+    @st.cache_data(ttl=90, max_entries=24, show_spinner=False)
+    def tracker_history(season, kind, start, end):
+        from admin_tracker_history import read_history
+        return read_history(tracker_database_url(), season, kind, start, end)
+
     @st.cache_data(ttl=300, show_spinner=False)
     def accounts():
         return account_summary()
@@ -140,6 +145,7 @@ def render(*, dedicated=False):
         sources.clear()
         database_health.clear()
         tracker_metrics.clear()
+        tracker_history.clear()
         accounts.clear()
         usage.clear()
         stripe_test.clear()
@@ -149,6 +155,10 @@ def render(*, dedicated=False):
     if dedicated and st.sidebar.button("Wyloguj się"):
         st.logout()
         st.stop()
+        return
+    if section == "Tracker":
+        from admin_tracker_view import render_tracker
+        render_tracker(tracker_history, tracker_metrics)
         return
     def usage_cards():
         report = usage()
@@ -206,7 +216,7 @@ def render(*, dedicated=False):
         usage_charts(usage_cards())
         st.divider()
         st.subheader("Dane i silniki AI")
-    if section in ("Overview", "Data Center", "AI Engines", "Tracker"):
+    if section in ("Overview", "Data Center", "AI Engines"):
         data = snapshot("2026-27")
         worker = data.get("worker") or {}
         models = data.get("models") or []
@@ -241,7 +251,7 @@ def render(*, dedicated=False):
                 table(models, hide_index=True, use_container_width=True)
             else:
                 st.info("Brak zweryfikowanego archiwum.")
-        if section in ("AI Engines", "Tracker"):
+        if section == "AI Engines":
             from admin_dashboard_ui import model_name, number, bars_markup
             report = scorecard("2026-27")
             st.subheader("Porównanie skuteczności modeli")
@@ -294,7 +304,7 @@ def render(*, dedicated=False):
                     if any(p.get("historical_training_sample_differs") for p in pairs):
                         st.warning("Modele trenowano na różnych próbach. Nie można przypisać różnic wyłącznie zmianom algorytmu.")
                 st.info("Wyniki badawcze. Mała próba nie wystarcza do potwierdzenia przewagi modelu.")
-        if section in ("Overview", "Tracker"):
+        if section == "Overview":
             detail = tracker_metrics("2026-27")
             st.subheader("Tracker · zawodnicy i kwarty")
             if detail.get("status") == "ok":
@@ -305,18 +315,6 @@ def render(*, dedicated=False):
                 if detail.get("last_run"):
                     st.write("**Ostatnie rozliczenie V7**")
                     table(detail["last_run"], hide_index=True, use_container_width=True)
-                if section == "Tracker":
-                    from admin_dashboard_ui import model_name, number, bars_markup
-                    st.subheader("Prognozy zawodników")
-                    table([{"Model":model_name(r["model_id"]), "Rozliczone":r["settled"],
-                            "Błąd punktów":number(r.get("pts_mae")), "Błąd zbiórek":number(r.get("reb_mae")),
-                            "Błąd asyst":number(r.get("ast_mae"))} for r in player_rows])
-                    st.subheader("Prognozy kwart")
-                    if quarter_rows:
-                        st.markdown(bars_markup([(model_name(r["model_id"]),r.get("team_points_mae")) for r in quarter_rows]),unsafe_allow_html=True)
-                    table([{"Model":model_name(r["model_id"]), "Rozliczone":r["settled"],
-                            "Błąd punktów drużyny":number(r.get("team_points_mae"))} for r in quarter_rows])
-                    st.markdown("Błędy w punktach lub jednostkach danej statystyki. Próby modeli mogą się różnić.")
             else:
                 st.info("Archiwum prognoz zawodników i kwart niedostępne.")
                 diagnostic(detail)
@@ -459,7 +457,7 @@ def render(*, dedicated=False):
         st.markdown("Wynik przed podatkami, zwrotami i odpływem klientów, o ile nie uwzględniono ich w kosztach.")
         return
     if section == "Settings":
-        st.write("Wersja panelu: 2026-11-26-r6")
+        st.write("Wersja panelu: 2026-11-26-r7")
         from admin_settings import settings_snapshot, validate_draft
         config = settings_snapshot()
         if config.get("status") != "ok":
