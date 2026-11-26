@@ -21,9 +21,11 @@ class PilotTests(unittest.TestCase):
             self.assertEqual(state["hz_usage_consent"],CONSENT_VERSION)
             self.assertTrue(enabled())
             state["hz_usage_session"]="old"
+            state["hz_usage_pending"]={"games"}
             self.assertTrue(set_consent(state,False))
             self.assertFalse(enabled())
             self.assertNotIn("hz_usage_session",state)
+            self.assertNotIn("hz_usage_pending",state)
             self.assertNotIn("hz_usage_consent",state)
     def test_role_and_idle_gap_bound(self):
         state={"hz_usage_session":"old","hz_usage_role":"free","hz_usage_last":100}
@@ -78,6 +80,18 @@ class PilotTests(unittest.TestCase):
             observe(state,"home")
             self.assertEqual(cursor.call_count,1)
             self.assertIn("hz_usage_session",state)
+    def test_batch_keeps_short_visits_across_throttle(self):
+        state={}
+        with patch("usage_analytics_pilot.enabled",return_value=True),patch("access_control.current_role",return_value="free"),patch.dict("os.environ",{"HOOPZARO_USAGE_DATABASE_URL":"test"}),patch("usage_analytics_pilot.cursor") as cursor,patch("usage_analytics_pilot.time.monotonic",side_effect=[100,101,131]):
+            observe(state,"home")
+            observe(state,"games",["teams","games",{},"invalid"])
+            self.assertEqual(cursor.call_count,1)
+            self.assertEqual(state["hz_usage_pending"],{"games","teams"})
+            observe(state,"settings",["players","settings"])
+            self.assertEqual(cursor.call_count,2)
+            execute=cursor.return_value.__enter__.return_value.execute
+            self.assertEqual(execute.call_args.args[1][1],["games","players","settings","teams"])
+            self.assertEqual(state["hz_usage_pending"],set())
     def test_database_failure_does_not_break_feature(self):
         with patch("usage_analytics_pilot.enabled",return_value=True),patch.dict("os.environ",{"HOOPZARO_USAGE_DATABASE_URL":"test"}),patch("usage_analytics_pilot.cursor",side_effect=RuntimeError("test")):
             self.assertEqual(measured("props",lambda:42),42)
