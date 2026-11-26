@@ -20,6 +20,7 @@ class Grant:
     role: str
     principal: str  # ephemeral server state only; never inserted into SQL
     notice_version: str
+    notice_url: str
     deadline: float
 
 def notice_url():
@@ -63,7 +64,7 @@ def create_receipt(cursor, url, role, principal):
         if account:
             cur.execute("""INSERT INTO public.hz_account_consent(receipt_id,account_id,notice_version,notice_url,purpose)
                 VALUES (%s,%s,%s,%s,%s)""",(account_receipt,account,NOTICE_VERSION,policy,PURPOSE))
-    return Grant(session_id,account_receipt,account,role,principal,NOTICE_VERSION,deadline)
+    return Grant(session_id,account_receipt,account,role,principal,NOTICE_VERSION,policy,deadline)
 
 def close_receipt(cursor,url,session_id,account_receipt_id,reason):
     if reason not in END_REASONS:
