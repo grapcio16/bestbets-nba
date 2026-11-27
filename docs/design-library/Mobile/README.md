@@ -1,0 +1,6 @@
+# Mobile
+M01 and M02 were explicitly supplied as the desired visual direction in Hoopzaro V12, 2026-11-27. See ../references.json for original file identity, dimensions and digest. Original PNGs are not in this public repo; private reference transfer is pending. Do not claim exact pixel comparisons without access.
+
+M01: compact branded top bar, Centrum NBA hero, live match card, 2x2 shortcuts, top performances and fixed bottom navigation; Player Props detail with initials, analysis/projection/context/history tabs, over/under threshold chart, AVG/hit rate/L10 and simulation CTA.
+M02: mobile branding and icon, Player Props searchable list, Centrum quick navigation + hero/live/top performers, simulations with win probability ring, projected score distinct from means and distribution chart.
+Shared direction: deep navy, cyan/violet gradients, restrained glow, legible hierarchy, compact cards. The variants have different navigation; final choice remains pending. Mobile Centrum is prototype-only until separate approval; no change to approved live Centrum. Figures, club affiliations, player portraits, team logos and store badges are illustrative only, not actual data, rights or distribution status. Keep current free/premium boundaries and backend semantics.
