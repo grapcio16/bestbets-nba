@@ -10,12 +10,30 @@ import time
 from datetime import datetime,timezone
 from urllib.parse import urlencode,urlsplit
 from urllib.request import Request,build_opener,HTTPRedirectHandler
+from urllib.error import HTTPError
 from billing_sandbox_policy import CheckoutBinding,SandboxEvidence,decide_sandbox_access,Decision
 
 VERSION="2024-06-20"
+# Managed Payments opt-out is supported by the newer Checkout API.
+# Keep reads pinned to the legacy invoice/charge schema.
+CHECKOUT_CREATE_VERSION="2026-07-29.dahlia"
 PRICE=999
 CURRENCY="usd"
 class BillingError(Exception): pass
+
+class StripeRequestError(BillingError):
+    """Only allowlisted metadata. Never expose raw Stripe errors or URL secrets."""
+    def __init__(self,status,kind="",code="",request_id=""):
+        self.status=status if type(status) is int and 100<=status<=599 else 0
+        self.kind=kind if kind in ("invalid_request_error","authentication_error","api_error","idempotency_error","rate_limit_error","card_error","permission_error") else "other"
+        self.code=code if code in ("api_key_expired","secret_key_required","resource_missing","parameter_missing","parameter_unknown","parameter_invalid_empty","parameter_invalid_string_blank","parameter_invalid_integer","url_invalid","payment_method_unactivated","account_invalid","account_country_invalid","idempotency_key_in_use","rate_limit","permission_denied") else "other"
+        self.request_id=request_id if isinstance(request_id,str) and re.fullmatch(r"req_[A-Za-z0-9]{1,100}",request_id) else ""
+        super().__init__("Stripe HTTP "+str(self.status)+" / "+self.kind+" / "+self.code
+                         + (" / "+self.request_id if self.request_id else ""))
+
+class CheckoutStageError(BillingError):
+    def __init__(self,stage):
+        super().__init__("Checkout: "+stage)
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):
         return None
@@ -71,7 +89,7 @@ class StripeTestAPI:
         require(re.fullmatch(r"/v1/[A-Za-z0-9_/]+",path) is not None)
         body=urlencode(params).encode() if params is not None else None
         headers={"Authorization":"Basic "+base64.b64encode((self.key+":").encode()).decode(),
-                 "Stripe-Version":VERSION,"Content-Type":"application/x-www-form-urlencoded"}
+                 "Stripe-Version":CHECKOUT_CREATE_VERSION if path=="/v1/checkout/sessions" and params is not None else VERSION,"Content-Type":"application/x-www-form-urlencoded"}
         if idempotency:
             headers["Idempotency-Key"]=idempotency
         try:
@@ -81,6 +99,16 @@ class StripeTestAPI:
             obj=json.loads(raw)
             require(isinstance(obj,dict))
             return obj
+        except HTTPError as exc:
+            details={}
+            try:
+                parsed=json.loads(exc.read(65536))
+                if isinstance(parsed,dict) and isinstance(parsed.get("error"),dict):
+                    details=parsed["error"]
+            except Exception:
+                pass
+            raise StripeRequestError(exc.code,details.get("type"),details.get("code"),
+                                     exc.headers.get("Request-Id","") if exc.headers else "") from None
         except Exception:
             raise BillingError("Sandbox API unavailable or unexpected") from None
     def verify_account(self):
@@ -97,12 +125,27 @@ def create_checkout(api,attempt_id,price_id,product_id,return_url):
     params={"mode":"subscription","line_items[0][price]":price_id,"line_items[0][quantity]":"1",
             "payment_method_types[0]":"card","client_reference_id":attempt_id,
             "success_url":return_url,"cancel_url":return_url,
-            "allow_promotion_codes":"false","automatic_tax[enabled]":"false"}
-    s=api.request("/v1/checkout/sessions",params,idempotency="hz-sandbox-"+attempt_id)
-    sid=ident(s.get("id"),"cs_test_")
-    validate_session(s,sid,attempt_id)
-    require(s.get("status")=="open" and s.get("currency")==CURRENCY and s.get("amount_total")==PRICE)
-    return sid,checkout_url(s.get("url"),sid)
+            "allow_promotion_codes":"false","automatic_tax[enabled]":"false",
+            "managed_payments[enabled]":"false","adaptive_pricing[enabled]":"false",
+            "subscription_data[billing_mode][type]":"classic"}
+    # v2 cutover: the only v1 attempt was explicitly rejected (HTTP 400),
+    # confirmed in Stripe logs; no session or subscription was bound.
+    # Keep a single stable v2 key for every retry; never auto-rotate.
+    s=api.request("/v1/checkout/sessions",params,idempotency="hz-sandbox-standard-v2-"+attempt_id)
+    try:
+        sid=ident(s.get("id"),"cs_test_")
+        validate_session(s,sid,attempt_id)
+    except BillingError:
+        raise CheckoutStageError("session_identity_or_mode") from None
+    if s.get("status")!="open":
+        raise CheckoutStageError("session_not_open")
+    if s.get("currency")!=CURRENCY or s.get("amount_total")!=PRICE:
+        raise CheckoutStageError("session_currency_or_amount")
+    try:
+        url=checkout_url(s.get("url"),sid)
+    except BillingError:
+        raise CheckoutStageError("session_url_format") from None
+    return sid,url
 
 def validate_session(s,sid,attempt_id):
     test_object(s,ident(sid,"cs_test_"))

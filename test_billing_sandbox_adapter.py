@@ -75,9 +75,46 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(path,"/v1/checkout/sessions")
         self.assertEqual(params["line_items[0][price]"],"price_fixture")
         self.assertEqual(params["client_reference_id"],A)
-        self.assertEqual(key,"hz-sandbox-"+A)
+        self.assertEqual(key,"hz-sandbox-standard-v2-"+A)
+        self.assertEqual(params["managed_payments[enabled]"],"false")
+        self.assertEqual(params["adaptive_pricing[enabled]"],"false")
+        self.assertEqual(params["payment_method_types[0]"],"card")
+        self.assertEqual(params["subscription_data[billing_mode][type]"],"classic")
+        create_checkout(self.api,A,"price_fixture","prod_fixture",URL)
+        self.assertEqual(self.api.requests[0],self.api.requests[1])
         self.assertNotIn("customer_email",params)
         with self.assertRaises(BillingError): create_checkout(self.api,A,"price_fixture","prod_fixture","https://example.org")
+    def test_safe_http_diagnostics(self):
+        from billing_sandbox_adapter import StripeRequestError
+        from urllib.error import HTTPError
+        from io import BytesIO
+        api=StripeTestAPI("rk_test_fixture0123456789","acct_fixture")
+        raw=b'{"error":{"type":"invalid_request_error","code":"parameter_unknown","message":"private_fixture"}}'
+        with patch.object(api.opener,"open",side_effect=HTTPError("https://api.stripe.com",400,"private_fixture",{"Request-Id":"req_fixture"},BytesIO(raw))):
+            with self.assertRaises(StripeRequestError) as caught:
+                api.request("/v1/checkout/sessions",{})
+        self.assertEqual(str(caught.exception),"Stripe HTTP 400 / invalid_request_error / parameter_unknown / req_fixture")
+        self.assertNotIn("private_fixture",str(caught.exception))
+    def test_unsafe_checkout_url_reports_stage(self):
+        from billing_sandbox_adapter import CheckoutStageError
+        original=self.api.request
+        def bad(*args,**kwargs):
+            return {**original(*args,**kwargs),"url":"https://evil.invalid/private_fixture"}
+        with patch.object(self.api,"request",side_effect=bad):
+            with self.assertRaisesRegex(CheckoutStageError,"session_url_format") as caught:
+                create_checkout(self.api,A,"price_fixture","prod_fixture",URL)
+        self.assertNotIn("private_fixture",str(caught.exception))
+    def test_checkout_create_version_does_not_change_reads(self):
+        from billing_sandbox_adapter import CHECKOUT_CREATE_VERSION
+        from unittest.mock import MagicMock
+        api=StripeTestAPI("rk_test_fixture0123456789","acct_fixture")
+        response=MagicMock()
+        response.__enter__.return_value.read.return_value=b'{}'
+        with patch.object(api.opener,"open",return_value=response) as op:
+            api.request("/v1/checkout/sessions",{},idempotency="fixture")
+            api.request("/v1/invoices/in_fixture")
+        self.assertEqual(op.call_args_list[0].args[0].get_header("Stripe-version"),CHECKOUT_CREATE_VERSION)
+        self.assertEqual(op.call_args_list[1].args[0].get_header("Stripe-version"),VERSION)
     def test_live_secret_rejected(self):
         with self.assertRaises(BillingError): StripeTestAPI("sk_live_not_a_real_secret","acct_fixture")
     def test_wrong_price_rejected_before_creation(self):

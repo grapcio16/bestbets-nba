@@ -4,7 +4,7 @@ import hmac
 import os
 import streamlit as st
 from access_control import auth_configured,current_claims,current_principal,login_provider
-from billing_sandbox_adapter import StripeTestAPI,BillingError,approved_return_url
+from billing_sandbox_adapter import StripeTestAPI,BillingError,StripeRequestError,CheckoutStageError,approved_return_url
 from billing_sandbox_store import Store,SandboxService,tester_identity
 from billing_sandbox_config import load_config,check_connections
 
@@ -57,8 +57,13 @@ if st.button("Utwórz lub otwórz testową sesję Checkout"):
     try:
         url=service.start(principal)
         st.link_button("Otwórz bezpieczny Stripe Checkout (TEST)",url)
+    except (StripeRequestError,CheckoutStageError) as exc:
+        st.error("Nie udało się otworzyć Checkout. Nie twórz drugiej subskrypcji.")
+        st.code(str(exc))
+    except BillingError:
+        st.error("Checkout: account_price_validation_or_transport. Nie twórz drugiej subskrypcji.")
     except Exception:
-        st.error("Nie udało się utworzyć lub wznowić sesji. Nie twórz drugiej subskrypcji; sprawdź istniejący zakup.")
+        st.error("Checkout: database_or_internal_error. Nie twórz drugiej subskrypcji.")
 if st.button("Zweryfikuj uprawnienie testowe"):
     result=service.decision(principal)
     if result.allowed:
