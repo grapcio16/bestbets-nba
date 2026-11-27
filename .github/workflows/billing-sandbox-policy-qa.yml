@@ -4,7 +4,7 @@ on:
     paths:
       - 'billing_sandbox*.py'
       - 'test_billing_sandbox*.py'
-      - 'migrations/billing_sandbox_v1.sql'
+      - 'migrations/billing_sandbox*.sql'
       - 'test_billing_sandbox_policy.py'
       - '.github/workflows/billing-sandbox-policy-qa.yml'
 permissions:

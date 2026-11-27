@@ -64,11 +64,21 @@ if st.button("Utwórz lub otwórz testową sesję Checkout"):
         st.error("Checkout: account_price_validation_or_transport. Nie twórz drugiej subskrypcji.")
     except Exception:
         st.error("Checkout: database_or_internal_error. Nie twórz drugiej subskrypcji.")
-if st.button("Zweryfikuj uprawnienie testowe"):
-    result=service.decision(principal)
+@st.fragment(run_every="60s")
+def live_status():
+    # Only while this authenticated sandbox session is active.
+    if current_principal()!=principal or tester_identity(principal) is None:
+        st.info("Sesja testera nieaktywna.")
+        return
+    st.button("Zweryfikuj uprawnienie testowe")
+    with st.spinner("Weryfikacja Stripe..."):
+        result=service.decision(principal)
     if result.allowed:
         st.success("PREMIUM SANDBOX — zweryfikowane uprawnienie testowe.")
         st.caption("Ważność dowodu do: "+result.expires_at.isoformat())
     else:
         st.info("FREE SANDBOX — brak potwierdzonego uprawnienia.")
         st.caption(result.reason)
+    st.caption("Automatyczne sprawdzanie co 60 s przy aktywnej aplikacji. To nie jest dostęp produkcyjny.")
+
+live_status()
