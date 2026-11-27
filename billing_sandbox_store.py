@@ -87,13 +87,13 @@ class SandboxService:
         a=self.store.reserve(aid)
         if a.checkout_id:
             s=retrieve_checkout(self.api,a.checkout_id,a.attempt_id)
-            require(s.get("status")=="open")
+            require(s.get("status")=="open" and s.get("currency")=="usd" and s.get("amount_total")==999)
             return checkout_url(s.get("url"),a.checkout_id)
         # Never create another checkout on an uncertain retry after this window.
         # Stripe idempotency retention is finite; manual sandbox review is required.
         require(timedelta(0)<=datetime.now(timezone.utc)-a.created_at<timedelta(hours=1))
-        sid,url=create_checkout(self.api,a.attempt_id,self.price_id,self.product_id,self.return_url)
-        self.store.save_checkout(a,sid)
+        sid,url=create_checkout(self.api,a.attempt_id,self.price_id,self.product_id,self.return_url,
+                                save_session=lambda sid:self.store.save_checkout(a,sid))
         return url
     def decision(self,principal):
         aid=tester_identity(principal)
