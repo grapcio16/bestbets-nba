@@ -108,3 +108,35 @@ commercial rights are still outstanding. No writes to the production tracker.
   https://github.com/swar/nba_api/blob/master/docs/nba_api/live/endpoints/boxscore.md
   Direct sample URL was inaccessible via web retrieval; live schema and
   provider availability remain unverified.
+
+## Source and replay iteration — 27 Nov 2026
+Read-only Neon baseline audit of 933 V7.6 player forecast rows across 82
+game/team groups: 12 groups have settled minutes for every selected row;
+none of 82 predicted minute sums is within 10 seconds of 240. Seven actual
+sums match 240 within that tolerance; actual sums range 182–266 among
+non-null groups, and OT/selection are not separated. All player IDs are
+numeric but zero are NBA-namespaced, and none of the game IDs has the
+NBA 002 regular-season format. No identity mapping is inferred.
+On 781 matched V7.4/V7.6 player rows, minutes MAE by realized minutes:
+0–9 (80): 8.70/8.47; 10–19 (174): 4.03/4.10;
+20–29 (261): 3.73/3.79; 30+ (266): 4.22/4.14.
+V7.6 signed minute error respectively +8.44, +2.16, -0.51, -3.19.
+These are outcome-conditioned descriptive diagnostics, not pregame features
+or a valid tuning target without a held-out cohort.
+
+Added bounded read-only NBA CDN capture using fixed schedule and game
+URLs, no redirects, finite timeout/size cap, observed timestamps and
+content hashes. Collects up to 10 games per explicit diagnostic call;
+CI checks at most 2. Schedule fixture and strict boxscore reconciliation
+must agree. CI diagnostic success does not mean live data verified:
+read the source_verified_in_this_run field and rejection reasons.
+No commercial use permission, complete coverage, or actual source success
+has been established. Current captures cannot reconstruct earlier
+pregame availability or historical observation timestamps.
+
+Added chronological replay of independently pre-captured cases, one
+scenario per game, with historical evidence filtered before either model
+runs. Replay clocks are simulated, not true issued forecasts; never
+pool replay metrics with prospective metrics or insert replay envelopes
+into the live archive. Cases are not inferred from postgame lineups.
+Source and replay tests use synthetic fixtures. Latest CI pending.
