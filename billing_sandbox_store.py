@@ -8,7 +8,7 @@ import hashlib
 import os
 import re
 from billing_sandbox_policy import Decision,decide_sandbox_access
-from billing_sandbox_adapter import (BillingError,require,create_checkout,retrieve_checkout,
+from billing_sandbox_adapter import (BillingError,LifecycleError,require,create_checkout,retrieve_checkout,
                                      checkout_url,canonical_evidence,ident)
 
 @dataclass(frozen=True)
@@ -77,6 +77,19 @@ class Store:
                  (b.customer_id,b.subscription_id,a.account_id,a.attempt_id,b.checkout_id,b.customer_id,b.subscription_id))
             require(cur.rowcount==1)
 
+    def record_verification(self,aid,checked_at,result):
+        # Display/audit snapshot only, never an authorization cache.
+        # An older concurrent check may not overwrite a newer check.
+        with db(self.url) as cur:
+            cur.execute("""INSERT INTO public.hz_sandbox_verification
+               (account_id,checked_at,allowed,reason,expires_at)
+               VALUES (%s,%s,%s,%s,%s)
+               ON CONFLICT(account_id) DO UPDATE SET checked_at=EXCLUDED.checked_at,
+                 allowed=EXCLUDED.allowed,reason=EXCLUDED.reason,expires_at=EXCLUDED.expires_at
+               WHERE hz_sandbox_verification.checked_at<=EXCLUDED.checked_at""",
+               (aid,checked_at,result.allowed,result.reason,result.expires_at))
+            return cur.rowcount==1
+
 class SandboxService:
     def __init__(self,store,api,price_id,product_id,return_url):
         self.store,self.api=store,api
@@ -101,12 +114,29 @@ class SandboxService:
             return Decision(False,"pilot_disabled")
         try:
             a=self.store.get(aid)
-            if a is None or a.checkout_id is None:
-                return Decision(False,"missing_checkout")
+        except Exception:
+            return Decision(False,"verification_unavailable_or_invalid")
+        if a is None or a.checkout_id is None:
+            return Decision(False,"missing_checkout")
+        checked_at=datetime.now(timezone.utc)
+        try:
             s=retrieve_checkout(self.api,a.checkout_id,a.attempt_id)
             binding,evidence=canonical_evidence(self.api,s,a.attempt_id,aid,self.price_id,self.product_id)
             self.store.bind_subscription(a,binding)
-            return decide_sandbox_access(binding,evidence,principal_hmac=aid,
+            result=decide_sandbox_access(binding,evidence,principal_hmac=aid,
                      configured_price_id=self.price_id,pilot_enabled=True,tester_allowed=True)
+        except LifecycleError as exc:
+            result=Decision(False,exc.reason)
+        except Exception:
+            result=Decision(False,"verification_unavailable_or_invalid")
+        # Do not publish an affirmative result after a slow verification or
+        # failed/stale database write. Never reuse an earlier affirmative row.
+        now=datetime.now(timezone.utc)
+        if result.allowed and (now-checked_at>timedelta(seconds=45) or result.expires_at<=now):
+            result=Decision(False,"stale_evidence")
+        try:
+            if not self.store.record_verification(aid,checked_at,result):
+                return Decision(False,"stale_evidence")
         except Exception:
             return Decision(False,"verification_unavailable_or_invalid")
+        return result
