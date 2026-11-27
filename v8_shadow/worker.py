@@ -43,6 +43,39 @@ def eligible_upcoming(schedule, now):
     return valid.to_dict("records")
 
 
+def collect_v803(evidence, selected, asof, *, enabled, ready, predict=None, now=None):
+    """Same evidence snapshot for all games; never archive an expired candidate."""
+    if not enabled or not ready:
+        return [], {}
+    if predict is None:
+        from v8_shadow.engine_v803 import predict_v803
+        predict = predict_v803
+    if now is None:
+        now = lambda: pd.Timestamp.now(tz="UTC")
+    forecasts, skipped = [], {}
+    lead = pd.Timedelta(minutes=15)
+    def reject(reason):
+        skipped[reason] = skipped.get(reason, 0) + 1
+    for event in selected:
+        game = {"game_id": str(event["game_id"]), "start_utc": event["start_utc"],
+                "home": str(event["home"]), "away": str(event["away"])}
+        tip = pd.to_datetime(game["start_utc"], utc=True)
+        if tip <= now() + lead:
+            reject("expired_before_compute")
+            continue
+        try:
+            result = predict(evidence, game, asof, n=5000)
+            if tip <= now() + lead:
+                reject("expired_after_compute")
+            elif result["status"] == "shadow_only":
+                forecasts.append(result)
+            else:
+                reject(result["status"])
+        except (ValueError, KeyError, TypeError) as exc:
+            reject(type(exc).__name__)
+    return forecasts, skipped
+
+
 def run():
     url = os.environ.get("TRACKER_DATABASE_URL", "").strip()
     if not url:
@@ -92,28 +125,12 @@ def run():
         else:
             key = result["status"]
             skipped[key] = skipped.get(key, 0) + 1
-    # V8.03 is explicitly opt-in. Never replace or reissue V8.02 forecasts.
-    v803_forecasts = []
-    v803_skipped = {}
-    v803_enabled = os.environ.get("HOOPZARO_V803_ENABLED", "").strip() == "true"
-    if v803_enabled and readiness["ready_for_eligible_matchups"]:
-        from v8_shadow.engine_v803 import predict_v803
-        for event in selected:
-            current = pd.Timestamp.now(tz="UTC")
-            game = {"game_id": str(event["game_id"]),
-                    "start_utc": event["start_utc"],
-                    "home": str(event["home"]), "away": str(event["away"])}
-            try:
-                result = predict_v803(evidence, game, current, n=5000)
-                if result["status"] == "shadow_only":
-                    v803_forecasts.append(result)
-                else:
-                    key = result["status"]
-                    v803_skipped[key] = v803_skipped.get(key, 0) + 1
-            except (ValueError, KeyError, TypeError) as exc:
-                key = type(exc).__name__
-                v803_skipped[key] = v803_skipped.get(key, 0) + 1
+    # Persist baseline first; V8.03 must not delay V8.02 collection.
     new = save_forecasts(url, forecast, season)
+    v803_enabled = os.environ.get("HOOPZARO_V803_ENABLED", "").strip() == "true"
+    v803_forecasts, v803_skipped = collect_v803(
+        evidence, selected, clock, enabled=v803_enabled,
+        ready=readiness["ready_for_eligible_matchups"])
     v803_new = save_forecasts(url, v803_forecasts, season) if v803_forecasts else 0
     settled = settle_forecasts(url, finals.to_dict("records"))
     return {
