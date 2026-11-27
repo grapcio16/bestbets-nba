@@ -41,11 +41,11 @@ def replay(*, cases, historical_logs, actuals, evaluation_asof, n=5000):
         bundle=run_research(fixture=deepcopy(f),asof=clock,rosters=deepcopy(c["rosters"]),
               reports=deepcopy(c["reports"]),logs=available,assumptions=deepcopy(c["assumptions"]),n=n)
         # Replay envelope clocks simulate the captured case, not a real issuance.
-        records.extend(forecast_envelopes(bundle,issued_at=captured))
+        records.extend(forecast_envelopes(bundle,issued_at=captured,mode="captured_replay"))
         diagnostics.append({"game_id":gid,"asof":clock.isoformat(),"historical_rows":len(available),
               "teams":{t:{"baseline":v["baseline"]["status"],"empirical":v["empirical"]["status"]}
                        for t,v in bundle["teams"].items()}})
-    results=evaluate_paired(forecasts=records,actuals=actuals,models=[VERSION,MODEL],asof=cutoff)
+    results=evaluate_paired(forecasts=records,actuals=actuals,models=[VERSION,MODEL],asof=cutoff,mode="captured_replay")
     return {"evaluation_mode":"historical_captured_replay_not_prospective",
             "case_count":len(cases),"forecast_count":len(records),
             "diagnostics":diagnostics,"metrics":results,
