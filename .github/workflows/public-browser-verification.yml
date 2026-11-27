@@ -1,0 +1,71 @@
+name: Hoopzaro public browser verification
+on:
+  push:
+    branches: [qa/public-browser-access]
+    paths: ['.github/workflows/public-browser-verification.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m pip install 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - name: Verify public guest view without credentials
+        run: |
+          mkdir -p public-qa
+          python - <<'PY'
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          import json
+          out=Path("public-qa")
+          results=[]
+          with sync_playwright() as p:
+              browser=p.chromium.launch(headless=True)
+              for label,url in [("hosting","https://hoopzaro.streamlit.app"),("domain","https://hoopzaro.com")]:
+                  ctx=browser.new_context(viewport={"width":1672,"height":941})
+                  page=ctx.new_page()
+                  record={"target":label,"url":url,"settings_v2":False}
+                  try:
+                      response=page.goto(url,wait_until="domcontentloaded",timeout=45000)
+                      record["http_status"]=response.status if response else None
+                      page.locator('iframe[title*="bestbets_reference_canvas_v10"]').first.wait_for(timeout=60000)
+                      frame=page.frame_locator('iframe[title*="bestbets_reference_canvas_v10"]').first
+                      frame.locator('.nav-btn[data-page="settings"]').click(timeout=15000)
+                      frame.locator('#hz-account').wait_for(state="visible",timeout=15000)
+                      record["settings_v2"]=frame.locator(".hza-tile").count()==7
+                      record["guest"]=frame.locator("#hz-account-role").inner_text()=="GOŚĆ"
+                      record["admin_hidden"]=frame.locator("#hz-admin-nav").is_hidden()
+                      if record["guest"] and record["admin_hidden"]:
+                          page.screenshot(path=str(out/f"{label}-settings.png"))
+                          if record["settings_v2"]:
+                              frame.locator('.hza-tile[data-hza-open="profile"]').click()
+                              frame.locator("#hza-dialog").wait_for(state="visible")
+                              page.screenshot(path=str(out/f"{label}-profile.png"))
+                      record["ok"]=record["settings_v2"] and record["guest"] and record["admin_hidden"]
+                  except Exception as exc:
+                      record["ok"]=False
+                      record["error_type"]=type(exc).__name__
+                      # No HTML, logs, URL query parameters, tokens or credentials exported.
+                      page.screenshot(path=str(out/f"{label}-unverified.png"))
+                  finally:
+                      ctx.close()
+                      results.append(record)
+              browser.close()
+          (out/"result.json").write_text(json.dumps(results,indent=2),encoding="utf-8")
+          print(json.dumps(results,indent=2))
+          if not all(r.get("ok") for r in results):
+              raise SystemExit("One or more public targets could not be verified")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-browser-qa
+          path: public-qa/
+          retention-days: 7
