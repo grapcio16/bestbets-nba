@@ -56,6 +56,8 @@ class ResearchArchive:
             digest=payload.pop("record_sha256",None)
             if digest!=sha256(_canonical(payload).encode()).hexdigest():
                 raise ValueError("record integrity mismatch")
+            if payload.get("evidence_mode")!="prospective":
+                raise ValueError("only prospective forecasts may be archived")
             p=payload["projection"]
             issued,tip,model_clock=(_time(payload["issued_at"]),_time(payload["start_utc"]),_time(p["asof"]))
             if not model_clock<=issued<=now<tip-LEAD or now-issued>pd.Timedelta(minutes=2):
