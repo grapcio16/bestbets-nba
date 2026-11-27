@@ -115,6 +115,22 @@ class AdapterTests(unittest.TestCase):
             api.request("/v1/invoices/in_fixture")
         self.assertEqual(op.call_args_list[0].args[0].get_header("Stripe-version"),CHECKOUT_CREATE_VERSION)
         self.assertEqual(op.call_args_list[1].args[0].get_header("Stripe-version"),VERSION)
+    def test_checkout_hosted_url_variants(self):
+        from billing_sandbox_adapter import checkout_url
+        sid="cs_test_fixture"
+        for route in ("/c/pay/","/pay/","/c/subscribe/","/subscribe/"):
+            url="https://checkout.stripe.com"+route+sid+"?locale=pl#opaque%2Ftoken"
+            self.assertEqual(checkout_url(url,sid),url)
+        for url in ("http://checkout.stripe.com/c/pay/"+sid,
+                    "https://checkout.stripe.com.evil.invalid/c/pay/"+sid,
+                    "https://checkout.stripe.com@evil.invalid/c/pay/"+sid,
+                    "https://evil.invalid@checkout.stripe.com/c/pay/"+sid,
+                    "https://checkout.stripe.com/c/pay/cs_test_other",
+                    "https://checkout.stripe.com/c/../"+sid,
+                    "https://checkout.stripe.com/c/pay/"+sid+"%2Fother",
+                    "https://checkout.stripe.com/c/pay/"+sid+"\n"):
+            with self.subTest(url=url),self.assertRaises(BillingError):
+                checkout_url(url,sid)
     def test_live_secret_rejected(self):
         with self.assertRaises(BillingError): StripeTestAPI("sk_live_not_a_real_secret","acct_fixture")
     def test_wrong_price_rejected_before_creation(self):
@@ -138,6 +154,31 @@ class FakeStore:
         self.bound=b
 
 class ServiceTests(unittest.TestCase):
+    def test_url_failure_saves_session_and_resume_never_creates_again(self):
+        from billing_sandbox_adapter import CheckoutStageError
+        principal="issuer|subject"
+        key="x"*32
+        aid=hmac.new(key.encode(),principal.encode(),hashlib.sha256).hexdigest()
+        env={"HOOPZARO_BILLING_SANDBOX_ENABLED":"true","HOOPZARO_BILLING_SANDBOX_HMAC_KEY":key,"HOOPZARO_BILLING_SANDBOX_TESTERS":aid}
+        with patch.dict(os.environ,env,clear=True):
+            store=FakeStore(aid);api=API();service=SandboxService(store,api,"price_fixture","prod_fixture",URL)
+            original=api.request
+            def bad(*args,**kwargs):
+                return {**original(*args,**kwargs),"url":"https://evil.invalid/private_fixture"}
+            with patch.object(api,"request",side_effect=bad):
+                with self.assertRaises(CheckoutStageError):
+                    service.start(principal)
+            self.assertEqual(store.attempt.checkout_id,"cs_test_fixture")
+            self.assertEqual(len(api.requests),1)
+            valid="https://checkout.stripe.com/c/subscribe/cs_test_fixture?locale=pl#opaque"
+            api.session.update(status="open",currency="usd",amount_total=999,url=valid)
+            self.assertEqual(service.start(principal),valid)
+            self.assertEqual(len(api.requests),1)
+            api.session["amount_total"]=1000
+            with self.assertRaises(BillingError):
+                service.start(principal)
+            self.assertEqual(len(api.requests),1)
+
     def test_testers_only_and_fresh_api_evidence(self):
         key="x"*32
         principal="issuer|subject"
