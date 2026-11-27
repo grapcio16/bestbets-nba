@@ -77,10 +77,21 @@ class Store:
                  (b.customer_id,b.subscription_id,a.account_id,a.attempt_id,b.checkout_id,b.customer_id,b.subscription_id))
             require(cur.rowcount==1)
 
-    def record_verification(self,aid,checked_at,result):
+    def prepare_retry(self,a):
+        with db(self.url) as cur:
+            cur.execute("SELECT public.hz_sandbox_prepare_retry(%s,%s,%s)",
+                        (a.account_id,a.attempt_id,str(uuid4())))
+            return cur.fetchone()[0] is True
+
+    def record_verification(self,aid,checked_at,result,attempt_id=None):
         # Display/audit snapshot only, never an authorization cache.
         # An older concurrent check may not overwrite a newer check.
         with db(self.url) as cur:
+            if attempt_id is not None:
+                cur.execute("SELECT attempt_id FROM public.hz_sandbox_checkout WHERE account_id=%s FOR UPDATE",(aid,))
+                row=cur.fetchone()
+                if not row or str(row[0])!=attempt_id:
+                    return False
             cur.execute("""INSERT INTO public.hz_sandbox_verification
                (account_id,checked_at,allowed,reason,expires_at)
                VALUES (%s,%s,%s,%s,%s)
@@ -108,6 +119,22 @@ class SandboxService:
         sid,url=create_checkout(self.api,a.attempt_id,self.price_id,self.product_id,self.return_url,
                                 save_session=lambda sid:self.store.save_checkout(a,sid))
         return url
+    def prepare_retry(self,principal):
+        aid=tester_identity(principal)
+        require(aid is not None)
+        a=self.store.get(aid)
+        require(a is not None and a.checkout_id and a.customer_id and a.subscription_id)
+        s=retrieve_checkout(self.api,a.checkout_id,a.attempt_id)
+        require(s.get("status")=="complete" and s.get("customer")==a.customer_id
+                and s.get("subscription")==a.subscription_id)
+        sub=self.api.get("subscriptions",a.subscription_id,"sub_")
+        # An active, scheduled-to-cancel, paused, unpaid or unknown state
+        # must never unlock a second purchase. Only terminal cancellation.
+        require(sub.get("customer")==a.customer_id and sub.get("status")=="canceled")
+        result=self.reconcile_account(aid)
+        require(not result.allowed and result.reason=="subscription_not_active")
+        return self.store.prepare_retry(a)
+
     def decision(self,principal):
         aid=tester_identity(principal)
         if aid is None:
@@ -144,7 +171,7 @@ class SandboxService:
         if result.allowed and (now-checked_at>timedelta(seconds=45) or result.expires_at<=now):
             result=Decision(False,"stale_evidence")
         try:
-            if not self.store.record_verification(aid,checked_at,result):
+            if not self.store.record_verification(aid,checked_at,result,a.attempt_id):
                 return Decision(False,"stale_evidence")
         except Exception:
             return Decision(False,"verification_unavailable_or_invalid")
