@@ -73,6 +73,7 @@ def run():
                 assert dialog.locator("#hza-done").evaluate("e=>{const r=e.getBoundingClientRect(); return r.top>=0 && r.bottom<=innerHeight+1}"), key
                 assert dialog.locator(".hza-dialog-body").evaluate("e=>e.clientHeight>60"), key
                 assert dialog.locator(".hza-dialog-body").evaluate("e=>e.scrollWidth<=e.clientWidth+2"), key
+                assert dialog.locator(".hza-dialog-body").evaluate("e=>e.getBoundingClientRect().bottom<=e.parentElement.getBoundingClientRect().bottom+2"), key
                 if width==1672:
                     assert dialog.bounding_box()["width"]>=1100
                     assert dialog.bounding_box()["height"]>=500

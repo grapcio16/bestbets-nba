@@ -312,3 +312,7 @@
  .hza-dialog-nav{padding:5px}.hza-dialog-nav button{min-height:38px;padding:5px 9px}
  .hza-dialog-foot #hza-done{min-height:38px;padding:6px 10px}
 }
+
+/* Explicitly constrain the scroll region for standalone and compact dialogs. */
+.hza-dialog[data-panel] .hza-dialog-layout{min-height:0}
+.hza-dialog[data-panel="privacy"] .hza-dialog-layout,.hza-dialog[data-panel="notifications"] .hza-dialog-layout{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr)}
