@@ -77,3 +77,34 @@ not medical details; this is an integrity identifier, not source authentication.
 Snapshot output is compatible with rotation inputs. Tests are synthetic;
 live source resolution, verified ID crosswalk, complete roster coverage and
 commercial rights are still outstanding. No writes to the production tracker.
+
+## Batch research implementation — empirical rotations and evaluation
+- V02 uses up to 30 complete, previously observed regulation rotations with
+  explicit played flags. Same-absence pool requires at least three observed
+  games in which each unavailable player explicitly did not play. Missing
+  players are not DNP. Shrink empirical rotations toward V01 with eight
+  prior pseudo-games; this fixed weight is uncalibrated.
+- Sample 100–5000 complete rotation vectors (default 5000) and whole
+  per-player rate vectors. Each draw conserves 240 minutes, caps each
+  player at 48, and counts three-pointers within PTS. Report empirical
+  quantiles and means; rates across players are independently sampled,
+  so team scoring/rebound/assist totals are not jointly constrained.
+- Absence audit is an unadjusted descriptive played/DNP points comparison;
+  it never modifies V8, and is not a causal injury or defensive/pace effect.
+- Pipeline prepares one explicit pregame scenario for both teams, records
+  snapshot digest and model identity. Disposable SQLite archive keeps first
+  model/team/game forecasts, rejects late/backdated/corrupted records,
+  protects UPDATE/DELETE and has no production DB connectivity.
+- Paired evaluator uses common game/team/player and pregame scenario,
+  reports MAE, signed bias, empirical interval coverage and missingness,
+  counts actual explicit DNP separately, and excludes multiple scenarios
+  instead of selecting one after the result.
+- Still required: real-source fixture/roster/report ingestion and identity
+  crosswalk, licensed data verification, actual chronological calibration
+  and all-roster coverage, matchup and position-aware rotation, joint team
+  score coupling, adjusted impact estimates, prospective scheduling, and
+  approved production integration. No claim of improved real NBA accuracy.
+- Documented NBA CDN fields checked against nba_api live boxscore schema:
+  https://github.com/swar/nba_api/blob/master/docs/nba_api/live/endpoints/boxscore.md
+  Direct sample URL was inaccessible via web retrieval; live schema and
+  provider availability remain unverified.
