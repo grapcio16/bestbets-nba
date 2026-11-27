@@ -123,6 +123,6 @@ def parse_regulation_boxscore(payload, fixture, observed_at):
         # Permit small per-player clock rounding, but not missing minutes.
         if abs(seconds-14400) > 10 or points != score:
             raise ValueError("team minutes or points do not reconcile")
-    if fixture["home_score"] == fixture["away_score"]:
+    if _int(fixture["home_score"], 200) == _int(fixture["away_score"], 200):
         raise ValueError("tied final")
     return results
