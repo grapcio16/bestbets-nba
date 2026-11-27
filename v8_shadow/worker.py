@@ -92,7 +92,29 @@ def run():
         else:
             key = result["status"]
             skipped[key] = skipped.get(key, 0) + 1
+    # V8.03 is explicitly opt-in. Never replace or reissue V8.02 forecasts.
+    v803_forecasts = []
+    v803_skipped = {}
+    v803_enabled = os.environ.get("HOOPZARO_V803_ENABLED", "").strip() == "true"
+    if v803_enabled and readiness["ready_for_eligible_matchups"]:
+        from v8_shadow.engine_v803 import predict_v803
+        for event in selected:
+            current = pd.Timestamp.now(tz="UTC")
+            game = {"game_id": str(event["game_id"]),
+                    "start_utc": event["start_utc"],
+                    "home": str(event["home"]), "away": str(event["away"])}
+            try:
+                result = predict_v803(evidence, game, current, n=5000)
+                if result["status"] == "shadow_only":
+                    v803_forecasts.append(result)
+                else:
+                    key = result["status"]
+                    v803_skipped[key] = v803_skipped.get(key, 0) + 1
+            except (ValueError, KeyError, TypeError) as exc:
+                key = type(exc).__name__
+                v803_skipped[key] = v803_skipped.get(key, 0) + 1
     new = save_forecasts(url, forecast, season)
+    v803_new = save_forecasts(url, v803_forecasts, season) if v803_forecasts else 0
     settled = settle_forecasts(url, finals.to_dict("records"))
     return {
         "model_id": VERSION,
@@ -103,6 +125,8 @@ def run():
         "new_shadow_forecasts": new,
         "shadow_forecasts_calculated": len(forecast),
         "model_skips": skipped,
+        "v803": {"enabled": v803_enabled, "calculated": len(v803_forecasts),
+                 "archived": v803_new, "skipped": v803_skipped},
         "settlement": settled,
         "no_v7_changes": True,
         "source_licensing": "research only: commercial rights not yet confirmed",
