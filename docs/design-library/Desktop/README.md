@@ -1,0 +1,2 @@
+# Desktop
+Existing approved screens and original shared shell are protected; no Centrum redesign. The second Team Spotlight concept was selected; original screenshot not available here. Players final mockup is not approved. Player Props, Simulation Lab, Terminarz and other approved layouts retain their existing visual hierarchy. Locate exact historic originals and record checksums/approval before claiming 1:1 parity. PR #211 is not an approved reference. Use current CSS and the PR #212 contract in the meantime. Capture 1231x691 and 1672x941 before/after.
