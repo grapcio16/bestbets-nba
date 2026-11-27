@@ -1,0 +1,37 @@
+name: Player Intelligence — isolated research QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'player_intelligence/**'
+      - 'test_player_intelligence*.py'
+      - '.github/workflows/player-intelligence-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-rotation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -q 'numpy>=1.26,<3' 'pandas>=2.2,<3' 'requests>=2.31,<3'
+      - run: python -m compileall -q player_intelligence test_player_intelligence_rotation.py test_player_intelligence_nba_boxscore.py test_player_intelligence_pregame_snapshot.py test_player_intelligence_research.py test_player_intelligence_source_replay.py test_player_intelligence_report_identity.py test_player_intelligence_availability_calibration.py
+      - run: python -m unittest -v test_player_intelligence_rotation test_player_intelligence_nba_boxscore test_player_intelligence_pregame_snapshot test_player_intelligence_research test_player_intelligence_source_replay test_player_intelligence_report_identity test_player_intelligence_availability_calibration
+      - name: Read-only bounded NBA CDN diagnostic (not an accuracy gate)
+        timeout-minutes: 2
+        run: |
+          python - <<'PY'
+          import json
+          from player_intelligence.nba_source import collect_recent
+          try:
+              report = collect_recent(season_prefix="00226", limit=2)
+              report.pop("rows")
+              report["source_verified_in_this_run"] = report["accepted_games"] > 0
+              print(json.dumps(report, sort_keys=True))
+          except Exception as exc:
+              print(json.dumps({"source_verified_in_this_run":False,"reason":type(exc).__name__+": "+str(exc)[:180]}))
+          PY
