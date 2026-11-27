@@ -64,7 +64,18 @@ def run():
                     assert page.locator("#hz-usage-allow").is_enabled()
                 if key=="security":
                     assert page.locator("#hza-google-security").is_visible()
+                assert dialog.get_attribute("data-panel")==key
+                assert page.locator("#hza-dialog-icon svg").count()==1
+                assert panel.locator(".hza-feature-card, .hza-plan-banner, .hza-notification-list").count()>0
                 assert dialog.evaluate("e=>e.getBoundingClientRect().width<=innerWidth")
+                assert dialog.evaluate("e=>e.scrollWidth<=e.clientWidth+2"), key
+                if width==1672:
+                    assert dialog.bounding_box()["width"]>=1100
+                    assert dialog.bounding_box()["height"]>=500
+                if key in ("notifications","privacy"):
+                    assert dialog.locator(".hza-dialog-nav").is_hidden()
+                else:
+                    assert dialog.locator(".hza-dialog-nav").is_visible()
                 page.screenshot(path=str(OUT/f"{key}-{width}.png"),animations="disabled")
                 page.keyboard.press("Escape")
                 assert dialog.is_hidden()
@@ -80,6 +91,10 @@ def run():
             assert page.locator("#hz-account-logout").is_hidden()
             push("premium",3)
             assert page.locator("#hz-admin-nav").is_hidden()
+            page.locator('.hza-tile[data-hza-open="plan"]').click()
+            assert "ADMINISTRATOR" not in page.locator("#hza-dialog").inner_text()
+            page.screenshot(path=str(OUT/f"premium-plan-{width}.png"),animations="disabled")
+            page.keyboard.press("Escape")
             assert "ADMINISTRATOR" not in page.locator("#hz-account").inner_text()
             push("admin",4)
             assert "ADMINISTRATOR" in page.locator("#hz-account").inner_text()
