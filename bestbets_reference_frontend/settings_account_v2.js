@@ -25,18 +25,20 @@ function render(visible,payload){
  const initials=logged?name.trim().split(/\s+/).slice(0,2).map(w=>Array.from(w)[0]||"").join("").toUpperCase():"HZ";
  const label=role==="admin"?"ADMINISTRATOR · PREMIUM":premium?"PREMIUM":logged?"FREE":"GOŚĆ";
  txt("hza-avatar",initials||"HZ");txt("hza-profile-avatar",initials||"HZ");
+ $("hz-account").dataset.role=role;txt("hza-modules",premium?"Aktywne":logged?"Free":"Publiczne");
  txt("hza-plan",premium?"Premium":logged?"Free":"Gość");
  txt("hza-access",role==="admin"?"Administrator":premium?"Pełny":"Podstawowy");
  txt("hza-profile-name",name);txt("hza-profile-email",logged?String(auth.email||"Brak zweryfikowanego adresu"):"—");txt("hza-profile-role",label);txt("hza-current-plan",label);
  txt("hza-plan-explanation",role==="admin"?"Bezpłatny dostęp administracyjny; nie wymaga subskrypcji.":premium?"Dostęp Premium potwierdzony przez serwer.":logged?"Konto podstawowe.":"Zaloguj się, aby sprawdzić uprawnienia.");
- txt("hza-summary-profile",name);txt("hza-summary-plan",premium?"Premium · dostęp aktywny":logged?"Free":"Zaloguj się");
+ txt("hza-summary-profile",name);txt("hza-summary-plan",premium?"Premium":logged?"Free":"Gość");
+ txt("hza-preview-email",logged?String(auth.email||"Brak zweryfikowanego adresu"):"Zaloguj się do konta");txt("hza-preview-access",premium?"Pełny":logged?"Podstawowy":"Publiczny");
  txt("hza-summary-preferences","Polski · Dark");txt("hza-summary-notifications","W przygotowaniu");
- txt("hza-summary-privacy",payload?.usage_consent_available?(payload.usage_consent_granted?"Analityka: włączona":"Analityka: wyłączona"):"Informacje o danych");
+ txt("hza-summary-privacy",payload?.usage_consent_available?(payload.usage_consent_granted?"Włączona":"Wyłączona"):"Informacje o danych");
  txt("hza-summary-security",logged?"Logowanie aktywne":"Nie zalogowano");txt("hza-summary-support","FAQ · kontakt");
  // Google links only when server explicitly identifies a verified Google issuer.
  const google=logged&&auth.provider==="google";
  $("hza-google-profile").hidden=!google;$("hza-google-security").hidden=!google;
- txt("hza-security-provider",google?"Google":logged?"Dostawca tożsamości":"Brak aktywnej sesji");
+ txt("hza-security-provider",google?"Google":logged?"Dostawca tożsamości":"Brak aktywnej sesji");txt("hza-preview-provider",google?"Konto Google":logged?"Konto Hoopzaro":"Gość");
  $("hza-privacy-unavailable").hidden=payload?.usage_consent_available===true;
  document.querySelectorAll("[data-hza-auth]").forEach(b=>b.hidden=!(auth.configured===true&&(b.dataset.hzaAuth==="login"?!logged:logged)));
 }

@@ -6,3 +6,5 @@ Stage 4 (accepted product roadmap): in-app notifications for favorite teams, fol
 Privacy: preserve existing notice/version/epoch/receipt and withdrawal gates. Publish approved policy before activation. Data requests are human-reviewed via contact mailbox; no fake seven-day promise.
 Security: use verified Google OIDC; do not present local password or 2FA management, remote session list, or GitHub linking as supported. Admin only sees own role; server entitlement rules unchanged.
 Release: dedicated branch, desktop/mobile browser QA, verify against approved screenshots, review overlapping PR189 changes before integration. No production deployment, database writes, migrations, or secret edits.
+
+Visual review pass 2: compared first QA screenshots with approved main mockup and profile modal. Replaced empty cards with structured preview rows, line icons, compact header, three horizontal access facts, luminous basketball artwork and richer modal styling. Deliberate differences: no simulated toggle states, renewal dates, unsupported account editing or fake data. New browser artifacts must be inspected before release.

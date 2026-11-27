@@ -41,10 +41,13 @@ def run():
                 page.locator('.nav-btn[data-page="settings"]').click()
             page.wait_for_function("()=>document.querySelector('#hz-account-role').textContent==='KONTO FREE'")
             assert page.locator(".hza-tile").count()==7
+            assert page.locator(".hza-page-head").is_visible()
+            assert page.locator(".hza-preview-row").count()==14
+            assert page.locator(".hza-ball-art").is_visible()
             assert page.locator("#hz-admin-nav").is_hidden()
             assert page.locator("#hz-mobile-admin").is_hidden()
             assert "ADMINISTRATOR" not in page.locator("#hz-account").inner_text()
-            page.screenshot(path=str(OUT/f"free-{width}.png"),full_page=True)
+            page.screenshot(path=str(OUT/f"free-{width}.png"),full_page=True,animations="disabled")
             for key in KEYS:
                 tile=page.locator(f'.hza-tile[data-hza-open="{key}"]')
                 tile.click()
@@ -62,7 +65,7 @@ def run():
                 if key=="security":
                     assert page.locator("#hza-google-security").is_visible()
                 assert dialog.evaluate("e=>e.getBoundingClientRect().width<=innerWidth")
-                page.screenshot(path=str(OUT/f"{key}-{width}.png"))
+                page.screenshot(path=str(OUT/f"{key}-{width}.png"),animations="disabled")
                 page.keyboard.press("Escape")
                 assert dialog.is_hidden()
             page.locator('.hza-tile[data-hza-open="privacy"]').click()
@@ -80,6 +83,7 @@ def run():
             assert "ADMINISTRATOR" not in page.locator("#hz-account").inner_text()
             push("admin",4)
             assert "ADMINISTRATOR" in page.locator("#hz-account").inner_text()
+            page.screenshot(path=str(OUT/f"admin-{width}.png"),full_page=True,animations="disabled")
             push("free",5)
             assert page.locator("#hz-admin-nav").is_hidden()
             assert "ADMINISTRATOR" not in page.locator("#hz-account").inner_text()
