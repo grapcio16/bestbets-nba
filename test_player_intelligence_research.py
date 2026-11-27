@@ -135,5 +135,40 @@ class ResearchTests(unittest.TestCase):
         self.assertEqual(result["paired_players"],0)
         self.assertEqual(result["excluded_multiple_scenario_team_games"],2)
 
+class ArchiveTests(unittest.TestCase):
+    def test_immutable_first_forecast_and_integrity(self):
+        from player_intelligence.research_archive import ResearchArchive
+        _,records,_=forecast_pair()
+        archive=ResearchArchive(clock=lambda:NOW+pd.Timedelta(minutes=1))
+        try:
+            self.assertEqual(archive.append_batch(records),4)
+            self.assertEqual(archive.append_batch(records),0)
+            self.assertEqual(len(archive.records()),4)
+            tampered=deepcopy(records)
+            tampered[0]["projection"]["players"][0]["minutes"]=999
+            with self.assertRaisesRegex(ValueError,"integrity"):
+                archive.append_batch(tampered)
+            import sqlite3
+            with self.assertRaises(sqlite3.IntegrityError):
+                archive.db.execute("DELETE FROM player_research_forecast")
+            archive.db.rollback()
+            self.assertEqual(len(archive.records()),4)
+        finally:
+            archive.close()
+
+    def test_expired_archive_and_remote_path_rejected(self):
+        from player_intelligence.research_archive import ResearchArchive
+        _,records,_=forecast_pair()
+        archive=ResearchArchive(clock=lambda:TIP)
+        try:
+            with self.assertRaisesRegex(ValueError,"expired"):
+                archive.append_batch(records)
+            self.assertEqual(archive.records(),[])
+        finally:
+            archive.close()
+        with self.assertRaisesRegex(ValueError,"local"):
+            ResearchArchive("postgresql://example.invalid/research")
+
+
 if __name__=="__main__":
     unittest.main()
