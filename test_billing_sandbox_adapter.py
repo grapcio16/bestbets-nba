@@ -78,6 +78,26 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(key,"hz-sandbox-"+A)
         self.assertNotIn("customer_email",params)
         with self.assertRaises(BillingError): create_checkout(self.api,A,"price_fixture","prod_fixture","https://example.org")
+    def test_safe_http_diagnostics(self):
+        from billing_sandbox_adapter import StripeRequestError
+        from urllib.error import HTTPError
+        from io import BytesIO
+        api=StripeTestAPI("rk_test_fixture0123456789","acct_fixture")
+        raw=b'{"error":{"type":"invalid_request_error","code":"parameter_unknown","message":"private_fixture"}}'
+        with patch.object(api.opener,"open",side_effect=HTTPError("https://api.stripe.com",400,"private_fixture",{"Request-Id":"req_fixture"},BytesIO(raw))):
+            with self.assertRaises(StripeRequestError) as caught:
+                api.request("/v1/checkout/sessions",{})
+        self.assertEqual(str(caught.exception),"Stripe HTTP 400 / invalid_request_error / parameter_unknown / req_fixture")
+        self.assertNotIn("private_fixture",str(caught.exception))
+    def test_unsafe_checkout_url_reports_stage(self):
+        from billing_sandbox_adapter import CheckoutStageError
+        original=self.api.request
+        def bad(*args,**kwargs):
+            return {**original(*args,**kwargs),"url":"https://evil.invalid/private_fixture"}
+        with patch.object(self.api,"request",side_effect=bad):
+            with self.assertRaisesRegex(CheckoutStageError,"session_url_format") as caught:
+                create_checkout(self.api,A,"price_fixture","prod_fixture",URL)
+        self.assertNotIn("private_fixture",str(caught.exception))
     def test_live_secret_rejected(self):
         with self.assertRaises(BillingError): StripeTestAPI("sk_live_not_a_real_secret","acct_fixture")
     def test_wrong_price_rejected_before_creation(self):
