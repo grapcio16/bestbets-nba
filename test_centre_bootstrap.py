@@ -97,6 +97,7 @@ class InitialHomePayloadTest(unittest.TestCase):
         player={"name":"Current premium result"}
         session={
             "bb10_premium_principal":"account-A", "bb10_identity_epoch":3,
+            "bb10_props_role":"premium",
             "bb10_payload":{"player":player,"error":""},
         }
         sent=[]
@@ -111,6 +112,28 @@ class InitialHomePayloadTest(unittest.TestCase):
              patch.object(module,"COMPONENT",side_effect=lambda **kwargs: sent.append(kwargs)):
             module.main()
         self.assertEqual(sent[0]["payload"]["player"],player)
+        self.assertEqual(session["bb10_identity_epoch"],3)
+
+    def test_unknown_cached_role_is_cleared_before_render(self):
+        # Legacy session without a recorded role must fail closed, even if
+        # the current principal has Premium. Do not weaken role transitions.
+        session={
+            "bb10_premium_principal":"account-A", "bb10_identity_epoch":3,
+            "bb10_payload":{"player":{"name":"Unclassified cached result"},"error":""},
+        }
+        sent=[]
+        with patch.object(module.st,"session_state",session),\
+             patch.object(module.st,"markdown"),\
+             patch.object(module,"current_principal",return_value="account-A"),\
+             patch.object(module,"premium_entitled",return_value=True),\
+             patch.object(module,"current_role",return_value="premium"),\
+             patch.object(module,"auth_context",return_value={"role":"premium"}),\
+             patch.object(module,"_cached_brand",return_value=""),\
+             patch.object(module,"_safe_centre_live",return_value=SAMPLE),\
+             patch.object(module,"COMPONENT",side_effect=lambda **kwargs: sent.append(kwargs)):
+            module.main()
+        self.assertIsNone(sent[0]["payload"]["player"])
+        self.assertEqual(session["bb10_props_role"],"premium")
         self.assertEqual(session["bb10_identity_epoch"],3)
 
     def test_centre_failures_have_visible_nonloading_state(self):
