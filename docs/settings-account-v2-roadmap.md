@@ -20,3 +20,6 @@ Verified dedicated QA on 256bc0c6 (run 46051542677, six auth unit tests, browser
 
 ## Sixth pass — initial scroll and final detailing
 Inspected all V5 captures from 46052823255. Dedicated browser step passed; all 48 PNGs downloaded. Fixed genuine retained scroll offset on opening/switching modals, moved showModal after panel construction, used preventScroll focus, compacted desktop navigation/headers and privacy/security/profile content without removing consent disclosure. Added cross-panel scroll reset regression and strengthened targeted neon accents. Actual reference artwork is recreated with SVG/CSS, not pixel-identical; planned controls remain intentionally different. User visual approval required before production.
+
+## Release preparation
+User accepted V6 visual appearance and authorized public release of Settings only. Session-level Player Props default period and venue now apply to actual chart/filter state and new results; reset on identity change. No database persistence or fake preferences; market remains determined by explicit search. Notifications, live Stripe, translations, account edits and remote session management remain unimplemented as disclosed. Baseline comparison 46053106253 confirms identical reference badge, retired Flow and Game Center mock failures in main vs Settings V6. Do not merge other research PRs as part of this release.

@@ -92,6 +92,23 @@ def run():
                 page.keyboard.press("Escape")
                 assert dialog.is_hidden()
             page.locator('.hza-tile[data-hza-open="preferences"]').click()
+            page.locator("#hza-pref-period").select_option("L5")
+            page.locator("#hza-pref-venue").select_option("HOME")
+            assert "Zastosowano" in page.locator("#hza-pref-status").inner_text()
+            page.keyboard.press("Escape")
+            if width<768 or height<=500:
+                page.locator('#hz-mobile-nav [data-page="props"]').click()
+            else:
+                page.locator('.nav-btn[data-page="props"]').click()
+            assert "Last 5 Games (Home)" in page.locator("#chart-heading").inner_text()
+            if width<768 or height<=500:
+                page.locator("#hz-mobile-more-trigger").click()
+                page.locator('#hz-mobile-more-panel [data-page="settings"]').click()
+            else:
+                page.locator('.nav-btn[data-page="settings"]').click()
+            page.locator('.hza-tile[data-hza-open="preferences"]').click()
+            assert page.locator("#hza-pref-period").input_value()=="L5"
+            assert page.locator("#hza-pref-venue").input_value()=="HOME"
             page.locator(".hza-dialog-body").evaluate("e=>e.scrollTop=e.scrollHeight")
             page.locator('.hza-dialog-nav [data-hza-open="security"]').click()
             assert page.locator(".hza-dialog-body").evaluate("e=>e.scrollTop===0")
@@ -104,6 +121,8 @@ def run():
             push("guest",2)
             assert page.locator("#hza-dialog").is_hidden()
             assert page.locator("#hza-profile-email").inner_text()=="—"
+            assert page.locator("#hza-pref-period").input_value()=="L10"
+            assert page.locator("#hza-pref-venue").input_value()=="ALL"
             assert page.locator("#hz-account-login").is_visible()
             assert page.locator("#hz-account-logout").is_hidden()
             push("premium",3)

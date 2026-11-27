@@ -36,6 +36,8 @@ function render(visible,payload){
  const next=String(auth.session_epoch??"")+":"+role+":"+String(auth.name??"");
  if(!visible||identity!==next)close();
  identity=next;
+ const prefs=callbacks.getPreferences?.()||{period:"L10",venue:"ALL"};
+ $("hza-pref-period").value=prefs.period;$("hza-pref-venue").value=prefs.venue;
  const name=logged?String(auth.name||"Użytkownik"):"Gość";
  const initials=logged?name.trim().split(/\s+/).slice(0,2).map(w=>Array.from(w)[0]||"").join("").toUpperCase():"HZ";
  const label=role==="admin"?"ADMINISTRATOR · PREMIUM":premium?"PREMIUM":logged?"FREE":"GOŚĆ";
@@ -60,6 +62,7 @@ function render(visible,payload){
 }
 function init(cb){
  callbacks=cb||{};
+ for(const id of ["hza-pref-period","hza-pref-venue"]){$(id).addEventListener("change",()=>{callbacks.preferences?.($("hza-pref-period").value,$("hza-pref-venue").value);txt("hza-pref-status","Zastosowano ustawienia w bieżącej sesji. Trwały zapis na koncie jest planowany.");});}
  document.addEventListener("click",e=>{
   const trigger=e.target.closest("[data-hza-open]");
   if(trigger){open(trigger.dataset.hzaOpen,trigger);return;}
