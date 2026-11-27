@@ -35,11 +35,29 @@ jobs:
                   try:
                       response=page.goto(url,wait_until="domcontentloaded",timeout=45000)
                       record["http_status"]=response.status if response else None
-                      page.locator('iframe[title*="bestbets_reference_canvas_v10"]').first.wait_for(timeout=60000)
-                      frame=page.frame_locator('iframe[title*="bestbets_reference_canvas_v10"]').first
-                      frame.locator('.nav-btn[data-page="settings"]').click(timeout=15000)
+                      import time
+                      deadline=time.monotonic()+70
+                      frame=None
+                      while time.monotonic()<deadline:
+                          for candidate in page.frames:
+                              try:
+                                  if candidate.locator('.nav-btn[data-page="settings"]').first.is_visible():
+                                      frame=candidate
+                                      break
+                              except Exception:
+                                  continue
+                          if frame is not None:
+                              break
+                          page.wait_for_timeout(500)
+                      record["frame_count"]=len(page.frames)
+                      if frame is None:
+                          raise TimeoutError("Public navigation not visible")
+                      record["navigation_visible"]=True
+                      page.screenshot(path=str(out/f"{label}-home.png"))
+                      frame.locator('.nav-btn[data-page="settings"]').first.click(timeout=15000)
                       frame.locator('#hz-account').wait_for(state="visible",timeout=15000)
                       record["settings_v2"]=frame.locator(".hza-tile").count()==7
+                      record["tile_count"]=frame.locator(".hza-tile").count()
                       record["guest"]=frame.locator("#hz-account-role").inner_text()=="GOŚĆ"
                       record["admin_hidden"]=frame.locator("#hz-admin-nav").is_hidden()
                       if record["guest"] and record["admin_hidden"]:
