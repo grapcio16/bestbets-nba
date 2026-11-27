@@ -14,6 +14,19 @@ class CollectorTests(unittest.TestCase):
              "home": "T01", "away": "T02"} for i in range(1, 4)]
         self.evidence = [{"fixture": True}]
 
+    def test_regular_season_calendar_gate(self):
+        from v8_shadow.season_gate import filter_regular_window
+        stamps = ["2026-10-20T18:59:59Z", "2026-10-20T19:00:00Z",
+                  "2026-11-27T23:00:00Z", "2026-12-12T01:00:00Z",
+                  "2027-02-20T01:00:00Z", "2027-04-12T00:30:00Z",
+                  "2027-04-12T04:00:00Z", "invalid"]
+        rows = [{"game_id": str(i), "start_utc": t, "season": "2026-27"}
+                for i, t in enumerate(stamps)]
+        rows.append(dict(rows[1], game_id="wrong-season", season="2025-26"))
+        self.assertEqual([r["game_id"] for r in filter_regular_window(rows, "2026-27")],
+                         ["1", "2", "5"])
+        self.assertEqual(filter_regular_window(rows, "2027-28"), [])
+
     def test_disabled_or_not_ready_never_calls_predictor(self):
         predict = Mock(side_effect=AssertionError("unexpected call"))
         for enabled, ready in ((False, True), (True, False), (False, False)):
