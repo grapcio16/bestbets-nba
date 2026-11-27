@@ -43,6 +43,39 @@ def eligible_upcoming(schedule, now):
     return valid.to_dict("records")
 
 
+def collect_v803(evidence, selected, asof, *, enabled, ready, predict=None, now=None):
+    """Same evidence snapshot for all games; never archive an expired candidate."""
+    if not enabled or not ready:
+        return [], {}
+    if predict is None:
+        from v8_shadow.engine_v803 import predict_v803
+        predict = predict_v803
+    if now is None:
+        now = lambda: pd.Timestamp.now(tz="UTC")
+    forecasts, skipped = [], {}
+    lead = pd.Timedelta(minutes=15)
+    def reject(reason):
+        skipped[reason] = skipped.get(reason, 0) + 1
+    for event in selected:
+        game = {"game_id": str(event["game_id"]), "start_utc": event["start_utc"],
+                "home": str(event["home"]), "away": str(event["away"])}
+        tip = pd.to_datetime(game["start_utc"], utc=True)
+        if tip <= now() + lead:
+            reject("expired_before_compute")
+            continue
+        try:
+            result = predict(evidence, game, asof, n=5000)
+            if tip <= now() + lead:
+                reject("expired_after_compute")
+            elif result["status"] == "shadow_only":
+                forecasts.append(result)
+            else:
+                reject(result["status"])
+        except (ValueError, KeyError, TypeError) as exc:
+            reject(type(exc).__name__)
+    return forecasts, skipped
+
+
 def run():
     url = os.environ.get("TRACKER_DATABASE_URL", "").strip()
     if not url:
@@ -92,7 +125,26 @@ def run():
         else:
             key = result["status"]
             skipped[key] = skipped.get(key, 0) + 1
+    # Persist baseline first; V8.03 must not delay V8.02 collection.
     new = save_forecasts(url, forecast, season)
+    v803_enabled = os.environ.get("HOOPZARO_V803_ENABLED", "").strip() == "true"
+    v803_forecasts, v803_skipped = [], {}
+    v803_history_count = None
+    if v803_enabled:
+        from v8_shadow.season_gate import calendar_supported, filter_regular_window
+        if not calendar_supported(season):
+            v803_skipped["unsupported_season_calendar"] = len(selected)
+        else:
+            regular_history = filter_regular_window(evidence, season)
+            regular_upcoming = filter_regular_window(selected, season)
+            v803_history_count = len(regular_history)
+            v803_forecasts, v803_skipped = collect_v803(
+                regular_history, regular_upcoming, clock, enabled=True,
+                ready=readiness["ready_for_eligible_matchups"])
+            excluded = len(selected) - len(regular_upcoming)
+            if excluded:
+                v803_skipped["outside_regular_window"] = excluded
+    v803_new = save_forecasts(url, v803_forecasts, season) if v803_forecasts else 0
     settled = settle_forecasts(url, finals.to_dict("records"))
     return {
         "model_id": VERSION,
@@ -103,6 +155,9 @@ def run():
         "new_shadow_forecasts": new,
         "shadow_forecasts_calculated": len(forecast),
         "model_skips": skipped,
+        "v803": {"enabled": v803_enabled, "calculated": len(v803_forecasts),
+                 "archived": v803_new, "regular_history_games": v803_history_count,
+                 "skipped": v803_skipped},
         "settlement": settled,
         "no_v7_changes": True,
         "source_licensing": "research only: commercial rights not yet confirmed",

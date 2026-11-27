@@ -165,9 +165,10 @@ def save_forecasts(url, results, season):
                      game_id,model_id,season,issued_at,start_utc,away,home,
                      scenario_away,scenario_home,mean_away,mean_home,away_win_pct,
                      home_win_pct,training_examples,report)
-                     VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb)
+                     SELECT %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::jsonb
+                     WHERE %s::timestamptz > clock_timestamp() + interval '15 minutes'
                      ON CONFLICT (game_id,model_id) DO NOTHING""",
-                    params)
+                    params + (start.to_pydatetime(),))
                 added += cur.rowcount
     return added
 
