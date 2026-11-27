@@ -1,0 +1,25 @@
+name: Directory polish visual preview
+on:
+  push:
+    branches: [design/directory-polish-v1]
+permissions:
+  contents: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: node --check bestbets_reference_frontend/players.js && node --check bestbets_reference_frontend/teams.js
+      - run: |
+          python -m pip install 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - run: python test_directory_polish_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: directory-polish-preview
+          path: work/directory-polish/

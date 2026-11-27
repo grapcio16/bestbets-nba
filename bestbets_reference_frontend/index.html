@@ -1235,7 +1235,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     </header>
     <div class="hzp-toolbar">
       <label class="hzp-search-wrap"><span aria-hidden="true">⌕</span><input id="hzp-search" type="search" placeholder="Szukaj zawodnika…" autocomplete="off" aria-label="Szukaj zawodnika NBA"></label>
-      <label class="hzp-filter"><span>Drużyna</span><select id="hzp-team" aria-label="Filtr drużyny"><option value="">Wszystkie drużyny</option></select></label>
+      <label class="hzp-filter"><span>Drużyna</span><select id="hzp-team" aria-label="Filtr drużyny"><option value="">Wszystkie</option></select></label>
       <label class="hzp-filter"><span>Pozycja</span><select id="hzp-position" aria-label="Filtr pozycji"><option value="">Wszystkie</option><option>PG</option><option>SG</option><option>SF</option><option>PF</option><option>C</option><option>G</option><option>F</option></select></label>
       <button id="hzp-refresh" type="button" title="Odśwież skład NBA">↻ <span>Odśwież</span></button>
     </div>
@@ -1249,18 +1249,20 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       <section class="hzp-spotlight" aria-label="Player Spotlight — profil wybranego zawodnika">
         <div class="hzp-spotlight-heading"><span aria-hidden="true"></span>PLAYER SPOTLIGHT</div>
         <div id="hzp-spotlight-body" class="hzp-spotlight-body" aria-live="polite"></div>
+        <button id="hzp-mobile-back" type="button">↑ Wróć do listy zawodników</button>
       </section>
     </div>
     <div class="hzp-footnote"><span id="hzp-source">Dane historyczne NBA / ESPN, bez prognoz.</span><span>3PA = próby za 3 na mecz · 3P% = celne trójki / próby</span></div>
-    <section class="hzp-bottom-card"><div class="hzp-bottom-icon" aria-hidden="true">✧</div><div><strong id="hzp-cta-title">Chcesz przeanalizować kolejny mecz?</strong><p id="hzp-cta-text">Prognozy, linie OVER/UNDER i symulacje znajdziesz w Player Props.</p></div><button id="hzp-cta" type="button">Przejdź do Player Props <span aria-hidden="true">›</span></button></section>
+    <section class="hzp-bottom-card"><div class="hzp-bottom-icon" aria-hidden="true">✧</div><div><strong id="hzp-cta-title">Chcesz przeanalizować kolejny mecz?</strong><p id="hzp-cta-text">Historia występów i analiza linii OVER/UNDER w Player Props.</p></div><button id="hzp-cta" type="button">Przejdź do Player Props <span aria-hidden="true">›</span></button></section>
   </section>
   <section id="hzt-teams-pane" class="hzt" hidden aria-label="Drużyny NBA — przegląd i analizy Premium">
     <header class="hzt-header">
       <div class="hzt-heading"><span class="hzt-slash" aria-hidden="true"></span><h1>Drużyny <em>NBA</em></h1><p>Poznaj wszystkie 30 zespołów</p><span class="hzt-tier">FREE <b>+ PREMIUM</b></span></div>
       <div class="hzt-spotlight" aria-live="polite">
         <div class="hzt-spotlight-logo" id="hzt-feature-mark" aria-hidden="true">B</div>
-        <div class="hzt-spotlight-main"><small>✦ WYRÓŻNIONA DRUŻYNA</small><strong id="hzt-feature-name">Boston Celtics</strong></div>
-        <div class="hzt-feature-stats"><span>Konferencja: <b id="hzt-feature-conference">Wschód</b></span><span>Bilans: <b id="hzt-feature-record">—</b></span><span id="hzt-feature-status">Sezon 2026/27</span></div>
+        <div class="hzt-spotlight-main"><small>✦ TEAM SPOTLIGHT</small><strong id="hzt-feature-name">Boston Celtics</strong><span class="hzt-feature-meta">Konferencja: <b id="hzt-feature-conference">Wschód</b> · <span id="hzt-feature-status">Sezon 2026/27</span></span></div>
+        <div class="hzt-feature-stats" aria-label="Potwierdzony bilans sezonu"><span class="hzt-feature-kpi"><small>BILANS W–L</small><b id="hzt-feature-record">—</b></span><span class="hzt-feature-kpi"><small>MECZE</small><b id="hzt-feature-games">—</b></span><span class="hzt-feature-kpi hzt-feature-win"><small>ZWYCIĘSTWA %</small><b id="hzt-feature-win-pct">—</b><span class="hzt-feature-win-track" aria-hidden="true"><i id="hzt-feature-win-bar"></i></span></span></div>
+        <button id="hzt-feature-open" type="button" aria-label="Szczegółowa analiza Boston Celtics">Szczegółowa analiza <span aria-hidden="true">›</span></button>
       </div>
     </header>
     <div class="hzt-toolbar">
@@ -1544,6 +1546,8 @@ function resize(){
   const shortLandscape=viewportWidth<=1200 && window.innerHeight<=500 &&
     viewportWidth>window.innerHeight;
   const mobileLayout=viewportWidth<=767 || shortLandscape;
+  const mobileDirectory=mobileLayout && (state.page==="players"||state.page==="teams");
+  shell.classList.toggle("hz-mobile-directory",mobileDirectory);
   const mobileSettings=mobileLayout && state.page==="settings";
   shell.classList.toggle("hza-mobile",mobileSettings);
   const mobileHome=mobileLayout && state.page==="home";
@@ -1556,7 +1560,7 @@ function resize(){
   shell.classList.toggle("hz-mobile-centre",mobileHome);
   shell.classList.toggle("hz-mobile-schedule",mobileSchedule);
   shell.classList.toggle("hz-independent-scroll",!mobileLayout);
-  if(mobileHome||mobileSchedule||mobileIntelligence||mobileSettings){
+  if(mobileHome||mobileSchedule||mobileIntelligence||mobileSettings||mobileDirectory){
     // Native touch scrolling for the free Home and Schedule routes.
     root.style.transform="none";
     root.style.height="";

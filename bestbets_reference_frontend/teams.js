@@ -60,11 +60,14 @@ function favorites(){
    return Array.isArray(raw)?[...new Set(raw.filter(code=>byCode.has(code)))].slice(0,2):[];
  }catch(_){return []}
 }
-function record(team){
+function verifiedRecord(team){
  const option=(Array.isArray(home?.form_options)?home.form_options:[]).find(row=>row?.team===team.code);
  return option?.record_verified===true && Number.isInteger(option.wins) &&
-   Number.isInteger(option.losses) && option.wins>=0 && option.losses>=0
-   ?`${option.wins}–${option.losses}`:"—";
+   Number.isInteger(option.losses) && option.wins>=0 && option.losses>=0 ? option : null;
+}
+function record(team){
+ const option=verifiedRecord(team);
+ return option?`${option.wins}–${option.losses}`:"—";
 }
 function candidates(){
  const favs=favorites();return DATA.filter(team=>
@@ -87,7 +90,7 @@ function markup(team){
    aria-label="Pokaż drużynę ${team.name}">
    <span class="hzt-card-mark" aria-hidden="true">${team.mark}</span>
    <span class="hzt-card-body"><span class="hzt-card-code">${team.code}</span>
-   <strong>${team.name}</strong><small>Konferencja: <em>${conf}</em></small>
+   <strong title="${team.name}">${team.name}</strong><small>Konferencja: <em>${conf}</em></small>
    <span class="hzt-record">Bilans W–L: ${record(team)}</span></span>
    <button type="button" class="hzt-card-fav${fav?" is-favorite":""}" data-hzt-fav="${team.code}"
    aria-pressed="${fav}" aria-label="${fav?"Usuń":"Dodaj"} ${team.name} ${fav?"z":"do"} ulubionych"
@@ -96,9 +99,16 @@ function markup(team){
 function feature(){
  const team=byCode.get(selected)||DATA[0];
  const mark=$("hzt-feature-mark");mark.textContent=team.mark;mark.style.setProperty("--hzt-accent",team.accent);
- $("hzt-feature-name").textContent=team.name;
+ const spotlight=mark.closest(".hzt-spotlight");spotlight.style.setProperty("--hzt-spotlight-rgb",team.rgb);spotlight.style.setProperty("--hzt-spotlight-accent",team.accent);
+ const featureName=$("hzt-feature-name");featureName.textContent=team.name;featureName.title=team.name;featureName.classList.toggle("hzt-long-name",team.name.length>20);
  $("hzt-feature-conference").textContent=team.conference==="east"?"Wschód":"Zachód";
  $("hzt-feature-record").textContent=record(team);
+ const rec=verifiedRecord(team),games=rec?rec.wins+rec.losses:0;
+ const total=$("hzt-feature-games"),winPct=$("hzt-feature-win-pct"),bar=$("hzt-feature-win-bar");
+ if(total)total.textContent=rec?String(games):"—";
+ if(winPct)winPct.textContent=rec&&games>0?fmt(100*rec.wins/games)+"%":"—";
+ if(bar){bar.style.width=rec&&games>0?(100*rec.wins/games)+"%":"0%";}
+ const open=$("hzt-feature-open");if(open)open.setAttribute("aria-label","Szczegółowa analiza "+team.name);
  $("hzt-feature-status").textContent=home?.form_stale?"Dane ESPN opóźnione":
    home?.form_available?"Sezon "+(home.form_period||"2026/27"):"Bilans sezonu niedostępny";
 }
@@ -213,6 +223,7 @@ function toggleFavorite(code){
 }
 function init(callbacks){
  api=callbacks||{};
+ $("hzt-feature-open")?.addEventListener("click",()=>openModal(selected));
  $("hzt-search").addEventListener("input",e=>{query=e.target.value;page=0;message="";render(home,analytics,role)});
  document.querySelectorAll("[data-hzt-conference]").forEach(button=>button.addEventListener("click",()=>{
    conference=button.dataset.hztConference;page=0;message="";render(home,analytics,role)}));

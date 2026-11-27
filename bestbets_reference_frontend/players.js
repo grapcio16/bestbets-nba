@@ -20,7 +20,7 @@ function setOptions(players){
   const signature=values.join("|");
   if(select.dataset.signature===signature)return;
   select.dataset.signature=signature;
-  select.replaceChildren(new Option("Wszystkie drużyny",""));
+  select.replaceChildren(new Option("Wszystkie",""));
   values.forEach(value=>select.append(new Option(value,value)));
   select.value=values.includes(existing)?existing:"";
   team=select.value;
@@ -92,7 +92,8 @@ function playerRow(player,active){
   const name=make("span","hzp-player-name");
   name.append(avatarFor(player));
   const identity=make("span","hzp-player-identity");
-  identity.append(make("strong","",player.name),make("small","",player.position||"NBA"));
+  const fullName=make("strong","",player.name);fullName.title=String(player.name||"");
+  identity.append(fullName,make("small","",player.position||"NBA"));
   name.append(identity);row.append(name);
   const teamCell=make("span","hzp-player-team");teamCell.append(make("span","hzp-team-tag",player.team||"NBA"));
   row.append(teamCell);
@@ -120,6 +121,7 @@ function playerRow(player,active){
       button.setAttribute("aria-pressed",String(selected));
     });
     renderSpotlight(player,"");
+    if(document.getElementById("app-shell")?.classList.contains("hz-mobile-directory"))document.querySelector(".hzp-spotlight")?.scrollIntoView({block:"start",behavior:"auto"});
   });
   return row;
 }
@@ -129,7 +131,7 @@ function renderSpotlight(player,note){
   const hero=make("div","hzp-spotlight-hero");
   hero.append(avatarFor(player,true));
   const copy=make("div","hzp-spotlight-identity");
-  copy.append(make("h2","",player.name));
+  const heading=make("h2",String(player.name||"").length>23?"hzp-long-name":"",player.name);heading.title=String(player.name||"");copy.append(heading);
   copy.append(make("p","",(player.team||"NBA")+" · "+(player.position||"NBA")));
   hero.append(copy);target.append(hero);
   const metrics=make("div","hzp-spotlight-metrics");
@@ -207,7 +209,7 @@ function render(nextCatalog,nextAverages,nextRole){
     (failed?" · "+failed+" chwilowo niedostępnych (Odśwież)":"")+
     " · średnie z potwierdzonych występów · najedź na statystykę, aby sprawdzić próbkę";
   $("hzp-cta-title").textContent=entitled()?"Chcesz przeanalizować kolejny mecz?":"Odblokuj statystyki zawodników";
-  $("hzp-cta-text").textContent=entitled()?"Prognozy, linie OVER/UNDER i symulacje znajdziesz w Player Props.":
+  $("hzp-cta-text").textContent=entitled()?"Historia występów i analiza linii OVER/UNDER w Player Props.":
     "Średnie PTS, REB, AST, 3PM, 3PA i 3P% dostępne z Hoopzaro Premium.";
   $("hzp-cta").firstChild.textContent=entitled()?"Otwórz Player Props ":"Premium · 9,99 USD/mies. ";
   if(entitled()&&catalog&&visible.length&&typeof callbacks.requestAverages==="function"){
@@ -224,6 +226,7 @@ function init(api){
   callbacks=api||{};
   const resetListScroll=()=>{$("hzp-table-rows").scrollTop=0};
   $("hzp-search").addEventListener("input",e=>{query=e.target.value;page=0;resetListScroll();render(catalog,averages,role)});
+  $("hzp-mobile-back").addEventListener("click",()=>document.querySelector(".hzp-table-card")?.scrollIntoView({block:"start",behavior:"auto"}));
   $("hzp-team").addEventListener("change",e=>{team=e.target.value;page=0;resetListScroll();render(catalog,averages,role)});
   $("hzp-position").addEventListener("change",e=>{position=e.target.value;page=0;resetListScroll();render(catalog,averages,role)});
   $("hzp-prev").addEventListener("click",()=>{page=Math.max(0,page-1);resetListScroll();render(catalog,averages,role)});
