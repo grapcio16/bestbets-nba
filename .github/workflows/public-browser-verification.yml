@@ -54,6 +54,28 @@ jobs:
                           raise TimeoutError("Public navigation not visible")
                       record["navigation_visible"]=True
                       page.screenshot(path=str(out/f"{label}-home.png"))
+                      # Inspect the actually served, public JS asset, not the GitHub source.
+                      from urllib.parse import urljoin, urlsplit
+                      asset_url=frame.evaluate("() => [...document.scripts].find(s=>s.src && new URL(s.src).pathname.endsWith('/centrum.js'))?.src || ''")
+                      record["centrum_asset_verified"]=False
+                      if asset_url and urlsplit(asset_url).netloc==urlsplit(frame.url).netloc:
+                          asset=ctx.request.get(asset_url,timeout=15000)
+                          if asset.ok:
+                              source=asset.text()
+                              record["centrum_asset_verified"]="function nextGameOnEmptyDay(" in source and "Najbliższy:" in source
+                      game_list=frame.locator("#bc-games-list")
+                      record["centrum_fallback_visible"]=game_list.locator(".bc-muted").filter(has_text="Najbliższy:").count()>0
+                      if record["centrum_fallback_visible"]:
+                          record["centrum_fallback_rows"]=game_list.locator(".bc-game").count()
+                          if record["centrum_fallback_rows"]==1:
+                              game_list.locator(".bc-game").click(timeout=15000)
+                              frame.locator("#bc-dialog-body").wait_for(state="visible",timeout=15000)
+                              page.screenshot(path=str(out/f"{label}-nearest-game.png"))
+                              page.keyboard.press("Escape")
+                      for section,selector in [("players","#hzp-players-pane"),("teams","#hzt-teams-pane")]:
+                          frame.locator(f'.nav-btn[data-page="{section}"]').first.click(timeout=15000)
+                          frame.locator(selector).wait_for(state="visible",timeout=15000)
+                          page.screenshot(path=str(out/f"{label}-{section}.png"))
                       frame.locator('.nav-btn[data-page="settings"]').first.click(timeout=15000)
                       frame.locator('#hz-account').wait_for(state="visible",timeout=15000)
                       record["settings_v2"]=frame.locator(".hza-tile").count()==7
@@ -66,7 +88,7 @@ jobs:
                               frame.locator('.hza-tile[data-hza-open="profile"]').click()
                               frame.locator("#hza-dialog").wait_for(state="visible")
                               page.screenshot(path=str(out/f"{label}-profile.png"))
-                      record["ok"]=record["settings_v2"] and record["guest"] and record["admin_hidden"]
+                      record["ok"]=record["settings_v2"] and record["guest"] and record["admin_hidden"] and record["centrum_asset_verified"] and (not record["centrum_fallback_visible"] or record.get("centrum_fallback_rows")==1)
                   except Exception as exc:
                       record["ok"]=False
                       record["error_type"]=type(exc).__name__
