@@ -44,6 +44,8 @@ def run():
             assert page.locator(".hza-page-head").is_visible()
             assert page.locator(".hza-preview-row").count()==14
             assert page.locator(".hza-ball-art").is_visible()
+            assert page.locator("#hza-hero-ball-gradient").count()==1
+            assert page.locator("#hza-ball-gradient").count()==1
             assert page.locator("#hz-admin-nav").is_hidden()
             assert page.locator("#hz-mobile-admin").is_hidden()
             assert "ADMINISTRATOR" not in page.locator("#hz-account").inner_text()
@@ -107,6 +109,8 @@ def run():
             assert "ADMINISTRATOR" not in page.locator("#hz-account").inner_text()
             push("admin",4)
             assert "ADMINISTRATOR" in page.locator("#hz-account").inner_text()
+            assert page.locator("#hz-account-role .hza-premium-word").inner_text()=="PREMIUM"
+            assert page.locator("#hz-account-role .hza-premium-word").evaluate("e=>getComputedStyle(e).color")=="rgb(255, 220, 128)"
             page.screenshot(path=str(OUT/f"admin-{width}.png"),full_page=True,animations="disabled")
             push("free",5)
             assert page.locator("#hz-admin-nav").is_hidden()
