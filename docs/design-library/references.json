@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "updated": "2026-11-27",
+  "references": [
+    {
+      "id": "M01",
+      "source_filename": "image(20261127-214418).png",
+      "intended_private_path": "Mobile/M01-original.png",
+      "width": 1610,
+      "height": 1058,
+      "bytes": 2497635,
+      "sha256": "abb6b7da05e96ccd4cdc3cd5159c5c4aa873b5076fc3ed82a851f0a6dd0bc5b8",
+      "status": "owner_approved_direction",
+      "storage": "verified_local_original_private_transfer_pending",
+      "public_repo_binary": false
+    },
+    {
+      "id": "M02",
+      "source_filename": "image(20261127-214418-1).png",
+      "intended_private_path": "Mobile/M02-original.png",
+      "width": 980,
+      "height": 1066,
+      "bytes": 1670493,
+      "sha256": "ca38dbf8f1712f2642e8913b987de59c9d58e875eb14f3aca7c43ef684861e28",
+      "status": "owner_approved_direction",
+      "storage": "verified_local_original_private_transfer_pending",
+      "public_repo_binary": false
+    }
+  ]
+}
