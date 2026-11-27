@@ -30,7 +30,10 @@ elements["hzm-model-options"].hidden=true;
 elements["hzm-match-list"].hidden=true;
 const tabs=["match","away","home"].map(chart=>({dataset:{hzmChart:chart},textContent:"",attributes:{},
   classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v}}));
-elements["hzm-chart-tabs"]={querySelectorAll(){return tabs}};
+elements["hzm-chart-tabs"]={
+  querySelectorAll(){return tabs},
+  addEventListener(type,fn){this["on_"+type]=fn}
+};
 const labTabs=["results","players"].map(view=>({dataset:{hzmView:view},attributes:{},
   classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v}}));
 elements["hzm-lab-nav"]={querySelectorAll(){return labTabs}};
@@ -44,6 +47,8 @@ vm.runInNewContext(fs.readFileSync(path.join(__dirname,"bestbets_reference_front
 const app=context.window.HoopzaroSimulations;
 let requests=0;
 app.init({selectDay(){requests++},loadGame(){requests++},loadPlayers(){requests++},premium(){requests++}});
+assert.equal(typeof elements["hzm-chart-tabs"].on_click,"function",
+  "Chart tab event delegation must be registered on the real container contract");
 const day="2026-11-14",game={id:"401000123",day,away:"NYK",home:"IND",state:"scheduled",start:"2026-11-15T01:00:00Z"};
 const home={calendar_today:day,calendar_loaded_days:[day],calendar_games:[game]};
 const bins=Array.from({length:10},(_,i)=>({x:90+i*5,p:i<5?i*2:(10-i)*2}));
