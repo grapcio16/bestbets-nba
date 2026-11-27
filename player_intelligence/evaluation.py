@@ -36,12 +36,14 @@ def _actual_rows(rows, cutoff):
     return result
 
 
-def evaluate_paired(*, forecasts, actuals, models, asof):
+def evaluate_paired(*, forecasts, actuals, models, asof, mode="prospective"):
     """First forecast per model/game/team; conditional scenarios kept separate.
 
     Forecast envelope must carry start_utc, issued_at, scenario_id and model
     output. issued_at must be the actual archived time, not backdated.
     """
+    if mode not in ("prospective", "captured_replay"):
+        raise ValueError("invalid evaluation evidence mode")
     models=tuple(models)
     if len(models)<2 or len(set(models))!=len(models):
         raise ValueError("at least two distinct model IDs required")
@@ -49,6 +51,8 @@ def evaluate_paired(*, forecasts, actuals, models, asof):
     actual=_actual_rows(actuals,cutoff)
     selected={}
     for f in forecasts:
+        if f.get("evidence_mode")!=mode:
+            raise ValueError("mixed or missing forecast evidence mode")
         p=f["projection"]
         model=p.get("model_id")
         if model not in models or p.get("status")!="shadow_conditional":
@@ -141,7 +145,7 @@ def evaluate_paired(*, forecasts, actuals, models, asof):
         paired_team_games+=int(contributed)
     def avg(x):
         return float(np.mean(x)) if x else None
-    return {"status":"paired_descriptive" if matched else "no_paired_evidence",
+    return {"evidence_mode":mode,"status":"paired_descriptive" if matched else "no_paired_evidence",
             "paired_players":matched,"played":played_count,"dnp":dnp_count,
             "paired_team_games":paired_team_games,"missing_actual_players":missing_actual,
             "unmatched_players":unmatched_players,"excluded_multiple_scenario_team_games":excluded_multiple,
