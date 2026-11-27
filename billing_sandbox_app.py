@@ -53,6 +53,14 @@ if st.button("Sprawdź konfigurację (bez płatności)"):
         else:
             st.error(name+": "+result)
 st.write("Testowana subskrypcja: 9,99 USD / miesiąc.")
+if st.button("Przygotuj nową próbę po zakończeniu subskrypcji (TEST)"):
+    try:
+        if service.prepare_retry(principal):
+            st.success("Poprzednia subskrypcja zarchiwizowana. Możesz otworzyć nową sesję Checkout.")
+        else:
+            st.info("Próba nie została zmieniona. Odśwież status.")
+    except Exception:
+        st.info("Nowa próba niedostępna. Wymagana jest powiązana subskrypcja ze statusem canceled.")
 if st.button("Utwórz lub otwórz testową sesję Checkout"):
     try:
         url=service.start(principal)
