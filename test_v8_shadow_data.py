@@ -48,6 +48,26 @@ class DataTest(unittest.TestCase):
         self.assertAlmostEqual(parsed["home_poss"],103.12,2)
         self.assertAlmostEqual(parsed["away_poss"],100.0,2)
 
+    def test_utah_espn_abbreviation_matches_canonical_team(self):
+        for canonical_side, header_index, box_index in (
+                ("home", 0, 1), ("away", 1, 0)):
+            for provider_code in ("UTAH", "UT", "UTA"):
+                with self.subTest(side=canonical_side, code=provider_code):
+                    sample = source()
+                    expected = dict(BASE, **{canonical_side: "UTA"})
+                    sample["header"]["competitions"][0]["competitors"][header_index]["team"]["abbreviation"] = provider_code
+                    sample["boxscore"]["teams"][box_index]["team"]["abbreviation"] = provider_code
+                    parsed = parse_espn_summary(sample, expected)
+                    self.assertEqual(parsed[canonical_side], "UTA")
+                    self.assertEqual(parsed["home_score"], 125)
+                    self.assertEqual(parsed["away_score"], 120)
+
+    def test_utah_alias_does_not_accept_wrong_team(self):
+        sample = source()
+        sample["header"]["competitions"][0]["competitors"][0]["team"]["abbreviation"] = "UTAH"
+        with self.assertRaisesRegex(ValueError, "team"):
+            parse_espn_summary(sample, BASE)
+
     def test_score_and_team_identity_never_inferred(self):
         sample = source()
         sample["header"]["competitions"][0]["competitors"][0]["score"] = "116"

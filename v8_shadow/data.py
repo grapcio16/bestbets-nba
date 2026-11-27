@@ -19,7 +19,7 @@ import requests
 
 SUMMARY_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary"
 ALIASES = {"GS": "GSW", "NY": "NYK", "SA": "SAS", "NO": "NOP",
-           "UT": "UTA", "PHO": "PHX", "WSH": "WAS", "BRK": "BKN"}
+           "UT": "UTA", "UTAH": "UTA", "PHO": "PHX", "WSH": "WAS", "BRK": "BKN"}
 PAIR = re.compile(r"^\s*(\d{1,3})\s*-\s*(\d{1,3})\s*$")
 
 
