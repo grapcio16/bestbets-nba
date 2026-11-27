@@ -13,7 +13,7 @@ import requests
 
 from player_intelligence.nba_boxscore import TEAMS, NBA_GAME, _int, utc, parse_regulation_boxscore
 
-SCHEDULE = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2_1.json"
+SCHEDULE = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json"
 BOX = "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{}.json"
 MAX_BYTES = 25_000_000
 
