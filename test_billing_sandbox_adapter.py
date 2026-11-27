@@ -174,11 +174,36 @@ class FakeStore:
         self.attempt=replace(a,checkout_id=sid)
     def bind_subscription(self,a,b):
         self.bound=b
-    def record_verification(self,aid,checked_at,result):
+    def prepare_retry(self,a):
+        self.prepared=a
+        return True
+    def record_verification(self,aid,checked_at,result,attempt_id=None):
         self.verifications.append((aid,checked_at,result))
         return True
 
 class ServiceTests(unittest.TestCase):
+    def test_retry_requires_terminal_bound_subscription(self):
+        from dataclasses import replace
+        principal="issuer|subject"
+        key="x"*32
+        aid=hmac.new(key.encode(),principal.encode(),hashlib.sha256).hexdigest()
+        env={"HOOPZARO_BILLING_SANDBOX_ENABLED":"true","HOOPZARO_BILLING_SANDBOX_HMAC_KEY":key,"HOOPZARO_BILLING_SANDBOX_TESTERS":aid}
+        with patch.dict(os.environ,env,clear=True):
+            store=FakeStore(aid);api=API()
+            service=SandboxService(store,api,"price_fixture","prod_fixture",URL)
+            store.attempt=replace(store.attempt,checkout_id="cs_test_fixture",customer_id="cus_fixture",subscription_id="sub_fixture")
+            for status in ("active","past_due","paused","incomplete","unpaid"):
+                api.objects["sub_fixture"]["status"]=status
+                with self.assertRaises(BillingError): service.prepare_retry(principal)
+            api.objects["sub_fixture"]["status"]="canceled"
+            with self.assertRaises(BillingError): service.prepare_retry("issuer|other")
+            api.objects["sub_fixture"]["customer"]="cus_other"
+            with self.assertRaises(BillingError): service.prepare_retry(principal)
+            api.objects["sub_fixture"]["customer"]="cus_fixture"
+            self.assertTrue(service.prepare_retry(principal))
+            self.assertEqual(store.prepared,store.attempt)
+            self.assertEqual(api.requests,[])
+
     def test_url_failure_saves_session_and_resume_never_creates_again(self):
         from billing_sandbox_adapter import CheckoutStageError
         principal="issuer|subject"
