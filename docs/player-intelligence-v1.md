@@ -42,3 +42,19 @@ a new complete-rotation cohort against those selected rows without matching.
    and avoiding double counting team form. No public UI or payment changes.
 
 Current scope: offline calculation and tests only, no live integration.
+
+## 27 November — evidence adapter
+Initial rotation CI on 9e5ab48 passed 10/10 tests, run 46029884335.
+Added an offline NBA CDN regulation-final adapter. It requires independently
+verified fixture IDs, explicit UTC timestamps, final status, four periods,
+matching teams, score and tipoff, unique NBA person IDs, complete played
+statistics, and reconciled player points and team minutes (10-second
+rounding tolerance). Explicit played=0 may provide a DNP record; missing
+played/minute fields do not become zero. Namespaced NBA IDs cannot be
+joined directly with ESPN IDs. Availability must now carry the exact
+fixture ID. No network request, write, source licensing approval, or
+live-schema validation is implied by this synthetic contract. A strict
+adapter may reject genuine records if source schemas differ or timestamps
+are rescheduled; document rejection coverage rather than silently relaxing
+validation. Need a real sample and roster/availability capture contract.
+Latest offline tests require CI verification.
