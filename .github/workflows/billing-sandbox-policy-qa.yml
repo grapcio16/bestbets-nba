@@ -19,8 +19,8 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install 'stripe>=11,<13'
-      - run: python -m py_compile billing_sandbox_policy.py billing_sandbox_adapter.py billing_sandbox_store.py billing_sandbox_webhook.py billing_sandbox_app.py
-      - run: python -m unittest -v test_billing_sandbox_policy test_billing_sandbox_adapter
+      - run: python -m py_compile billing_sandbox_policy.py billing_sandbox_adapter.py billing_sandbox_store.py billing_sandbox_webhook.py billing_sandbox_app.py billing_sandbox_config.py
+      - run: python -m unittest -v test_billing_sandbox_policy test_billing_sandbox_adapter test_billing_sandbox_config
   sandbox-postgres:
     runs-on: ubuntu-latest
     timeout-minutes: 5
