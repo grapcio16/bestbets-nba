@@ -8,7 +8,7 @@ import json
 import re
 import time
 from datetime import datetime,timezone
-from urllib.parse import urlencode,urlsplit
+from urllib.parse import urlencode,urlsplit,unquote
 from urllib.request import Request,build_opener,HTTPRedirectHandler
 from urllib.error import HTTPError
 from billing_sandbox_policy import CheckoutBinding,SandboxEvidence,decide_sandbox_access,Decision
@@ -73,10 +73,22 @@ def approved_return_url(url):
     return url
 
 def checkout_url(url,session_id):
-    require(isinstance(url,str) and len(url)<=4096)
-    u=urlsplit(url)
+    # Stripe returns an opaque hosted URL from its authenticated API.
+    # Do not reconstruct it or reject its optional query/fragment. Restrict
+    # origin and bind its final path component to the verified test session.
+    ident(session_id,"cs_test_")
+    require(isinstance(url,str) and 0<len(url)<=16384
+            and not re.search(r"[\\\x00-\x20\x7f]",url))
+    try:
+        u=urlsplit(url)
+        segments=u.path.split("/")
+        decoded=unquote(segments[-1],errors="strict")
+    except (ValueError,UnicodeError):
+        raise BillingError("Sandbox evidence invalid") from None
     require(u.scheme=="https" and u.netloc=="checkout.stripe.com"
-            and u.path=="/c/pay/"+session_id and not u.query)
+            and segments[0]=="" and 3<=len(segments)<=5
+            and all(re.fullmatch(r"[a-zA-Z0-9_-]+",s) for s in segments[1:-1])
+            and decoded==session_id)
     return url
 
 class StripeTestAPI:
@@ -116,7 +128,7 @@ class StripeTestAPI:
     def get(self,kind,id,prefix):
         return test_object(self.request("/v1/"+kind+"/"+ident(id,prefix)),id)
 
-def create_checkout(api,attempt_id,price_id,product_id,return_url):
+def create_checkout(api,attempt_id,price_id,product_id,return_url,save_session=None):
     require(re.fullmatch(r"[0-9a-f-]{36}",attempt_id) is not None)
     ident(price_id,"price_");ident(product_id,"prod_")
     approved_return_url(return_url)
@@ -141,6 +153,10 @@ def create_checkout(api,attempt_id,price_id,product_id,return_url):
         raise CheckoutStageError("session_not_open")
     if s.get("currency")!=CURRENCY or s.get("amount_total")!=PRICE:
         raise CheckoutStageError("session_currency_or_amount")
+    # Persist the verified session before inspecting its URL, so a URL error
+    # can never force a new checkout or lose the existing session binding.
+    if save_session is not None:
+        save_session(sid)
     try:
         url=checkout_url(s.get("url"),sid)
     except BillingError:
