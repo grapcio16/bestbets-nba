@@ -24,10 +24,10 @@ STATUSES = {"available", "out", "questionable", "doubtful", "probable", "unknown
 
 
 def _time(value):
-    t = pd.to_datetime(value, utc=True, errors="coerce")
-    if pd.isna(t):
-        raise ValueError("missing/invalid UTC timestamp")
-    return t
+    t = pd.Timestamp(value)
+    if pd.isna(t) or t.tzinfo is None:
+        raise ValueError("missing/invalid explicit UTC timestamp")
+    return t.tz_convert("UTC")
 
 
 def _number(value, upper):
@@ -120,7 +120,7 @@ def project_rotation(*, game, team, asof, roster, logs, availability,
 
     roster: {team, observed_at, complete_verified, players:[{player_id}]}.
     logs: per-player verified final game records, with observation time.
-    availability: explicit team + ID + status + observation timestamp.
+    availability: explicit fixture ID + team + player ID + status + timestamp.
     Assumptions must resolve every unconfirmed player; no invented probability.
     """
     cutoff = _time(asof)
@@ -142,7 +142,8 @@ def project_rotation(*, game, team, asof, roster, logs, availability,
         raise ValueError("conflicting or unknown scenario assumption")
     latest = {}
     for row in availability:
-        if row.get("team") != team or row.get("player_id") not in ids:
+        if (row.get("team") != team or row.get("player_id") not in ids
+                or row.get("game_id") != gid):
             continue
         stamp = _time(row["observed_at"])
         if not cutoff-MAX_STATUS_AGE <= stamp <= cutoff or row.get("verified") is not True:
