@@ -36,7 +36,33 @@ function loadedGames(data,day){
   (!Array.isArray(data?.calendar_games) && Array.isArray(data?.games));
  return {games:matches,known:known,error:""};
 }
-function changeDay(direction){
+// Only a verified empty current/future date may show a later fixture.
+ // Walk consecutive covered days, so a missing day is never silently skipped.
+ function nextGameOnEmptyDay(data,day,today){
+  const covered=Array.isArray(data?.calendar_loaded_days)?data.calendar_loaded_days:[];
+  const extras=data?.calendar_extras||{};
+  const complete=date=>Object.prototype.hasOwnProperty.call(extras,date)
+    ?extras[date]?.complete===true&&!extras[date]?.error
+    :covered.includes(date);
+  if(!data||data.error||data.stale||day<today||!complete(day))return null;
+  const current=loadedGames(data,day);
+  if(current.error||current.games.length)return null;
+  for(let i=1;i<=8;i++){
+   const date=offsetDay(day,i);
+   if(date===day||!complete(date))return null;
+   const candidate=loadedGames(data,date);
+   if(candidate.error)return null;
+   if(!candidate.games.length)continue;
+   const upcoming=candidate.games.filter(g=>g.state==="scheduled"&&
+     dayFromTimestamp(g.start)===date&&Number.isFinite(Date.parse(g.start))&&
+     g.id&&g.away&&g.home&&g.away!==g.home&&g.away!=="NBA"&&g.home!=="NBA")
+     .sort((a,b)=>Date.parse(a.start)-Date.parse(b.start));
+   return upcoming[0]||null;
+  }
+  return null;
+ }
+ let renderedDayRows=[];
+ function changeDay(direction){
  if(!homeData)return;
  const next=offsetDay(selectedDay,direction);
  if(!next || next===selectedDay)return;
@@ -156,6 +182,7 @@ function renderTicker(data){
 }
 function renderGames(data){
  const host=$("bc-games-list");if(!host)return;
+ renderedDayRows=[];
  const today=data?.calendar_today||
     (data?.games?.[0]&&dayOfGame(data.games[0]))||dayFromTimestamp(new Date().toISOString());
  if(!selectedDay)selectedDay=data?.calendar_requested_day||today;
@@ -189,7 +216,8 @@ function renderGames(data){
      :'Wybierz datę, aby pobrać spotkania.')+'</div>';
   return;
  }
- const games=day.games;
+ const fallback=day.games.length?null:nextGameOnEmptyDay(data,selectedDay,today);
+ const games=fallback?[fallback]:day.games;
  if(!games.length){
   host.innerHTML='<div class="bc-muted">'+(day.error
     ?escapeHtml(day.error)
@@ -197,7 +225,10 @@ function renderGames(data){
     :'Brak spotkań NBA '+escapeHtml(selectedDay)+'.')+'</div>';
   return;
  }
- host.innerHTML=games.slice(0,20).map((g,i)=>{
+ renderedDayRows=games.slice(0,20);
+ const note=fallback?'<div class="bc-muted">Brak meczów '+escapeHtml(displayDay(selectedDay))+' · Najbliższy: '+escapeHtml(displayDay(dayOfGame(fallback)))+' ('+escapeHtml(dayOfGame(fallback))+')</div>':"";
+ if(fallback&&title)title.setAttribute("aria-label","Brak meczów "+selectedDay+". Najbliższy zaplanowany mecz: "+dayOfGame(fallback));
+ host.innerHTML=note+renderedDayRows.map((g,i)=>{
    const scored=(g.state==="final"||g.state==="live");
    const valid=(g.away_score!=null && g.home_score!=null);
    const result=scored
@@ -603,7 +634,7 @@ function gameDetails(g){
  if(!g)return;
  const kick=localTime(g.start);
  const description=(g.state==="live"?"Mecz trwa":g.state==="final"?"Mecz zakończony":"Mecz zaplanowany")+
-  ".\n"+g.away+" vs "+g.home+" · "+kick+
+  ".\n"+g.away+" vs "+g.home+" · "+dayOfGame(g)+" · "+kick+
   (g.state!=="scheduled" && g.away_score!=null && g.home_score!=null
    ? "\nWynik: "+g.away+" "+g.away_score+" – "+g.home_score+" "+g.home_score:"")+
    "\nŹródło: "+(homeData&&homeData.source||"NBA / ESPN");
@@ -758,8 +789,7 @@ function init(context){
   if(button.matches("[data-centre-close]")){close();return}
   const row=button.getAttribute("data-centre-row");
   if(row!=null){
-    const day=loadedGames(homeData,selectedDay);
-    gameDetails(day.games&&day.games[Number(row)]);return
+    gameDetails(renderedDayRows[Number(row)]);return
   }
   const idx=button.getAttribute("data-centre-game");
   if(idx!=null){gameDetails(homeData&&homeData.ticker&&homeData.ticker[Number(idx)]);return}
