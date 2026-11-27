@@ -1,0 +1,49 @@
+name: Billing sandbox policy QA
+on:
+  pull_request:
+    paths:
+      - 'billing_sandbox*.py'
+      - 'test_billing_sandbox*.py'
+      - 'migrations/billing_sandbox_v1.sql'
+      - 'test_billing_sandbox_policy.py'
+      - '.github/workflows/billing-sandbox-policy-qa.yml'
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'stripe>=11,<13'
+      - run: python -m py_compile billing_sandbox_policy.py billing_sandbox_adapter.py billing_sandbox_store.py billing_sandbox_webhook.py billing_sandbox_app.py
+      - run: python -m unittest -v test_billing_sandbox_policy test_billing_sandbox_adapter
+  sandbox-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: fixture
+          POSTGRES_DB: hoopzaro_billing_sandbox
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      HOOPZARO_CI_DISPOSABLE_PG: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'psycopg[binary]>=3.2,<4'
+      - run: python -m unittest -v test_billing_sandbox_postgres
