@@ -10,6 +10,7 @@ from datetime import datetime,timezone,timedelta
 OWNER="postgresql://postgres:fixture@127.0.0.1:5432/hoopzaro_billing_sandbox"
 APP="postgresql://hz_billing_sandbox_app:fixture@127.0.0.1:5432/hoopzaro_billing_sandbox"
 HOOK="postgresql://hz_billing_sandbox_webhook:fixture@127.0.0.1:5432/hoopzaro_billing_sandbox"
+WORKER="postgresql://hz_billing_sandbox_reconcile:fixture@127.0.0.1:5432/hoopzaro_billing_sandbox"
 @unittest.skipUnless(os.environ.get("HOOPZARO_CI_DISPOSABLE_PG")=="true","CI only")
 class BillingStoreTests(unittest.TestCase):
     def test_persist_and_isolate(self):
@@ -18,6 +19,8 @@ class BillingStoreTests(unittest.TestCase):
             c.execute("CREATE ROLE hz_billing_sandbox_webhook LOGIN PASSWORD 'fixture'")
             c.execute(Path("migrations/billing_sandbox_v1.sql").read_text())
             c.execute(Path("migrations/billing_sandbox_lifecycle_v1.sql").read_text())
+            c.execute("CREATE ROLE hz_billing_sandbox_reconcile LOGIN PASSWORD 'fixture'")
+            c.execute(Path("migrations/billing_sandbox_reconcile_v1.sql").read_text())
         store=Store(APP)
         a=store.reserve("a"*64)
         self.assertEqual(a.attempt_id,store.reserve("a"*64).attempt_id)
@@ -49,6 +52,15 @@ class BillingStoreTests(unittest.TestCase):
                 cur.execute("INSERT INTO hz_sandbox_webhook_events(event_id,event_type) VALUES ('evt_fixture','invoice.paid') ON CONFLICT(event_id) DO NOTHING")
         with psycopg.connect(OWNER) as c:
             self.assertEqual(c.execute("SELECT count(*) FROM hz_sandbox_webhook_events").fetchone()[0],1)
+        from billing_sandbox_reconcile import verify_role
+        verify_role(WORKER)
+        worker=Store(WORKER)
+        self.assertEqual(worker.get(a.account_id).subscription_id,"sub_fixture")
+        self.assertTrue(worker.record_verification(a.account_id,now+timedelta(seconds=3),denied))
+        for sql in ("DELETE FROM hz_sandbox_verification","INSERT INTO hz_sandbox_checkout(account_id,attempt_id) VALUES ('x',gen_random_uuid())","UPDATE hz_sandbox_checkout SET checkout_id=NULL","SELECT * FROM hz_sandbox_webhook_events"):
+            with self.subTest(sql=sql),self.assertRaises(psycopg.errors.InsufficientPrivilege):
+                with db(WORKER) as cur:
+                    cur.execute(sql)
         for url,sql in ((APP,"DELETE FROM hz_sandbox_verification"),(APP,"DELETE FROM hz_sandbox_checkout"),(APP,"UPDATE hz_sandbox_checkout SET account_id='x'"),(APP,"SELECT * FROM hz_sandbox_webhook_events"),(HOOK,"SELECT * FROM hz_sandbox_checkout")):
             with self.subTest(sql=sql),self.assertRaises(psycopg.errors.InsufficientPrivilege):
                 with psycopg.connect(url) as c:
