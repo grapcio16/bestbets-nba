@@ -32,6 +32,20 @@ def run(conn, apply=False):
             results[label]=cur.fetchone()[0]
         return results
 
+def verify_runner(conn):
+    """Metadata-only check. Never calls the cleanup function."""
+    row=conn.execute("""SELECT current_database(),current_user,
+        has_schema_privilege(current_user,'hz_retention','USAGE'),
+        has_function_privilege(current_user,'hz_retention.cleanup()','EXECUTE'),
+        NOT EXISTS (SELECT 1 FROM pg_catalog.pg_class c
+          JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+          WHERE n.nspname='public' AND c.relkind IN ('r','p')
+            AND (has_table_privilege(current_user,c.oid,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE')
+                 OR has_any_column_privilege(current_user,c.oid,'SELECT,INSERT,UPDATE')))""").fetchone()
+    if row!=("hoopzaro_analytics","hz_retention_runner",True,True,True):
+        raise RuntimeError("Unexpected retention execution role or privileges")
+    return True
+
 def main():
     import json
     import psycopg
@@ -45,10 +59,17 @@ def main():
                 conn.execute("SET TRANSACTION READ ONLY")
             else:
                 conn.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")
-                if conn.execute("SELECT current_user").fetchone()[0]!="hz_retention_runner":
-                    raise RuntimeError("Unexpected retention execution role")
+                verify_runner(conn)
             result=run(conn,apply=apply)
-        print(json.dumps({"applied":apply,"counts":result},sort_keys=True))
+        runner_verified=False
+        if not apply:
+            runner_url=os.environ.get("HOOPZARO_RETENTION_EXECUTE_URL","").strip()
+            if runner_url:
+                with psycopg.connect(runner_url,connect_timeout=5) as conn:
+                    conn.execute("SET TRANSACTION READ ONLY")
+                    conn.execute("SET LOCAL statement_timeout='5s'")
+                    runner_verified=verify_runner(conn)
+        print(json.dumps({"applied":apply,"counts":result,"runner_verified":apply or runner_verified},sort_keys=True))
     except Exception:
         raise SystemExit("Retention failed; transaction rolled back") from None
 
