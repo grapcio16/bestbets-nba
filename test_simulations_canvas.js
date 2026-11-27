@@ -86,12 +86,21 @@ assert.equal(elements["hzm-lab-range"].textContent,"Przedział 80%: —",
 
 app.render(home,{entitled:true,game:fakeGame,players:fakePlayers});
 assert.equal(elements["hzm-score"].textContent,"117 : 112");
+const selectResultTeam=team=>elements["simulations-pane"].on_click({
+  target:{closest(selector){return selector==="[data-hzm-result-team]"?{dataset:{hzmResultTeam:team}}:null;}}
+});
+selectResultTeam("home");
+assert.equal(elements["hzm-result-team-home"].attributes["aria-pressed"],"true");
+assert.match(elements["hzm-player-rows"].innerHTML,/Test Athlete 2\b/);
+assert.doesNotMatch(elements["hzm-player-rows"].innerHTML,/Test Athlete 1\b/);
+selectResultTeam("all");
 assert.equal(elements["hzm-away-average"].textContent,"116,8");
 assert.equal(elements["hzm-home-average"].textContent,"111,6");
 assert.match(elements["hzm-plot"].innerHTML,/<svg/);
 assert.match(elements["hzm-lab-range"].textContent,/102,0 – 131,0 pkt/,
   "Premium range derives from verified model P10/P90");
-assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,4);
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,5,
+  "Results preview contains the five highest PTS projections");
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="#hzm-expand-players"?{}:null;
 }}});
@@ -152,13 +161,16 @@ const v75Players={...fakePlayers,model_id:"research_context_v75",players:[
   {name:"Sample Guard",team:"NYK",pts:22,reb:5,ast:8,minutes:31.5,minutes_sample:6,availability:"Questionable"},
 ]};
 app.render(home,{entitled:true,game:advanced,players:v75Players});
-assert.match(elements["hzm-player-headings"].innerHTML,/MIN/);
+assert.doesNotMatch(elements["hzm-player-headings"].innerHTML,/MIN/,
+  "Results preview retains the PTS/REB/AST/PRA columns");
 assert.match(elements["hzm-player-rows"].innerHTML,/OUT \(ESPN\)/);
 assert.match(elements["hzm-player-rows"].innerHTML,/31,5/);
 assert.match(elements["hzm-player-rows"].innerHTML,/Questionable/);
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="[data-hzm-view]"?{dataset:{hzmView:"players"}}:null;
 }}});
+assert.match(elements["hzm-player-headings"].innerHTML,/MIN/,
+  "V7.5 detailed legacy player view exposes its minute estimates");
 // The new roster sorts by the active market: OUT has no projection and
 // therefore appears last, but remains explicitly selectable from the list.
 elements["hzm-player-rows"].on_click({target:{closest(selector){
@@ -220,7 +232,8 @@ elements["simulations-pane"].on_click({target:{closest(selector){
 }}});
 assert.equal(elements["simulations-pane"].dataset.hzmView,"results");
 assert.equal(elements["hzm-lab-main"].attributes["aria-labelledby"],"hzm-lab-tab-results");
-assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,4);
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,5,
+  "Results preview contains the five highest PTS projections");
 elements["hzm-expand-players"].on_click({stopPropagation(){}});
 assert.equal(elements["hzm-expand-players"].attributes["aria-expanded"],"true");
 assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,14);
