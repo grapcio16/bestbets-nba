@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   reconcile:
-    if: vars.HOOPZARO_BILLING_RECONCILE_ENABLED == 'true'
+    if: github.ref == 'refs/heads/main' && vars.HOOPZARO_BILLING_RECONCILE_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
