@@ -51,8 +51,16 @@ def run():
                 page.evaluate("window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0")
             page.screenshot(path=str(OUT/f"players-{width}.png"),animations="disabled")
             expect(page.locator("#hzp-cta-text")).to_contain_text("Historia występów")
+            if not mobile:
+                spotlight=page.locator(".hzp-spotlight").bounding_box()
+                listing=page.locator(".hzp-table-card").bounding_box()
+                assert spotlight["y"]+spotlight["height"]<=listing["y"]
+                assert abs(spotlight["width"]-listing["width"])<2
             navigate("teams")
             expect(page.locator(".hzt-team-card")).to_have_count(9)
+            payload["home"]={"form_available":True,"form_period":"2026/27","form_options":[{"team":"MIN","record_verified":True,"wins":14,"losses":5},{"team":"BOS","record_verified":False,"wins":12,"losses":6}]}
+            page.evaluate("d=>window.postMessage({type:'streamlit:render',args:{payload:d}},'*')",payload)
+            expect(page.locator("#hzt-feature-win-pct")).to_have_text("—")
             page.locator("#hzt-search").fill("Minnesota")
             card=page.locator('[data-hzt-team="MIN"]')
             expect(card).to_have_count(1)
@@ -62,6 +70,17 @@ def run():
             page.locator("#hzt-modal-close").click()
             expect(page.locator("#hzt-feature-name")).to_have_text("Minnesota Timberwolves")
             expect(page.locator("#hzt-feature-name")).to_have_class("hzt-long-name")
+            expect(page.locator("#hzt-feature-games")).to_have_text("19")
+            expect(page.locator("#hzt-feature-record")).to_have_text("14–5")
+            expect(page.locator("#hzt-feature-win-pct")).to_have_text("73,7%")
+            page.locator("#hzt-feature-open").click()
+            expect(page.locator("#hzt-modal-name")).to_have_text("Minnesota Timberwolves")
+            page.locator("#hzt-modal-close").click()
+            if not mobile:
+                spot=page.locator(".hzt-spotlight").bounding_box()
+                grid=page.locator(".hzt-team-grid").bounding_box()
+                assert abs(spot["width"]-grid["width"])<2
+                assert spot["y"]+spot["height"]<=grid["y"]
             assert page.locator(".hzt-spotlight").evaluate("e=>getComputedStyle(e).getPropertyValue('--hzt-spotlight-accent').trim()")=="#66a6eb"
             assert page.locator("#hzt-feature-conference").evaluate("e=>getComputedStyle(e).color")=="rgb(102, 166, 235)"
             page.locator("#hzt-search").fill("")
