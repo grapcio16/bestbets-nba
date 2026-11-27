@@ -1,0 +1,41 @@
+name: Usage pilot — baseline comparison
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'usage_analytics_pilot.py'
+      - 'bestbets_custom_screen.py'
+      - 'bestbets_reference_frontend/index.html'
+      - '.github/workflows/usage-pilot-baseline.yml'
+permissions:
+  contents: read
+jobs:
+  browser-comparison:
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [production-base, pilot-head]
+        check: [reference, flow, game-center]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.revision == 'production-base' && github.event.pull_request.base.sha || github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - if: matrix.check == 'flow'
+        run: pip install -r requirements.txt 'playwright>=1.58,<2'
+      - if: matrix.check == 'reference'
+        run: pip install 'playwright>=1.58,<2'
+      - if: matrix.check != 'game-center'
+        run: python -m playwright install --with-deps chromium
+      - if: matrix.check == 'reference'
+        run: python test_browser_reference_v10.py
+      - if: matrix.check == 'flow'
+        run: python test_flow_match_browser.py
+      - if: matrix.check == 'game-center'
+        run: |
+          node test_game_center_premium.js
+          node test_schedule_board.js
+          node test_simulations_canvas.js

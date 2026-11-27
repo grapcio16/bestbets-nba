@@ -488,15 +488,16 @@ def main() -> None:
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
     # Streamlit sessions can survive a login/logout round trip. Never send a
     # previous account's cached paid results to a different authenticated user.
-    from account_registry import (account_database_url, registry_enabled, free_props_enabled,
-        utc_quota_day, can_show_free_result, observe_current_account, reserve_free_props, refund_failed_props)
-    from usage_analytics import enabled as usage_enabled, observe as observe_usage, measured
+    from account_registry import (account_database_url, free_props_enabled,
+        utc_quota_day, can_show_free_result, reserve_free_props, refund_failed_props)
+    from usage_analytics_pilot import enabled as pilot_enabled, observe, observe_account, measured, audience_available, set_consent, refresh_consent, end_consent, notice_url, CONSENT_VERSION
     principal = current_principal()
+    refresh_consent(st.session_state,principal,current_role())
     if st.session_state.get("bb10_premium_principal") != principal:
         st.session_state.pop("bb10_free_props_day", None)
         st.session_state.pop("bb10_account_observed_at", None)
-        for telemetry_key in ("hz_usage_session", "hz_usage_last", "hz_usage_page"):
-            st.session_state.pop(telemetry_key, None)
+        for telemetry_key in ("hz_usage_session","hz_usage_last","hz_account_last","hz_usage_consent","hz_usage_role","hz_account_role","hz_usage_pending"):
+            st.session_state.pop(telemetry_key,None)
         # Player Props is paid output too. It must not survive logout or a
         # switch between two accounts that both happen to have Premium.
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
@@ -547,23 +548,18 @@ def main() -> None:
     has_premium = premium_entitled()
     role = current_role()
     is_admin = role == "admin"
-    if usage_enabled() and not st.session_state.get("hz_usage_session"):
-        observe_usage(st.session_state, "home", role)
+    if pilot_enabled():
+        if not st.session_state.get("hz_usage_session"):
+            observe(st.session_state,"home")
+        observe_account(st.session_state,principal)
+    # Only the consent-aware pilot observes optional account activity.
+    # Essential quota reservations are a distinct, server-only operation.
     free_enabled = free_props_enabled()
     today_utc = utc_quota_day()
     if role != st.session_state.get("bb10_props_role"):
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
         st.session_state.pop("bb10_free_props_day", None)
         st.session_state["bb10_props_role"] = role
-    if registry_enabled() and role in ("free","premium","admin"):
-        last = st.session_state.get("bb10_account_observed_at", 0)
-        if not last or time.monotonic()-last >= 1800:
-            # Observations are optional, never an entitlement source.
-            st.session_state["bb10_account_observed_at"] = time.monotonic()
-            try:
-                observe_current_account(account_database_url())
-            except Exception:
-                pass
     free_result = can_show_free_result(role,free_enabled,
         st.session_state.get("bb10_free_props_day"),today_utc)
     if not (has_premium or free_result) and st.session_state["bb10_payload"].get("player") is not None:
@@ -571,7 +567,12 @@ def main() -> None:
         st.session_state["bb10_payload"] = {"player": None, "error": ""}
     payload = {
         "brand": _cached_brand(),
-        "usage_enabled": usage_enabled(),
+        "usage_enabled": pilot_enabled(),
+        "usage_consent_available": audience_available() and not is_admin,
+        "usage_consent_granted": pilot_enabled() and not is_admin,
+        "usage_consent_status": st.session_state.get("hz_consent_status","off") if not is_admin else "off",
+        "usage_notice_url": notice_url() if audience_available() else "",
+        "usage_notice_version": CONSENT_VERSION if audience_available() else "",
         "auth": {**auth_context(), "session_epoch": st.session_state.get("bb10_identity_epoch", 0)},
         "premium_checkout_url": premium_checkout_url(),
         "player": st.session_state["bb10_payload"].get("player") if (has_premium or free_result) else None,
@@ -614,18 +615,33 @@ def main() -> None:
     if not event_id or event_id == st.session_state.get("bb10_last_event"):
         return
     st.session_state["bb10_last_event"] = event_id
-    page = event.get("usage_page")
-    if isinstance(page, str):
-        observe_usage(st.session_state, page, role)
+    if event.get("type") == "usage_consent":
+        accepted=event.get("accepted")
+        if accepted is True and (event.get("notice_version")!=CONSENT_VERSION or
+                type(event.get("consent_epoch")) is not int or
+                event.get("consent_epoch")!=st.session_state.get("bb10_identity_epoch",0)):
+            return
+        if not is_admin and set_consent(st.session_state,accepted,principal):
+            if accepted is True and pilot_enabled():
+                observe(st.session_state,"settings")
+                observe_account(st.session_state,principal)
+            st.rerun()
+        return
+    if pilot_enabled():
+        observe(st.session_state,event.get("usage_page"),event.get("usage_pages"))
     if event.get("type") == "usage_sample":
         return
     if event.get("type") == "auth_login":
         if auth_configured():
+            if not is_admin:
+                end_consent(st.session_state,"identity_changed")
             provider = login_provider()
             st.login(provider) if provider else st.login()
         return
     if event.get("type") == "auth_logout":
         if auth_configured() and bool(getattr(st.user, "is_logged_in", False)):
+            if not is_admin:
+                end_consent(st.session_state,"logout")
             st.logout()
         return
     if event.get("type") == "admin_control_center":
@@ -974,7 +990,7 @@ def main() -> None:
                     from bestbets_simulations_canvas import _minute_roster_for_fixture
                     _minute_roster_for_fixture.clear(
                         str(selected["away"]), str(selected["home"]))
-        result = measured("player_simulation" if is_players else "simulation", simulation_for_entitled_user,
+        result = measured("player_simulation" if event.get("type")=="premium_sim_players" else "simulation", simulation_for_entitled_user,
             day, game_id, players=is_players, model_id=model_id)
         key = "bb10_premium_players" if is_players else "bb10_premium_game"
         st.session_state[key] = {"date": day, "game_id": game_id,

@@ -470,6 +470,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
         <button type="button" id="hz-account-login" hidden>Zaloguj się</button>
         <button type="button" id="hz-account-logout" hidden>Wyloguj się</button>
       </div>
+      <div id="hz-usage-privacy" hidden style="margin-top:18px;padding-top:15px;border-top:1px solid #264b73"><strong style="font-size:16px">Opcjonalna analityka użytkowania</strong><p style="font-size:13px;line-height:1.5">Pomóż nam ulepszać Hoopzaro. Po wyrażeniu zgody zapisujemy pseudonimowy identyfikator konta (jeśli jesteś zalogowany), rolę, sesje, odwiedzane zakładki oraz zagregowane wywołania funkcji i czasy działania. Nie zapisujemy treści zapytań, e-maila ani adresu IP w tej analityce. Sesje: 30 dni; nieaktywne konta i agregaty funkcji: do 90 dni, z wyjątkami dla danych niezbędnych do obsługi konta. Zgoda jest dobrowolna, dotyczy bieżącej sesji (maksymalnie 24 godziny) i nie zmienia dostępu do aplikacji. Zapisujemy również minimalny dowód zgody oraz jej wycofania. Możesz ją wycofać tutaj.</p><p><a id="hz-usage-notice" target="_blank" rel="noopener noreferrer" style="color:#65d8ff" hidden>Polityka prywatności</a></p><div class="hz-account-actions"><button type="button" id="hz-usage-allow">Zezwól na analitykę</button><button type="button" id="hz-usage-deny">Nie zezwalaj / wycofaj</button></div><small id="hz-usage-status" aria-live="polite"></small></div>
       <small id="hz-account-note">Dostęp Premium wymaga zatwierdzonej subskrypcji. Administrator ma bezpłatny dostęp.</small>
     </div>
   </section>
@@ -1486,19 +1487,40 @@ function closePremiumPaywall(){
   if(!$("hzt-modal-backdrop").hidden)$("hzt-modal-close").focus();
   else $("query").focus();
 }
-let hzUsageLastMessage=0;
+let hzPilotLastSample=Date.now();
+let hzLastInteraction=Date.now();
+const hzAllowedPages=new Set(["home","props","games","simulations","players","teams","settings"]);
+const hzPendingPages=new Set();
+let hzObservedPage=null;
+function hzQueuePage(){
+  if(!state.payload?.usage_enabled){
+    hzPendingPages.clear();hzObservedPage=null;return;
+  }
+  if(document.visibilityState!=="visible" || !hzAllowedPages.has(state.page))return;
+  if(hzObservedPage!==state.page){
+    hzPendingPages.add(state.page);hzObservedPage=state.page;
+  }
+}
 function notify(type,extra){
-  if(type==="streamlit:setComponentValue" && extra && extra.value && state.payload?.usage_enabled){
-    extra={...extra,value:{...extra.value,usage_page:state.page}};
-    hzUsageLastMessage=Date.now();
+  if(type==="streamlit:setComponentValue" && extra && extra.value && state.payload?.usage_enabled &&
+      document.visibilityState==="visible" && hzAllowedPages.has(state.page) && Date.now()-hzLastInteraction<=120000){
+    hzQueuePage();
+    extra={...extra,value:{...extra.value,usage_page:state.page,usage_pages:[...hzPendingPages]}};
+    hzPendingPages.clear();
+    hzPilotLastSample=Date.now();
   }
   window.parent.postMessage(Object.assign({isStreamlitMessage:true,type:type},extra||{}),"*");
 }
-// Low-frequency visible-tab samples, not exact page views or dwell time.
-// Piggyback on ordinary feature events; avoid an extra message during searches.
+// Sample only a visible, recently interacted-with tab. Batch short visits
+// rather than forcing a server rerun for each navigation click.
+for(const eventName of ["pointerdown","keydown","touchstart","wheel"]){
+  document.addEventListener(eventName,()=>{hzLastInteraction=Date.now()},{passive:true});
+}
 setInterval(function(){
   if(!state.payload?.usage_enabled || document.visibilityState!=="visible" || state.loading ||
-     state.page==="admin" || Date.now()-hzUsageLastMessage<90000)return;
+     !hzAllowedPages.has(state.page) || Date.now()-hzLastInteraction>120000)return;
+  const interval=hzPendingPages.size?30000:90000;
+  if(Date.now()-hzPilotLastSample<interval)return;
   notify("streamlit:setComponentValue",{dataType:"json",value:{
     type:"usage_sample",id:String(Date.now())+"-usage"
   }});
@@ -1848,6 +1870,7 @@ function render(){
   if(teams&&window.HoopzaroTeams)window.HoopzaroTeams.render(state.payload.home||null,state.payload.premium_team_analytics||null,role);
   if(admin&&window.HoopzaroAdmin)window.HoopzaroAdmin.render(state.payload.admin_report||null,state.adminLoading);
   if(active)renderPlayer();
+  hzQueuePage();
   resize();
 }
 function renderAccount(){
@@ -1866,6 +1889,14 @@ function renderAccount(){
     :"Logowanie będzie dostępne po konfiguracji bezpiecznego dostawcy tożsamości.");
   $("hz-account-login").hidden=!auth.configured||!!auth.logged_in;
   $("hz-account-logout").hidden=!auth.configured||!auth.logged_in;
+  const privacy=$("hz-usage-privacy");
+  privacy.hidden=!state.payload.usage_consent_available;
+  const granted=state.payload.usage_consent_granted===true;
+  const notice=$("hz-usage-notice"), noticeUrl=state.payload.usage_notice_url||"";
+  notice.hidden=!noticeUrl;notice.href=noticeUrl||"#";
+  const status=state.payload.usage_consent_status;
+  $("hz-usage-allow").disabled=granted||status==="withdrawal_pending"||!noticeUrl;
+  $("hz-usage-status").textContent=granted?"Analityka włączona dla tej sesji.":status==="unavailable"?"Nie udało się zapisać zgody. Analityka pozostaje wyłączona.":status==="withdrawal_pending"?"Analityka wyłączona. Zapis wycofania oczekuje na ponowną próbę.":"Analityka wyłączona.";
 }
 function sendAuth(action){
   notify("streamlit:setComponentValue",{dataType:"json",value:{
@@ -2172,6 +2203,13 @@ if(window.HoopzaroSimulations){
     backToProps:returnFromSimulations
   });
 }
+function sendUsageConsent(accepted){
+  if(!state.payload.usage_consent_available)return;
+  if(!accepted){state.payload.usage_enabled=false;state.payload.usage_consent_granted=false;}
+  notify("streamlit:setComponentValue",{dataType:"json",value:{type:"usage_consent",accepted:accepted,notice_version:state.payload.usage_notice_version,consent_epoch:state.payload.auth?.session_epoch,id:String(Date.now())+"-consent-"+Math.random().toString(36).slice(2)}});
+}
+$("hz-usage-allow").addEventListener("click",()=>sendUsageConsent(true));
+$("hz-usage-deny").addEventListener("click",()=>sendUsageConsent(false));
 $("hz-account-login").addEventListener("click",function(){sendAuth("auth_login")});
 $("hz-account-logout").addEventListener("click",function(){sendAuth("auth_logout")});
 $("search-form").addEventListener("submit",function(e){e.preventDefault();state.propsBridgeNote="";search($("query").value)});
@@ -2320,6 +2358,7 @@ window.addEventListener("message",function(event){
     ?"session:"+String(state.payload.auth.session_epoch)
     :String(state.payload.auth?.subject||state.payload.auth?.email||state.payload.auth?.role||"guest");
   if(state.playerIdentity!==currentIdentity){
+    hzPendingPages.clear();hzObservedPage=null;hzPilotLastSample=Date.now();
     if(state.playerIdentity!==""){
       state.query="";$('query').value="";
       state.lastIdentity="";state.paywallServerErrorSeen="";
