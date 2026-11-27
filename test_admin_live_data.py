@@ -98,5 +98,32 @@ class LiveDataTests(unittest.TestCase):
         for role,enabled,day in (("guest",True,today),("free",False,today),("free",True,"2026-11-25"),("free",True,None)):
             self.assertFalse(can_show_free_result(role,enabled,day,today))
 
+
+    def test_payment_transport_failure_is_fail_closed(self):
+        now=datetime(2026,11,26,tzinfo=timezone.utc)
+        with patch("access_control.current_role",return_value="admin"), patch.dict("os.environ",{"HOOPZARO_STRIPE_TEST_READ_KEY":"rk_test_fixture"},clear=True):
+            for code in (301,401,403,429,500,503):
+                get=Mock(return_value=Mock(status_code=code))
+                self.assertEqual(stripe_payment_summary(get,now),{"status":"unavailable"})
+                self.assertFalse(get.call_args.kwargs["allow_redirects"])
+            get=Mock(side_effect=TimeoutError("fixture"))
+            self.assertEqual(stripe_payment_summary(get,now),{"status":"unavailable"})
+            self.assertEqual(payment_rows({"status":"unavailable"}),[])
+
+    def test_payment_pending_and_malformed_records(self):
+        now=datetime(2026,11,26,tzinfo=timezone.utc)
+        row={"id":"ch_pending","livemode":False,"currency":"usd","created":int(now.timestamp())-10,
+             "status":"pending","paid":False,"captured":False,"amount_captured":0,"amount_refunded":0}
+        def get_for(rows):
+            response=Mock(status_code=200)
+            response.json.return_value={"data":rows,"has_more":False}
+            return Mock(return_value=response)
+        with patch("access_control.current_role",return_value="admin"), patch.dict("os.environ",{"HOOPZARO_STRIPE_TEST_READ_KEY":"rk_test_fixture"},clear=True):
+            result=stripe_payment_summary(get_for([row]),now)
+            self.assertEqual(result["currencies"]["usd"],{"captured_minor":0,"refunded_minor":0,"successful":0,"failed":0,"other":1})
+            for changes in ({"amount_refunded":1},{"amount_captured":-1},{"created":int(now.timestamp())},
+                            {"currency":"USD"},{"paid":1},{"status":"unknown"},{"livemode":None}):
+                self.assertEqual(stripe_payment_summary(get_for([{**row,**changes}]),now),{"status":"unavailable"})
+
 if __name__=="__main__":
     unittest.main()
