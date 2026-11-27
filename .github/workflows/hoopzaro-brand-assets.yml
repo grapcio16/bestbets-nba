@@ -1,0 +1,21 @@
+name: Hoopzaro brand assets QA
+on:
+  pull_request:
+    paths:
+      - 'scripts/prepare_hoopzaro_brand.py'
+      - 'test_hoopzaro_brand_assets.py'
+      - '.github/workflows/hoopzaro-brand-assets.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'Pillow>=10,<13'
+      - run: python -m unittest -v test_hoopzaro_brand_assets
