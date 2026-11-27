@@ -125,12 +125,14 @@ def auth_context() -> dict:
     """Non-sensitive presentation fields; never used by the server as proof."""
     claims = current_claims()
     role = role_from_claims(claims, _secret_section("access"))
-    display = str(claims.get("name") or claims.get("email") or "").strip()[:80]
+    display = str(claims.get("name") or "").strip()[:80] if role != "guest" else ""
+    email = str(claims.get("email") or "").strip()[:254] if role != "guest" and claims.get("email_verified") is True else ""
     return {
         "configured": auth_configured(),
         "logged_in": role != "guest",
         "role": role,
         "name": display,
+        "email": email,
         "provider": "google" if role != "guest" and claims.get("iss") in ("https://accounts.google.com", "accounts.google.com") else "",
     }
 

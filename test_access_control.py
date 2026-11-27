@@ -2,7 +2,8 @@
 import unittest
 from datetime import datetime, timezone
 
-from access_control import account_key, role_from_claims
+from unittest.mock import patch
+from access_control import account_key, role_from_claims, auth_context
 
 
 NOW = datetime(2026, 11, 14, tzinfo=timezone.utc)
@@ -42,6 +43,19 @@ class RoleChecks(unittest.TestCase):
         self.assertEqual(role_from_claims(IDENTITY, {"premium_emails": ["owner@example.com"]}, now=NOW), "premium")
         self.assertEqual(role_from_claims(IDENTITY, {"premium_emails": ["other@example.com"]}, now=NOW), "free")
 
+    def test_profile_context_discloses_only_authenticated_verified_email(self):
+        for claims, expected in ((IDENTITY, IDENTITY["email"]),
+                                 ({**IDENTITY, "email_verified": False}, ""),
+                                 ({**IDENTITY, "exp": 100}, ""),
+                                 ({}, "")):
+            with self.subTest(claims=claims), patch("access_control.current_claims", return_value=claims), patch("access_control._secret_section", return_value={}), patch("access_control.auth_configured", return_value=True):
+                data = auth_context()
+                self.assertEqual(data["email"], expected)
+                self.assertNotIn("sub", data)
+                self.assertNotIn("iss", data)
+                if data["role"] == "guest":
+                    self.assertEqual(data["name"], "")
+                    self.assertEqual(data["provider"], "")
 
 if __name__ == "__main__":
     unittest.main()

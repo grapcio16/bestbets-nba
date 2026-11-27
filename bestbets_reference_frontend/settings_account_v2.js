@@ -27,7 +27,7 @@ function render(visible,payload){
  txt("hza-avatar",initials||"HZ");txt("hza-profile-avatar",initials||"HZ");
  txt("hza-plan",premium?"Premium":logged?"Free":"Gość");
  txt("hza-access",role==="admin"?"Administrator":premium?"Pełny":"Podstawowy");
- txt("hza-profile-name",name);txt("hza-profile-role",label);txt("hza-current-plan",label);
+ txt("hza-profile-name",name);txt("hza-profile-email",logged?String(auth.email||"Brak zweryfikowanego adresu"):"—");txt("hza-profile-role",label);txt("hza-current-plan",label);
  txt("hza-plan-explanation",role==="admin"?"Bezpłatny dostęp administracyjny; nie wymaga subskrypcji.":premium?"Dostęp Premium potwierdzony przez serwer.":logged?"Konto podstawowe.":"Zaloguj się, aby sprawdzić uprawnienia.");
  txt("hza-summary-profile",name);txt("hza-summary-plan",premium?"Premium · dostęp aktywny":logged?"Free":"Zaloguj się");
  txt("hza-summary-preferences","Polski · Dark");txt("hza-summary-notifications","W przygotowaniu");
