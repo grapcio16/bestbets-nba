@@ -19,5 +19,5 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install -q 'numpy>=1.26,<3' 'pandas>=2.2,<3'
-      - run: python -m compileall -q player_intelligence test_player_intelligence_rotation.py
-      - run: python -m unittest -v test_player_intelligence_rotation
+      - run: python -m compileall -q player_intelligence test_player_intelligence_rotation.py test_player_intelligence_nba_boxscore.py
+      - run: python -m unittest -v test_player_intelligence_rotation test_player_intelligence_nba_boxscore
