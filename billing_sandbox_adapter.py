@@ -21,6 +21,15 @@ PRICE=999
 CURRENCY="usd"
 class BillingError(Exception): pass
 
+class LifecycleError(BillingError):
+    """Fixed denial reason, not a raw API error."""
+    def __init__(self,reason):
+        if reason not in ('checkout_incomplete','subscription_not_active','refund_or_dispute','payment_not_confirmed'):
+            reason='payment_not_confirmed'
+        self.reason=reason
+        super().__init__(reason)
+
+
 class StripeRequestError(BillingError):
     """Only allowlisted metadata. Never expose raw Stripe errors or URL secrets."""
     def __init__(self,status,kind="",code="",request_id=""):
@@ -181,12 +190,15 @@ def timestamp(value):
 def canonical_evidence(api,session,attempt_id,account_id,price_id,product_id,now=None):
     sid=ident(session.get("id"),"cs_test_")
     validate_session(session,sid,attempt_id)
-    require(session.get("status")=="complete" and session.get("payment_status")=="paid")
+    if session.get("status")!="complete" or session.get("payment_status")!="paid":
+        raise LifecycleError("checkout_incomplete")
     cus=ident(session.get("customer"),"cus_")
     subid=ident(session.get("subscription"),"sub_")
     sub=api.get("subscriptions",subid,"sub_")
-    require(sub.get("customer")==cus and sub.get("status")=="active"
-            and sub.get("collection_method")=="charge_automatically"
+    require(sub.get("customer")==cus)
+    if sub.get("status")!="active":
+        raise LifecycleError("subscription_not_active")
+    require(sub.get("collection_method")=="charge_automatically"
             and not sub.get("pause_collection") and not sub.get("pending_update"))
     item=one(sub.get("items"))
     stripe_price(item.get("price"),price_id,product_id)
@@ -219,6 +231,8 @@ def canonical_evidence(api,session,attempt_id,account_id,price_id,product_id,now
     require(pi.get("customer")==cus and pi.get("latest_charge")==chargeid
             and pi.get("status")=="succeeded" and pi.get("amount_received")==PRICE and pi.get("currency")==CURRENCY)
     charge=api.get("charges",chargeid,"ch_")
+    if charge.get("refunded") is True or charge.get("disputed") is True or (type(charge.get("amount_refunded")) is int and charge["amount_refunded"]>0):
+        raise LifecycleError("refund_or_dispute")
     require(charge.get("customer")==cus and charge.get("payment_intent")==piid
             and charge.get("invoice")==invoiceid and charge.get("status")=="succeeded"
             and charge.get("paid") is True and charge.get("captured") is True
