@@ -38,6 +38,14 @@ def run():
             assert name.evaluate("e=>getComputedStyle(e).whiteSpace")=="normal"
             page.locator(".hzp-player-row").first.click()
             expect(page.locator(".hzp-spotlight-identity h2")).to_have_text("Shai Gilgeous-Alexander")
+            mobile=width<768 or height<=500
+            if mobile:
+                assert page.locator("#app-shell").evaluate("e=>e.classList.contains('hz-mobile-directory')")
+                assert page.locator("#stage").evaluate("e=>getComputedStyle(e).transform")=="none"
+                assert page.locator(".hzp-player-identity strong").first.evaluate("e=>e.getBoundingClientRect().height>=12")
+                assert page.evaluate("()=>document.documentElement.scrollWidth<=innerWidth+2")
+                page.screenshot(path=str(OUT/f"players-spotlight-{width}.png"),animations="disabled")
+                page.evaluate("window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0")
             page.screenshot(path=str(OUT/f"players-{width}.png"),animations="disabled")
             expect(page.locator("#hzp-cta-text")).to_contain_text("Historia występów")
             navigate("teams")
@@ -55,6 +63,11 @@ def run():
             assert page.locator("#hzt-feature-conference").evaluate("e=>getComputedStyle(e).color")=="rgb(102, 166, 235)"
             page.locator("#hzt-search").fill("")
             expect(page.locator(".hzt-team-card")).to_have_count(9)
+            if mobile:
+                assert page.locator("#stage").evaluate("e=>getComputedStyle(e).transform")=="none"
+                assert page.locator(".hzt-team-card").first.evaluate("e=>e.getBoundingClientRect().height>=100")
+                assert page.evaluate("()=>document.documentElement.scrollWidth<=innerWidth+2")
+                page.evaluate("window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0")
             page.screenshot(path=str(OUT/f"teams-{width}.png"),animations="disabled")
             assert not errors,errors
             page.close()

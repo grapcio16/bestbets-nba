@@ -1249,6 +1249,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
       <section class="hzp-spotlight" aria-label="Player Spotlight — profil wybranego zawodnika">
         <div class="hzp-spotlight-heading"><span aria-hidden="true"></span>PLAYER SPOTLIGHT</div>
         <div id="hzp-spotlight-body" class="hzp-spotlight-body" aria-live="polite"></div>
+        <button id="hzp-mobile-back" type="button">↑ Wróć do listy zawodników</button>
       </section>
     </div>
     <div class="hzp-footnote"><span id="hzp-source">Dane historyczne NBA / ESPN, bez prognoz.</span><span>3PA = próby za 3 na mecz · 3P% = celne trójki / próby</span></div>
@@ -1544,6 +1545,8 @@ function resize(){
   const shortLandscape=viewportWidth<=1200 && window.innerHeight<=500 &&
     viewportWidth>window.innerHeight;
   const mobileLayout=viewportWidth<=767 || shortLandscape;
+  const mobileDirectory=mobileLayout && (state.page==="players"||state.page==="teams");
+  shell.classList.toggle("hz-mobile-directory",mobileDirectory);
   const mobileSettings=mobileLayout && state.page==="settings";
   shell.classList.toggle("hza-mobile",mobileSettings);
   const mobileHome=mobileLayout && state.page==="home";
@@ -1556,7 +1559,7 @@ function resize(){
   shell.classList.toggle("hz-mobile-centre",mobileHome);
   shell.classList.toggle("hz-mobile-schedule",mobileSchedule);
   shell.classList.toggle("hz-independent-scroll",!mobileLayout);
-  if(mobileHome||mobileSchedule||mobileIntelligence||mobileSettings){
+  if(mobileHome||mobileSchedule||mobileIntelligence||mobileSettings||mobileDirectory){
     // Native touch scrolling for the free Home and Schedule routes.
     root.style.transform="none";
     root.style.height="";

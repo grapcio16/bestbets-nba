@@ -121,6 +121,7 @@ function playerRow(player,active){
       button.setAttribute("aria-pressed",String(selected));
     });
     renderSpotlight(player,"");
+    if(document.getElementById("app-shell")?.classList.contains("hz-mobile-directory"))document.querySelector(".hzp-spotlight")?.scrollIntoView({block:"start",behavior:"auto"});
   });
   return row;
 }
@@ -225,6 +226,7 @@ function init(api){
   callbacks=api||{};
   const resetListScroll=()=>{$("hzp-table-rows").scrollTop=0};
   $("hzp-search").addEventListener("input",e=>{query=e.target.value;page=0;resetListScroll();render(catalog,averages,role)});
+  $("hzp-mobile-back").addEventListener("click",()=>document.querySelector(".hzp-table-card")?.scrollIntoView({block:"start",behavior:"auto"}));
   $("hzp-team").addEventListener("change",e=>{team=e.target.value;page=0;resetListScroll();render(catalog,averages,role)});
   $("hzp-position").addEventListener("change",e=>{position=e.target.value;page=0;resetListScroll();render(catalog,averages,role)});
   $("hzp-prev").addEventListener("click",()=>{page=Math.max(0,page-1);resetListScroll();render(catalog,averages,role)});
