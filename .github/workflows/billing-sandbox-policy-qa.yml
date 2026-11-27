@@ -7,6 +7,7 @@ on:
       - 'migrations/billing_sandbox*.sql'
       - 'test_billing_sandbox_policy.py'
       - '.github/workflows/billing-sandbox-policy-qa.yml'
+      - '.github/workflows/billing-sandbox-reconciliation.yml'
 permissions:
   contents: read
 jobs:
@@ -19,8 +20,8 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install 'stripe>=11,<13'
-      - run: python -m py_compile billing_sandbox_policy.py billing_sandbox_adapter.py billing_sandbox_store.py billing_sandbox_webhook.py billing_sandbox_app.py billing_sandbox_config.py
-      - run: python -m unittest -v test_billing_sandbox_policy test_billing_sandbox_adapter test_billing_sandbox_config
+      - run: python -m py_compile billing_sandbox_policy.py billing_sandbox_adapter.py billing_sandbox_store.py billing_sandbox_webhook.py billing_sandbox_app.py billing_sandbox_config.py billing_sandbox_reconcile.py
+      - run: python -m unittest -v test_billing_sandbox_policy test_billing_sandbox_adapter test_billing_sandbox_config test_billing_sandbox_reconcile
   sandbox-postgres:
     runs-on: ubuntu-latest
     timeout-minutes: 5
