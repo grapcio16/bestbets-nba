@@ -1,0 +1,71 @@
+name: Control Center QA
+on:
+  pull_request:
+    paths:
+      - 'admin_control_center.py'
+      - 'admin_data_intelligence.py'
+      - 'admin_source_monitor.py'
+      - 'admin_performance.py'
+      - 'admin_user_management.py'
+      - 'admin_security.py'
+      - 'admin_revenue.py'
+      - 'admin_settings.py'
+      - 'admin_live_data.py'
+      - 'admin_overview.py'
+      - 'admin_stripe_payments.py'
+      - 'admin_dashboard_ui.py'
+      - 'admin_tracker_view.py'
+      - 'admin_tracker_history.py'
+      - 'test_admin_live_data.py'
+      - 'bestbets_custom_screen.py'
+      - 'bestbets_reference_frontend/index.html'
+      - 'simulation_official_nba_injuries.py'
+      - 'test_admin_settings.py'
+      - 'test_control_center_streamlit.py'
+      - 'access_control.py'
+      - 'test_access_control.py'
+      - 'usage_analytics.py'
+      - 'test_usage_analytics.py'
+      - 'migrations/003_usage_analytics.sql'
+      - 'control_center_app.py'
+      - '.streamlit/config.toml'
+      - 'account_registry.py'
+      - 'tracker_storage.py'
+      - 'checkout_links.py'
+      - 'v8_shadow/evaluation.py'
+      - 'test_admin_revenue.py'
+      - 'test_admin_security.py'
+      - 'test_admin_user_management.py'
+      - 'test_admin_performance.py'
+      - 'test_admin_source_monitor.py'
+      - 'test_admin_control_center.py'
+      - 'test_admin_data_intelligence.py'
+      - 'app.py'
+      - '.github/workflows/admin-control-center-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: control-center-qa-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m compileall -q admin_control_center.py admin_data_intelligence.py admin_source_monitor.py admin_performance.py admin_user_management.py admin_security.py admin_revenue.py admin_settings.py admin_live_data.py admin_stripe_payments.py admin_overview.py admin_dashboard_ui.py admin_tracker_view.py admin_tracker_history.py account_registry.py access_control.py usage_analytics.py control_center_app.py bestbets_custom_screen.py app.py
+      - run: python -m unittest -v test_admin_control_center test_admin_data_intelligence test_admin_source_monitor test_admin_performance test_admin_user_management test_admin_security test_admin_revenue test_admin_settings test_admin_live_data test_access_control test_usage_analytics
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'streamlit>=1.40,<2' 'pandas>=2.2,<3' 'numpy>=1.26,<3'
+      - run: python -m unittest -v test_control_center_streamlit
