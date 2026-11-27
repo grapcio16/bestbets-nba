@@ -234,3 +234,24 @@
  .hz-mobile-directory .hzt-spotlight-logo{width:53px;height:58px;flex-basis:53px;font-size:32px}
  .hz-mobile-directory .hzt-spotlight-main strong{font-size:16px}
 }
+
+
+/* V4 — premium directory finish. Preserve original team monograms and grid. */
+#hzt-teams-pane .hzt-team-card{border-color:rgba(var(--hzt-rgb),.45);background:radial-gradient(ellipse at 5% 10%,rgba(var(--hzt-rgb),.17),transparent 65%),linear-gradient(128deg,#0b1b32,#0b1a33 65%,rgba(var(--hzt-rgb),.12));box-shadow:inset 0 1px rgba(255,255,255,.11),0 5px 16px rgba(1,7,20,.18)}
+#hzt-teams-pane .hzt-team-card:after{opacity:.48}
+#hzt-teams-pane .hzt-team-card:hover,#hzt-teams-pane .hzt-team-card.is-selected{border-color:var(--hzt-accent);box-shadow:inset 0 1px rgba(255,255,255,.14),0 0 16px rgba(var(--hzt-rgb),.23)}
+#hzt-teams-pane .hzt-card-body .hzt-record,#hzt-teams-pane .hzt-feature-stats{font-variant-numeric:tabular-nums}
+#hzt-teams-pane .hzt-card-code{border-color:rgba(var(--hzt-rgb),.48);background:rgba(var(--hzt-rgb),.08)}
+#hzt-teams-pane .hzt-card-body small{color:#bdcfe5}
+#hzt-teams-pane .hzt-card-fav:not(.is-favorite){color:#a1b6d4}
+#hzt-teams-pane .hzt-team-card:focus-visible{outline:2px solid #78e9ff;outline-offset:-3px}
+#hzt-teams-pane button:focus-visible,#hzt-team-dialog :is(button,select):focus-visible{outline:2px solid #78e9ff;outline-offset:2px}
+#hzt-team-dialog .hzt-metric{border-color:rgba(133,132,205,.48);background:linear-gradient(150deg,rgba(14,43,78,.72),rgba(32,23,71,.65));box-shadow:inset 0 1px rgba(194,207,255,.09)}
+#hzt-team-dialog .hzt-metric strong,#hzt-team-dialog .hzt-dialog-facts strong{font-variant-numeric:tabular-nums}
+@media(max-width:767px),(min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+ .hz-mobile-directory #hzt-teams-pane .hzt-pagination button{width:44px;height:44px}
+ .hz-mobile-directory #hzt-teams-pane .hzt-card-body small{white-space:normal}
+}
+@media(prefers-reduced-motion:reduce){
+ #hzt-teams-pane .hzt-team-card,#hzt-team-dialog .hzt-dialog-close{transition:none}
+}
