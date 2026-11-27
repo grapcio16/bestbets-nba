@@ -28,7 +28,13 @@ class RetentionPostgresTests(unittest.TestCase):
             INSERT INTO hz_account_consent VALUES (gen_random_uuid());
             INSERT INTO hoopzaro_admin_audit VALUES (1);""")
             conn.execute(Path("migrations/retention_runner_v2.sql").read_text())
-        from analytics_retention import run
+        from analytics_retention import run,verify_runner
+        with psycopg.connect(RUNNER) as conn:
+            conn.execute("SET TRANSACTION READ ONLY")
+            self.assertTrue(verify_runner(conn))
+        with psycopg.connect(OWNER) as conn:
+            with self.assertRaises(RuntimeError):
+                verify_runner(conn)
         with psycopg.connect(RUNNER) as conn:
             self.assertEqual(run(conn,apply=True),dict(page_samples=1,sessions=1,feature_aggregates=1,inactive_accounts=1))
             self.assertEqual(run(conn,apply=True),dict(page_samples=0,sessions=0,feature_aggregates=0,inactive_accounts=0))
