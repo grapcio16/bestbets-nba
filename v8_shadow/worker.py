@@ -128,9 +128,22 @@ def run():
     # Persist baseline first; V8.03 must not delay V8.02 collection.
     new = save_forecasts(url, forecast, season)
     v803_enabled = os.environ.get("HOOPZARO_V803_ENABLED", "").strip() == "true"
-    v803_forecasts, v803_skipped = collect_v803(
-        evidence, selected, clock, enabled=v803_enabled,
-        ready=readiness["ready_for_eligible_matchups"])
+    v803_forecasts, v803_skipped = [], {}
+    v803_history_count = None
+    if v803_enabled:
+        from v8_shadow.season_gate import calendar_supported, filter_regular_window
+        if not calendar_supported(season):
+            v803_skipped["unsupported_season_calendar"] = len(selected)
+        else:
+            regular_history = filter_regular_window(evidence, season)
+            regular_upcoming = filter_regular_window(selected, season)
+            v803_history_count = len(regular_history)
+            v803_forecasts, v803_skipped = collect_v803(
+                regular_history, regular_upcoming, clock, enabled=True,
+                ready=readiness["ready_for_eligible_matchups"])
+            excluded = len(selected) - len(regular_upcoming)
+            if excluded:
+                v803_skipped["outside_regular_window"] = excluded
     v803_new = save_forecasts(url, v803_forecasts, season) if v803_forecasts else 0
     settled = settle_forecasts(url, finals.to_dict("records"))
     return {
@@ -143,7 +156,8 @@ def run():
         "shadow_forecasts_calculated": len(forecast),
         "model_skips": skipped,
         "v803": {"enabled": v803_enabled, "calculated": len(v803_forecasts),
-                 "archived": v803_new, "skipped": v803_skipped},
+                 "archived": v803_new, "regular_history_games": v803_history_count,
+                 "skipped": v803_skipped},
         "settlement": settled,
         "no_v7_changes": True,
         "source_licensing": "research only: commercial rights not yet confirmed",
