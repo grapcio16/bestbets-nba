@@ -58,3 +58,22 @@ adapter may reject genuine records if source schemas differ or timestamps
 are rescheduled; document rejection coverage rather than silently relaxing
 validation. Need a real sample and roster/availability capture contract.
 Latest offline tests require CI verification.
+
+## Pregame roster/report snapshot
+Reviewed official NBA Injury Report 2026-11-23 01:15 AM, page 5:
+https://official.nba.com/referee/injury/Injury-Report_2026-11-23_01_15AM.pdf
+The report includes team sections not yet submitted and page continuations,
+and displays names rather than stable player IDs. No missing row is treated
+as a confirmed active player. Raw PDF ingestion is not implemented.
+
+The normalized snapshot requires two independently verified rosters,
+verified fixture identity and per-row NBA person IDs, separate publication
+and capture timestamps, and source evidence references. Latest whole team
+report supersedes earlier releases, including omissions and non-submission.
+Stale publication cannot be refreshed by re-downloading. Reject conflicting
+same-publication reports, mismatched fixture/roster IDs and cross-team
+membership. Retain an SHA-256 digest of normalized inputs/output diagnostics,
+not medical details; this is an integrity identifier, not source authentication.
+Snapshot output is compatible with rotation inputs. Tests are synthetic;
+live source resolution, verified ID crosswalk, complete roster coverage and
+commercial rights are still outstanding. No writes to the production tracker.
