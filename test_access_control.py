@@ -43,5 +43,22 @@ class RoleChecks(unittest.TestCase):
         self.assertEqual(role_from_claims(IDENTITY, {"premium_emails": ["other@example.com"]}, now=NOW), "free")
 
 
+    def test_subject_allowlists_are_case_sensitive(self):
+        key = account_key(IDENTITY)
+        other = {**IDENTITY, "sub": "PERSON-123"}
+        for field, role in (("admin_subjects", "admin"), ("premium_subjects", "premium")):
+            self.assertEqual(role_from_claims(IDENTITY, {field: [key]}, now=NOW), role)
+            self.assertEqual(role_from_claims(other, {field: [key]}, now=NOW), "free")
+
+    def test_invalid_token_times_are_denied(self):
+        for field in ("exp", "nbf"):
+            for value in (float("nan"), float("inf"), float("-inf"), True, "invalid"):
+                with self.subTest(field=field, value=value):
+                    self.assertEqual(role_from_claims({**IDENTITY, field: value},
+                        {"admin_emails": ["owner@example.com"]}, now=NOW), "guest")
+        self.assertEqual(role_from_claims({**IDENTITY, "nbf": NOW.timestamp()+60},
+            {"admin_emails": ["owner@example.com"]}, now=NOW), "guest")
+
+
 if __name__ == "__main__":
     unittest.main()
