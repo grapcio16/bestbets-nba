@@ -140,3 +140,33 @@ runs. Replay clocks are simulated, not true issued forecasts; never
 pool replay metrics with prospective metrics or insert replay envelopes
 into the live archive. Cases are not inferred from postgame lineups.
 Source and replay tests use synthetic fixtures. Latest CI pending.
+
+## Identity and calibration hardening
+Snapshot QA on eb5517f passed 28/28 (run 46030848567). Added normalized
+whole-report identity resolution restricted to exact Unicode-normalized
+names and evidenced aliases in a verified captured team roster; no fuzzy
+join, no unresolved or duplicate rows, no partially extracted section.
+The report source must attest completeness and capture time; actual PDF
+extraction and roster capture still need validation.
+
+Forecast envelopes now explicitly distinguish prospective and captured
+replay; the archive refuses replay and paired evaluation rejects mixed
+modes. The new availability audit estimates observed appearance frequency
+only with at least 50 verified prospective observations across at least
+20 games for each explicit status. Thresholds are provisional and not
+calibrated; Wilson intervals are descriptive and ignore clustering.
+No estimated status probability is applied to any live or V8 forecast.
+
+Candidate historical source: SportsDataverse hoopR injury-report dataset
+https://hoopr.sportsdataverse.org/reference/load_nba_stats_injury_report.html
+Documented coverage since 2018-19 includes publication time (US Eastern,
+naive), NBA game/team/player IDs, match method, and submission markers.
+It does not prove actual capture time; retrospective name matches may use
+season boxscores or roster information unavailable at prediction time.
+Audit exact source files and license/underlying rights before use; no
+download, prospective certification, or production use performed.
+Reference roster schema:
+https://github.com/swar/nba_api/blob/master/docs/nba_api/stats/endpoints/commonteamroster.md
+Official reporting policy: https://www.nba.com/players/injury-report .
+Latest tests pending; actual source verification and prospective cohorts
+remain release blockers.
