@@ -34,12 +34,14 @@ def run_research(*, fixture, asof, rosters, reports, logs, assumptions, n=5000):
     return {"snapshot":snap,"teams":results,"deployment":"research_only"}
 
 
-def forecast_envelopes(bundle, *, issued_at):
+def forecast_envelopes(bundle, *, issued_at, mode="prospective"):
     """Return serializable records for a future append-only research archive.
 
     The caller must supply actual observed issue time; this function does
     not attest its authenticity or persist any records.
     """
+    if mode not in ("prospective", "captured_replay"):
+        raise ValueError("invalid forecast evidence mode")
     issued=_time(issued_at)
     snap=bundle["snapshot"]
     tip=_time(snap["game"]["start_utc"])
@@ -54,7 +56,7 @@ def forecast_envelopes(bundle, *, issued_at):
             if (p.get("team")!=team or p.get("game_id")!=snap["game"]["game_id"]
                     or _time(p["asof"])!=_time(snap["asof"])):
                 raise ValueError("projection identity mismatch")
-            envelope={"start_utc":tip.isoformat(),"issued_at":issued.isoformat(),
+            envelope={"evidence_mode":mode,"start_utc":tip.isoformat(),"issued_at":issued.isoformat(),
                       "scenario_id":result["scenario_id"],"snapshot_sha256":snap["snapshot_sha256"],
                       "projection":deepcopy(p)}
             envelope["record_sha256"]=sha256(json.dumps(envelope,sort_keys=True,separators=(",",":"),allow_nan=False).encode()).hexdigest()
