@@ -14,6 +14,9 @@ from urllib.error import HTTPError
 from billing_sandbox_policy import CheckoutBinding,SandboxEvidence,decide_sandbox_access,Decision
 
 VERSION="2024-06-20"
+# Managed Payments opt-out is supported by the newer Checkout API.
+# Keep reads pinned to the legacy invoice/charge schema.
+CHECKOUT_CREATE_VERSION="2026-07-29.dahlia"
 PRICE=999
 CURRENCY="usd"
 class BillingError(Exception): pass
@@ -86,7 +89,7 @@ class StripeTestAPI:
         require(re.fullmatch(r"/v1/[A-Za-z0-9_/]+",path) is not None)
         body=urlencode(params).encode() if params is not None else None
         headers={"Authorization":"Basic "+base64.b64encode((self.key+":").encode()).decode(),
-                 "Stripe-Version":VERSION,"Content-Type":"application/x-www-form-urlencoded"}
+                 "Stripe-Version":CHECKOUT_CREATE_VERSION if path=="/v1/checkout/sessions" and params is not None else VERSION,"Content-Type":"application/x-www-form-urlencoded"}
         if idempotency:
             headers["Idempotency-Key"]=idempotency
         try:
@@ -122,8 +125,13 @@ def create_checkout(api,attempt_id,price_id,product_id,return_url):
     params={"mode":"subscription","line_items[0][price]":price_id,"line_items[0][quantity]":"1",
             "payment_method_types[0]":"card","client_reference_id":attempt_id,
             "success_url":return_url,"cancel_url":return_url,
-            "allow_promotion_codes":"false","automatic_tax[enabled]":"false"}
-    s=api.request("/v1/checkout/sessions",params,idempotency="hz-sandbox-"+attempt_id)
+            "allow_promotion_codes":"false","automatic_tax[enabled]":"false",
+            "managed_payments[enabled]":"false","adaptive_pricing[enabled]":"false",
+            "subscription_data[billing_mode][type]":"classic"}
+    # v2 cutover: the only v1 attempt was explicitly rejected (HTTP 400),
+    # confirmed in Stripe logs; no session or subscription was bound.
+    # Keep a single stable v2 key for every retry; never auto-rotate.
+    s=api.request("/v1/checkout/sessions",params,idempotency="hz-sandbox-standard-v2-"+attempt_id)
     try:
         sid=ident(s.get("id"),"cs_test_")
         validate_session(s,sid,attempt_id)
