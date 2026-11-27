@@ -189,5 +189,29 @@ class EvidenceModeTests(unittest.TestCase):
         self.assertEqual(result["paired_players"],20)
         self.assertEqual(result["evidence_mode"],"captured_replay")
 
+class EvidenceFingerprintTests(unittest.TestCase):
+    def test_history_digest_order_independent_and_changes_with_evidence(self):
+        f=research_fixture()
+        a=run_research(**f)
+        f["logs"].reverse()
+        b=run_research(**f)
+        self.assertEqual(a["teams"]["BOS"]["history_sha256"],b["teams"]["BOS"]["history_sha256"])
+        row=next(r for r in f["logs"] if r["team"]=="BOS" and r["played"])
+        row["PTS"]+=1
+        c=run_research(**f)
+        self.assertNotEqual(a["teams"]["BOS"]["scenario_id"],c["teams"]["BOS"]["scenario_id"])
+        self.assertEqual(a["teams"]["NYK"]["history_sha256"],c["teams"]["NYK"]["history_sha256"])
+
+    def test_different_evidence_excluded_even_if_scenario_id_matches(self):
+        _,records,actuals=forecast_pair()
+        altered=deepcopy(records)
+        for r in altered:
+            if r["projection"]["team"]=="BOS" and r["projection"]["model_id"]==MODEL:
+                r["history_sha256"]="0"*64
+        result=evaluate_paired(forecasts=altered,actuals=actuals,models=[VERSION,MODEL],
+                               asof=TIP+pd.Timedelta(hours=6))
+        self.assertEqual(result["paired_players"],10)
+        self.assertEqual(result["excluded_evidence_mismatch_team_games"],1)
+
 if __name__=="__main__":
     unittest.main()
