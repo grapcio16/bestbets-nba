@@ -157,31 +157,27 @@ assert.match(elements["hzm-evidence-rest"].textContent,/korekta B2B/);
 assert.match(elements["hzm-evidence-rest"].textContent,/OUT ESPN/);
 assert.equal(elements["hzm-model-select"].value,"research_context_v75");
 const v75Players={...fakePlayers,model_id:"research_context_v75",players:[
-  {name:"Sample Star",team:"IND",pts:null,reb:null,ast:null,minutes:0,minutes_sample:7,availability:"Out"},
+  {name:"Sample Star",team:"IND",pts:30,reb:9,ast:5,minutes:0,minutes_sample:7,availability:"Out"},
   {name:"Sample Guard",team:"NYK",pts:22,reb:5,ast:8,minutes:31.5,minutes_sample:6,availability:"Questionable"},
+  {name:"Sample Eligible",team:"NYK",pts:18,reb:4,ast:5,minutes:29,minutes_sample:6,availability:"Niezweryfikowany"},
 ]};
 app.render(home,{entitled:true,game:advanced,players:v75Players});
 assert.doesNotMatch(elements["hzm-player-headings"].innerHTML,/MIN/,
   "Results preview retains the PTS/REB/AST/PRA columns");
-assert.match(elements["hzm-player-rows"].innerHTML,/OUT \(ESPN\)/);
-assert.match(elements["hzm-player-rows"].innerHTML,/31,5/);
-assert.match(elements["hzm-player-rows"].innerHTML,/Questionable/);
+assert.match(elements["hzm-player-rows"].innerHTML,/Sample Eligible/);
+assert.match(elements["hzm-player-rows"].innerHTML,/Prognozy warunkowe/);
+assert.doesNotMatch(elements["hzm-player-rows"].innerHTML,/Sample Star|Sample Guard/,
+  "The current injury guard removes explicit OUT and risk projections even without a report");
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="[data-hzm-view]"?{dataset:{hzmView:"players"}}:null;
 }}});
 assert.match(elements["hzm-player-headings"].innerHTML,/MIN/,
   "V7.5 detailed legacy player view exposes its minute estimates");
-// The new roster sorts by the active market: OUT has no projection and
-// therefore appears last, but remains explicitly selectable from the list.
-elements["hzm-player-rows"].on_click({target:{closest(selector){
-  return selector==="[data-hzm-player-index]"?{dataset:{hzmPlayerIndex:"0"}}:null;
-}}});
-assert.match(elements["hzm-player-inspector"].innerHTML,/Sample Star/);
-assert.match(elements["hzm-player-inspector"].innerHTML,/ESPN: Out/);
-assert.match(elements["hzm-player-inspector"].innerHTML,/0,0 min/);
-assert.match(elements["hzm-player-inspector"].innerHTML,/OUT — model nie pokazuje/);
-assert.doesNotMatch(elements["hzm-player-inspector"].innerHTML,/>0,0<\/strong>/,
-  "No fake zero-point production for OUT player");
+assert.match(elements["hzm-player-rows"].innerHTML,/29,0/);
+assert.match(elements["hzm-player-inspector"].innerHTML,/Sample Eligible/);
+assert.match(elements["hzm-player-inspector"].innerHTML,/29,0 min/);
+assert.doesNotMatch(elements["hzm-player-inspector"].innerHTML,/Sample Star|Sample Guard/,
+  "Blocked players cannot be selected as active projections");
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="[data-hzm-view]"?{dataset:{hzmView:"results"}}:null;
 }}});
