@@ -59,6 +59,27 @@ class AdapterTests(unittest.TestCase):
     def test_canonical_payment(self):
         b,e=self.evidence()
         self.assertTrue(decide_sandbox_access(b,e,principal_hmac=ACCOUNT,configured_price_id="price_fixture",pilot_enabled=True,tester_allowed=True,now=NOW).allowed)
+    def test_renewal_uses_latest_paid_invoice(self):
+        # Simulated monthly renewal: original checkout stays bound, but the
+        # subscription points to a new invoice and its own card payment.
+        sub=self.api.objects["sub_fixture"]
+        old=self.api.objects["in_fixture"]
+        sub.update(latest_invoice="in_renewal",current_period_start=START,current_period_end=END)
+        invoice=copy.deepcopy(old)
+        invoice.update(id="in_renewal",billing_reason="subscription_cycle",payment_intent="pi_renewal",charge="ch_renewal")
+        self.api.objects["in_renewal"]=invoice
+        pi=copy.deepcopy(self.api.objects["pi_fixture"])
+        pi.update(id="pi_renewal",latest_charge="ch_renewal")
+        self.api.objects["pi_renewal"]=pi
+        charge=copy.deepcopy(self.api.objects["ch_fixture"])
+        charge.update(id="ch_renewal",payment_intent="pi_renewal",invoice="in_renewal")
+        self.api.objects["ch_renewal"]=charge
+        b,e=self.evidence()
+        self.assertEqual(e.invoice_id,"in_renewal")
+        self.assertTrue(decide_sandbox_access(b,e,principal_hmac=ACCOUNT,configured_price_id="price_fixture",pilot_enabled=True,tester_allowed=True,now=NOW).allowed)
+        invoice["paid"]=False
+        with self.assertRaises(BillingError):
+            self.evidence()
     def test_deny_corrupt_objects(self):
         for id,fields in [("sub_fixture",{"status":"past_due"}),("sub_fixture",{"customer":"cus_other"}),("in_fixture",{"paid_out_of_band":True}),("in_fixture",{"amount_paid":0}),("in_fixture",{"post_payment_credit_notes_amount":1}),("in_fixture",{"livemode":True}),("pi_fixture",{"latest_charge":"ch_other"}),("ch_fixture",{"refunded":True}),("ch_fixture",{"disputed":True}),("ch_fixture",{"amount_refunded":1}),("ch_fixture",{"invoice":"in_other"})]:
             with self.subTest(id=id,fields=fields):
