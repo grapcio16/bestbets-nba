@@ -1,0 +1,26 @@
+name: Centrum next verified game — focused QA
+on:
+  push:
+    branches: [fix/centrum-next-game-on-empty-day]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fallback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: node --check bestbets_reference_frontend/centrum.js
+      - run: |
+          python -m pip install 'playwright>=1.58,<2'
+          python -m playwright install --with-deps chromium
+      - run: python test_centrum_next_game_browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: centrum-next-game-screenshots
+          path: work/centrum-next-game/
