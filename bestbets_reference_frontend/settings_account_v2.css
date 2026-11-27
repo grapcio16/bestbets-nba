@@ -228,3 +228,87 @@
  .hza-info{padding:10px;font-size:12px}.hza-dialog-foot{padding:10px 13px}.hza-dialog-foot #hza-done{min-height:44px}
  #blank-pane .hza-hero .hza-ball-art{width:180px;height:170px;right:-55px;top:-45px;opacity:.18}
 }
+
+/* Fourth visual pass — maintain the approved modal proportions and keep
+   the close action visible while long disclosure content scrolls. */
+.hza-dialog[open]{display:grid;grid-template-rows:auto minmax(0,1fr) auto;overflow:hidden}
+.hza-dialog-layout{min-height:0;overflow:hidden}
+.hza-dialog-body{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#7358b8 #0b1730}
+.hza-dialog-nav{min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:#7358b8 #0b1730}
+.hza-dialog-foot{position:relative;z-index:1}
+.hza-dialog-brand{display:none}
+.hza-hoop-art{display:none;width:100%;height:100%;filter:drop-shadow(0 0 8px #a13df3)}
+.hza-dialog[data-panel="profile"] .hza-header-art{display:none}
+.hza-dialog[data-panel="profile"] .hza-hoop-art{display:block}
+.hza-dialog[data-panel="notifications"]{border-radius:22px;box-shadow:0 0 27px #09deff66,0 0 46px #288ce83f,0 25px 100px #000d}
+.hza-dialog[data-panel="privacy"]{box-shadow:0 0 28px #d03dff55,0 0 35px #19d8ff33,0 25px 100px #000d}
+.hza-dialog[data-panel="privacy"] .hza-dialog-head{background:linear-gradient(115deg,#081a2c,#12162c,#30154d)}
+.hza-dialog[data-panel="profile"] .hza-dialog-head{background:linear-gradient(110deg,#061326,#0c1933,#261449)}
+.hza-dialog[data-panel="profile"] .hza-profile-card{background:linear-gradient(130deg,#0b1c37,#12152d 70%,#241944) padding-box,linear-gradient(130deg,#aa62ee,#4d7bb8) border-box}
+.hza-dialog[data-panel="profile"] .hza-profile-card>header .hza-svg{color:#d79aff}
+.hza-dialog[data-panel="preferences"] .hza-detail-row .hza-pill{min-width:80px;text-align:center}
+.hza-dialog[data-panel="privacy"] .hza-privacy-grid .hza-feature-card>header{margin-bottom:5px;padding-bottom:5px}
+.hza-dialog[data-panel="privacy"] .hza-privacy-grid .hza-feature-card p{margin:3px 0;font-size:13px}
+.hza-dialog[data-panel="privacy"] .hza-privacy-grid .hza-action{margin:4px 0 0;min-height:38px;padding:7px 10px;font-size:13px}
+.hza-dialog[data-panel="privacy"] #hz-usage-privacy{padding:12px}
+.hza-dialog[data-panel="privacy"] #hz-usage-privacy p{margin:5px 0;font-size:13px!important}
+.hza-dialog[data-panel="privacy"] #hz-usage-privacy .hz-account-actions{margin:7px 0;gap:8px}
+.hza-dialog[data-panel="privacy"] #hz-usage-privacy button{padding:7px 11px;font-size:13px}
+.hza-dialog[data-panel="privacy"] .hza-detail-row,.hza-dialog[data-panel="preferences"] .hza-detail-row{min-height:0;padding:7px 10px;margin:5px 0}
+.hza-dialog[data-panel="privacy"] .hza-medallion,.hza-dialog[data-panel="preferences"] .hza-medallion{width:42px;height:42px;flex-basis:42px}
+.hza-dialog[data-panel="privacy"] .hza-medallion .hza-svg,.hza-dialog[data-panel="preferences"] .hza-medallion .hza-svg{width:26px;height:26px}
+.hza-dialog[data-panel="privacy"] .hza-privacy-right{gap:8px}
+.hza-dialog[data-panel="privacy"] .hza-privacy-grid .hza-feature-card{padding:10px 14px}
+.hza-dialog[data-panel="preferences"] .hza-feature-card{padding:12px 15px}
+.hza-dialog[data-panel="preferences"] .hza-feature-card>header{padding-bottom:7px;margin-bottom:6px}
+.hza-dialog[data-panel="preferences"] .hza-info,.hza-dialog[data-panel="privacy"] .hza-info{font-size:12px;padding:9px 13px}
+.hza-dialog[data-panel="preferences"] .hza-dialog-body section,.hza-dialog[data-panel="privacy"] .hza-dialog-body section{gap:10px}
+@media(min-width:1200px) and (min-height:720px){
+ .hza-dialog[data-panel="profile"]{height:min(750px,88dvh)}
+ .hza-dialog[data-panel="plan"],.hza-dialog[data-panel="security"]{height:min(820px,90dvh)}
+ .hza-dialog[data-panel="preferences"],.hza-dialog[data-panel="privacy"]{height:min(860px,92dvh);max-height:92dvh}
+ .hza-dialog[data-panel="profile"] .hza-dialog-layout{grid-template-columns:29% minmax(0,1fr)}
+ .hza-dialog[data-panel="plan"] .hza-dialog-layout,.hza-dialog[data-panel="security"] .hza-dialog-layout{grid-template-columns:19% minmax(0,1fr)}
+ .hza-dialog[data-panel="preferences"] .hza-dialog-layout{grid-template-columns:23% minmax(0,1fr)}
+ .hza-dialog[data-panel="plan"] .hza-dialog-brand,.hza-dialog[data-panel="security"] .hza-dialog-brand{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 0 22px;border-bottom:1px solid #38537b;margin-bottom:10px}
+ .hza-dialog-brand img{width:78px;height:78px;object-fit:contain;filter:drop-shadow(0 0 12px #31b7ff99)}
+ .hza-dialog-brand strong{font-size:24px;font-style:italic;letter-spacing:-1px}.hza-dialog-brand strong span{color:#15dff1}.hza-dialog-brand small{font-size:9px;letter-spacing:3px;color:#bad0e9;margin-top:4px}
+ .hza-dialog-nav button{font-size:16px;min-height:56px;white-space:normal}
+ .hza-dialog[data-panel="profile"] .hza-dialog-nav button{font-size:18px;min-height:58px}
+ .hza-dialog[data-panel="profile"] .hza-dialog-body{padding:25px}
+ .hza-dialog[data-panel="profile"] .hza-profile-card h3{font-size:27px}
+ .hza-dialog[data-panel="profile"] .hza-profile-card .hza-profile{min-height:310px;gap:21px}
+ .hza-dialog[data-panel="profile"] .hza-avatar-large{width:185px;height:185px;font-size:66px}
+ .hza-dialog[data-panel="profile"] .hza-profile-fields>strong{font-size:20px}
+ .hza-dialog[data-panel="plan"] .hza-plan-banner{min-height:145px}
+ .hza-dialog[data-panel="plan"] .hza-plan-grid article,.hza-dialog[data-panel="plan"] .hza-billing-card{min-height:350px}
+ .hza-dialog[data-panel="plan"] .hza-benefits li{font-size:15px;line-height:1.35}
+ .hza-dialog[data-panel="plan"] .hza-benefits{gap:15px}
+ .hza-dialog[data-panel="plan"] .hza-plan-grid h3{font-size:26px}
+ .hza-dialog[data-panel="plan"] .hza-plan-banner strong{font-size:31px}
+ .hza-dialog[data-panel="plan"] .hza-plan-price b{font-size:28px}
+ .hza-dialog[data-panel="security"] .hza-feature-card h3{font-size:24px}
+ .hza-dialog[data-panel="security"] .hza-detail-row{min-height:79px}
+ .hza-dialog[data-panel="security"] .hza-security-2fa{padding:10px 3px;grid-template-columns:170px minmax(0,1fr)}
+ .hza-dialog[data-panel="security"] .hza-shield-art{width:150px;height:150px}
+ .hza-dialog[data-panel="preferences"] .hza-dialog-head,.hza-dialog[data-panel="privacy"] .hza-dialog-head{min-height:122px;padding-top:18px;padding-bottom:18px}
+ .hza-dialog[data-panel="preferences"] .hza-dialog-body,.hza-dialog[data-panel="privacy"] .hza-dialog-body{padding:14px 20px}
+ .hza-dialog[data-panel="preferences"] .hza-detail-row>div>strong,.hza-dialog[data-panel="privacy"] .hza-detail-row>div>strong{font-size:17px}
+}
+@media(max-width:767px),(min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){
+ .hza-dialog[open]{max-height:calc(100dvh - 16px);grid-template-rows:auto minmax(0,1fr) auto}
+ .hza-dialog-layout{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+ .hza-dialog[data-panel="notifications"] .hza-dialog-layout,.hza-dialog[data-panel="privacy"] .hza-dialog-layout{display:grid;grid-template-rows:minmax(0,1fr)}
+ .hza-dialog-nav{overflow-x:auto;overflow-y:hidden}
+ .hza-dialog-body{overflow:auto;min-height:0}
+ .hza-dialog-foot{padding:8px 12px}
+ .hza-dialog[data-panel="profile"] .hza-profile-card>header h3{font-size:18px}
+ .hza-dialog[data-panel="profile"] .hza-profile-card .hza-profile{padding:5px 0}
+ .hza-dialog[data-panel="profile"] .hza-profile-fields>strong{font-size:15px}
+ .hza-dialog[data-panel="privacy"] .hza-privacy-grid .hza-feature-card{padding:12px}
+}
+@media(max-height:500px) and (orientation:landscape){
+ .hza-dialog-head{padding:9px 48px 9px 12px}.hza-dialog-head .hz-account-kicker{margin-bottom:4px}.hza-dialog-head h2{font-size:21px;margin-bottom:4px}.hza-title-icon{width:36px;height:36px;flex-basis:36px}
+ .hza-dialog-nav{padding:5px}.hza-dialog-nav button{min-height:38px;padding:5px 9px}
+ .hza-dialog-foot #hza-done{min-height:38px;padding:6px 10px}
+}

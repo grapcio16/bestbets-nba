@@ -69,6 +69,10 @@ def run():
                 assert panel.locator(".hza-feature-card, .hza-plan-banner, .hza-notification-list").count()>0
                 assert dialog.evaluate("e=>e.getBoundingClientRect().width<=innerWidth")
                 assert dialog.evaluate("e=>e.scrollWidth<=e.clientWidth+2"), key
+                assert dialog.locator("#hza-done").is_visible()
+                assert dialog.locator("#hza-done").evaluate("e=>{const r=e.getBoundingClientRect(); return r.top>=0 && r.bottom<=innerHeight+1}"), key
+                assert dialog.locator(".hza-dialog-body").evaluate("e=>e.clientHeight>60"), key
+                assert dialog.locator(".hza-dialog-body").evaluate("e=>e.scrollWidth<=e.clientWidth+2"), key
                 if width==1672:
                     assert dialog.bounding_box()["width"]>=1100
                     assert dialog.bounding_box()["height"]>=500
@@ -77,6 +81,10 @@ def run():
                 else:
                     assert dialog.locator(".hza-dialog-nav").is_visible()
                 page.screenshot(path=str(OUT/f"{key}-{width}.png"),animations="disabled")
+                if key in ("preferences","privacy"):
+                    dialog.locator(".hza-dialog-body").evaluate("e=>{e.scrollTop=e.scrollHeight}")
+                    page.screenshot(path=str(OUT/f"{key}-bottom-{width}.png"),animations="disabled")
+                    assert dialog.locator("#hza-done").evaluate("e=>{const r=e.getBoundingClientRect();return r.bottom<=innerHeight+1}"), key
                 page.keyboard.press("Escape")
                 assert dialog.is_hidden()
             page.locator('.hza-tile[data-hza-open="privacy"]').click()
