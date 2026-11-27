@@ -10,6 +10,7 @@ Configure an OIDC identity provider under [auth] and allowed accounts under
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from math import isfinite
 from typing import Any, Mapping
 
 
@@ -17,6 +18,13 @@ def _items(value: Any) -> set[str]:
     if not isinstance(value, (list, tuple, set)):
         return set()
     return {str(item).strip().casefold() for item in value if str(item).strip()}
+
+
+def _subjects(value: Any) -> set[str]:
+    """OIDC issuer and subject are case-sensitive identifiers."""
+    if not isinstance(value, (list, tuple, set)):
+        return set()
+    return {item for item in value if isinstance(item, str) and item}
 
 
 def account_key(claims: Mapping[str, Any]) -> str:
@@ -43,14 +51,14 @@ def role_from_claims(
     try:
         expires = claims.get("exp")
         not_before = claims.get("nbf")
-        if expires is not None and float(expires) <= clock.timestamp():
+        if expires is not None and (isinstance(expires, bool) or not isfinite(float(expires)) or float(expires) <= clock.timestamp()):
             return "guest"
-        if not_before is not None and float(not_before) > clock.timestamp():
+        if not_before is not None and (isinstance(not_before, bool) or not isfinite(float(not_before)) or float(not_before) > clock.timestamp()):
             return "guest"
     except (TypeError, ValueError, OverflowError):
         return "guest"
 
-    if key.casefold() in _items(access.get("admin_subjects")):
+    if key in _subjects(access.get("admin_subjects")):
         return "admin"
     # Email can serve as a convenient fallback only when the OIDC provider
     # explicitly verified it. Unknown/missing email_verified is NOT enough.
@@ -58,7 +66,7 @@ def role_from_claims(
     verified = claims.get("email_verified") is True
     if verified and email and email in _items(access.get("admin_emails")):
         return "admin"
-    if key.casefold() in _items(access.get("premium_subjects")):
+    if key in _subjects(access.get("premium_subjects")):
         return "premium"
     if verified and email and email in _items(access.get("premium_emails")):
         return "premium"
