@@ -20,9 +20,36 @@ jobs:
       - name: Install isolated V8 requirements
         run: python -m pip install -q 'pandas>=2.2,<3' 'numpy>=1.26,<3' 'requests>=2.31,<3'
       - name: Compile V8 independently of V7
-        run: python -m compileall -q v8_shadow test_v8_shadow_engine.py test_v8_shadow_data.py test_v8_shadow_pipeline.py test_v8_shadow_overtime.py test_v8_shadow_evaluation.py test_v8_shadow_v803.py
+        run: python -m compileall -q v8_shadow test_v8_shadow_engine.py test_v8_shadow_data.py test_v8_shadow_pipeline.py test_v8_shadow_overtime.py test_v8_shadow_evaluation.py test_v8_shadow_v803.py test_v8_shadow_v803_integration.py
       - name: V8 no-fabricated-stats / chronology / joint-score regression
-        run: python -m unittest -v test_v8_shadow_engine test_v8_shadow_data test_v8_shadow_pipeline test_v8_shadow_overtime test_v8_shadow_evaluation test_v8_shadow_v803
+        run: python -m unittest -v test_v8_shadow_engine test_v8_shadow_data test_v8_shadow_pipeline test_v8_shadow_overtime test_v8_shadow_evaluation test_v8_shadow_v803 test_v8_shadow_v803_integration.CollectorTests
       - name: Read-only one-game live ESPN schema diagnostic
         continue-on-error: true
         run: python -m v8_shadow.smoke
+
+  v803-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: v8qa
+          POSTGRES_PASSWORD: v8qa
+          POSTGRES_DB: v8qa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U v8qa -d v8qa"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      HOOPZARO_V8_TEST_POSTGRES: postgresql://v8qa:v8qa@localhost:5432/v8qa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -q 'pandas>=2.2,<3' 'numpy>=1.26,<3' 'requests>=2.31,<3' 'psycopg[binary]>=3.2,<4'
+      - run: python -m unittest -v test_v8_shadow_v803_integration.ArchiveTests
