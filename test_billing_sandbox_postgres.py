@@ -21,6 +21,7 @@ class BillingStoreTests(unittest.TestCase):
             c.execute(Path("migrations/billing_sandbox_lifecycle_v1.sql").read_text())
             c.execute("CREATE ROLE hz_billing_sandbox_reconcile LOGIN PASSWORD 'fixture'")
             c.execute(Path("migrations/billing_sandbox_reconcile_v1.sql").read_text())
+            c.execute(Path("migrations/billing_sandbox_retry_v1.sql").read_text())
         store=Store(APP)
         a=store.reserve("a"*64)
         self.assertEqual(a.attempt_id,store.reserve("a"*64).attempt_id)
@@ -65,4 +66,24 @@ class BillingStoreTests(unittest.TestCase):
             with self.subTest(sql=sql),self.assertRaises(psycopg.errors.InsufficientPrivilege):
                 with psycopg.connect(url) as c:
                     c.execute(sql)
+        self.assertFalse(store.prepare_retry(a))  # refund is not terminal
+        terminal=Decision(False,"subscription_not_active")
+        self.assertTrue(worker.record_verification(a.account_id,now+timedelta(seconds=4),terminal,a.attempt_id))
+        with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+            worker.prepare_retry(a)
+        self.assertTrue(store.prepare_retry(a))
+        self.assertFalse(store.prepare_retry(a))
+        new=store.get(a.account_id)
+        self.assertNotEqual(new.attempt_id,a.attempt_id)
+        self.assertIsNone(new.checkout_id)
+        self.assertIsNone(new.customer_id)
+        self.assertFalse(worker.record_verification(a.account_id,now+timedelta(seconds=10),good,a.attempt_id))
+        with psycopg.connect(OWNER) as c:
+            self.assertEqual(c.execute("SELECT count(*) FROM hz_sandbox_checkout_history WHERE attempt_id=%s AND subscription_id='sub_fixture'",(a.attempt_id,)).fetchone()[0],1)
+            self.assertEqual(c.execute("SELECT allowed,reason,expires_at FROM hz_sandbox_verification WHERE account_id=%s",(a.account_id,)).fetchone(),(False,"checkout_incomplete",None))
+        with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+            with db(APP) as cur: cur.execute("DELETE FROM hz_sandbox_checkout_history")
+        with self.assertRaises(psycopg.errors.InsufficientPrivilege):
+            with db(APP) as cur: cur.execute("UPDATE hz_sandbox_checkout SET attempt_id=gen_random_uuid()")
 if __name__=="__main__": unittest.main()
+
