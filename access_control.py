@@ -131,6 +131,7 @@ def auth_context() -> dict:
         "logged_in": role != "guest",
         "role": role,
         "name": display,
+        "provider": "google" if role != "guest" and claims.get("iss") in ("https://accounts.google.com", "accounts.google.com") else "",
     }
 
 

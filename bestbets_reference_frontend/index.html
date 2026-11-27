@@ -244,6 +244,7 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
 <link rel="stylesheet" href="results_distributions_premium_v2.css">
 <link rel="stylesheet" href="backtest_premium_v2.css">
 <link rel="stylesheet" href="simulations_release_mobile_scroll.css">
+<link rel="stylesheet" href="settings_account_v2.css">
 </head>
 <body>
 <!-- Original, reusable HOOPZARO icons: one visual language on desktop and mobile. -->
@@ -462,16 +463,9 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
   </div>
 </section>
   <section id="blank-pane"><h2 id="blank-title">Centrum</h2><p id="blank-description">Ta zakładka jest przygotowana do dalszej rozbudowy. Dane statystyczne pozostają zachowane.</p>
-    <div id="hz-account" class="hz-account" hidden>
-      <span class="hz-account-kicker">HOOPZARO · TWOJE KONTO</span>
-      <strong id="hz-account-role">GOŚĆ</strong>
-      <p id="hz-account-message">Sprawdź uprawnienia konta.</p>
-      <div class="hz-account-actions">
-        <button type="button" id="hz-account-login" hidden>Zaloguj się</button>
-        <button type="button" id="hz-account-logout" hidden>Wyloguj się</button>
-      </div>
-      <div id="hz-usage-privacy" hidden style="margin-top:18px;padding-top:15px;border-top:1px solid #264b73"><strong style="font-size:16px">Opcjonalna analityka użytkowania</strong><p style="font-size:13px;line-height:1.5">Pomóż nam ulepszać Hoopzaro. Po wyrażeniu zgody zapisujemy pseudonimowy identyfikator konta (jeśli jesteś zalogowany), rolę, sesje, odwiedzane zakładki oraz zagregowane wywołania funkcji i czasy działania. Nie zapisujemy treści zapytań, e-maila ani adresu IP w tej analityce. Sesje: 30 dni; nieaktywne konta i agregaty funkcji: do 90 dni, z wyjątkami dla danych niezbędnych do obsługi konta. Zgoda jest dobrowolna, dotyczy bieżącej sesji (maksymalnie 24 godziny) i nie zmienia dostępu do aplikacji. Zapisujemy również minimalny dowód zgody oraz jej wycofania. Możesz ją wycofać tutaj.</p><p><a id="hz-usage-notice" target="_blank" rel="noopener noreferrer" style="color:#65d8ff" hidden>Polityka prywatności</a></p><div class="hz-account-actions"><button type="button" id="hz-usage-allow">Zezwól na analitykę</button><button type="button" id="hz-usage-deny">Nie zezwalaj / wycofaj</button></div><small id="hz-usage-status" aria-live="polite"></small></div>
-      <small id="hz-account-note">Dostęp Premium wymaga zatwierdzonej subskrypcji. Administrator ma bezpłatny dostęp.</small>
+    <div id="hz-account" class="hz-account hza" hidden>
+      <div class="hza-hero"><div class="hza-orbit" aria-hidden="true"></div><div class="hza-avatar" id="hza-avatar" aria-hidden="true">HZ</div><div class="hza-hero-copy"><span class="hz-account-kicker">HOOPZARO · TWOJE KONTO</span><strong id="hz-account-role">GOŚĆ</strong><p id="hz-account-message">Sprawdź uprawnienia konta.</p><div class="hz-account-actions"><button type="button" id="hz-account-login" hidden>Zaloguj się</button><button type="button" id="hz-account-logout" hidden>Wyloguj się</button><button type="button" data-hza-open="profile">Zarządzaj kontem ›</button></div><small id="hz-account-note">Sprawdź dostęp do narzędzi Hoopzaro.</small></div><div class="hza-facts"><span>PLAN<strong id="hza-plan">—</strong></span><span>DOSTĘP<strong id="hza-access">—</strong></span></div></div>
+      <div class="hza-grid"><button type="button" class="hza-tile" data-hza-open="profile" aria-haspopup="dialog"><span class="hza-icon" aria-hidden="true">♙</span><span class="hza-tile-copy"><strong>Profil konta</strong><small>Tożsamość i dane profilowe</small><span class="hza-summary" id="hza-summary-profile"></span></span><span class="hza-arrow" aria-hidden="true">›</span></button><button type="button" class="hza-tile" data-hza-open="plan" aria-haspopup="dialog"><span class="hza-icon" aria-hidden="true">♔</span><span class="hza-tile-copy"><strong>Plan i dostęp</strong><small>Sprawdź dostęp do narzędzi</small><span class="hza-summary" id="hza-summary-plan"></span></span><span class="hza-arrow" aria-hidden="true">›</span></button><button type="button" class="hza-tile" data-hza-open="preferences" aria-haspopup="dialog"><span class="hza-icon" aria-hidden="true">☷</span><span class="hza-tile-copy"><strong>Preferencje aplikacji</strong><small>Język, wygląd i sposób prezentacji</small><span class="hza-summary" id="hza-summary-preferences"></span></span><span class="hza-arrow" aria-hidden="true">›</span></button><button type="button" class="hza-tile" data-hza-open="notifications" aria-haspopup="dialog"><span class="hza-icon" aria-hidden="true">♧</span><span class="hza-tile-copy"><strong>Powiadomienia</strong><small>Planowane alerty sportowe</small><span class="hza-summary" id="hza-summary-notifications"></span></span><span class="hza-arrow" aria-hidden="true">›</span></button><button type="button" class="hza-tile" data-hza-open="privacy" aria-haspopup="dialog"><span class="hza-icon" aria-hidden="true">◈</span><span class="hza-tile-copy"><strong>Prywatność i zgody</strong><small>Twoje dane i wybory</small><span class="hza-summary" id="hza-summary-privacy"></span></span><span class="hza-arrow" aria-hidden="true">›</span></button><button type="button" class="hza-tile" data-hza-open="security" aria-haspopup="dialog"><span class="hza-icon" aria-hidden="true">⛨</span><span class="hza-tile-copy"><strong>Bezpieczeństwo</strong><small>Logowanie i ochrona konta</small><span class="hza-summary" id="hza-summary-security"></span></span><span class="hza-arrow" aria-hidden="true">›</span></button></div><div class="hza-support"><button type="button" class="hza-tile" data-hza-open="support" aria-haspopup="dialog"><span class="hza-icon" aria-hidden="true">ⓘ</span><span class="hza-tile-copy"><strong>Pomoc i wsparcie</strong><small>FAQ i kontakt z zespołem</small><span class="hza-summary" id="hza-summary-support"></span></span><span class="hza-arrow" aria-hidden="true">›</span></button></div>
     </div>
   </section>
   <section id="schedule-pane" class="hzv4" hidden aria-label="Terminarz NBA">
@@ -1388,6 +1382,16 @@ aside:after{content:"";position:absolute;left:-17px;top:426px;width:187px;height
     <div class="bc-free-info-foot"><span>Subskrypcja $9.99 USD miesięcznie · brak gwarancji wyników sportowych.</span><span class="bc-free-info-foot-badge">✦ HOOPZARO PREMIUM</span></div>
   </section>
 </div>
+<dialog id="hza-dialog" class="hza-dialog" aria-labelledby="hza-title"><header class="hza-dialog-head"><span class="hz-account-kicker">HOOPZARO · USTAWIENIA KONTA</span><h2 id="hza-title">Ustawienia konta</h2><p>Zarządzaj swoim kontem i dostępem do aplikacji.</p><button id="hza-close" type="button" aria-label="Zamknij ustawienia">×</button></header><div class="hza-dialog-layout"><nav class="hza-dialog-nav" aria-label="Sekcje ustawień"><button type="button" data-hza-open="profile"><span aria-hidden="true">♙</span>Profil konta</button><button type="button" data-hza-open="plan"><span aria-hidden="true">♔</span>Plan i dostęp</button><button type="button" data-hza-open="preferences"><span aria-hidden="true">☷</span>Preferencje aplikacji</button><button type="button" data-hza-open="notifications"><span aria-hidden="true">♧</span>Powiadomienia</button><button type="button" data-hza-open="privacy"><span aria-hidden="true">◈</span>Prywatność i zgody</button><button type="button" data-hza-open="security"><span aria-hidden="true">⛨</span>Bezpieczeństwo</button><button type="button" data-hza-open="support"><span aria-hidden="true">ⓘ</span>Pomoc i wsparcie</button></nav><div class="hza-dialog-body">
+<section data-hza-panel="profile" hidden><div class="hza-profile"><div class="hza-avatar hza-avatar-large" id="hza-profile-avatar" aria-hidden="true">HZ</div><div><small>Nazwa konta</small><strong id="hza-profile-name">—</strong><small>Status dostępu</small><strong id="hza-profile-role">—</strong></div></div><p>Dane profilu pochodzą z dostawcy logowania. Edycja profilu Hoopzaro i data rejestracji wymagają osobnego rejestru kont.</p><a class="hza-action" href="https://myaccount.google.com/personal-info" target="_blank" rel="noopener noreferrer" id="hza-google-profile" hidden>Zarządzaj profilem Google ↗</a><button type="button" class="hza-action" data-hza-auth="login" hidden>Zaloguj się</button></section>
+<section data-hza-panel="plan" hidden><div class="hza-plan-hero"><small>TWÓJ DOSTĘP</small><strong id="hza-current-plan">—</strong><p id="hza-plan-explanation"></p></div><div class="hza-plan-grid"><article><h3>FREE</h3><p>Terminarz, wyniki, Injury Watch, podstawowe informacje o drużynach.</p></article><article class="hza-gold"><h3>PREMIUM</h3><strong>9,99 USD / miesiąc</strong><p>Player Props, Simulation Lab i zaawansowane analizy.</p></article></div><p id="hza-billing-state">Płatności produkcyjne nie są uruchomione.</p><button type="button" class="hza-action" data-hza-auth="login" hidden>Zaloguj się, aby sprawdzić dostęp</button></section>
+<section data-hza-panel="preferences" hidden><div class="hza-data-row"><span>Język interfejsu</span><strong>Polski</strong></div><div class="hza-data-row"><span>Motyw</span><strong>Hoopzaro Dark</strong></div><p>Wybór języka, strefy czasowej, formatu daty oraz domyślnego zakresu statystyk jest planowany. Zapis preferencji na koncie nie jest jeszcze dostępny.</p></section>
+<section data-hza-panel="notifications" hidden><p class="hza-planned">PLANOWANA FUNKCJA · jeszcze nieaktywna</p><div class="hza-data-row"><span>Ulubione drużyny</span><small>Planowane</small></div><div class="hza-data-row"><span>Obserwowani zawodnicy</span><small>Planowane</small></div><div class="hza-data-row"><span>Kontuzje · Injury Watch</span><small>Planowane</small></div><div class="hza-data-row"><span>Mecze i terminarz</span><small>Planowane</small></div><div class="hza-data-row"><span>Aktualizacje Hoopzaro</span><small>Planowane</small></div><p>Najpierw alerty w aplikacji, następnie e-mail i powiadomienia push. Nie wysyłamy teraz alertów z tego panelu.</p></section>
+<section data-hza-panel="privacy" hidden><div id="hza-privacy-unavailable"><p>Opcjonalna analityka nie jest dostępna dla tego konta lub środowiska. Panel nie włącza zbierania danych.</p></div><div id="hz-usage-privacy" hidden><strong style="font-size:16px">Opcjonalna analityka użytkowania</strong><p style="font-size:13px;line-height:1.5">Pomóż nam ulepszać Hoopzaro. Po wyrażeniu zgody zapisujemy pseudonimowy identyfikator konta (jeśli jesteś zalogowany), rolę, sesje, odwiedzane zakładki oraz zagregowane wywołania funkcji i czasy działania. Nie zapisujemy treści zapytań, e-maila ani adresu IP w tej analityce. Sesje: 30 dni; nieaktywne konta i agregaty funkcji: do 90 dni, z wyjątkami dla danych niezbędnych do obsługi konta. Zgoda jest dobrowolna, dotyczy bieżącej sesji (maksymalnie 24 godziny) i nie zmienia dostępu do aplikacji. Zapisujemy również minimalny dowód zgody oraz jej wycofania. Możesz ją wycofać tutaj.</p><p><a id="hz-usage-notice" target="_blank" rel="noopener noreferrer" style="color:#65d8ff" hidden>Polityka prywatności</a></p><div class="hz-account-actions"><button type="button" id="hz-usage-allow">Zezwól na analitykę</button><button type="button" id="hz-usage-deny">Nie zezwalaj / wycofaj</button></div><small id="hz-usage-status" aria-live="polite"></small></div><div class="hza-data-row"><span>Pytania o dane, eksport lub usunięcie</span><a href="mailto:contact@hoopzaro.com">Kontakt ↗</a></div><p>Wniosek e-mail nie usuwa automatycznie konta ani danych.</p></section>
+<section data-hza-panel="security" hidden><div class="hza-data-row"><span>Metoda logowania</span><strong id="hza-security-provider">—</strong></div><p>Hasło i weryfikację dwuetapową obsługuje dostawca tożsamości. Hoopzaro nie posiada własnych haseł ani listy zdalnych sesji.</p><a class="hza-action" id="hza-google-security" href="https://myaccount.google.com/security" target="_blank" rel="noopener noreferrer" hidden>Bezpieczeństwo konta Google ↗</a><button type="button" class="hza-action" data-hza-auth="logout" hidden>Wyloguj bieżącą sesję</button></section>
+<section data-hza-panel="support" hidden><details><summary>Jak uzyskać dostęp Premium?</summary><p>Sprawdź Plan i dostęp. Sprzedaż produkcyjna pozostaje w przygotowaniu.</p></details><details><summary>Skąd pochodzą statystyki?</summary><p>Hoopzaro pokazuje źródło danych i rozróżnia historię od prognoz modelowych.</p></details><div class="hza-data-row"><span>Pomoc techniczna</span><a href="mailto:support@hoopzaro.com">Napisz ↗</a></div><div class="hza-data-row"><span>Kontakt ogólny</span><a href="mailto:contact@hoopzaro.com">Napisz ↗</a></div></section>
+</div></div><footer class="hza-dialog-foot"><button type="button" id="hza-done">Zamknij</button></footer></dialog>
+<script src="settings_account_v2.js"></script>
 <script src="nba_player_ids.js"></script>
 <script src="portraits.js"></script>
 <script src="centrum.js"></script>
@@ -1530,6 +1534,8 @@ function resize(){
   const shortLandscape=viewportWidth<=1200 && window.innerHeight<=500 &&
     viewportWidth>window.innerHeight;
   const mobileLayout=viewportWidth<=767 || shortLandscape;
+  const mobileSettings=mobileLayout && state.page==="settings";
+  shell.classList.toggle("hza-mobile",mobileSettings);
   const mobileHome=mobileLayout && state.page==="home";
   const mobileSchedule=mobileLayout && state.page==="games";
   // All active Premium module views use native-width phone UI.
@@ -1540,7 +1546,7 @@ function resize(){
   shell.classList.toggle("hz-mobile-centre",mobileHome);
   shell.classList.toggle("hz-mobile-schedule",mobileSchedule);
   shell.classList.toggle("hz-independent-scroll",!mobileLayout);
-  if(mobileHome||mobileSchedule||mobileIntelligence){
+  if(mobileHome||mobileSchedule||mobileIntelligence||mobileSettings){
     // Native touch scrolling for the free Home and Schedule routes.
     root.style.transform="none";
     root.style.height="";
@@ -1833,8 +1839,8 @@ function render(){
   if(!teams&&window.HoopzaroTeams)window.HoopzaroTeams.closeModal(false);
   $("hz-admin-pane").hidden=!admin;
   $("bestbets-centre").hidden=!home;
-  $("footer").style.display=home||simulations||players||teams||admin?"none":"block";
-  $("attribution").style.display=home||simulations||players||teams||admin?"none":"block";
+  $("footer").style.display=home||simulations||players||teams||admin||state.page==="settings"?"none":"block";
+  $("attribution").style.display=home||simulations||players||teams||admin||state.page==="settings"?"none":"block";
   text("blank-title",pages[state.page]||"HOOPZARO");
   renderAccount();
   $("props-heading").style.display=active?"flex":"none";
@@ -1876,6 +1882,7 @@ function renderAccount(){
   $("blank-pane").classList.toggle("hz-account-page",settings);
   $("blank-description").hidden=settings;
   $("hz-account").hidden=!settings;
+  window.HoopzaroAccount?.render(settings,state.payload);
   if(!settings)return;
   const roles={guest:"GOŚĆ",free:"KONTO FREE",premium:"PREMIUM",admin:"ADMINISTRATOR · PREMIUM"};
   text("hz-account-role",roles[role]||"GOŚĆ");
@@ -1887,6 +1894,7 @@ function renderAccount(){
     :"Logowanie będzie dostępne po konfiguracji bezpiecznego dostawcy tożsamości.");
   $("hz-account-login").hidden=!auth.configured||!!auth.logged_in;
   $("hz-account-logout").hidden=!auth.configured||!auth.logged_in;
+  text("hz-account-note",role==="admin"?"Bezpłatny dostęp administracyjny.":role==="premium"?"Dostęp Premium zweryfikowany przez serwer.":"Sprawdź dostęp do narzędzi Hoopzaro.");
   const privacy=$("hz-usage-privacy");
   privacy.hidden=!state.payload.usage_consent_available;
   const granted=state.payload.usage_consent_granted===true;
@@ -2208,6 +2216,7 @@ function sendUsageConsent(accepted){
 }
 $("hz-usage-allow").addEventListener("click",()=>sendUsageConsent(true));
 $("hz-usage-deny").addEventListener("click",()=>sendUsageConsent(false));
+window.HoopzaroAccount?.init({auth:sendAuth});
 $("hz-account-login").addEventListener("click",function(){sendAuth("auth_login")});
 $("hz-account-logout").addEventListener("click",function(){sendAuth("auth_logout")});
 $("search-form").addEventListener("submit",function(e){e.preventDefault();state.propsBridgeNote="";search($("query").value)});
