@@ -36,6 +36,7 @@ def run():
             name=page.locator(".hzp-player-identity strong").first
             expect(name).to_have_attribute("title","Shai Gilgeous-Alexander")
             assert name.evaluate("e=>getComputedStyle(e).whiteSpace")=="normal"
+            assert "tabular-nums" in page.locator(".hzp-stat-primary").first.evaluate("e=>getComputedStyle(e).fontVariantNumeric")
             page.locator(".hzp-player-row").first.click()
             expect(page.locator(".hzp-spotlight-identity h2")).to_have_text("Shai Gilgeous-Alexander")
             mobile=width<768 or height<=500
@@ -43,6 +44,8 @@ def run():
                 assert page.locator("#app-shell").evaluate("e=>e.classList.contains('hz-mobile-directory')")
                 assert page.locator("#stage").evaluate("e=>getComputedStyle(e).transform")=="none"
                 assert page.locator(".hzp-player-identity strong").first.evaluate("e=>e.getBoundingClientRect().height>=12")
+                assert page.locator("#hzp-next").evaluate("e=>e.getBoundingClientRect().width>=44")
+                assert page.locator(".hzp-table-header").evaluate("e=>parseFloat(getComputedStyle(e).fontSize)")>=10
                 assert page.evaluate("()=>document.documentElement.scrollWidth<=innerWidth+2")
                 page.screenshot(path=str(OUT/f"players-spotlight-{width}.png"),animations="disabled")
                 page.evaluate("window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0")
@@ -66,9 +69,11 @@ def run():
             if mobile:
                 assert page.locator("#stage").evaluate("e=>getComputedStyle(e).transform")=="none"
                 assert page.locator(".hzt-team-card").first.evaluate("e=>e.getBoundingClientRect().height>=100")
+                assert page.locator("#hzt-next").evaluate("e=>e.getBoundingClientRect().width>=44")
                 assert page.evaluate("()=>document.documentElement.scrollWidth<=innerWidth+2")
                 page.evaluate("window.scrollTo(0,0);document.documentElement.scrollTop=0;document.body.scrollTop=0")
             page.screenshot(path=str(OUT/f"teams-{width}.png"),animations="disabled")
+            assert "tabular-nums" in page.locator(".hzt-record").first.evaluate("e=>getComputedStyle(e).fontVariantNumeric")
             assert not errors,errors
             page.close()
         browser.close()
