@@ -81,6 +81,7 @@ def evaluate_paired(*, forecasts, actuals, models, asof, mode="prospective"):
     coverage={m:0 for m in models}
     missing_actual=unmatched_players=matched=played_count=dnp_count=0
     paired_team_games=0
+    excluded_evidence_mismatch=0
     # Do not multiply a game's weight by choosing among hypothetical scenarios.
     counts={}
     for gid,team,scenario in candidates:
@@ -94,6 +95,11 @@ def evaluate_paired(*, forecasts, actuals, models, asof, mode="prospective"):
         if len({_time(f["projection"]["asof"]) for f in fs.values()})!=1:
             continue
         if len({_time(f["start_utc"]) for f in fs.values()})!=1:
+            continue
+        fingerprints=[(f.get("snapshot_sha256"),f.get("history_sha256")) for f in fs.values()]
+        if (any(not isinstance(h,str) or len(h)!=64 or any(x not in "0123456789abcdef" for x in h)
+                for pair in fingerprints for h in pair) or len(set(fingerprints))!=1):
+            excluded_evidence_mismatch+=1
             continue
         tip=_time(next(iter(fs.values()))["start_utc"])
         player_maps={}
@@ -149,6 +155,7 @@ def evaluate_paired(*, forecasts, actuals, models, asof, mode="prospective"):
             "paired_players":matched,"played":played_count,"dnp":dnp_count,
             "paired_team_games":paired_team_games,"missing_actual_players":missing_actual,
             "unmatched_players":unmatched_players,"excluded_multiple_scenario_team_games":excluded_multiple,
+            "excluded_evidence_mismatch_team_games":excluded_evidence_mismatch,
             "models":{m:{"candidate_player_rows":coverage[m],
                          "mae":{k:avg(errors[m][k]) for k in METRICS},
                          "bias":{k:avg(bias[m][k]) for k in METRICS},
