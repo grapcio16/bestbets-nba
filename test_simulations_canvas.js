@@ -42,6 +42,17 @@ const playerTeamButtons=["all","away","home"].map(team=>({
   setAttribute(k,v){this.attributes[k]=v}
 }));
 elements["hzm-player-tools"].querySelectorAll=()=>playerTeamButtons;
+const resultTeamButtons=["all","away","home"].map(team=>({
+  dataset:{hzmResultTeam:team},attributes:{},classList:{toggle(){}},
+  textContent:"",setAttribute(k,v){this.attributes[k]=v}
+}));
+elements["hzm-players-panel"].querySelectorAll=selector=>{
+  assert.equal(selector,"[data-hzm-result-team]");
+  return resultTeamButtons;
+};
+for(const button of resultTeamButtons){
+  elements["hzm-result-team-"+button.dataset.hzmResultTeam]=button;
+}
 const context={window:{},document:{getElementById(id){return elements[id]||null}},Date,Intl,Number,Math,Map,String,Array};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,"bestbets_reference_frontend/simulations.js"),"utf8"),context);
 const app=context.window.HoopzaroSimulations;
@@ -66,6 +77,9 @@ assert.match(elements["hzm-player-rows"].innerHTML,/dostępne w Premium/);
 assert.equal(requests,0,"Guest requests no paid data");
 assert.equal(tabs[1].textContent,"NYK");
 assert.equal(tabs[2].textContent,"IND");
+assert.equal(elements["hzm-result-team-away"].textContent,"NYK");
+assert.equal(elements["hzm-result-team-home"].textContent,"IND");
+assert.equal(elements["hzm-result-team-all"].attributes["aria-pressed"],"true");
 assert.equal(elements["simulations-pane"].dataset.hzmView,"results");
 assert.equal(elements["hzm-lab-range"].textContent,"Przedział 80%: —",
   "Guest must never receive Premium percentiles");
