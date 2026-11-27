@@ -208,7 +208,7 @@ function render(nextCatalog,nextAverages,nextRole){
     (failed?" · "+failed+" chwilowo niedostępnych (Odśwież)":"")+
     " · średnie z potwierdzonych występów · najedź na statystykę, aby sprawdzić próbkę";
   $("hzp-cta-title").textContent=entitled()?"Chcesz przeanalizować kolejny mecz?":"Odblokuj statystyki zawodników";
-  $("hzp-cta-text").textContent=entitled()?"Prognozy, linie OVER/UNDER i symulacje znajdziesz w Player Props.":
+  $("hzp-cta-text").textContent=entitled()?"Historia występów i analiza linii OVER/UNDER w Player Props.":
     "Średnie PTS, REB, AST, 3PM, 3PA i 3P% dostępne z Hoopzaro Premium.";
   $("hzp-cta").firstChild.textContent=entitled()?"Otwórz Player Props ":"Premium · 9,99 USD/mies. ";
   if(entitled()&&catalog&&visible.length&&typeof callbacks.requestAverages==="function"){

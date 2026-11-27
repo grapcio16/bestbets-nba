@@ -186,3 +186,9 @@
 #hzt-teams-pane .hzt-spotlight-main strong.hzt-long-name{font-size:18px;line-height:1.12;overflow-wrap:break-word}
 #hzt-teams-pane .hzt-team-card:hover .hzt-card-mark,#hzt-teams-pane .hzt-team-card:focus-visible .hzt-card-mark{filter:brightness(1.15);text-shadow:0 0 18px rgba(var(--hzt-rgb),.8)}
 #hzt-teams-pane .hzt-team-card.is-selected{box-shadow:0 0 19px rgba(var(--hzt-rgb),.36),inset 0 1px rgba(255,255,255,.16)}
+
+/* Carry the selected team's existing accent into its spotlight, not a new palette. */
+#hzt-teams-pane .hzt-spotlight{--hzt-spotlight-rgb:27,242,164;--hzt-spotlight-accent:#27f2a4;border-color:rgba(var(--hzt-spotlight-rgb),.9);background:radial-gradient(ellipse at 12% 10%,rgba(var(--hzt-spotlight-rgb),.20),transparent 57%),linear-gradient(130deg,#081d32,#0a2036 48%,#071a32);box-shadow:inset 0 1px rgba(var(--hzt-spotlight-rgb),.15),0 0 24px rgba(var(--hzt-spotlight-rgb),.14)}
+#hzt-teams-pane .hzt-spotlight-logo{background:linear-gradient(145deg,rgba(var(--hzt-spotlight-rgb),.24),#07142c);box-shadow:inset 0 0 16px rgba(var(--hzt-spotlight-rgb),.14)}
+#hzt-teams-pane .hzt-feature-stats b{color:var(--hzt-spotlight-accent)}
+#hzt-teams-pane .hzt-feature-stats{border-left-color:rgba(var(--hzt-spotlight-rgb),.28)}

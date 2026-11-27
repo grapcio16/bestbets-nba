@@ -9,12 +9,23 @@ OUT.mkdir(parents=True,exist_ok=True)
 def run():
     with sync_playwright() as p:
         browser=p.chromium.launch()
-        for width,height in [(1672,941),(1231,691)]:
+        for width,height in [(1672,941),(1231,691),(390,844),(844,390)]:
             page=browser.new_page(viewport={"width":width,"height":height},reduced_motion="reduce")
             errors=[]
             page.on("pageerror",lambda e:errors.append(str(e)))
             page.goto(URL,wait_until="load")
-            page.locator('.nav-btn[data-page="players"]').click()
+            def navigate(section):
+                desktop=page.locator(f'.nav-btn[data-page="{section}"]')
+                if desktop.is_visible():
+                    desktop.click()
+                else:
+                    direct=page.locator(f'#hz-mobile-nav [data-page="{section}"]')
+                    if direct.is_visible():
+                        direct.click()
+                    else:
+                        page.locator("#hz-mobile-more-trigger").click()
+                        page.locator(f'#hz-mobile-more-panel [data-page="{section}"]').click()
+            navigate("players")
             rows=[{"id":"1","name":"Shai Gilgeous-Alexander","team":"OKC","position":"G"},
                   {"id":"2","name":"Giannis Antetokounmpo","team":"MIL","position":"F"}]
             payload={"auth":{"role":"premium","logged_in":True},"player_catalog":{"players":rows},
@@ -28,7 +39,8 @@ def run():
             page.locator(".hzp-player-row").first.click()
             expect(page.locator(".hzp-spotlight-identity h2")).to_have_text("Shai Gilgeous-Alexander")
             page.screenshot(path=str(OUT/f"players-{width}.png"),animations="disabled")
-            page.locator('.nav-btn[data-page="teams"]').click()
+            expect(page.locator("#hzp-cta-text")).to_contain_text("Historia występów")
+            navigate("teams")
             expect(page.locator(".hzt-team-card")).to_have_count(9)
             page.locator("#hzt-search").fill("Minnesota")
             card=page.locator('[data-hzt-team="MIN"]')
@@ -39,6 +51,8 @@ def run():
             page.locator("#hzt-modal-close").click()
             expect(page.locator("#hzt-feature-name")).to_have_text("Minnesota Timberwolves")
             expect(page.locator("#hzt-feature-name")).to_have_class("hzt-long-name")
+            assert page.locator(".hzt-spotlight").evaluate("e=>getComputedStyle(e).getPropertyValue('--hzt-spotlight-accent').trim()")=="#66a6eb"
+            assert page.locator("#hzt-feature-conference").evaluate("e=>getComputedStyle(e).color")=="rgb(102, 166, 235)"
             page.locator("#hzt-search").fill("")
             expect(page.locator(".hzt-team-card")).to_have_count(9)
             page.screenshot(path=str(OUT/f"teams-{width}.png"),animations="disabled")

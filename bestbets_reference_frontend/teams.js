@@ -96,6 +96,7 @@ function markup(team){
 function feature(){
  const team=byCode.get(selected)||DATA[0];
  const mark=$("hzt-feature-mark");mark.textContent=team.mark;mark.style.setProperty("--hzt-accent",team.accent);
+ const spotlight=mark.closest(".hzt-spotlight");spotlight.style.setProperty("--hzt-spotlight-rgb",team.rgb);spotlight.style.setProperty("--hzt-spotlight-accent",team.accent);
  const featureName=$("hzt-feature-name");featureName.textContent=team.name;featureName.title=team.name;featureName.classList.toggle("hzt-long-name",team.name.length>20);
  $("hzt-feature-conference").textContent=team.conference==="east"?"Wschód":"Zachód";
  $("hzt-feature-record").textContent=record(team);
