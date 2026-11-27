@@ -170,5 +170,24 @@ class ArchiveTests(unittest.TestCase):
             ResearchArchive("postgresql://example.invalid/research")
 
 
+class EvidenceModeTests(unittest.TestCase):
+    def test_replay_rejected_by_prospective_archive_and_evaluator(self):
+        from player_intelligence.research_archive import ResearchArchive
+        bundle,records,actuals=forecast_pair()
+        replay_records=forecast_envelopes(bundle,issued_at=NOW+pd.Timedelta(minutes=1),mode="captured_replay")
+        archive=ResearchArchive(clock=lambda:NOW+pd.Timedelta(minutes=1))
+        try:
+            with self.assertRaisesRegex(ValueError,"only prospective"):
+                archive.append_batch(replay_records)
+            self.assertEqual(archive.records(),[])
+        finally:
+            archive.close()
+        args=dict(actuals=actuals,models=[VERSION,MODEL],asof=TIP+pd.Timedelta(hours=6))
+        with self.assertRaisesRegex(ValueError,"mixed"):
+            evaluate_paired(forecasts=records+replay_records,**args)
+        result=evaluate_paired(forecasts=replay_records,mode="captured_replay",**args)
+        self.assertEqual(result["paired_players"],20)
+        self.assertEqual(result["evidence_mode"],"captured_replay")
+
 if __name__=="__main__":
     unittest.main()
