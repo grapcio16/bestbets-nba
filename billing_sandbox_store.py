@@ -112,6 +112,15 @@ class SandboxService:
         aid=tester_identity(principal)
         if aid is None:
             return Decision(False,"pilot_disabled")
+        return self.reconcile_account(aid)
+
+    def reconcile_account(self,aid):
+        """Internal server-only verifier; caller must authorize the account.
+        For the worker this is an explicit sandbox-only tester allowlist.
+        Never expose as a browser route or production access gate.
+        """
+        if not isinstance(aid,str) or not re.fullmatch("[0-9a-f]{64}",aid):
+            return Decision(False,"account_mismatch")
         try:
             a=self.store.get(aid)
         except Exception:
