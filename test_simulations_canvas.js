@@ -30,7 +30,10 @@ elements["hzm-model-options"].hidden=true;
 elements["hzm-match-list"].hidden=true;
 const tabs=["match","away","home"].map(chart=>({dataset:{hzmChart:chart},textContent:"",attributes:{},
   classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v}}));
-elements["hzm-chart-tabs"]={querySelectorAll(){return tabs}};
+elements["hzm-chart-tabs"]={
+  querySelectorAll(){return tabs},
+  addEventListener(type,fn){this["on_"+type]=fn}
+};
 const labTabs=["results","players"].map(view=>({dataset:{hzmView:view},attributes:{},
   classList:{toggle(){}},setAttribute(k,v){this.attributes[k]=v}}));
 elements["hzm-lab-nav"]={querySelectorAll(){return labTabs}};
@@ -39,11 +42,24 @@ const playerTeamButtons=["all","away","home"].map(team=>({
   setAttribute(k,v){this.attributes[k]=v}
 }));
 elements["hzm-player-tools"].querySelectorAll=()=>playerTeamButtons;
+const resultTeamButtons=["all","away","home"].map(team=>({
+  dataset:{hzmResultTeam:team},attributes:{},classList:{toggle(){}},
+  textContent:"",setAttribute(k,v){this.attributes[k]=v}
+}));
+elements["hzm-players-panel"].querySelectorAll=selector=>{
+  assert.equal(selector,"[data-hzm-result-team]");
+  return resultTeamButtons;
+};
+for(const button of resultTeamButtons){
+  elements["hzm-result-team-"+button.dataset.hzmResultTeam]=button;
+}
 const context={window:{},document:{getElementById(id){return elements[id]||null}},Date,Intl,Number,Math,Map,String,Array};
 vm.runInNewContext(fs.readFileSync(path.join(__dirname,"bestbets_reference_frontend/simulations.js"),"utf8"),context);
 const app=context.window.HoopzaroSimulations;
 let requests=0;
 app.init({selectDay(){requests++},loadGame(){requests++},loadPlayers(){requests++},premium(){requests++}});
+assert.equal(typeof elements["hzm-chart-tabs"].on_click,"function",
+  "Chart tab event delegation must be registered on the real container contract");
 const day="2026-11-14",game={id:"401000123",day,away:"NYK",home:"IND",state:"scheduled",start:"2026-11-15T01:00:00Z"};
 const home={calendar_today:day,calendar_loaded_days:[day],calendar_games:[game]};
 const bins=Array.from({length:10},(_,i)=>({x:90+i*5,p:i<5?i*2:(10-i)*2}));
@@ -61,18 +77,30 @@ assert.match(elements["hzm-player-rows"].innerHTML,/dostępne w Premium/);
 assert.equal(requests,0,"Guest requests no paid data");
 assert.equal(tabs[1].textContent,"NYK");
 assert.equal(tabs[2].textContent,"IND");
+assert.equal(elements["hzm-result-team-away"].textContent,"NYK");
+assert.equal(elements["hzm-result-team-home"].textContent,"IND");
+assert.equal(elements["hzm-result-team-all"].attributes["aria-pressed"],"true");
 assert.equal(elements["simulations-pane"].dataset.hzmView,"results");
 assert.equal(elements["hzm-lab-range"].textContent,"Przedział 80%: —",
   "Guest must never receive Premium percentiles");
 
 app.render(home,{entitled:true,game:fakeGame,players:fakePlayers});
 assert.equal(elements["hzm-score"].textContent,"117 : 112");
+const selectResultTeam=team=>elements["simulations-pane"].on_click({
+  target:{closest(selector){return selector==="[data-hzm-result-team]"?{dataset:{hzmResultTeam:team}}:null;}}
+});
+selectResultTeam("home");
+assert.equal(elements["hzm-result-team-home"].attributes["aria-pressed"],"true");
+assert.match(elements["hzm-player-rows"].innerHTML,/Test Athlete 2\b/);
+assert.doesNotMatch(elements["hzm-player-rows"].innerHTML,/Test Athlete 1\b/);
+selectResultTeam("all");
 assert.equal(elements["hzm-away-average"].textContent,"116,8");
 assert.equal(elements["hzm-home-average"].textContent,"111,6");
 assert.match(elements["hzm-plot"].innerHTML,/<svg/);
 assert.match(elements["hzm-lab-range"].textContent,/102,0 – 131,0 pkt/,
   "Premium range derives from verified model P10/P90");
-assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,4);
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,5,
+  "Results preview contains the five highest PTS projections");
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="#hzm-expand-players"?{}:null;
 }}});
@@ -129,28 +157,27 @@ assert.match(elements["hzm-evidence-rest"].textContent,/korekta B2B/);
 assert.match(elements["hzm-evidence-rest"].textContent,/OUT ESPN/);
 assert.equal(elements["hzm-model-select"].value,"research_context_v75");
 const v75Players={...fakePlayers,model_id:"research_context_v75",players:[
-  {name:"Sample Star",team:"IND",pts:null,reb:null,ast:null,minutes:0,minutes_sample:7,availability:"Out"},
+  {name:"Sample Star",team:"IND",pts:30,reb:9,ast:5,minutes:0,minutes_sample:7,availability:"Out"},
   {name:"Sample Guard",team:"NYK",pts:22,reb:5,ast:8,minutes:31.5,minutes_sample:6,availability:"Questionable"},
+  {name:"Sample Eligible",team:"NYK",pts:18,reb:4,ast:5,minutes:29,minutes_sample:6,availability:"Niezweryfikowany"},
 ]};
 app.render(home,{entitled:true,game:advanced,players:v75Players});
-assert.match(elements["hzm-player-headings"].innerHTML,/MIN/);
-assert.match(elements["hzm-player-rows"].innerHTML,/OUT \(ESPN\)/);
-assert.match(elements["hzm-player-rows"].innerHTML,/31,5/);
-assert.match(elements["hzm-player-rows"].innerHTML,/Questionable/);
+assert.doesNotMatch(elements["hzm-player-headings"].innerHTML,/MIN/,
+  "Results preview retains the PTS/REB/AST/PRA columns");
+assert.match(elements["hzm-player-rows"].innerHTML,/Sample Eligible/);
+assert.match(elements["hzm-player-rows"].innerHTML,/Prognozy warunkowe/);
+assert.doesNotMatch(elements["hzm-player-rows"].innerHTML,/Sample Star|Sample Guard/,
+  "The current injury guard removes explicit OUT and risk projections even without a report");
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="[data-hzm-view]"?{dataset:{hzmView:"players"}}:null;
 }}});
-// The new roster sorts by the active market: OUT has no projection and
-// therefore appears last, but remains explicitly selectable from the list.
-elements["hzm-player-rows"].on_click({target:{closest(selector){
-  return selector==="[data-hzm-player-index]"?{dataset:{hzmPlayerIndex:"0"}}:null;
-}}});
-assert.match(elements["hzm-player-inspector"].innerHTML,/Sample Star/);
-assert.match(elements["hzm-player-inspector"].innerHTML,/ESPN: Out/);
-assert.match(elements["hzm-player-inspector"].innerHTML,/0,0 min/);
-assert.match(elements["hzm-player-inspector"].innerHTML,/OUT — model nie pokazuje/);
-assert.doesNotMatch(elements["hzm-player-inspector"].innerHTML,/>0,0<\/strong>/,
-  "No fake zero-point production for OUT player");
+assert.match(elements["hzm-player-headings"].innerHTML,/MIN/,
+  "V7.5 detailed legacy player view exposes its minute estimates");
+assert.match(elements["hzm-player-rows"].innerHTML,/29,0/);
+assert.match(elements["hzm-player-inspector"].innerHTML,/Sample Eligible/);
+assert.match(elements["hzm-player-inspector"].innerHTML,/29,0 min/);
+assert.doesNotMatch(elements["hzm-player-inspector"].innerHTML,/Sample Star|Sample Guard/,
+  "Blocked players cannot be selected as active projections");
 elements["simulations-pane"].on_click({target:{closest(selector){
   return selector==="[data-hzm-view]"?{dataset:{hzmView:"results"}}:null;
 }}});
@@ -201,7 +228,8 @@ elements["simulations-pane"].on_click({target:{closest(selector){
 }}});
 assert.equal(elements["simulations-pane"].dataset.hzmView,"results");
 assert.equal(elements["hzm-lab-main"].attributes["aria-labelledby"],"hzm-lab-tab-results");
-assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,4);
+assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,5,
+  "Results preview contains the five highest PTS projections");
 elements["hzm-expand-players"].on_click({stopPropagation(){}});
 assert.equal(elements["hzm-expand-players"].attributes["aria-expanded"],"true");
 assert.equal((elements["hzm-player-rows"].innerHTML.match(/class="hzm-player-row(?: hzm-player-row-rich)?"/g)||[]).length,14);

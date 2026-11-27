@@ -249,7 +249,7 @@ function trustedPlayers(premium,game){
     "Sprzeczne","Inny / niepotwierdzony"]);
   const key=v=>String(v||"").normalize("NFKD")
     .replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
-  const rows=Array.isArray(watch.rows)?watch.rows:[];
+  const rows=Array.isArray(watch?.rows)?watch.rows:[];
   const eligible=p=>(!blocked.has(p?.availability)&&!rows.some(r=>
     r?.team===p?.team&&blocked.has(r.status)&&
     ((String(r.espn_id||"")&&String(p.espn_id||"")===String(r.espn_id))||
