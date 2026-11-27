@@ -12,7 +12,7 @@ def fixture():
               "players":[{"player_id":p} for p in IDS]}
     game = {"game_id":"future", "home":"BOS", "away":"NYK",
             "start_utc":NOW+pd.Timedelta(hours=5)}
-    statuses = [{"player_id":p, "team":"BOS", "status":"available",
+    statuses = [{"player_id":p, "team":"BOS", "game_id":"future", "status":"available",
                  "observed_at":NOW, "verified":True} for p in IDS]
     logs = []
     for j in range(5):
@@ -72,6 +72,11 @@ class RotationTests(unittest.TestCase):
                          dict(f["logs"][0],game_id="future",PTS=90)])
         f["availability"].append(dict(f["availability"][0],observed_at=NOW+pd.Timedelta(seconds=1),status="out"))
         self.assertEqual(project_rotation(**f),baseline)
+
+    def test_wrong_fixture_availability_never_applied(self):
+        f=fixture()
+        f["availability"][0]["game_id"]="another-game"
+        self.assertEqual(project_rotation(**f)["unresolved_player_ids"],["p0"])
 
     def test_duplicate_logs_and_roster_rejected(self):
         f=fixture()
