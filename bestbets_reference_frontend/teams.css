@@ -180,3 +180,9 @@
   .hzt-locked-metrics span{min-height:72px}.hzt-metric{min-height:90px}
   .hzt-premium-heading strong{font-size:19px}
 }
+
+/* Directory polish preview: retain all existing grid/card dimensions. */
+#hzt-teams-pane .hzt-card-body strong{overflow-wrap:break-word;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+#hzt-teams-pane .hzt-spotlight-main strong.hzt-long-name{font-size:18px;line-height:1.12;overflow-wrap:break-word}
+#hzt-teams-pane .hzt-team-card:hover .hzt-card-mark,#hzt-teams-pane .hzt-team-card:focus-visible .hzt-card-mark{filter:brightness(1.15);text-shadow:0 0 18px rgba(var(--hzt-rgb),.8)}
+#hzt-teams-pane .hzt-team-card.is-selected{box-shadow:0 0 19px rgba(var(--hzt-rgb),.36),inset 0 1px rgba(255,255,255,.16)}

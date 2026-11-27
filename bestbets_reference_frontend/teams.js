@@ -87,7 +87,7 @@ function markup(team){
    aria-label="Pokaż drużynę ${team.name}">
    <span class="hzt-card-mark" aria-hidden="true">${team.mark}</span>
    <span class="hzt-card-body"><span class="hzt-card-code">${team.code}</span>
-   <strong>${team.name}</strong><small>Konferencja: <em>${conf}</em></small>
+   <strong title="${team.name}">${team.name}</strong><small>Konferencja: <em>${conf}</em></small>
    <span class="hzt-record">Bilans W–L: ${record(team)}</span></span>
    <button type="button" class="hzt-card-fav${fav?" is-favorite":""}" data-hzt-fav="${team.code}"
    aria-pressed="${fav}" aria-label="${fav?"Usuń":"Dodaj"} ${team.name} ${fav?"z":"do"} ulubionych"
@@ -96,7 +96,7 @@ function markup(team){
 function feature(){
  const team=byCode.get(selected)||DATA[0];
  const mark=$("hzt-feature-mark");mark.textContent=team.mark;mark.style.setProperty("--hzt-accent",team.accent);
- $("hzt-feature-name").textContent=team.name;
+ const featureName=$("hzt-feature-name");featureName.textContent=team.name;featureName.title=team.name;featureName.classList.toggle("hzt-long-name",team.name.length>20);
  $("hzt-feature-conference").textContent=team.conference==="east"?"Wschód":"Zachód";
  $("hzt-feature-record").textContent=record(team);
  $("hzt-feature-status").textContent=home?.form_stale?"Dane ESPN opóźnione":

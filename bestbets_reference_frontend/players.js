@@ -20,7 +20,7 @@ function setOptions(players){
   const signature=values.join("|");
   if(select.dataset.signature===signature)return;
   select.dataset.signature=signature;
-  select.replaceChildren(new Option("Wszystkie drużyny",""));
+  select.replaceChildren(new Option("Wszystkie",""));
   values.forEach(value=>select.append(new Option(value,value)));
   select.value=values.includes(existing)?existing:"";
   team=select.value;
@@ -92,7 +92,8 @@ function playerRow(player,active){
   const name=make("span","hzp-player-name");
   name.append(avatarFor(player));
   const identity=make("span","hzp-player-identity");
-  identity.append(make("strong","",player.name),make("small","",player.position||"NBA"));
+  const fullName=make("strong","",player.name);fullName.title=String(player.name||"");
+  identity.append(fullName,make("small","",player.position||"NBA"));
   name.append(identity);row.append(name);
   const teamCell=make("span","hzp-player-team");teamCell.append(make("span","hzp-team-tag",player.team||"NBA"));
   row.append(teamCell);
@@ -129,7 +130,7 @@ function renderSpotlight(player,note){
   const hero=make("div","hzp-spotlight-hero");
   hero.append(avatarFor(player,true));
   const copy=make("div","hzp-spotlight-identity");
-  copy.append(make("h2","",player.name));
+  const heading=make("h2",String(player.name||"").length>23?"hzp-long-name":"",player.name);heading.title=String(player.name||"");copy.append(heading);
   copy.append(make("p","",(player.team||"NBA")+" · "+(player.position||"NBA")));
   hero.append(copy);target.append(hero);
   const metrics=make("div","hzp-spotlight-metrics");

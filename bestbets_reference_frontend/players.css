@@ -211,3 +211,10 @@
 .hzp-spotlight-note{display:flex;gap:7px;align-items:center;flex:1;min-height:32px;
   padding:5px 15px;color:#b7cbe4;font-size:10px;line-height:1.45}
 .hzp-note-icon{color:#82c9e9;font-size:16px}
+
+/* Directory polish preview: existing dimensions, colors and identity system. */
+#hzp-players-pane .hzp-player-identity strong{white-space:normal;overflow-wrap:anywhere;line-height:1.13;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+#hzp-players-pane .hzp-player-identity small{line-height:1.1}
+#hzp-players-pane .hzp-spotlight-identity .hzp-long-name{font-size:23px;overflow-wrap:anywhere}
+#hzp-players-pane .hzp-player-row.is-active .hzp-player-avatar{box-shadow:inset 0 -8px 15px rgba(5,10,37,.6),0 0 14px rgba(var(--hz-identity-accent),.44)}
+#hzp-players-pane .hzp-search-wrap:focus-within{box-shadow:0 0 17px rgba(0,229,255,.25),inset 0 0 10px rgba(0,229,255,.08)}
