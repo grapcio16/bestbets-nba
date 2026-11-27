@@ -6,6 +6,7 @@ import streamlit as st
 from access_control import auth_configured,current_claims,current_principal,login_provider
 from billing_sandbox_adapter import StripeTestAPI,BillingError,approved_return_url
 from billing_sandbox_store import Store,SandboxService,tester_identity
+from billing_sandbox_config import load_config,check_connections
 
 st.set_page_config(page_title="HOOPZARO | Billing sandbox",page_icon="🏀")
 st.title("HOOPZARO — Billing sandbox")
@@ -35,14 +36,22 @@ if tester_identity(principal) is None:
     else:
         st.info("To konto nie należy do pilotażu.")
     st.stop()
-try:
-    api=StripeTestAPI(os.environ["HOOPZARO_BILLING_SANDBOX_STRIPE_KEY"],os.environ["HOOPZARO_BILLING_SANDBOX_STRIPE_ACCOUNT"])
-    service=SandboxService(Store(os.environ["HOOPZARO_BILLING_SANDBOX_DATABASE_URL"]),api,
-        os.environ["HOOPZARO_BILLING_SANDBOX_PRICE_ID"],os.environ["HOOPZARO_BILLING_SANDBOX_PRODUCT_ID"],
-        approved_return_url(os.environ["HOOPZARO_BILLING_SANDBOX_RETURN_URL"]))
-except Exception:
-    st.error("Brak poprawnej konfiguracji sandbox.")
+config,problems=load_config(os.environ)
+if problems:
+    st.error("Brak poprawnej konfiguracji sandbox — sprawdź poniższe pola w Secrets.")
+    for name,message in problems.items():
+        st.markdown("**"+name+"**")
+        st.caption(message)
     st.stop()
+api=StripeTestAPI(config["STRIPE_KEY"],config["STRIPE_ACCOUNT"])
+service=SandboxService(Store(config["DATABASE_URL"]),api,config["PRICE_ID"],
+    config["PRODUCT_ID"],config["RETURN_URL"])
+if st.button("Sprawdź konfigurację (bez płatności)"):
+    for name,result in check_connections(config).items():
+        if result=="OK":
+            st.success(name+": OK")
+        else:
+            st.error(name+": "+result)
 st.write("Testowana subskrypcja: 9,99 USD / miesiąc.")
 if st.button("Utwórz lub otwórz testową sesję Checkout"):
     try:
