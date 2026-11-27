@@ -142,6 +142,7 @@ class FakeStore:
     def __init__(self,account):
         self.attempt=Attempt(account,A,NOW,None,None,None)
         self.bound=None
+        self.verifications=[]
     def reserve(self,account):
         assert self.attempt.account_id==account
         return self.attempt
@@ -152,6 +153,9 @@ class FakeStore:
         self.attempt=replace(a,checkout_id=sid)
     def bind_subscription(self,a,b):
         self.bound=b
+    def record_verification(self,aid,checked_at,result):
+        self.verifications.append((aid,checked_at,result))
+        return True
 
 class ServiceTests(unittest.TestCase):
     def test_url_failure_saves_session_and_resume_never_creates_again(self):
@@ -192,7 +196,18 @@ class ServiceTests(unittest.TestCase):
             service.start(principal)
             self.assertTrue(service.decision(principal).allowed)
             api.objects["ch_fixture"]["refunded"]=True
-            self.assertFalse(service.decision(principal).allowed)
+            result=service.decision(principal)
+            self.assertFalse(result.allowed)
+            self.assertEqual(result.reason,"refund_or_dispute")
+            self.assertEqual(store.verifications[-1][2],result)
+            api.objects["ch_fixture"]["refunded"]=False
+            api.objects["sub_fixture"]["status"]="canceled"
+            self.assertEqual(service.decision(principal).reason,"subscription_not_active")
+            api.objects["sub_fixture"]["status"]="active"
+            with patch.object(store,"record_verification",return_value=False):
+                self.assertFalse(service.decision(principal).allowed)
+            with patch.object(store,"record_verification",side_effect=RuntimeError("offline")):
+                self.assertFalse(service.decision(principal).allowed)
             with self.assertRaises(BillingError): service.start("issuer|other")
 
 @unittest.skipUnless(importlib.util.find_spec('stripe') is not None,'Stripe SDK installed by dedicated billing QA')
