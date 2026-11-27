@@ -1,0 +1,23 @@
+name: Player Intelligence — isolated research QA
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'player_intelligence/**'
+      - 'test_player_intelligence*.py'
+      - '.github/workflows/player-intelligence-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-rotation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -q 'numpy>=1.26,<3' 'pandas>=2.2,<3'
+      - run: python -m compileall -q player_intelligence test_player_intelligence_rotation.py
+      - run: python -m unittest -v test_player_intelligence_rotation
