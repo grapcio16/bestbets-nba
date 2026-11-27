@@ -67,6 +67,7 @@ def run():
                 if key=="security":
                     assert page.locator("#hza-google-security").is_visible()
                 assert dialog.get_attribute("data-panel")==key
+                assert dialog.locator(".hza-dialog-body").evaluate("e=>e.scrollTop===0"), key
                 assert page.locator("#hza-dialog-icon svg").count()==1
                 assert panel.locator(".hza-feature-card, .hza-plan-banner, .hza-notification-list").count()>0
                 assert dialog.evaluate("e=>e.getBoundingClientRect().width<=innerWidth")
@@ -90,6 +91,11 @@ def run():
                     assert dialog.locator("#hza-done").evaluate("e=>{const r=e.getBoundingClientRect();return r.bottom<=innerHeight+1}"), key
                 page.keyboard.press("Escape")
                 assert dialog.is_hidden()
+            page.locator('.hza-tile[data-hza-open="preferences"]').click()
+            page.locator(".hza-dialog-body").evaluate("e=>e.scrollTop=e.scrollHeight")
+            page.locator('.hza-dialog-nav [data-hza-open="security"]').click()
+            assert page.locator(".hza-dialog-body").evaluate("e=>e.scrollTop===0")
+            page.keyboard.press("Escape")
             page.locator('.hza-tile[data-hza-open="privacy"]').click()
             page.locator("#hz-usage-allow").click()
             page.wait_for_function("()=>qaEvents.some(e=>e.type==='usage_consent'&&e.accepted===true&&e.consent_epoch===1)")

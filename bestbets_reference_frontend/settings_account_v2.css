@@ -446,3 +446,59 @@
  .hza-dialog[data-panel="profile"] .hza-card-actions .hza-action{font-size:13px}
  .hza-header-art{opacity:.6}
 }
+
+/* Sixth pass: preserve the complete initial viewport in each panel, with
+   stronger localized rim glow and accurate mockup-specific artwork hierarchy. */
+.hza-dialog-body{scroll-behavior:auto;overflow-anchor:none}
+.hza-dialog-nav{scroll-behavior:auto;overflow-anchor:none}
+.hza-grid .hza-tile-plan.hza-tile{background:radial-gradient(ellipse at 0% 0%,#7936c582,transparent 48%),radial-gradient(ellipse at 100% 100%,#6d1ea64d,transparent 42%),linear-gradient(120deg,#141234,#0b122e 62%,#1a123c) padding-box,linear-gradient(135deg,#db91ff,#9256e5 50%,#e46bff) border-box;box-shadow:inset 0 0 16px #a14eed33,0 0 12px #b45cff55}
+.hza-grid .hza-tile-preferences.hza-tile{background:radial-gradient(ellipse at 0% 0%,#26478866,transparent 38%),radial-gradient(ellipse at 100% 100%,#7824a94d,transparent 40%),linear-gradient(120deg,#06182f,#07152e 55%,#131334) padding-box,linear-gradient(135deg,#b4ceff,#6d9cd8 38%,#e587ff) border-box}
+.hza-grid .hza-tile:focus-visible{outline:2px solid #bdfbff;outline-offset:2px}
+.hza-hero .hza-orbit{right:190px;top:-210px;width:660px;height:290px;transform:rotate(-22deg);opacity:.64}
+.hza-dialog[data-panel="privacy"] .hza-art-symbol,.hza-dialog[data-panel="security"] .hza-art-symbol{background:radial-gradient(ellipse at 30% 10%,#ad48f6aa,#1b2263cc 65%,#07233999);border-color:#b468f4;box-shadow:0 0 15px #b94ffb99,inset 0 0 18px #2fcff744}
+.hza-dialog[data-panel="privacy"] .hza-art-symbol .hza-svg,.hza-dialog[data-panel="security"] .hza-art-symbol .hza-svg{color:#70f3ff;filter:drop-shadow(0 0 7px #00d7ff) drop-shadow(0 0 10px #9b64ff)}
+.hza-dialog[data-panel="profile"] .hza-hoop-art{filter:drop-shadow(0 0 6px #b462ff) drop-shadow(0 0 12px #6d33c788)}
+.hza-dialog[data-panel="privacy"] #hz-usage-privacy{border-color:#2b83ad;box-shadow:inset 0 0 13px #13c3ef15}
+.hza-dialog[data-panel="privacy"] .hza-privacy-grid>.hza-feature-card{background:radial-gradient(ellipse at 0% 0%,#00567c40,transparent 60%),#0a1b36 padding-box,linear-gradient(130deg,#19c7ec,#6d8aca) border-box}
+.hza-dialog[data-panel="privacy"] .hza-privacy-right>.hza-feature-card:not(.hza-violet-card){background:radial-gradient(ellipse at 0% 0%,#005e754d,transparent 58%),#081f32 padding-box,linear-gradient(135deg,#19d5de,#469cb8) border-box}
+.hza-dialog[data-panel="privacy"] .hza-privacy-right>.hza-violet-card{background:radial-gradient(ellipse at 0% 0%,#5b258d55,transparent 60%),#1a1336 padding-box,linear-gradient(135deg,#ac6cf4,#d258ff) border-box}
+.hza-dialog[data-panel="privacy"] .hza-privacy-right>.hza-violet-card>header .hza-svg{color:#e1abff}
+.hza-dialog[data-panel="notifications"] .hza-notification-list .hza-detail-row{border-color:#315a89;box-shadow:inset 0 0 10px #2bb5e51c}
+.hza-dialog[data-panel="notifications"] .hza-notification-list .hza-detail-row.violet{background:radial-gradient(ellipse at 52% 0%,#5a288b38,transparent 70%),linear-gradient(115deg,#0b1730,#111532 60%,#1e123b)}
+.hza-dialog[data-panel="notifications"] .hza-notification-list .hza-detail-row.rose{background:radial-gradient(ellipse at 58% 50%,#7e214d30,transparent 70%),linear-gradient(115deg,#0d1830,#13142e 62%,#23152d)}
+.hza-dialog[data-panel="notifications"] .hza-notification-list .hza-detail-row.rose:before{height:130%;top:-15%;background:linear-gradient(150deg,transparent 46%,#ff488533 48%,#ff6d9b88 49%,transparent 50%);filter:drop-shadow(0 0 5px #ff5880)}
+@media(min-width:1200px) and (min-height:720px){
+ .hza-dialog[data-panel="plan"] .hza-dialog-nav,.hza-dialog[data-panel="security"] .hza-dialog-nav{padding:14px 14px;gap:7px}
+ .hza-dialog[data-panel="plan"] .hza-dialog-brand,.hza-dialog[data-panel="security"] .hza-dialog-brand{padding:0 0 12px;margin-bottom:4px}
+ .hza-dialog-brand img{width:65px;height:65px}
+ .hza-dialog-brand strong{font-size:22px}
+ .hza-dialog[data-panel="plan"] .hza-dialog-nav button,.hza-dialog[data-panel="security"] .hza-dialog-nav button{min-height:47px;padding:8px 12px;font-size:15px}
+ .hza-dialog[data-panel="security"] .hza-dialog-head{min-height:128px;padding-top:19px;padding-bottom:19px}
+ .hza-dialog[data-panel="security"] .hza-dialog-body{padding:16px 20px}
+ .hza-dialog[data-panel="security"] .hza-dialog-body section{gap:10px}
+ .hza-dialog[data-panel="security"] .hza-feature-card{padding:12px 16px}
+ .hza-dialog[data-panel="security"] .hza-feature-card>header{margin-bottom:6px;padding-bottom:7px}
+ .hza-dialog[data-panel="security"] .hza-detail-row{min-height:65px;margin:5px 0}
+ .hza-dialog[data-panel="security"] .hza-security-2fa{padding:5px 3px;grid-template-columns:145px minmax(0,1fr)}
+ .hza-dialog[data-panel="security"] .hza-shield-art{width:128px;height:128px}
+ .hza-dialog[data-panel="profile"] .hza-dialog-nav{padding:17px 14px;gap:8px}
+ .hza-dialog[data-panel="profile"] .hza-dialog-nav button{min-height:52px}
+ .hza-dialog[data-panel="profile"] .hza-dialog-body{padding:17px 20px}
+ .hza-dialog[data-panel="profile"] .hza-dialog-body section{gap:9px}
+ .hza-dialog[data-panel="profile"] .hza-profile-card{padding:15px 17px}
+ .hza-dialog[data-panel="profile"] .hza-profile-card .hza-profile{min-height:230px;padding:8px 0}
+ .hza-dialog[data-panel="profile"] .hza-avatar-large{width:173px;height:173px;font-size:61px}
+ .hza-dialog[data-panel="profile"] .hza-card-actions{padding-top:8px}
+ .hza-dialog[data-panel="privacy"] .hza-dialog-head{min-height:105px;padding:12px 58px 12px 25px}
+ .hza-dialog[data-panel="privacy"] .hza-dialog-head .hz-account-kicker{margin-bottom:7px}
+ .hza-dialog[data-panel="privacy"] .hza-title-icon{width:52px;height:52px;flex-basis:52px}
+ .hza-dialog[data-panel="privacy"] .hza-title-icon .hza-svg{width:34px;height:34px}
+ .hza-dialog[data-panel="privacy"] .hza-dialog-body section{gap:8px}
+ .hza-dialog[data-panel="privacy"] #hz-usage-privacy p{line-height:1.35}
+ .hza-dialog[data-panel="privacy"] .hza-privacy-grid .hza-feature-card{padding:8px 12px}
+ .hza-dialog[data-panel="privacy"] .hza-privacy-grid .hza-feature-card h3{font-size:17px}
+ .hza-dialog[data-panel="privacy"] .hza-privacy-grid .hza-feature-card>header .hza-svg{width:23px;height:23px}
+ .hza-dialog[data-panel="privacy"] .hza-privacy-grid .hza-feature-card p{font-size:12px;line-height:1.35}
+ .hza-dialog[data-panel="privacy"] .hza-privacy-grid .hza-action{font-size:12px;padding:5px 8px;min-height:32px}
+}
+@media(max-width:767px),(min-width:768px) and (max-width:1200px) and (max-height:500px) and (orientation:landscape){.hza-hero .hza-orbit{opacity:.24}}

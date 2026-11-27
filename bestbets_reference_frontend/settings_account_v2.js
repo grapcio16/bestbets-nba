@@ -9,7 +9,8 @@ function close(){if($("hza-dialog").open)$("hza-dialog").close();}
 function open(key,trigger){
  if(!Object.hasOwn(titles,key)||$("hz-account").hidden)return;
  const dialog=$("hza-dialog");
- if(!dialog.open){returnFocus=trigger;dialog.showModal();}
+ const opening=!dialog.open;
+ if(opening)returnFocus=trigger;
  current=key;dialog.dataset.panel=key;
  const headings={profile:["Ustawienia","konta","Zarządzaj swoim kontem i preferencjami aplikacji."],plan:["Plan i","dostęp","Zarządzaj dostępem do narzędzi Hoopzaro."],preferences:["Preferencje","aplikacji","Dostosuj sposób prezentacji danych."],notifications:["Powiadomienia","","Zaplanowane alerty o najważniejszych wydarzeniach."],privacy:["Prywatność i","zgody","Zarządzaj danymi, zgodami i prywatnością."],security:["Bezpieczeństwo","konta","Zarządzaj logowaniem i ochroną konta."],support:["Pomoc i","wsparcie","FAQ, kontakt oraz zgłaszanie problemów."]};
  const [first,accent,subtitle]=headings[key];
@@ -21,7 +22,13 @@ function open(key,trigger){
  $("hza-art-symbol").replaceChildren(...(mark?[mark.cloneNode(true)]:[]));
  dialog.querySelectorAll("[data-hza-panel]").forEach(p=>p.hidden=p.dataset.hzaPanel!==key);
  dialog.querySelectorAll("[data-hza-open]").forEach(b=>{if(b.dataset.hzaOpen===key)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
- $("hza-close").focus();
+ if(opening)dialog.showModal();
+ $("hza-close").focus({preventScroll:true});
+ dialog.querySelector(".hza-dialog-body").scrollTop=0;
+ const nav=dialog.querySelector(".hza-dialog-nav");
+ nav.scrollTop=0;nav.scrollLeft=0;
+ const selected=nav.querySelector("[aria-current=page]");
+ if(selected&&nav.scrollWidth>nav.clientWidth+1){nav.scrollLeft=Math.max(0,selected.offsetLeft-nav.offsetLeft-8);}
 }
 function render(visible,payload){
  const auth=payload?.auth||{},role=["admin","premium","free"].includes(auth.role)&&auth.logged_in===true?auth.role:"guest";
