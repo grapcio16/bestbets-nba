@@ -2,10 +2,14 @@ name: Premium role cache isolated QA
 on:
   push:
     branches: [fix/premium-role-cache-regression]
+  pull_request:
+    branches: [feature/data-intelligence-v1]
+    paths: ['test_centre_bootstrap.py', '.github/workflows/premium-role-cache-isolated.yml']
 permissions:
   contents: read
 jobs:
   regression:
+    if: github.event_name == 'push' || github.head_ref == 'fix/premium-role-cache-regression'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
